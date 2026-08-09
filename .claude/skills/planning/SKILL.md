@@ -20,6 +20,3 @@ For generator-backed work, dry-run the generator when needed to enumerate files.
 Do not copy rule text from AGENTS, rule coverage, or playbooks into the plan;
 link to the source of truth and keep the plan focused on targets, commands, and
 verification.
-
-Before implementation starts, run `pnpm stack:check <plan.json>` when the plan
-has a stack-plan manifest.

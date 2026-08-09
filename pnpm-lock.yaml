@@ -32,12 +32,6 @@ importers:
       "@cucumber/cucumber":
         specifier: 13.2.0
         version: 13.2.0
-      "@cucumber/gherkin":
-        specifier: 41.0.0
-        version: 41.0.0
-      "@cucumber/messages":
-        specifier: 34.0.1
-        version: 34.0.1
       "@effect/language-service":
         specifier: 0.87.1
         version: 0.87.1
@@ -125,9 +119,6 @@ importers:
       "@maestro-template/release-tooling":
         specifier: workspace:*
         version: link:../../tooling/release
-      "@maestro-template/stack-tooling":
-        specifier: workspace:*
-        version: link:../../tooling/stack
       "@maestro-template/template-core":
         specifier: workspace:*
         version: link:../../packages/template-core
@@ -137,8 +128,6 @@ importers:
       effect:
         specifier: 4.0.0-beta.102
         version: 4.0.0-beta.102
-
-  apps/voice-relay: {}
 
   apps/web:
     dependencies:
@@ -600,8 +589,10 @@ importers:
       "@maestro-template/template-core":
         specifier: workspace:*
         version: link:../../packages/template-core
-
-  tooling/pr-backlog: {}
+    devDependencies:
+      yaml:
+        specifier: ^2.9.0
+        version: 2.9.0
 
   tooling/quality:
     dependencies:
@@ -618,8 +609,6 @@ importers:
       ajv:
         specifier: 8.18.0
         version: 8.18.0
-
-  tooling/stack: {}
 
   tooling/workflow:
     dependencies:

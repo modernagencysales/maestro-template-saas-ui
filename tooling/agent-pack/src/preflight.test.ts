@@ -3,6 +3,7 @@ import { executeAgentPackCommand } from "./contracts.js";
 import {
   createPreflightCommand,
   fingerprintPreflight,
+  mutationBlockingPreflightCodes,
   type PreflightFacts,
 } from "./preflight.js";
 import { createRepositoryContext } from "./repoContext.js";
@@ -18,7 +19,7 @@ const readyFacts = (): PreflightFacts => ({
     os: "linux",
     architecture: "x64",
     osSupported: true,
-    node: { current: "22.12.0", required: "22.12.0", supported: true },
+    node: { current: "22.23.2", required: "22.23.2", supported: true },
     pnpm: { current: "10.12.1", required: "10.12.1", supported: true },
     corepack: "ready",
     git: {
@@ -76,13 +77,36 @@ const readyFacts = (): PreflightFacts => ({
   indexes: {
     systems: "docs/template/system-catalog.json",
     generators: "tooling/generators/src/index.ts",
-    recipes: "Justfile",
+    recipes: "package.json",
     documentation: "docs/template",
   },
   claimLevels: ["fake", "local", "dev", "preview", "staging", "production"],
 });
 
 describe("agent-pack preflight", () => {
+  it("accounts for every retained mutation-blocking denial", () => {
+    expect(mutationBlockingPreflightCodes).toEqual([
+      "AGENT_PACK_OS_UNSUPPORTED",
+      "AGENT_PACK_NODE_UNSUPPORTED",
+      "AGENT_PACK_PNPM_UNSUPPORTED",
+      "AGENT_PACK_GIT_UNSUPPORTED",
+      "AGENT_PACK_INSTALL_MISSING",
+      "AGENT_PACK_REPO_AMBIGUOUS",
+      "AGENT_PACK_DIRTY_OVERLAP",
+      "AGENT_PACK_VERSION_INCOMPATIBLE",
+      "AGENT_PACK_DISK_LOW",
+      "AGENT_PACK_PORT_BLOCKED",
+      "AGENT_PACK_GENERATED_DRIFT",
+      "AGENT_PACK_GENERATED_DRIFT_UNKNOWN",
+      "AGENT_PACK_GIT_ROOT_MISMATCH",
+      "AGENT_PACK_GIT_ROOT_UNKNOWN",
+      "AGENT_PACK_DIRTY_STATE_UNKNOWN",
+      "AGENT_PACK_COLLISIONS_UNKNOWN",
+      "AGENT_PACK_WORKFLOW_UNSAFE",
+      "AGENT_PACK_PROVIDER_MISSING",
+    ]);
+  });
+
   it("accepts supported standalone pnpm when Corepack is unavailable", async () => {
     const facts = readyFacts();
     const result = await executeAgentPackCommand(
@@ -116,7 +140,8 @@ describe("agent-pack preflight", () => {
       data: {
         fingerprint: fingerprintPreflight(context.repo, facts),
         safeToMutate: true,
-        worksNow: "What works now: the app uses sample data saved locally.",
+        worksNow:
+          "What works now: the app uses deterministic in-memory sample data.",
         demoOnly:
           "What is demo-only: provider-backed actions still use sample data.",
         nextAction: "pnpm maestro -- check",
@@ -232,6 +257,76 @@ describe("agent-pack preflight", () => {
     },
   );
 
+  it("allows unrelated dirty work when no target path overlaps", async () => {
+    const facts = readyFacts();
+    const result = await executeAgentPackCommand(
+      createPreflightCommand({
+        inspect: async () => ({
+          ...facts,
+          repository: { ...facts.repository, dirty: true, collisions: [] },
+        }),
+      }),
+      { mode: "fake" },
+      context,
+    );
+
+    expect(result).toMatchObject({
+      exitClass: "success",
+      data: { safeToMutate: true },
+    });
+  });
+  it("does not require workflow semantics when no workflow module is selected", async () => {
+    const facts = readyFacts();
+    const result = await executeAgentPackCommand(
+      createPreflightCommand({
+        inspect: async () => ({
+          ...facts,
+          workflow: {
+            ...facts.workflow,
+            status: "unsupported",
+            publishedDrift: true,
+          },
+          app: { ...facts.app, modules: ["brain"] },
+        }),
+      }),
+      { mode: "fake" },
+      context,
+    );
+
+    expect(result.exitClass).toBe("success");
+    expect(result.diagnostics).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ code: "AGENT_PACK_WORKFLOW_UNSAFE" }),
+      ]),
+    );
+  });
+
+  it.each([
+    ["unsupported status", { status: "unsupported" as const }],
+    ["published drift", { publishedDrift: true }],
+  ])(
+    "requires safe workflow semantics for selected workflows with %s",
+    async (_label, workflowOverride) => {
+      const facts = readyFacts();
+      const result = await executeAgentPackCommand(
+        createPreflightCommand({
+          inspect: async () => ({
+            ...facts,
+            workflow: { ...facts.workflow, ...workflowOverride },
+          }),
+        }),
+        { mode: "fake" },
+        context,
+      );
+
+      expect(result.diagnostics).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ code: "AGENT_PACK_WORKFLOW_UNSAFE" }),
+        ]),
+      );
+    },
+  );
+
   it.each([
     [
       "unsupported OS",
@@ -282,6 +377,14 @@ describe("agent-pack preflight", () => {
       "AGENT_PACK_REPO_AMBIGUOUS",
     ],
     [
+      "Git root mismatch",
+      (f: PreflightFacts) => ({
+        ...f,
+        repository: { ...f.repository, rootMatches: false },
+      }),
+      "AGENT_PACK_GIT_ROOT_MISMATCH",
+    ],
+    [
       "dirty overlap",
       (f: PreflightFacts) => ({
         ...f,
@@ -290,9 +393,61 @@ describe("agent-pack preflight", () => {
       "AGENT_PACK_DIRTY_OVERLAP",
     ],
     [
+      "generated drift",
+      (f: PreflightFacts) => ({
+        ...f,
+        repository: { ...f.repository, generatedDrift: true },
+      }),
+      "AGENT_PACK_GENERATED_DRIFT",
+    ],
+    [
+      "unknown generated drift",
+      (f: PreflightFacts) => ({
+        ...f,
+        repository: { ...f.repository, generatedDrift: "unknown" as const },
+      }),
+      "AGENT_PACK_GENERATED_DRIFT_UNKNOWN",
+    ],
+    [
       "incompatible versions",
       (f: PreflightFacts) => ({ ...f, versionsCompatible: false }),
       "AGENT_PACK_VERSION_INCOMPATIBLE",
+    ],
+    [
+      "unsafe workflow semantics",
+      (f: PreflightFacts) => ({
+        ...f,
+        workflow: { ...f.workflow, status: "unsupported" as const },
+      }),
+      "AGENT_PACK_WORKFLOW_UNSAFE",
+    ],
+    [
+      "low disk",
+      (f: PreflightFacts) => ({
+        ...f,
+        prerequisites: { ...f.prerequisites, disk: "low" as const },
+      }),
+      "AGENT_PACK_DISK_LOW",
+    ],
+    [
+      "blocked port",
+      (f: PreflightFacts) => ({
+        ...f,
+        prerequisites: { ...f.prerequisites, ports: "blocked" as const },
+      }),
+      "AGENT_PACK_PORT_BLOCKED",
+    ],
+    [
+      "missing selected provider",
+      (f: PreflightFacts) => ({
+        ...f,
+        app: {
+          ...f.app,
+          providerMode: "live" as const,
+          providers: [{ id: "llm", posture: "missing" as const }],
+        },
+      }),
+      "AGENT_PACK_PROVIDER_MISSING",
     ],
     [
       "stale host",

@@ -1,6 +1,12 @@
-import { createHash } from "node:crypto";
-import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { lstatSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  basename,
+  dirname,
+  isAbsolute,
+  relative,
+  resolve,
+  sep,
+} from "node:path";
 
 export type PrivatePackageDisposition = "reuse" | "extend";
 
@@ -30,7 +36,6 @@ export type PrivatePackagePlan = {
     readonly readsSecrets: false;
     readonly productionRegistrations: false;
   };
-  readonly previewFingerprint: `private_package_sha256:${string}`;
   readonly confirmationCommand: string;
 };
 
@@ -63,14 +68,65 @@ const camelCase = (value: string): string => {
   return `${pascal[0]?.toLowerCase() ?? "g"}${pascal.slice(1)}`;
 };
 
+const pathStatus = (path: string) => {
+  try {
+    return lstatSync(path, { throwIfNoEntry: false });
+  } catch (error) {
+    if (
+      error &&
+      typeof error === "object" &&
+      "code" in error &&
+      (error.code === "ENOENT" || error.code === "ENOTDIR")
+    )
+      return undefined;
+    throw error;
+  }
+};
+
 const manifestAt = (
   fixturePath: string,
-): PrivatePackageManifest | undefined => {
+): {
+  readonly manifest: PrivatePackageManifest | undefined;
+  readonly error: string | undefined;
+} => {
   const path = resolve(fixturePath, "template-package.json");
-  return existsSync(path)
-    ? (JSON.parse(readFileSync(path, "utf8")) as PrivatePackageManifest)
-    : undefined;
+  if (!pathStatus(path)) return { manifest: undefined, error: undefined };
+  try {
+    const value: unknown = JSON.parse(readFileSync(path, "utf8"));
+    if (!isPrivatePackageManifest(value))
+      return {
+        manifest: undefined,
+        error: "Manifest declarations are invalid.",
+      };
+    return { manifest: value, error: undefined };
+  } catch {
+    return { manifest: undefined, error: "Manifest JSON is malformed." };
+  }
 };
+
+const isPrivatePackageManifest = (
+  value: unknown,
+): value is PrivatePackageManifest => {
+  if (value === null || typeof value !== "object" || Array.isArray(value))
+    return false;
+  const manifest = value as Record<string, unknown>;
+  return (
+    (manifest.name === undefined || isDeclaration(manifest.name)) &&
+    ["capabilities", "workflows", "agents", "docs"].every(
+      (key) =>
+        manifest[key] === undefined ||
+        (Array.isArray(manifest[key]) && manifest[key].every(isDeclaration)),
+    )
+  );
+};
+
+const isDeclaration = (value: unknown): value is string =>
+  typeof value === "string" &&
+  value.trim().length > 0 &&
+  value !== "." &&
+  value !== ".." &&
+  !value.includes("/") &&
+  !value.includes("\\");
 
 const packageNameFor = (
   fixturePath: string,
@@ -169,11 +225,6 @@ Review graph policy, approvals, idempotency, and receipt behavior before promoti
   ];
 };
 
-const fingerprint = (value: unknown): `private_package_sha256:${string}` =>
-  `private_package_sha256:${createHash("sha256")
-    .update(JSON.stringify(value))
-    .digest("hex")}`;
-
 const quote = (value: string): string => JSON.stringify(value);
 
 export const buildPrivatePackagePlan = (options: {
@@ -183,10 +234,12 @@ export const buildPrivatePackagePlan = (options: {
   readonly system: string;
   readonly disposition: PrivatePackageDisposition;
   readonly mode?: "dry-run" | "import";
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting the bounded private-package plan while retaining its safety checks.
 }): PrivatePackagePlan => {
   const mode = options.mode ?? "dry-run";
   const manifestPath = resolve(options.fixturePath, "template-package.json");
-  const manifest = manifestAt(options.fixturePath);
+  const manifestResult = manifestAt(options.fixturePath);
+  const manifest = manifestResult.manifest;
   const packageName = packageNameFor(options.fixturePath, manifest);
   const capabilities = manifest?.capabilities?.length
     ? manifest.capabilities
@@ -199,10 +252,12 @@ export const buildPrivatePackagePlan = (options: {
     {
       id: "fixture:manifest",
       label: "Package manifest",
-      status: manifest ? "pass" : "warn",
-      detail: manifest
-        ? `Found ${manifestPath}`
-        : "No template-package.json found; using safe defaults.",
+      status: manifestResult.error ? "fail" : manifest ? "pass" : "warn",
+      detail: manifestResult.error
+        ? manifestResult.error
+        : manifest
+          ? `Found ${manifestPath}`
+          : "No template-package.json found; using safe defaults.",
     },
     {
       id: "fixture:privacy",
@@ -307,7 +362,7 @@ Generated from the reviewed manifest at \`${options.fixturePath}\`. Seed files a
   const collisions = targetRoot
     ? files
         .map(({ path }) => path)
-        .filter((path) => existsSync(resolve(targetRoot, path)))
+        .filter((path) => pathStatus(resolve(targetRoot, path)) !== undefined)
     : [];
   const privacy = {
     reads: ["template-package.json"],
@@ -315,19 +370,8 @@ Generated from the reviewed manifest at \`${options.fixturePath}\`. Seed files a
     readsSecrets: false,
     productionRegistrations: false,
   } as const;
-  const previewFingerprint = fingerprint({
-    packageName,
-    system: options.system,
-    disposition: options.disposition,
-    files: files.map(({ path, content }) => ({
-      path,
-      sha256: createHash("sha256").update(content).digest("hex"),
-    })),
-    collisions,
-    privacy,
-  });
   const fixtureArgument = options.fixtureArgument ?? options.fixturePath;
-  const confirmationCommand = `pnpm template:private-package:import -- --fixture ${quote(fixtureArgument)} --system ${quote(options.system)} --disposition ${options.disposition} --write --preflight-fingerprint ${previewFingerprint}`;
+  const confirmationCommand = `pnpm template:private-package:import -- --fixture ${quote(fixtureArgument)} --system ${quote(options.system)} --disposition ${options.disposition} --write`;
 
   return {
     fixturePath: options.fixturePath,
@@ -338,9 +382,71 @@ Generated from the reviewed manifest at \`${options.fixturePath}\`. Seed files a
     checks,
     collisions,
     privacy,
-    previewFingerprint,
     confirmationCommand,
   };
+};
+
+const isInside = (root: string, path: string): boolean => {
+  const distance = relative(root, path);
+  return (
+    distance !== "" &&
+    distance !== ".." &&
+    !distance.startsWith(`..${sep}`) &&
+    !isAbsolute(distance)
+  );
+};
+
+const assertSafeDestinations = (
+  plan: PrivatePackagePlan,
+  options: { readonly fixturePath: string; readonly targetRoot: string },
+): void => {
+  const targetRoot = resolve(options.targetRoot);
+  const protectedRoots = [
+    resolve(options.fixturePath),
+    resolve(targetRoot, ".git"),
+    resolve(targetRoot, ".maestro"),
+    resolve(targetRoot, "node_modules"),
+  ];
+  for (const file of plan.files) {
+    const destination = resolve(targetRoot, file.path);
+    if (!isInside(targetRoot, destination))
+      throw new Error(
+        `Private-package destination escapes target root: ${file.path}`,
+      );
+    if (protectedRoots.some((root) => isInside(root, destination)))
+      throw new Error(
+        `Private-package destination is under a protected root: ${file.path}`,
+      );
+    let ancestor = targetRoot;
+    if (pathStatus(ancestor)?.isSymbolicLink())
+      throw new Error(`Refusing symlinked target ancestor: ${ancestor}`);
+    for (const segment of relative(targetRoot, destination)
+      .split(sep)
+      .slice(0, -1)) {
+      ancestor = resolve(ancestor, segment);
+      if (pathStatus(ancestor)?.isSymbolicLink())
+        throw new Error(`Refusing symlinked target ancestor: ${ancestor}`);
+    }
+  }
+};
+
+const writePrivatePackageFiles = (
+  plan: PrivatePackagePlan,
+  targetRoot: string,
+): void => {
+  const created: string[] = [];
+  try {
+    for (const file of plan.files) {
+      const path = resolve(targetRoot, file.path);
+      mkdirSync(dirname(path), { recursive: true });
+      writeFileSync(path, file.content, { flag: "wx" });
+      created.push(file.path);
+    }
+  } catch (error) {
+    throw new Error(
+      `Private-package import failed; newly created paths: ${created.join(", ") || "(none)"}. Remove only those paths before rerunning. ${error instanceof Error ? error.message : String(error)}`,
+    );
+  }
 };
 
 export const executePrivatePackagePlan = (options: {
@@ -351,26 +457,17 @@ export const executePrivatePackagePlan = (options: {
   readonly disposition: PrivatePackageDisposition;
   readonly mode: "dry-run" | "import";
   readonly write: boolean;
-  readonly preflightFingerprint?: string;
 }): PrivatePackagePlan => {
   const plan = buildPrivatePackagePlan(options);
   if (!options.write) return plan;
-  if (options.mode !== "import")
-    throw new Error("Only private-package:import accepts --write");
-  if (options.preflightFingerprint !== plan.previewFingerprint) {
-    throw new Error(
-      `Private-package fingerprint mismatch. Review preview and rerun exactly: ${plan.confirmationCommand}`,
-    );
-  }
+  if (options.mode !== "import" || !plan.ok)
+    throw new Error("Private-package import is not safe to write.");
   if (plan.collisions.length > 0) {
     throw new Error(
       `Refusing to overwrite existing private-package paths: ${plan.collisions.join(", ")}`,
     );
   }
-  for (const file of plan.files) {
-    const path = resolve(options.targetRoot, file.path);
-    mkdirSync(dirname(path), { recursive: true });
-    writeFileSync(path, file.content, { flag: "wx" });
-  }
+  assertSafeDestinations(plan, options);
+  writePrivatePackageFiles(plan, options.targetRoot);
   return plan;
 };

@@ -38,25 +38,11 @@ describe("support bundle CLI", () => {
     expect(existsSync(join(root, ".maestro"))).toBe(false);
   });
 
-  it("exports only the exact reviewed preview and remains CLI-only", async () => {
+  it("exports with --write alone and remains CLI-only", async () => {
     const root = mkdtempSync(join(tmpdir(), "maestro-support-cli-"));
     roots.push(root);
-    const preview = await runCliAsync(
-      ["support-bundle", "--json"],
-      undefined,
-      root,
-    );
-    const previewResult = JSON.parse(preview.stdout) as {
-      readonly data: { readonly previewFingerprint: string };
-    };
     const exported = await runCliAsync(
-      [
-        "support-bundle",
-        "--write",
-        "--preview-fingerprint",
-        previewResult.data.previewFingerprint,
-        "--json",
-      ],
+      ["support-bundle", "--write", "--json"],
       undefined,
       root,
     );
@@ -75,6 +61,13 @@ describe("support bundle CLI", () => {
       schemaVersion: 1,
       handling: { automaticUpload: false },
     });
+
+    const obsolete = await runCliAsync(
+      ["support-bundle", "--write", "--preview-fingerprint", "old"],
+      undefined,
+      root,
+    );
+    expect(obsolete.exitCode).toBe(2);
   });
 
   it("routes exact help", async () => {

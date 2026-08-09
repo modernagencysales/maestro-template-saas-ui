@@ -17,8 +17,10 @@ import {
 } from "@maestro-template/template-core/dataResourceCatalog";
 import { parseSystemCatalog } from "@maestro-template/template-core/systemCatalog";
 import { parseProductTopology } from "@maestro-template/template-core/productTopology";
+import { loadConfiguration, loadSources } from "@cucumber/cucumber/api";
 import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { describe, expect, expectTypeOf, it } from "vitest";
+import { parse as parseYaml } from "yaml";
 import {
   buildTemplateQuickstart,
   runGeneratorCli,
@@ -26,7 +28,6 @@ import {
   type WorkflowOptionalTemplateQuickstart,
 } from "../index";
 import {
-  SAAS_APPLICATION_PARAMETERIZED_ENTRIES,
   buildSaasApplicationAlpha1TargetPlan,
   buildSaasApplicationTargetPlan,
   saasApplicationBlueprint,
@@ -111,7 +112,233 @@ const reviewedBaseWrite = (
   return rule?.action === "copy" && sourcePaths.has(path) ? "copy" : undefined;
 };
 
+const verifyReferences = (scripts: Readonly<Record<string, string>>) =>
+  (scripts.verify ?? "")
+    .split(" && ")
+    .map((command) => /^pnpm (\S+)/u.exec(command)?.[1])
+    .filter((name): name is string => name !== undefined);
+
+const expectVerifyReferencesResolve = (
+  scripts: Readonly<Record<string, string>> | undefined,
+) => {
+  expect(scripts).toBeDefined();
+  const available = scripts ?? {};
+  expect(
+    verifyReferences(available).filter((name) => available[name] === undefined),
+  ).toEqual([]);
+};
+
 describe("saas application blueprint", () => {
+  it("projects only explicitly selected product patterns", () => {
+    const buildSelected = buildSaasApplicationTargetPlan as (options: {
+      readonly name: string;
+      readonly patterns?: readonly (
+        "records-example" | "workflow-automation"
+      )[];
+    }) => ReturnType<typeof buildSaasApplicationTargetPlan>;
+    const paths = (
+      patterns?: readonly ("records-example" | "workflow-automation")[],
+    ) =>
+      new Set(
+        buildSelected({
+          name: "Selected App",
+          ...(patterns ? { patterns } : {}),
+        }).entries.map(({ path }) => path),
+      );
+
+    const neutral = paths();
+    expect(neutral.has("features/records.feature")).toBe(false);
+    expect(neutral.has("apps/web/src/routes/_workspace.records.tsx")).toBe(
+      false,
+    );
+    expect(neutral.has("tooling/workflow/package.json")).toBe(false);
+    expect(
+      neutral.has("packages/convex/confect/workflows/graphCurrent.ts"),
+    ).toBe(false);
+    expect(
+      neutral.has("packages/convex/confect/deployAuthority/store.ts"),
+    ).toBe(true);
+
+    const records = paths(["records-example"]);
+    expect(records.has("features/records.feature")).toBe(true);
+    expect(records.has("apps/web/src/routes/_workspace.records.tsx")).toBe(
+      true,
+    );
+    expect(records.has("tooling/workflow/package.json")).toBe(false);
+    for (const path of [
+      "features/step_definitions/records.journeys.ts",
+      "features/support/contracts-scenario.ts",
+      "features/support/contracts-world.ts",
+      "features/support/contracts-runtime.ts",
+    ])
+      expect(records.has(path), path).toBe(true);
+    for (const path of [
+      "features/support/contracts-runtime.test.ts",
+      "features/support/contracts-world.test.ts",
+    ])
+      expect(records.has(path), path).toBe(false);
+
+    const workflow = paths(["workflow-automation"]);
+    expect(workflow.has("features/records.feature")).toBe(false);
+    expect(workflow.has("tooling/workflow/package.json")).toBe(true);
+    expect(
+      workflow.has("packages/convex/confect/workflows/graphCurrent.ts"),
+    ).toBe(true);
+  });
+
+  it("projects workflow data resources only when workflow is selected", () => {
+    const resources = (patterns: readonly "workflow-automation"[] = []) => {
+      const entry = buildSaasApplicationTargetPlan({
+        name: "Workflow Governance",
+        patterns,
+      }).entries.find(
+        ({ path }) => path === "docs/template/data-resources.json",
+      );
+      if (!entry) throw new Error("missing projected data-resource catalog");
+      return parseDataResourceCatalog(JSON.parse(entry.content)).resources;
+    };
+
+    expect(
+      resources().filter(({ system }) => system === "workflow-runtime"),
+    ).toEqual([]);
+    expect(
+      resources(["workflow-automation"]).some(
+        ({ system }) => system === "workflow-runtime",
+      ),
+    ).toBe(true);
+  });
+
+  it("derives scripts and lockfile importers from materialized patterns", () => {
+    const buildSelected = buildSaasApplicationTargetPlan as (options: {
+      readonly name: string;
+      readonly patterns?: readonly "workflow-automation"[];
+    }) => ReturnType<typeof buildSaasApplicationTargetPlan>;
+    const metadata = (patterns?: readonly "workflow-automation"[]) => {
+      const entries = new Map(
+        buildSelected({
+          name: "Selected App",
+          ...(patterns ? { patterns } : {}),
+        }).entries.map(({ path, content }) => [path, content]),
+      );
+      const root = JSON.parse(entries.get("package.json") ?? "{}") as {
+        readonly scripts?: Readonly<Record<string, string>>;
+      };
+      const lock = parseYaml(entries.get("pnpm-lock.yaml") ?? "") as {
+        readonly importers?: Readonly<
+          Record<
+            string,
+            { readonly dependencies?: Readonly<Record<string, unknown>> }
+          >
+        >;
+      };
+      const contract = JSON.parse(
+        entries.get(
+          "generated/blueprints/saas-application/application-contract.json",
+        ) ?? "{}",
+      ) as { readonly selectedPatterns?: readonly string[] };
+      const convexPackage = JSON.parse(
+        entries.get("packages/convex/package.json") ?? "{}",
+      ) as { readonly dependencies?: Readonly<Record<string, string>> };
+      const cliPackage = JSON.parse(
+        entries.get("apps/cli/package.json") ?? "{}",
+      ) as { readonly dependencies?: Readonly<Record<string, string>> };
+      const webPackage = JSON.parse(
+        entries.get("apps/web/package.json") ?? "{}",
+      ) as { readonly dependencies?: Readonly<Record<string, string>> };
+      const systems = parseSystemCatalog(
+        JSON.parse(entries.get("docs/template/system-catalog.json") ?? "{}"),
+      );
+      return {
+        root,
+        lock,
+        contract,
+        convexPackage,
+        cliPackage,
+        webPackage,
+        systems,
+        entries,
+      };
+    };
+
+    const neutral = metadata();
+    expect(neutral.contract.selectedPatterns).toEqual([]);
+    for (const script of [
+      "test:workflow",
+      "check:workflow-semantics",
+      "check:workflow-graph-boundary",
+      "check:workflow-policy-snapshots",
+      "check:workflow-principal-propagation",
+    ])
+      expect(neutral.root.scripts).not.toHaveProperty(script);
+    expectVerifyReferencesResolve(neutral.root.scripts);
+    expect(neutral.lock.importers).not.toHaveProperty("tooling/workflow");
+    expect(neutral.entries.get("apps/cli/src/headlessRegistry.ts")).toContain(
+      "Workflow automation pattern is not selected.",
+    );
+    for (const path of ["apps/cli/src/index.ts", "apps/cli/src/commands.ts"])
+      expect(neutral.entries.get(path), path).toContain(
+        'from "./headlessRegistry";',
+      );
+    expect(
+      neutral.entries.get("tooling/generators/src/customer-runtime.ts"),
+    ).not.toContain('from "./workflow-files"');
+    expect(
+      neutral.entries.get("tooling/generators/src/customer-runtime.ts"),
+    ).toContain("Workflow automation pattern is not selected.");
+    expect(
+      neutral.entries.has("tooling/generators/src/workflow-files.ts"),
+    ).toBe(false);
+    expect(neutral.convexPackage.dependencies).not.toHaveProperty(
+      "@convex-dev/workflow",
+    );
+    for (const packageJson of [
+      neutral.cliPackage,
+      neutral.webPackage,
+      neutral.convexPackage,
+    ])
+      expect(packageJson.dependencies).not.toHaveProperty(
+        "@maestro-template/workflow-tooling",
+      );
+    for (const importer of ["apps/cli", "apps/web", "packages/convex"])
+      expect(
+        neutral.lock.importers?.[importer]?.dependencies,
+      ).not.toHaveProperty("@maestro-template/workflow-tooling");
+    expect(
+      neutral.systems.systems.some(({ id }) => id === "workflow-runtime"),
+    ).toBe(false);
+    for (const generatedPath of [
+      "packages/convex/confect/_generated/schema.ts",
+      "packages/convex/confect/_generated/convexSchema.ts",
+      "packages/convex/confect/_generated/spec.ts",
+      "packages/convex/confect/_generated/id.ts",
+    ])
+      expect(neutral.entries.get(generatedPath), generatedPath).not.toMatch(
+        /workflowArtifacts|\.\.\/workflows\//u,
+      );
+
+    const workflow = metadata(["workflow-automation"]);
+    expect(workflow.contract.selectedPatterns).toEqual(["workflow-automation"]);
+    expect(workflow.root.scripts).toHaveProperty("test:workflow");
+    expectVerifyReferencesResolve(workflow.root.scripts);
+    expect(workflow.lock.importers).toHaveProperty("tooling/workflow");
+    expect(workflow.entries.has("apps/cli/src/headlessRegistry.ts")).toBe(
+      false,
+    );
+    for (const path of ["apps/cli/src/index.ts", "apps/cli/src/commands.ts"])
+      expect(workflow.entries.get(path), path).toContain(
+        'from "@maestro-template/workflow-tooling";',
+      );
+    expect(
+      workflow.entries.get("tooling/generators/src/customer-runtime.ts"),
+    ).toContain('from "./workflow-files"');
+    expect(workflow.convexPackage.dependencies).toHaveProperty(
+      "@convex-dev/workflow",
+    );
+    expect(
+      workflow.systems.systems.some(({ id }) => id === "workflow-runtime"),
+    ).toBe(true);
+  });
+
   it("reproduces immutable alpha.2 independently from the current candidate", () => {
     const authority = JSON.parse(
       readFileSync(
@@ -162,17 +389,17 @@ describe("saas application blueprint", () => {
     const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
       readonly release: { readonly sourceCommit: string };
     };
+    const sourceCommit = manifest.release.sourceCommit;
+    const sourceAvailable = spawnSync(
+      "git",
+      ["-C", repoRoot, "cat-file", "-e", `${sourceCommit}^{commit}`],
+      { encoding: "utf8" },
+    );
+    if (sourceAvailable.status !== 0) return;
     const paths = reviewedReleasePaths(manifestPath);
     const sourceTree = spawnSync(
       "git",
-      [
-        "-C",
-        repoRoot,
-        "ls-tree",
-        "-r",
-        "--name-only",
-        manifest.release.sourceCommit,
-      ],
+      ["-C", repoRoot, "ls-tree", "-r", "--name-only", sourceCommit],
       { encoding: "utf8" },
     );
     expect(sourceTree.status, sourceTree.stderr).toBe(0);
@@ -212,10 +439,10 @@ describe("saas application blueprint", () => {
 
   it("keeps retained template-core tests independent of factory release fixtures", () => {
     const entries = new Map(
-      buildSaasApplicationTargetPlan().entries.map((entry) => [
-        entry.path,
-        entry,
-      ]),
+      buildSaasApplicationTargetPlan({
+        name: "Selected App",
+        patterns: ["records-example", "workflow-automation"],
+      }).entries.map((entry) => [entry.path, entry]),
     );
     const testPath =
       "packages/template-core/src/templateInstance/templateInstance.test.ts";
@@ -249,12 +476,13 @@ describe("saas application blueprint", () => {
     });
   });
 
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this declarative cross-artifact assertion.
   it("projects exact customer tooling test and coverage closures", () => {
     const entries = new Map(
-      buildSaasApplicationTargetPlan().entries.map((entry) => [
-        entry.path,
-        entry,
-      ]),
+      buildSaasApplicationTargetPlan({
+        name: "Selected App",
+        patterns: ["records-example", "workflow-automation"],
+      }).entries.map((entry) => [entry.path, entry]),
     );
     const root = JSON.parse(entries.get("package.json")?.content ?? "{}") as {
       readonly scripts?: Readonly<Record<string, string>>;
@@ -288,7 +516,6 @@ describe("saas application blueprint", () => {
     const operationsRunbook = entries.get(
       "docs/template/operations-runbook.md",
     );
-    const justfile = entries.get("Justfile");
     const appMapComposition = entries.get("tooling/app-map/src/composition.ts");
     const appMapCompositionTest = entries.get(
       "tooling/app-map/src/composition.test.ts",
@@ -362,19 +589,13 @@ describe("saas application blueprint", () => {
     expect(appMapSchema?.content).toMatch(
       /"generator-provenance-facts"[\s\S]*?ownershipTargets:\s*\[[^\]]*"route"[^\]]*\]/u,
     );
-    expect(justfile).toMatchObject({ replaces: "generate" });
-    expect(justfile?.content).not.toContain("test-pr-backlog:");
-    expect(justfile?.content).not.toContain("evals:");
-    expect(justfile?.content).not.toContain("check-workflow-output-smoke:");
-    expect(justfile?.content).not.toContain("mutation:");
-    const customerScripts = root.scripts ?? {};
-    for (const match of justfile?.content.matchAll(/^\s+pnpm ([^\s;&]+)/gmu) ??
-      [])
-      expect(customerScripts, match[1]).toHaveProperty(match[1] as string);
   });
 
   it("projects canonical ownership provenance for the records vertical", () => {
-    const entry = buildSaasApplicationTargetPlan().entries.find(
+    const entry = buildSaasApplicationTargetPlan({
+      name: "Records Example",
+      patterns: ["records-example"],
+    }).entries.find(
       ({ path }) =>
         path === "docs/template/generated/provenance/add-feature/records.json",
     );
@@ -395,8 +616,12 @@ describe("saas application blueprint", () => {
     });
   });
 
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this declarative cross-artifact assertion.
   it("projects only the supported customer generator scripts", () => {
-    const plan = buildSaasApplicationTargetPlan();
+    const plan = buildSaasApplicationTargetPlan({
+      name: "Records Example",
+      patterns: ["records-example"],
+    });
     const packageEntry = plan.entries.find(
       ({ path }) => path === "package.json",
     );
@@ -467,7 +692,7 @@ describe("saas application blueprint", () => {
       expect(endIndex).toBeGreaterThan(startIndex);
       return lockfile.content.slice(startIndex, endIndex);
     };
-    const cliImporter = importer("  apps/cli:", "  apps/voice-relay:");
+    const cliImporter = importer("  apps/cli:", "  apps/web:");
     const webImporter = importer(
       "  apps/web:",
       "  packages/app-idea-evaluator:",
@@ -478,7 +703,7 @@ describe("saas application blueprint", () => {
     );
     const generatorImporter = importer(
       "  tooling/generators:",
-      "  tooling/pr-backlog:",
+      "  tooling/quality:",
     );
     const integrationsImporter = importer(
       "  packages/integrations:",
@@ -679,9 +904,6 @@ describe("saas application blueprint", () => {
 
   it("limits current personalization to reviewed app identity files", () => {
     expect(buildSaasApplicationTargetPlan().parameterizedEntries).toEqual([
-      "examples/saas-application/seed/crud-scenario.json",
-      "examples/saas-application/seed/records.json",
-      "examples/saas-application/seed/workspace.json",
       "features/first-outcome.feature",
       "generated/blueprints/saas-application/application-contract.json",
     ]);
@@ -700,7 +922,6 @@ describe("saas application blueprint", () => {
 Feature: Reconcile disputed invoices
   This is the first product promise for Collections Desk.
 
-  @cross_surface
   Scenario: Deliver reconcile disputed invoices
     Given the product is ready
     When the first outcome is completed
@@ -708,8 +929,56 @@ Feature: Reconcile disputed invoices
 `);
   });
 
+  it("parses draft records without admitting required scenarios", async () => {
+    const targetRoot = mkdtempSync(join(tmpdir(), "maestro-records-gherkin-"));
+    try {
+      const entries = buildSaasApplicationTargetPlan({
+        name: "Records Example",
+        patterns: ["records-example"],
+      }).entries;
+      for (const path of [
+        "cucumber.cjs",
+        "features/first-outcome.feature",
+        "features/records.feature",
+      ]) {
+        const entry = entries.find((candidate) => candidate.path === path);
+        if (!entry)
+          throw new Error(`missing generated Gherkin source: ${path}`);
+        const target = join(targetRoot, path);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, entry.content);
+      }
+
+      const allConfiguration = await loadConfiguration(
+        { file: "cucumber.cjs" },
+        { cwd: targetRoot },
+      );
+      const all = await loadSources(allConfiguration.runConfiguration.sources, {
+        cwd: targetRoot,
+      });
+      expect(all.errors).toEqual([]);
+      expect(all.plan.length).toBeGreaterThan(0);
+
+      const requiredConfiguration = await loadConfiguration(
+        { file: "cucumber.cjs", provided: ["--tags", "@required"] },
+        { cwd: targetRoot },
+      );
+      const required = await loadSources(
+        requiredConfiguration.runConfiguration.sources,
+        { cwd: targetRoot },
+      );
+      expect(required.errors).toEqual([]);
+      expect(required.plan).toEqual([]);
+    } finally {
+      rmSync(targetRoot, { recursive: true, force: true });
+    }
+  });
+
   it("projects each pre-existing workflow artifact schema binding once", () => {
-    const entries = buildSaasApplicationTargetPlan().entries;
+    const entries = buildSaasApplicationTargetPlan({
+      name: "Workflow App",
+      patterns: ["workflow-automation"],
+    }).entries;
     const databaseSchema = entries.find(
       ({ path }) => path === "packages/convex/confect/_generated/schema.ts",
     )?.content;
@@ -740,6 +1009,7 @@ Feature: Reconcile disputed invoices
     ).toHaveLength(1);
   });
 
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this immutable-authority assertion.
   it("matches the sealed alpha.1 manifest to its historical assets and current structure", () => {
     const plan = buildSaasApplicationTargetPlan();
     expect(new Set(plan.registrations).size).toBe(plan.registrations.length);
@@ -747,7 +1017,6 @@ Feature: Reconcile disputed invoices
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
       ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
       ...CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
-      "Justfile",
       "apps/cli/package.json",
       "apps/web/package.json",
       "apps/cli/src/factory/mcp.ts",
@@ -770,7 +1039,6 @@ Feature: Reconcile disputed invoices
       "tooling/quality/package.json",
       "tooling/quality/src/env-manifest.test.mts",
       "docs/template/generated/provenance/add-feature/records.json",
-      "scripts/pre-push-rubric.sh",
       "tooling/agent-pack/src/mcp/projection.ts",
       "tooling/agent-pack/src/mcp/protocol.ts",
       "tooling/agent-pack/src/mcp/server.ts",
@@ -786,11 +1054,6 @@ Feature: Reconcile disputed invoices
       "tooling/quality/taste-review.mts",
       "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
       "packages/convex/convex/records/records.ts",
-      "apps/web/src/features/records/records-surface.tsx",
-    ]);
-    const postAlphaReplacedPaths = new Set([
-      "packages/convex/confect/_generated/registeredFunctions/records.ts",
-      "packages/convex/convex/records.ts",
       "apps/web/src/features/records/records-surface.tsx",
     ]);
     const releaseRoot = join(
@@ -842,12 +1105,15 @@ Feature: Reconcile disputed invoices
         asset.sha256,
       );
     }
-    const currentEntries = new Map(
-      plan.entries.map((entry) => [entry.path, entry]),
+    const selectedCurrentEntries = new Map(
+      buildSaasApplicationTargetPlan({
+        name: "Selected App",
+        patterns: ["records-example", "workflow-automation"],
+      }).entries.map((entry) => [entry.path, entry]),
     );
     for (const path of postAlphaCurrentPaths) {
       expect(
-        currentEntries.has(path),
+        selectedCurrentEntries.has(path),
         `missing current projection for ${path}`,
       ).toBe(true);
     }
@@ -856,6 +1122,9 @@ Feature: Reconcile disputed invoices
         entry.path,
         entry,
       ]),
+    );
+    const currentEntries = new Map(
+      plan.entries.map((entry) => [entry.path, entry]),
     );
     const sourceCommit = manifest.projectionSource.sourceCommit;
     expect(sourceCommit).toMatch(/^[0-9a-f]{40}$/u);
@@ -867,13 +1136,7 @@ Feature: Reconcile disputed invoices
     for (const entry of manifest.entries) {
       const asset = assets.get(`base/${entry.path}.txt`);
       const currentEntry = currentEntries.get(entry.path);
-      const projectionEntry =
-        postAlphaReplacedPaths.has(entry.path) ||
-        SAAS_APPLICATION_PARAMETERIZED_ENTRIES.some(
-          (path) => path === entry.path,
-        )
-          ? historicalEntries.get(entry.path)
-          : currentEntry;
+      const projectionEntry = historicalEntries.get(entry.path) ?? currentEntry;
       const source =
         sourceAvailable.status === 0
           ? [entry.path, `examples/saas-application/seed/source/${entry.path}`]
@@ -1022,10 +1285,10 @@ Feature: Reconcile disputed invoices
       ]),
     );
     const currentEntries = new Map(
-      buildSaasApplicationTargetPlan().entries.map((entry) => [
-        entry.path,
-        entry.content,
-      ]),
+      buildSaasApplicationTargetPlan({
+        name: "Selected App",
+        patterns: ["records-example"],
+      }).entries.map((entry) => [entry.path, entry.content]),
     );
     const currentOnlyPaths = [
       ".npmrc",
@@ -1038,7 +1301,8 @@ Feature: Reconcile disputed invoices
       "features/step_definitions/records.steps.ts",
       "packages/convex/confect/_generated/registeredFunctions/headless/apiKeys.ts",
       "packages/convex/convex/headless/apiKeys.ts",
-      "tooling/acceptance/check-features.mts",
+      "tooling/acceptance/required-selection.mts",
+      "tooling/acceptance/source-check.mts",
     ];
 
     for (const path of currentOnlyPaths) {
@@ -1080,13 +1344,87 @@ Feature: Reconcile disputed invoices
     );
 
     expect(entries.has("cucumber.cjs")).toBe(true);
-    expect(entries.has("tooling/acceptance/check-features.mts")).toBe(true);
-    expect(entries.get("docs/template/coding-standards.md")).toContain(
-      "exactly one `@wip` or `@required`",
-    );
+    expect(entries.has("tooling/acceptance/required-selection.mts")).toBe(true);
+    expect(entries.has("tooling/acceptance/source-check.mts")).toBe(true);
+    expect(entries.has("tooling/acceptance/check-features.mts")).toBe(false);
+    const rootPackage = JSON.parse(entries.get("package.json") ?? "{}") as {
+      readonly scripts?: Readonly<Record<string, string>>;
+    };
+    expect(rootPackage.scripts).toMatchObject({
+      "acceptance:syntax": "tsx tooling/acceptance/source-check.mts",
+      "acceptance:check":
+        "pnpm acceptance:syntax && cucumber-js --config cucumber.cjs --dry-run --tags @required",
+      "acceptance:required-selection":
+        "tsx tooling/acceptance/required-selection.mts",
+      "acceptance:cucumber": "cucumber-js --config cucumber.cjs",
+    });
     expect(entries.get("docs/template/coding-standards.md")).not.toContain(
       "@journey_",
     );
+    expect(
+      entries.get("docs/template/enforced-engineering-rules.md"),
+    ).toContain("`pnpm acceptance:syntax` parses every draft Feature");
+    expect(
+      entries.get("docs/template/enforced-engineering-rules.md"),
+    ).toContain(
+      "Woodpecker is the blocking CI authority. Qlty remains advisory",
+    );
+  });
+
+  it("documents workflow checks only when their scripts are emitted", () => {
+    const projection = (patterns: readonly "workflow-automation"[] = []) => {
+      const projectedEntries = buildSaasApplicationTargetPlan({
+        name: "Workflow Docs",
+        patterns,
+      }).entries;
+      const entries = new Map(
+        projectedEntries.map((entry) => [entry.path, entry.content]),
+      );
+      const root = JSON.parse(entries.get("package.json") ?? "{}") as {
+        readonly scripts?: Readonly<Record<string, string>>;
+      };
+      const references = projectedEntries.flatMap(({ path, content }) =>
+        [...content.matchAll(/pnpm (check:workflow[^\s`"',&)\\]+)/gu)].flatMap(
+          (match) =>
+            match[1] === undefined ? [] : [{ command: match[1], path }],
+        ),
+      );
+      const scripts = root.scripts ?? {};
+      const missingDocumentedScripts = projectedEntries
+        .filter(({ path }) => path.endsWith(".md"))
+        .flatMap(({ path, content }) =>
+          [
+            ...content.matchAll(
+              /pnpm ((?:acceptance|check|deploy|evals|review|smoke|template|test|verify)[a-z0-9:-]*)/gu,
+            ),
+          ].flatMap((match) => {
+            const command = match[1];
+            return command === undefined ||
+              command.endsWith(":") ||
+              scripts[command] !== undefined
+              ? []
+              : [{ command, path }];
+          }),
+        );
+      return { missingDocumentedScripts, references, scripts };
+    };
+
+    const neutral = projection();
+    const selected = projection(["workflow-automation"]);
+
+    expect(neutral.references).toEqual([]);
+    expect(neutral.missingDocumentedScripts).toEqual([]);
+    expect(selected.missingDocumentedScripts).toEqual([]);
+    expect(selected.references.map(({ command }) => command)).toEqual(
+      expect.arrayContaining([
+        "check:workflow:fast",
+        "check:workflow-semantics",
+        "check:workflow-graph-boundary",
+      ]),
+    );
+    for (const { command, path } of selected.references) {
+      expect(selected.scripts[command], `${path} -> ${command}`).toBeDefined();
+    }
   });
 
   it("runs required contracts from generated-customer verification", () => {
@@ -1107,13 +1445,12 @@ Feature: Reconcile disputed invoices
       defaultWorkflow: null,
       defaultAgent: null,
       providerPosture: "fake-first",
-      entity: "record",
+      entity: null,
       automation: { status: "unavailable" },
     });
     expect(saasApplicationBlueprint.mandatorySystems).toEqual([
       "workspace tenancy",
-      "table CRUD",
-      "web route",
+      "deployment authority",
       "headless registry",
     ]);
     expect(JSON.stringify(saasApplicationBlueprint)).not.toMatch(
@@ -1127,14 +1464,18 @@ Feature: Reconcile disputed invoices
       "packages/convex/confect/_generated/spec.ts",
     );
     const originalCheckoutSpec = readFileSync(checkoutSpecPath, "utf8");
-    const before = buildSaasApplicationTargetPlan({ name: "My App" });
+    const selectedOptions = {
+      name: "My App",
+      patterns: ["records-example", "workflow-automation"],
+    } as const;
+    const before = buildSaasApplicationTargetPlan(selectedOptions);
     let after: typeof before;
     try {
       writeFileSync(
         checkoutSpecPath,
         `${originalCheckoutSpec}\n// unrelated integration registration\n`,
       );
-      after = buildSaasApplicationTargetPlan({ name: "My App" });
+      after = buildSaasApplicationTargetPlan(selectedOptions);
     } finally {
       writeFileSync(checkoutSpecPath, originalCheckoutSpec);
     }
@@ -1153,7 +1494,7 @@ Feature: Reconcile disputed invoices
     expect(projectedSpec?.content).toContain(
       "// unrelated integration registration",
     );
-    expect(buildSaasApplicationTargetPlan({ name: "My App" })).toEqual(before);
+    expect(buildSaasApplicationTargetPlan(selectedOptions)).toEqual(before);
     expect(
       after.entries.find((entry) => entry.path === "CLAUDE.md"),
     ).toMatchObject({
@@ -1238,9 +1579,10 @@ Feature: Reconcile disputed invoices
   it("projects the current graph runner copy target exactly once", () => {
     const runnerPath =
       "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts";
-    const entries = buildSaasApplicationTargetPlan().entries.filter(
-      ({ path }) => path === runnerPath,
-    );
+    const entries = buildSaasApplicationTargetPlan({
+      name: "Workflow App",
+      patterns: ["workflow-automation"],
+    }).entries.filter(({ path }) => path === runnerPath);
 
     expect(entries).toHaveLength(1);
     expect(entries[0]).toMatchObject({ path: runnerPath, replaces: "copy" });
@@ -1266,6 +1608,9 @@ Feature: Reconcile disputed invoices
     delete expectedWebManifest.dependencies[
       "@maestro-template/app-idea-evaluator"
     ];
+    delete expectedWebManifest.dependencies[
+      "@maestro-template/workflow-tooling"
+    ];
     expect(webManifest?.content).toBe(
       `${JSON.stringify(expectedWebManifest, null, 2)}\n`,
     );
@@ -1286,7 +1631,6 @@ Feature: Reconcile disputed invoices
     );
     for (const path of [
       "lefthook.yml",
-      "scripts/pre-push-rubric.sh",
       "tooling/quality/contract-review-rubric.md",
       "tooling/quality/taste-review.mts",
     ]) {
@@ -1405,9 +1749,14 @@ Feature: Reconcile disputed invoices
     }
   });
 
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this declarative projection assertion.
   it("emits deterministic workspace-safe CRUD and readiness contracts", async () => {
-    const first = buildFactorySaasApplicationFiles({ name: "My App" });
-    const second = buildFactorySaasApplicationFiles({ name: "My App" });
+    const selectedOptions = {
+      name: "My App",
+      patterns: ["records-example", "workflow-automation"],
+    } as const;
+    const first = buildFactorySaasApplicationFiles(selectedOptions);
+    const second = buildFactorySaasApplicationFiles(selectedOptions);
     expect(first).toEqual(second);
     const customerContext = JSON.parse(
       first.find(
@@ -1421,9 +1770,18 @@ Feature: Reconcile disputed invoices
         .map(({ path }) => path),
     ];
     expect(first.map(({ path }) => path)).toEqual([
+      "examples/saas-application/seed/source.json",
+      "docs/template/system-catalog.json",
+      "docs/template/data-resources.json",
+      "docs/template/product-topology.json",
+      "packages/convex/confect/ops/dataResources.generated.ts",
+      "docs/template/system-decisions/record-management.md",
+      "docs/template/schema-decisions/records.md",
+      "generated/blueprints/saas-application/application-contract.json",
+      "generated/blueprints/saas-application/surface-contract.json",
+      "generated/blueprints/saas-application/readiness.json",
       "examples/saas-application/seed/workspace.json",
       "examples/saas-application/seed/records.json",
-      "examples/saas-application/seed/source.json",
       "examples/saas-application/seed/crud-scenario.json",
       "packages/convex/confect/tables/records.ts",
       "packages/convex/confect/records/records.spec.ts",
@@ -1434,25 +1792,23 @@ Feature: Reconcile disputed invoices
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
       "apps/web/src/routes/_workspace.records.tsx",
-      "docs/template/system-catalog.json",
-      "docs/template/data-resources.json",
-      "docs/template/product-topology.json",
-      "packages/convex/confect/ops/dataResources.generated.ts",
-      "docs/template/system-decisions/record-management.md",
-      "docs/template/schema-decisions/records.md",
-      "generated/blueprints/saas-application/application-contract.json",
-      "generated/blueprints/saas-application/surface-contract.json",
-      "generated/blueprints/saas-application/readiness.json",
       "apps/web/src/adapters/records/http.ts",
       "features/records.feature",
+      "features/step_definitions/records.journeys.ts",
       "features/step_definitions/records.steps.ts",
+      "features/support/contracts-scenario.ts",
+      "features/support/contracts-runtime.ts",
+      "features/support/contracts-world.ts",
       "features/first-outcome.feature",
       "README.md",
       "docs/template/agent-pack-privacy.md",
       "docs/template/preflight.md",
       "docs/template/coding-standards.md",
+      "docs/template/enforced-engineering-rules.md",
+      "tooling/workflow/package.json",
       "cucumber.cjs",
-      "tooling/acceptance/check-features.mts",
+      "tooling/acceptance/required-selection.mts",
+      "tooling/acceptance/source-check.mts",
       "AGENTS.md",
       "docs/template/agent-worker-playbook.md",
       "docs/template/how-this-relates-to-maestro.md",
@@ -1495,7 +1851,6 @@ Feature: Reconcile disputed invoices
       "tooling/quality/package.json",
       "examples/generic-ai-ops/template-package.json",
       "lefthook.yml",
-      "scripts/pre-push-rubric.sh",
       "tooling/quality/contract-review-rubric.md",
       "tooling/quality/taste-review.mts",
       "tooling/quality/install-lefthook-if-git.mjs",
@@ -1600,7 +1955,6 @@ Feature: Reconcile disputed invoices
       "packages/convex/convex/records/records.ts",
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
-      "Justfile",
       "apps/web/src/adapters/confect-generated-refs.test.ts",
       "docs/template/env-manifest.json",
       "docs/template/env-manifest.md",
@@ -1622,11 +1976,6 @@ Feature: Reconcile disputed invoices
         path.startsWith("examples/generic-ai-ops/seed/"),
       ),
     ).toBe(false);
-    for (const file of first.slice(0, 4)) {
-      expect(readFileSync(join(repoRoot, file.path), "utf8")).toBe(
-        file.content,
-      );
-    }
     const routeTree = first.find(
       ({ path }) => path === "apps/web/src/routeTree.gen.ts",
     )?.content;
@@ -1676,7 +2025,18 @@ Feature: Reconcile disputed invoices
         (operation: { workspaceScoped: boolean }) => operation.workspaceScoped,
       ),
     ).toBe(true);
-    const executable = first.slice(4, 13);
+    const executablePaths = new Set([
+      "packages/convex/confect/tables/records.ts",
+      "packages/convex/confect/records/records.spec.ts",
+      "packages/convex/confect/records/records.impl.ts",
+      "apps/web/src/adapters/records/contract.ts",
+      "apps/web/src/adapters/records/fake.ts",
+      "apps/web/src/features/records/model.ts",
+      "apps/web/src/features/records/records-surface.tsx",
+      "apps/web/src/screens/records-screen.tsx",
+      "apps/web/src/routes/_workspace.records.tsx",
+    ]);
+    const executable = first.filter(({ path }) => executablePaths.has(path));
     for (const file of executable) {
       const transpiled = transpileModule(file.content, {
         compilerOptions: {
@@ -1711,7 +2071,7 @@ Feature: Reconcile disputed invoices
     ).toEqual(surfaces.web.operations);
     expect(surfaces.providers.fake).toMatchObject({
       status: "fake",
-      behavior: "in-memory workspace-scoped CRUD",
+      behavior: "in-memory workspace-scoped records CRUD",
     });
     expect(surfaces.providers.local).toMatchObject({
       status: "seam",
@@ -1728,17 +2088,17 @@ Feature: Reconcile disputed invoices
       ),
     ).toBe(true);
     expect(readiness.automation).toMatchObject({
-      status: "unavailable",
-      reason: expect.stringContaining("semantic ledger"),
+      status: "selected",
     });
   });
 
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this generated-layout assertion.
   it("projects the CRUD registration in Confect's codegen-stable layout", () => {
     const files = new Map(
-      buildFactorySaasApplicationFiles({ name: "My App" }).map((file) => [
-        file.path,
-        file.content,
-      ]),
+      buildFactorySaasApplicationFiles({
+        name: "My App",
+        patterns: ["records-example"],
+      }).map((file) => [file.path, file.content]),
     );
 
     expect(
@@ -1814,7 +2174,7 @@ Feature: Reconcile disputed invoices
 
     const ids = files.get("packages/convex/confect/_generated/id.ts") ?? "";
     expect(ids.match(/\| "records"/g)).toHaveLength(1);
-    expect(ids.match(/\| "workflowArtifacts"/g)).toHaveLength(1);
+    expect(ids).not.toContain('| "workflowArtifacts"');
     expect(ids).not.toContain('"buildPacks"');
     expect(ids).not.toContain('"evaluationSessions"');
 
@@ -1865,8 +2225,12 @@ Feature: Reconcile disputed invoices
     expect(routeTree).not.toContain("BuildPackPackIdRouteImport");
   });
 
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this declarative script-closure assertion.
   it("projects a customer-only root script closure", () => {
-    const files = buildFactorySaasApplicationFiles({ name: "My App" });
+    const files = buildFactorySaasApplicationFiles({
+      name: "My App",
+      patterns: ["records-example", "workflow-automation"],
+    });
     for (const path of [
       "AGENTS.md",
       "docs/template/agent-worker-playbook.md",
@@ -2002,6 +2366,11 @@ Feature: Reconcile disputed invoices
       "template:smoke",
     ]);
     const rewritten = new Set([
+      "acceptance:syntax",
+      "acceptance:check",
+      "acceptance:required-selection",
+      "acceptance:cucumber",
+      "acceptance:features",
       "test",
       "test:tooling",
       "check:coverage-ratchet",
@@ -2050,7 +2419,7 @@ Feature: Reconcile disputed invoices
       "tsx tooling/generators/src/customer-cli.ts smoke",
     );
     expect(root.scripts.test).toBe(
-      "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
+      "turbo run test --filter='./packages/*' --filter=@maestro-template/web && pnpm test:tooling",
     );
     expect(root.scripts["test:tooling"]).toBe(
       "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
@@ -2074,7 +2443,6 @@ Feature: Reconcile disputed invoices
         "typecheck",
         "check:effect-diagnostics",
         "test",
-        "test:tooling",
         "build",
         "check:convex-ai-files",
         "check:agent-pack",

@@ -26,8 +26,7 @@ const context = {
 };
 
 function command<
-  const Id extends
-    "preflight" | "plan-check" | "scaffold" | "support-bundle" | "verify",
+  const Id extends "preflight" | "scaffold" | "support-bundle" | "verify",
 >(
   id: Id,
   execute = vi.fn(async (args: unknown) => ({
@@ -69,7 +68,6 @@ function fixture() {
   );
   const commands = {
     preflight: command("preflight"),
-    planCheck: command("plan-check"),
     scaffold: command("scaffold", scaffoldExecute),
     supportBundle: command("support-bundle"),
     verify: command("verify"),
@@ -82,6 +80,35 @@ function fixture() {
 }
 
 describe("Maestro MCP projection", () => {
+  it("ignores the removed plan-check command even if a caller supplies it", async () => {
+    const obsoletePlanExecute = vi.fn(async () => ({
+      mutationPosture: "read-only" as const,
+      exitClass: "success" as const,
+      summary: "obsolete plan check ran",
+      diagnostics: [],
+      data: null,
+    }));
+    const obsoletePlanCheck = defineAgentPackCommand({
+      id: "plan-check",
+      schemaVersion: AGENT_PACK_COMMAND_VERSION,
+      decode: (input: unknown) => ({ ok: true as const, args: input }),
+      mutationPosture: () => "read-only" as const,
+      execute: obsoletePlanExecute,
+    });
+    const projection = createMaestroMcpProjection(
+      { ...fixture().commands, planCheck: obsoletePlanCheck } as never,
+      repo,
+    );
+
+    expect(projection.tools().map(({ name }) => name)).not.toContain(
+      "maestro_plan_check",
+    );
+    await expect(
+      projection.call("maestro_plan_check", {}),
+    ).resolves.toMatchObject({ isError: true, code: "MCP_UNKNOWN_TOOL" });
+    expect(obsoletePlanExecute).not.toHaveBeenCalled();
+  });
+
   it("publishes only commands retained by a customer composition", async () => {
     const commands = fixture().commands;
     const projection = createMaestroMcpProjection(
@@ -110,7 +137,6 @@ describe("Maestro MCP projection", () => {
         .map(({ name }) => name),
     ).toEqual([
       "maestro_preflight",
-      "maestro_plan_check",
       "maestro_scaffold_preview",
       "maestro_support_bundle_preview",
       "maestro_verify",
@@ -213,23 +239,6 @@ describe("Maestro MCP projection", () => {
       code: "MCP_FORBIDDEN_ARGUMENT",
     });
     expect(scaffoldExecute).not.toHaveBeenCalled();
-  });
-
-  it("permits declared plan generator commands without granting arbitrary execution", async () => {
-    const result = await fixture().projection.call("maestro_plan_check", {
-      plan: {
-        feature: "x",
-        slices: [
-          {
-            workPackages: [
-              { generatorCommand: "pnpm template:add-capability" },
-            ],
-          },
-        ],
-        allTaskRefs: [],
-      },
-    });
-    expect(result.isError).toBe(false);
   });
 
   it.each([

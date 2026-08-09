@@ -103,7 +103,7 @@ describe("customer create command", () => {
         code: "AGENT_PACK_PRIVACY_FIRST_RUN",
         severity: "info",
         rerun:
-          'pnpm maestro -- create "../my-app" --name "My App" --outcome "Track client requests" --demo-only --write --privacy-reviewed',
+          'pnpm maestro -- create "../my-app" --name "My App" --outcome "Track client requests" --demo-only --write',
       }),
     ]);
     expect(test.materialize).not.toHaveBeenCalled();
@@ -231,7 +231,6 @@ describe("customer create command", () => {
           name: "My App",
           outcome: "Create and review records",
           write: true,
-          privacyReviewed: true,
         },
         {
           ...context,
@@ -300,7 +299,7 @@ describe("customer create command", () => {
     const test = fixture();
     const result = await executeAgentPackCommand(
       createCustomerCreateCommand(test.dependencies),
-      { ...input, write: true, privacyReviewed: true },
+      { ...input, write: true },
       context,
     );
 
@@ -311,22 +310,6 @@ describe("customer create command", () => {
     expect(result.diagnostics[0]?.rerun).toBe(
       'pnpm --dir "../my-app" maestro -- preflight --mode fake',
     );
-  });
-
-  it("refuses materialization until the privacy disclosure is reviewed", async () => {
-    const test = fixture();
-    const result = await executeAgentPackCommand(
-      createCustomerCreateCommand(test.dependencies),
-      { ...input, write: true },
-      context,
-    );
-
-    expect(result.exitClass).toBe("invalidInvocation");
-    expect(result.diagnostics).toEqual([
-      expect.objectContaining({ code: "AGENT_PACK_CREATE_INVALID_ARGUMENTS" }),
-    ]);
-    expect(test.dependencies.release.prepare).not.toHaveBeenCalled();
-    expect(test.materialize).not.toHaveBeenCalled();
   });
 
   it("fails closed for fixture-only or unresolved release bindings", async () => {
@@ -370,14 +353,14 @@ describe("customer create command", () => {
     const write = fixture({ collisions: ["package.json"] });
     const writeResult = await executeAgentPackCommand(
       createCustomerCreateCommand(write.dependencies),
-      { ...input, write: true, privacyReviewed: true },
+      { ...input, write: true },
       context,
     );
     expect(writeResult.exitClass).toBe("blockedMutation");
     expect(write.materialize).not.toHaveBeenCalled();
   });
 
-  it("accepts only target, name, outcome, demo-only, and reviewed writes", async () => {
+  it("accepts only target, name, outcome, demo-only, and writes", async () => {
     const test = fixture();
     for (const invalid of [
       { ...input, provider: "live" },

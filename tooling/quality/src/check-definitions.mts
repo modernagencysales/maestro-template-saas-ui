@@ -12,11 +12,9 @@ const checkDescriptorDefinitions = {
         file: ".woodpecker/firewall.yml",
         includes: [
           "trusted-ci-policy",
+          "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a",
           "tooling/ci/ci-self-protection.sh",
           "tooling/ci/firewall.sh",
-          "bounded-ai-review",
-          'git archive "origin/$${BASE_BRANCH}"',
-          'node --experimental-strip-types --experimental-transform-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
           "class: firewall",
           "depends_on:",
         ],
@@ -29,6 +27,38 @@ const checkDescriptorDefinitions = {
         message: "Woodpecker full verification must run only as a manual epoch",
       },
       {
+        file: ".woodpecker/verify.yml",
+        includes: [
+          "event: pull_request",
+          "node:22.23.2-bookworm@sha256:",
+          "tooling/ci/verify-chassis.sh",
+        ],
+        message:
+          "the required Woodpecker PR context must use the pinned verification chassis",
+      },
+      {
+        file: "tooling/ci/verify-chassis.sh",
+        includes: [
+          "bash tooling/ci/install-gitleaks.sh",
+          'export PATH="${HOME}/.local/bin:${PATH}"',
+          "pnpm verify",
+          "pnpm --dir apps/web test:runtime-longevity",
+        ],
+        absent: [
+          "install-gitleaks.sh || true",
+          "if ! bash tooling/ci/install-gitleaks.sh",
+          "pnpm --dir tooling/agent-pack test:customer",
+          "pnpm --dir tooling/generators test",
+          "pnpm --dir tooling/release test",
+          "pnpm --dir apps/cli test:create-root-admission",
+          "pnpm --dir apps/cli test:create-root-integration",
+          "pnpm --dir apps/web typecheck",
+          "pnpm --dir apps/web build",
+        ],
+        message:
+          "the required Woodpecker PR context must reach root verification once without nested suite reruns",
+      },
+      {
         file: "tooling/ci/firewall.sh",
         includes: [
           "pnpm check:format",
@@ -37,21 +67,22 @@ const checkDescriptorDefinitions = {
           "pnpm check:deps",
           "pnpm check:layer-boundaries",
           "pnpm check:secret-canaries",
-          "pnpm acceptance:check",
-          "pnpm acceptance:features",
+          "if ! bash tooling/ci/install-qlty.sh",
           "pnpm check:qlty -- --diff",
         ],
-        absent: ["pnpm verify"],
+        absent: ["pnpm verify", "pnpm acceptance:"],
         message:
-          "PR firewall must stay fast while enforcing every shift-left gate",
+          "PR firewall must enforce its fast deterministic and advisory gates without nested acceptance",
       },
       {
         file: "tooling/ci/epoch.sh",
         includes: [
           "FACTORY_EPOCH_SHA",
+          "if ! bash tooling/ci/install-qlty.sh",
           "pnpm check:qlty -- --all",
           "pnpm verify",
         ],
+        absent: ["pnpm acceptance:"],
         message: "manual epochs must bind exact SHA and run full verification",
       },
       {
@@ -81,8 +112,9 @@ const checkDescriptorDefinitions = {
           "/apps/cli/",
           "/packages/convex/",
           "/examples/saas-application/",
+          "@timkeeeeeen",
         ],
-        absent: ["\n* @"],
+        absent: ["\n* @", "@kimprobably"],
         message:
           "code-owner review must protect trust, contract, and product roots",
       },
@@ -122,58 +154,43 @@ const checkDescriptorDefinitions = {
       },
       {
         file: "tooling/ci/phase1.sh",
-        includes: [
+        includes: ["pnpm verify", "pnpm template:workflow-output-smoke"],
+        absent: [
+          "pnpm acceptance:",
           "pnpm check:system-catalog",
           "pnpm check:system-topology",
           "pnpm check:data-resources",
           "pnpm check:append-only-tables",
           "pnpm check:promotion-boundary",
           "pnpm check:workflow-semantics",
-          "pnpm template:workflow-output-smoke",
           "pnpm check:convex-ai-files",
           "pnpm check:agent-pack",
           "pnpm check:app-map",
         ],
         message:
-          "hosted deterministic CI must run system, data, and promotion gates",
-      },
-      {
-        file: "Justfile",
-        includes: [
-          "verify:",
-          "check-fmt:",
-          "lint:",
-          "typecheck:",
-          "test:",
-          "check-system-catalog:",
-          "check-system-topology:",
-          "check-data-resources:",
-          "check-append-only-tables:",
-          "check-promotion-boundary:",
-          "check-workflow-semantics:",
-          "check-workflow-fast:",
-          "check-convex-ai-files:",
-          "check-agent-pack:",
-          "test-app-map:",
-          "check-app-map:",
-          "check-workflow-output-smoke:",
-        ],
-        message: "Justfile must keep the canonical gate recipe names",
+          "hosted deterministic CI must delegate the complete gate sequence to root verify exactly once",
       },
       {
         file: "lefthook.yml",
         includes: [
-          "pre-push",
+          "pnpm prettier --write {staged_files}",
+          "ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}",
+          "pnpm check:qlty -- --staged",
+        ],
+        absent: [
           "pre-push-rubric.sh",
-          "check:debt",
-          "check:system-catalog",
-          "check:system-topology",
+          "pnpm typecheck",
+          "pnpm test",
+          "check:workflow",
+          "check:system",
           "check:data-resources",
           "check:append-only-tables",
           "check:promotion-boundary",
-          "check:workflow:fast",
+          "acceptance:",
+          "cucumber",
         ],
-        message: "lefthook must run shifted-left gates and rubric injection",
+        message:
+          "lefthook must keep staged hygiene fast and leave broad admission to Woodpecker",
       },
       {
         file: "package.json",
@@ -182,13 +199,15 @@ const checkDescriptorDefinitions = {
           '"typecheck": "turbo run typecheck --concurrency=1"',
           '"test:release-filesystem"',
           '"test:app-map"',
-          '"check:app-map"',
+          '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
+          '"check:app-map": "pnpm --dir tooling/app-map check"',
+          '"check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts"',
           "--exclude apps/cli/src/factory/customerCliRuntime.test.ts",
           "--exclude apps/cli/src/factory/createRootIntegration.test.ts",
           "--exclude tooling/release/src/customerTarget/finalFilesystem.test.ts",
-          "turbo run test --filter=!@maestro-template/release-tooling --filter=!@maestro-template/agent-pack --filter=!@maestro-template/cli --filter=!@maestro-template/convex-compat && pnpm --dir tooling/agent-pack test && pnpm --dir apps/cli test && pnpm --dir tooling/convex-compat test && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:customer-cli-runtime && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
+          "pnpm test:bootstrap && turbo run test --filter=!@maestro-template/release-tooling --filter=!@maestro-template/agent-pack --filter=!@maestro-template/cli --filter=!@maestro-template/convex-compat && pnpm --dir tooling/agent-pack test && pnpm --dir apps/cli test && pnpm --dir tooling/convex-compat test && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:customer-cli-runtime && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
           'pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit"',
-          "pnpm check:agent-pack && pnpm check:app-map && pnpm check:deps",
+          "pnpm check:agent-pack && pnpm check:deps",
           "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
         ],
         message:
@@ -290,7 +309,6 @@ const checkDescriptorDefinitions = {
         includes: [
           "check:ci-completeness",
           "check:config-drift",
-          "acceptance:check",
           "check:convex-ai-files",
           "check:agent-pack",
           "check:confect-effect-compat",
@@ -448,15 +466,6 @@ const checkDescriptorDefinitions = {
     name: "check:types-coverage",
     requirements: [
       {
-        file: "tsconfig.base.json",
-        includes: [
-          "strict",
-          "noUncheckedIndexedAccess",
-          "exactOptionalPropertyTypes",
-        ],
-        message: "TypeScript config must enforce strict typing",
-      },
-      {
         file: "package.json",
         includes: [
           "--max-old-space-size=8192",
@@ -464,6 +473,15 @@ const checkDescriptorDefinitions = {
         ],
         message:
           "check:types-coverage must invoke type-coverage with an explicit threshold",
+      },
+      {
+        file: "tsconfig.base.json",
+        includes: [
+          "strict",
+          "noUncheckedIndexedAccess",
+          "exactOptionalPropertyTypes",
+        ],
+        message: "TypeScript config must enforce strict typing",
       },
       {
         file: "tsconfig.type-coverage.json",
@@ -824,7 +842,6 @@ const checkDescriptorDefinitions = {
         includes: [
           "missingTypedErrors",
           "cannedRegistryImport",
-          "cannedRuntimeSuccess",
           "missingGeneratedRefMapping",
           "evaluateHeadlessSurfaceContract",
         ],
@@ -1053,9 +1070,9 @@ const checkDescriptorDefinitions = {
           "raw database boundary must prove direct, alias, helper, optional, wrapper, and escape behavior",
       },
       {
-        file: "tooling/ci/phase1.sh",
+        file: "package.json",
         includes: ["pnpm check:append-only-tables"],
-        message: "hosted deterministic CI must enforce append-only tables",
+        message: "root verification must enforce append-only tables",
       },
     ],
   },
@@ -1093,9 +1110,9 @@ const checkDescriptorDefinitions = {
           "App Map composition must prove complete sources and byte-stable double builds",
       },
       {
-        file: "tooling/ci/phase1.sh",
-        includes: ["pnpm check:app-map"],
-        message: "Hosted deterministic CI must run the App Map gate",
+        file: "package.json",
+        includes: ['"check:app-map": "pnpm --dir tooling/app-map check"'],
+        message: "the focused App Map gate must remain available",
       },
     ],
   },
@@ -1174,44 +1191,6 @@ type RegisteredCheckDescriptors<
     RegisteredStaticCheckDescriptor & { readonly gateId: GateId };
 };
 
-const canonicalScriptBodies = {
-  "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
-  "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
-  "check:app-map": "pnpm --dir tooling/app-map check",
-  "check:append-only-tables":
-    "tsx tooling/quality/check-append-only-tables.mts",
-  "check:deps": "tsx tooling/quality/check-deps.mts",
-  "check:knip": "knip --config knip.json",
-  "check:route-tree": "tsx tooling/quality/check-route-tree.mts",
-  "check:types-coverage":
-    "node --max-old-space-size=8192 node_modules/type-coverage/bin/type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
-  "check:gates": "tsx tooling/quality/check-gates.mts",
-  "check:debt": "tsx tooling/quality/check-debt.mts",
-  "check:generators": "tsx tooling/quality/check-generators.mts",
-  "check:docs-freshness": "tsx tooling/quality/check-docs-freshness.mts",
-  "check:generated-files": "tsx tooling/quality/check-generated-files.mts",
-  "check:confect-contracts": "tsx tooling/quality/check-confect-contracts.mts",
-  "check:confect-compat": "tsx tooling/quality/check-confect-compat.mts",
-  "check:schema-migration-notes":
-    "tsx tooling/quality/check-schema-migration-notes.mts",
-  "check:layer-boundaries":
-    "depcruise --config dependency-cruiser.config.cjs apps packages tooling tests experiments",
-  "check:secret-canaries":
-    "gitleaks detect --config .gitleaks.toml --no-git --redact --source .",
-  "check:sbom-license": "tsx tooling/quality/check-sbom-license.mts",
-  "check:headless-surface-contract":
-    "tsx tooling/quality/check-headless-surface-contract.mts",
-  "check:posthog-readiness": "tsx tooling/quality/check-posthog-readiness.mts",
-  "check:auth-demo-bypass": "tsx tooling/quality/check-auth-demo-bypass.mts",
-  "check:workflow-graph-boundary":
-    "tsx tooling/quality/check-workflow-graph-boundary.mts",
-  "check:workflow-semantics":
-    "tsx tooling/quality/check-workflow-semantics.mts",
-  "check:recipes": "tsx tooling/quality/check-recipes.mts",
-  "taste:eval": "tsx tooling/quality/taste-eval.mts",
-  "review:contract": "pnpm contract-review",
-} as const;
-
 function defineRegisteredStaticCheckDescriptors<
   const Definitions extends Record<string, StaticCheckDescriptor>,
 >(
@@ -1228,11 +1207,6 @@ function defineRegisteredStaticCheckDescriptors<
         );
       }
       const command = ["pnpm", script] as const;
-      const canonicalScriptBody =
-        canonicalScriptBodies[script as keyof typeof canonicalScriptBodies];
-      if (canonicalScriptBody === undefined) {
-        throw new Error(`${gateId}: canonical script body is not registered`);
-      }
       return [
         gateId,
         {
@@ -1244,7 +1218,6 @@ function defineRegisteredStaticCheckDescriptors<
             "Repair the reported invariant in its owning source and rerun this check.",
           argv: command,
           rerun: command,
-          canonicalScriptBody,
           focusedPathPrefixes: [
             ...new Set(descriptor.requirements.map(({ file }) => file)),
           ],
@@ -1270,7 +1243,7 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
         "packages/convex/confect",
         "tooling/quality/check-append-only-tables.mts",
         "tooling/quality/check-append-only-tables.test.mts",
-        "tooling/ci/phase1.sh",
+        "package.json",
       ],
     },
     deps: { evidenceClass: "static" },

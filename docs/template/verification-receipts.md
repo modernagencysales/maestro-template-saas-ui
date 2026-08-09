@@ -4,9 +4,9 @@ Status: implemented. The typed diagnostic registry projection, receipt JSON
 Schema, read-only CLI/MCP verification path, and explicit CLI-only export are
 wired through one library contract.
 
-Raw gate commands and Just recipes remain authoritative. Maestro verification
-projects their results into a versioned receipt; it never edits a gate, weakens
-required checks, or treats a static shape check as stronger runtime evidence.
+Package scripts remain authoritative. Maestro verification projects their
+results into a versioned receipt; it never edits a gate, weakens required
+checks, or treats a static shape check as stronger runtime evidence.
 
 ```bash
 pnpm maestro -- verify --scope focused --changed tooling/agent-pack
@@ -68,11 +68,11 @@ change stales the receipt. Raw values and one-value hashes are never returned.
 `taste` and `contract-review` remain advisory. A deterministic required-gate
 failure is blocking; advisory evidence cannot make a required failure pass.
 
-Full scope invokes `just verify`. If that aggregate process fails, Maestro
+Full scope invokes `pnpm verify`. If that aggregate process fails, Maestro
 replays the canonical package-script argv sequentially for attribution,
 preserves gates that actually pass or fail, and marks only later gates
 unavailable with the exact causal command. The aggregate failure remains a
-blocking diagnostic with `just verify` as its rerun; one process exit is never
+blocking diagnostic with `pnpm verify` as its rerun; one process exit is never
 projected as an all-gates verdict.
 
 The machine contract is

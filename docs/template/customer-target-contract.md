@@ -18,14 +18,12 @@ pnpm maestro -- create <target> \
   --name "My App" \
   --outcome "Track client requests" \
   --demo-only \
-  --write \
-  --privacy-reviewed
+  --write
 ```
 
 The customer choices are the app name, first user outcome, and demo-only
 posture. Preview lists exact writes, omissions, collisions, and total bytes
-without changing the source or target. `--write` is the only create approval and
-is valid only with `--privacy-reviewed`.
+without changing the source or target. `--write` is the only create approval.
 
 A successful target contains `template-instance.json` with:
 

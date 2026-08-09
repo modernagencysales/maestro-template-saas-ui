@@ -13,6 +13,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "test": "vitest run --passWithNoTests --exclude src/factory/createRootIntegration.test.ts --exclude src/factory/customerCliRuntime.test.ts",
     "test:customer-cli-runtime": "vitest run src/factory/customerCliRuntime.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism",
+    "test:create-root-admission": "vitest run src/factory/createRootIntegration.test.ts -t 'executes the selected records example by journey name' --maxWorkers=1 --no-file-parallelism",
     "test:create-root-integration": "vitest run src/factory/createRootIntegration.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism"
   },
   "dependencies": {
@@ -23,7 +24,6 @@
     "@maestro-template/integrations": "workspace:*",
     "@maestro-template/quality-tooling": "workspace:*",
     "@maestro-template/release-tooling": "workspace:*",
-    "@maestro-template/stack-tooling": "workspace:*",
     "@maestro-template/template-core": "workspace:*",
     "@maestro-template/workflow-tooling": "workspace:*",
     "effect": "4.0.0-beta.102"

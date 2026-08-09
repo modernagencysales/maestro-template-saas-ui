@@ -1,12 +1,15 @@
 # Maestro MCP
 
-Status: implemented. WP-3.5 projects four accepted typed library commands
-through a thin JSON-RPC stdio transport:
+Status: implemented. WP-3.5 projects accepted typed library commands through a
+thin JSON-RPC stdio transport:
 
 - `maestro_preflight`
-- `maestro_plan_check`
 - `maestro_scaffold_preview`
+- `maestro_support_bundle_preview`
 - `maestro_verify`
+- `maestro_app_map`
+- `maestro_app_map_impact`
+- `maestro_build_readiness`
 
 Run it only through the reproducible repository command:
 
@@ -21,10 +24,10 @@ generation, chat state, telemetry, shell command construction, or Convex
 administration. Stdout is reserved for protocol frames; operational diagnostics
 on stderr contain fixed codes rather than request data.
 
-All four tools are read-oriented. In particular, `maestro_verify` returns an
-in-memory receipt projection and never creates `.maestro` or exports a receipt.
-The explicit `verify-export --write` mutation exists only in the CLI command
-registry and is absent from MCP tool schemas and dispatch.
+All projected tools are read-oriented. In particular, `maestro_verify` returns
+an in-memory receipt projection and never creates `.maestro` or exports a
+receipt. The explicit `verify-export --write` mutation exists only in the CLI
+command registry and is absent from MCP tool schemas and dispatch.
 
 Claude Code consumes the plugin-local `.mcp.json` with `${CLAUDE_PROJECT_DIR}`
 as its working directory. Codex consumes the separate plugin-local

@@ -12,7 +12,6 @@ import {
   createNodePreflightRuntimeReader,
   createConvexDoctorAdapter,
   createProviderDoctorCommand,
-  createPlanCheckCommand,
   createPreflightCommand,
   createAddRecipeCommand,
   createRecipesCommand,
@@ -26,6 +25,7 @@ import {
   createSupportBundleCommand,
   defineDiagnosticRegistryProjection,
   executeAgentPackCommand,
+  isMutationBlockingPreflightCode,
   nodePreflightFileSystem,
   parseConvexMcpProfiles,
   readInstalledConvexMcpInventory,
@@ -50,16 +50,10 @@ import {
   runReviewedGenerator,
 } from "@maestro-template/generators";
 import { defineQualityDiagnosticRegistryProjection } from "@maestro-template/quality-tooling";
-import {
-  readReviewedAdrRefs,
-  validatePlan,
-} from "@maestro-template/stack-tooling";
 import { WORKFLOW_SEMANTICS } from "@maestro-template/template-core/workflow-semantics";
-import { existsSync, lstatSync, readFileSync } from "node:fs";
+import { existsSync, lstatSync, readdirSync, readFileSync } from "node:fs";
 import { open } from "node:fs/promises";
 import { isAbsolute, resolve, win32 } from "node:path";
-import { pathToFileURL } from "node:url";
-import { createPlanCheckCliHandler } from "./planCheck";
 import { createAppMapCliHandlers } from "./appMap";
 import { createAdoptCliHandler } from "./adopt";
 import { readBoundedAdoptionPacket } from "./adoptFileReader";
@@ -76,6 +70,7 @@ import { createMcpConfigureCliAdapter } from "./mcpConfigure";
 import { createPreflightCliHandler } from "./preflight";
 import { loadRecipeCatalogProjection } from "./recipeCatalog";
 import { createRecipeCliHandlers } from "./recipes";
+import { recipePreflightBlockingCodes } from "./customerRecipes";
 import { createScaffoldCliHandler } from "./scaffold";
 import { createSupportBundleCliHandler } from "./supportBundle";
 import {
@@ -101,7 +96,6 @@ export function isUnsafeReviewedGeneratorPath(filePath: string): boolean {
 
 export const FACTORY_EXECUTION_POLICY = Object.freeze({
   supportedPlatforms: ["linux", "darwin", "win32"],
-  supportedNodeMajors: [22],
   minimumGitVersion: "2.31.0",
   minimumDiskBytes: 512 * 1024 * 1024,
   requiredPorts: [],
@@ -156,6 +150,22 @@ const convexMcpProfiles = parseConvexMcpProfiles(
     ),
   ) as unknown,
 );
+
+const readAcceptedAdrRefs = (sourceRoot: string): ReadonlySet<string> => {
+  const directory = resolve(sourceRoot, "docs/template/adr");
+  return new Set(
+    readdirSync(directory, { withFileTypes: true })
+      .filter(
+        (entry) => entry.isFile() && /^\d{4}-[a-z0-9-]+\.md$/u.test(entry.name),
+      )
+      .filter((entry) =>
+        /^## Status\s+Accepted\.\s*$/mu.test(
+          readFileSync(resolve(directory, entry.name), "utf8"),
+        ),
+      )
+      .map((entry) => `docs/template/adr/${entry.name}`),
+  );
+};
 
 export {
   projectCompositionEnvironment,
@@ -271,14 +281,6 @@ export function createFactoryCliComposition(
     receiptWriter,
   });
   const check = createCheckCommand({ preflight, verify });
-  const planCheck = createPlanCheckCommand({
-    validate: (plan, repo) =>
-      validatePlan(plan, {
-        reviewedAdrRefs: readReviewedAdrRefs(
-          pathToFileURL(`${repo.sourceRoot}/`),
-        ),
-      }),
-  });
   const inspectPreflightResult = async (
     repo: AgentPackExecutionContext["repo"],
   ) =>
@@ -309,31 +311,23 @@ export function createFactoryCliComposition(
   };
   const inspectRecipePreflight = async (
     repo: AgentPackExecutionContext["repo"],
+    plan: import("@maestro-template/agent-pack").RecipeExecutionPlan,
   ) => {
     const result = await inspectPreflightResult(repo);
     if (result.data === null)
       return {
         fingerprint: "recipe_preflight_sha256:unavailable",
-        safeToMutate: false,
-        cleanWorktree: false,
+        blockingCodes: ["AGENT_PACK_PREFLIGHT_UNAVAILABLE"],
       };
-    const { facts } = result.data;
-    const stableMutationEvidence = {
-      repo,
-      host: facts.host,
-      prerequisites: { dependencies: facts.prerequisites.dependencies },
-      repository: facts.repository,
-      versionsCompatible: facts.versionsCompatible,
-      versions: facts.versions,
-      workflow: facts.workflow,
-      app: facts.app,
-    };
     return {
-      fingerprint: `recipe_preflight_${sha256RecipeBytes(
-        JSON.stringify(stableMutationEvidence),
-      )}`,
-      safeToMutate: result.data.safeToMutate,
-      cleanWorktree: facts.repository.dirty === false,
+      fingerprint: result.data.fingerprint,
+      blockingCodes: recipePreflightBlockingCodes(
+        result.diagnostics
+          .map(({ code }) => code)
+          .filter(isMutationBlockingPreflightCode),
+        result.data.facts.repository.collisions,
+        plan,
+      ),
     };
   };
   const scaffold = createScaffoldCommand({
@@ -356,8 +350,7 @@ export function createFactoryCliComposition(
         status,
         repair,
       })),
-      reviewedAdrRefs: (repo) =>
-        readReviewedAdrRefs(pathToFileURL(`${repo.sourceRoot}/`)),
+      reviewedAdrRefs: (repo) => readAcceptedAdrRefs(repo.sourceRoot),
     },
   });
   const recipeDependencies = {
@@ -533,7 +526,6 @@ export function createFactoryCliComposition(
     const baseProjection = createMaestroMcpProjection(
       {
         preflight,
-        planCheck,
         scaffold,
         supportBundle,
         verify: readOnlyVerify,
@@ -572,7 +564,6 @@ export function createFactoryCliComposition(
     createVerifyCliHandler(verify),
     createReceiptExportCliHandler(verifyExport),
     createVerifyCliHandler(check),
-    createPlanCheckCliHandler(planCheck),
     createScaffoldCliHandler(scaffold),
     createSupportBundleCliHandler(supportBundle),
     createUpgradeCliHandler(),

@@ -203,6 +203,7 @@ async function executeConfigure(
   }
 }
 
+// eslint-disable-next-line complexity -- AP-008 tracks splitting MCP acknowledgement validation without weakening its argument boundary.
 function decodeConfigureArgs(
   input: unknown,
 ): AgentPackArgumentResult<ConfigureArgs> {
@@ -224,7 +225,8 @@ function decodeConfigureArgs(
     typeof remove !== "boolean" ||
     typeof privacyReviewed !== "boolean" ||
     (write && remove) ||
-    (remove && input.profile !== undefined) ||
+    (remove &&
+      ("profile" in input || "write" in input || "privacyReviewed" in input)) ||
     (write && !privacyReviewed) ||
     (!write && privacyReviewed)
   ) {

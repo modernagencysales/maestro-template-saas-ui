@@ -4,8 +4,11 @@ import {
   createNodeRecipeTransaction,
   createRecipesCommand,
   executeAgentPackCommand,
+  isMutationBlockingPreflightCode,
   sha256RecipeBytes,
   type AgentPackExecutionContext,
+  type RecipeExecutionPlan,
+  type RecipeOperation,
   type createPreflightCommand,
 } from "@maestro-template/agent-pack";
 import {
@@ -19,9 +22,24 @@ import { createRecipeCliHandlers } from "./recipes";
 
 type RecipeRepo = AgentPackExecutionContext["repo"];
 
+export const recipePreflightBlockingCodes = (
+  codes: readonly string[],
+  dirtyPaths: readonly string[] | "unknown",
+  plan: { readonly operations: readonly Pick<RecipeOperation, "path">[] },
+): readonly string[] => {
+  const ownedPaths = new Set(plan.operations.map(({ path }) => path));
+  return codes.filter(
+    (code) =>
+      code !== "AGENT_PACK_DIRTY_OVERLAP" ||
+      dirtyPaths === "unknown" ||
+      dirtyPaths.some((path) => ownedPaths.has(path)),
+  );
+};
+
 const inspectRecipePreflight = async (
   preflight: ReturnType<typeof createPreflightCommand>,
   repo: RecipeRepo,
+  plan: RecipeExecutionPlan,
 ) => {
   const result = await executeAgentPackCommand(
     preflight,
@@ -35,27 +53,18 @@ const inspectRecipePreflight = async (
   if (result.data === null) {
     return {
       fingerprint: "recipe_preflight_sha256:unavailable",
-      safeToMutate: false,
-      cleanWorktree: false,
+      blockingCodes: ["AGENT_PACK_PREFLIGHT_UNAVAILABLE"],
     };
   }
-  const { facts } = result.data;
-  const stableMutationEvidence = {
-    repo,
-    host: facts.host,
-    prerequisites: { dependencies: facts.prerequisites.dependencies },
-    repository: facts.repository,
-    versionsCompatible: facts.versionsCompatible,
-    versions: facts.versions,
-    workflow: facts.workflow,
-    app: facts.app,
-  };
   return {
-    fingerprint: `recipe_preflight_${sha256RecipeBytes(
-      JSON.stringify(stableMutationEvidence),
-    )}`,
-    safeToMutate: result.data.safeToMutate,
-    cleanWorktree: facts.repository.dirty === false,
+    fingerprint: result.data.fingerprint,
+    blockingCodes: recipePreflightBlockingCodes(
+      result.diagnostics
+        .map(({ code }) => code)
+        .filter(isMutationBlockingPreflightCode),
+      result.data.facts.repository.collisions,
+      plan,
+    ),
   };
 };
 
@@ -138,7 +147,8 @@ export function createCustomerRecipeCliHandlers(
       preview: previewRecipeGenerator,
     },
     preflight: {
-      inspect: (repo: RecipeRepo) => inspectRecipePreflight(preflight, repo),
+      inspect: (repo: RecipeRepo, plan: RecipeExecutionPlan) =>
+        inspectRecipePreflight(preflight, repo, plan),
     },
     transaction: createNodeRecipeTransaction(),
   };

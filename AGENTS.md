@@ -18,11 +18,9 @@ and leave the repository easier for the next person or agent to inspect.
 In either mode, begin with `pnpm maestro -- preflight --mode fake`. In a
 customer target, then run `pnpm maestro -- recipes list` and
 `pnpm template:systems -- --query <responsibility-or-table>` before choosing a
-generator. Preview is the default. Consequential generation must use the
-reviewed scaffold route, inspect its `review-required`/secret-names-only privacy
-posture, and run the returned structured `confirmation.argv` unchanged. That
-argv binds the write to exact `preflight_sha256:` and `scaffold_sha256:`
-fingerprints. A write must be followed by the focused gates named in the
+generator. Preview is the default. Consequential generation uses the reviewed
+scaffold route, its `review-required`/secret-names-only privacy posture, and
+the returned structured `confirmation.argv`. Run the focused gates named in the
 preview.
 
 The supported customer loop is:
@@ -49,14 +47,15 @@ Do not replace a Feature with a parallel journey manifest, evidence store, or
 source-code wording checker. Cucumber execution is the completion evidence.
 
 After the focused gates pass, review `git status --short` and commit the recipe
-transaction, including its receipt and generated provenance. Start reruns
-preflight and intentionally requires a clean target.
+transaction, including its receipt and generated provenance.
 
 Do not bypass this loop by copying factory files, hand-editing generated files,
 inventing a parallel system, or weakening a red gate. Read
 `docs/template/quickstart.md`, `docs/template/app-factory-guide.md`, and
 `docs/template/customer-target-contract.md` when onboarding or changing the
-factory/customer boundary.
+factory/customer boundary. Use
+`docs/template/enforced-engineering-rules.md` to select focused checks; reserve
+full verification for an integrated batch or delivery candidate.
 
 ## Layer Law
 
@@ -159,8 +158,8 @@ Rules when replacing a fixture body:
   follow-up gates from the matching `docs/template/how-to-add-*` playbook.
 - `template-gap` names the missing pattern, a template backlog reference, and
   the proposed promotion/import path. A gap is a template finding, not a waiver.
-- Use `docs/template/app-factory-guide.md` for the generator flow and
-  `pnpm stack:check` for deterministic plan-shape validation.
+- Use `docs/template/app-factory-guide.md` for the generator flow and the
+  focused package scripts named by the selected work package.
 
 - Scaffold first: when a `pnpm template:*` generator covers the module kind,
   preview its reviewed scaffold equivalent and use the exact confirmation argv
@@ -184,9 +183,8 @@ Rules when replacing a fixture body:
   migration decision in the same change. Do not invent a parallel table family
   because its existing owner has a different noun.
 - Gate discipline: run the focused gates for what you changed before every
-  commit, and `just verify` before declaring any task done. Recipe names in the
-  Justfile are the canonical gate contract shared by local dev, CI, and agent
-  SOPs.
+  commit. Package scripts are the canonical gate contract shared by local dev,
+  CI, and agent SOPs.
 - Verification before completion: never claim done, fixed, or passing without
   pasting the passing command output. A red gate is a finding, not a blocker to
   route around — never edit a gate file to make red turn green.
@@ -200,17 +198,33 @@ Rules when replacing a fixture body:
   `docs/template/system-catalog.json` and run `pnpm check:system-catalog` in the
   same commit.
 
+## Delivery-Batch CI
+
+Tasks are implementation checkpoints, not release units. Commit per task and run
+the task's focused affected tests, narrow typecheck, and owned static gates. Do
+not run broad verification or create a PR merely because a task completed.
+
+A delivery batch is an independently mergeable product outcome. Run full
+required verification once on its immutable final head. A changed head
+invalidates prior evidence. Woodpecker verification for the current PR head is
+the only blocking full-verification authority; never copy or manufacture status
+across commits.
+
 ## Testing Doctrine
 
 - New behavior needs tests before implementation.
 - Use focused tests for adapters, reducers, schemas, and gates.
 - Use generated Confect refs in Confect tests.
-- Broad local test gates must use:
+- Broad local test gates are for an integrated batch or delivery candidate:
 
 ```bash
 pnpm test
 pnpm verify
 ```
+
+`pnpm verify` is the delivery-batch gate. Run it once after all tasks in the
+batch are integrated and reviewed, not after each task commit. Woodpecker is the
+blocking verdict authority.
 
 ## Provider And Secret Boundary
 
@@ -231,7 +245,6 @@ assuming success.
 
 - `apps/web`: reference app.
 - `apps/cli`: headless CLI.
-- `apps/voice-relay`: optional voice/capture relay.
 - `packages/convex`: Confect/Convex backend.
 - `packages/ui`: UI primitives and blocks.
 - `packages/workflow-ui`: React Flow workflow builder.

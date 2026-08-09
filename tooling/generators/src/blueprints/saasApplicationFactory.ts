@@ -1,13 +1,21 @@
 import type { GeneratedFile } from "../index";
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
-import { buildSaasApplicationFiles } from "./saasApplication";
+import {
+  buildCurrentRecordsExampleFiles,
+  buildCurrentSaasApplicationChassisFiles,
+  buildSaasApplicationFiles,
+} from "./saasApplication";
+import {
+  selectsSaasApplicationPattern,
+  type SaasApplicationPatternSelection,
+} from "./saasApplicationPatterns";
 import {
   buildSaasRegistrationProjections,
   CURRENT_FACTORY_PRODUCT_TABLES,
 } from "./saasRegistrationProjections";
 
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
-  "Justfile",
   "apps/web/src/adapters/confect-generated-refs.test.ts",
   "docs/template/env-manifest.json",
   "docs/template/env-manifest.md",
@@ -33,37 +41,13 @@ const CURRENT_CUSTOMER_EMAIL_TABLES = [
 
 const currentCustomerSource = (
   path: (typeof CURRENT_CUSTOMER_SOURCE_PROJECTIONS)[number],
+  selection: SaasApplicationPatternSelection,
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting path-specific compatibility projections.
 ): string => {
   let content = readFileSync(
     new URL(`../../../../${path}`, import.meta.url),
     "utf8",
   );
-  if (path === "Justfile") {
-    const factoryOnlyRecipes = [
-      `test-pr-backlog:
-    pnpm test:pr-backlog
-
-evals:
-    pnpm evals
-
-`,
-      `check-workflow-output-smoke:
-    pnpm template:workflow-output-smoke
-
-`,
-      `mutation:
-    bash tooling/ci/mutation.sh
-
-`,
-    ] as const;
-    for (const recipe of factoryOnlyRecipes) {
-      if (!content.includes(recipe))
-        throw new Error(
-          "customer Justfile factory-only recipe marker is missing",
-        );
-      content = content.replace(recipe, "");
-    }
-  }
   if (path === "tooling/generators/src/crud-proof.test.ts") {
     const factoryFixture =
       "examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts";
@@ -163,6 +147,8 @@ evals:
         return (
           table === undefined ||
           (!FACTORY_PRODUCT_TABLES.has(table) &&
+            (selectsSaasApplicationPattern(selection, "workflow-automation") ||
+              !table.startsWith("workflow")) &&
             !CURRENT_CUSTOMER_EMAIL_TABLES.includes(
               table as (typeof CURRENT_CUSTOMER_EMAIL_TABLES)[number],
             ))
@@ -181,54 +167,71 @@ evals:
         "\n$1",
       )}\n$1"entitlements",`,
     );
-    const tableBoundary = /^(\s*)"transformBlocks",$/gmu;
-    const matches = [...content.matchAll(tableBoundary)];
-    if (matches.length !== 4)
-      throw new Error("customer Confect manifest table markers are missing");
-    content = content.replace(
-      tableBoundary,
-      '$1"records",\n$1"transformBlocks",',
-    );
+    if (selectsSaasApplicationPattern(selection, "records-example")) {
+      const tableBoundary = /^(\s*)"transformBlocks",$/gmu;
+      const matches = [...content.matchAll(tableBoundary)];
+      if (matches.length !== 4)
+        throw new Error("customer Confect manifest table markers are missing");
+      content = content.replace(
+        tableBoundary,
+        '$1"records",\n$1"transformBlocks",',
+      );
+    }
   }
   return content;
 };
 
-const currentCustomerSourceProjections = (): readonly GeneratedFile[] =>
-  CURRENT_CUSTOMER_SOURCE_PROJECTIONS.map((path) => ({
+const currentCustomerSourceProjections = (
+  selection: SaasApplicationPatternSelection,
+): readonly GeneratedFile[] =>
+  CURRENT_CUSTOMER_SOURCE_PROJECTIONS.filter(
+    (path) =>
+      (selectsSaasApplicationPattern(selection, "records-example") ||
+        path !== "tooling/generators/src/crud-proof.test.ts") &&
+      (selectsSaasApplicationPattern(selection, "workflow-automation") ||
+        !path.startsWith("packages/convex/confect/workflows/")),
+  ).map((path) => ({
     path,
-    content: currentCustomerSource(path),
+    content: currentCustomerSource(path, selection),
   }));
 
-const currentContractFiles = (options: {
-  readonly name: string;
-  readonly firstOutcome?: string;
-}): readonly GeneratedFile[] => {
+const currentContractFiles = (
+  options: {
+    readonly name: string;
+    readonly firstOutcome?: string;
+  } & SaasApplicationPatternSelection,
+): readonly GeneratedFile[] => {
   const name = options.name.trim() || "My App";
   const firstOutcome = (
-    options.firstOutcome?.trim() || "Create and review records"
+    options.firstOutcome?.trim() || "Deliver the first customer outcome"
   ).replace(/\s+/gu, " ");
   return [
-    ...[
-      "apps/web/src/adapters/records/http.ts",
-      "features/records.feature",
-      "features/step_definitions/records.steps.ts",
-    ].map((path) => ({
-      path,
-      content: readFileSync(
-        new URL(
-          `../../../../examples/saas-application/seed/source/${path}`,
-          import.meta.url,
-        ),
-        "utf8",
-      ),
-    })),
+    ...(selectsSaasApplicationPattern(options, "records-example")
+      ? [
+          "apps/web/src/adapters/records/http.ts",
+          "features/records.feature",
+          "features/step_definitions/records.journeys.ts",
+          "features/step_definitions/records.steps.ts",
+          "features/support/contracts-scenario.ts",
+          "features/support/contracts-runtime.ts",
+          "features/support/contracts-world.ts",
+        ].map((path) => ({
+          path,
+          content: readFileSync(
+            new URL(
+              `../../../../examples/saas-application/seed/source/${path}`,
+              import.meta.url,
+            ),
+            "utf8",
+          ),
+        }))
+      : []),
     {
       path: "features/first-outcome.feature",
       content: `@wip
 Feature: ${firstOutcome}
   This is the first product promise for ${name}.
 
-  @cross_surface
   Scenario: Deliver ${firstOutcome.toLowerCase()}
     Given the product is ready
     When the first outcome is completed
@@ -258,7 +261,11 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
         "apps/web/src/screens/records-screen.tsx",
         "apps/web/src/routes/_workspace.records.tsx",
         "features/records.feature",
+        "features/step_definitions/records.journeys.ts",
         "features/step_definitions/records.steps.ts",
+        "features/support/contracts-scenario.ts",
+        "features/support/contracts-runtime.ts",
+        "features/support/contracts-world.ts",
       ],
     },
     null,
@@ -266,11 +273,198 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
   )}\n`,
 });
 
-const currentSaasApplicationFiles = (options: {
-  readonly name: string;
-  readonly firstOutcome?: string;
-}): readonly GeneratedFile[] =>
-  buildSaasApplicationFiles(options).map((file) => {
+const neutralWorkflowCommandReplacements: Readonly<
+  Record<string, readonly (readonly [string, string])[]>
+> = {
+  ".agents/skills/maestro/references/workflow-authoring.md": [
+    [
+      "Run\n`pnpm check:workflow:fast` before broader verification.",
+      "Select the\n`workflow-automation` pattern before authoring workflow graphs.",
+    ],
+  ],
+  "AGENTS.md": [
+    [
+      "- Run `pnpm check:workflow:fast` while authoring. Semantic diagnostics include a\n  stable rule id, reason, repair, and rerun command. The generated support\n  ledger is\n  [workflow-semantics.md](docs/template/generated/workflow-semantics.md).\n",
+      "- Select the `workflow-automation` pattern before authoring workflows.\n",
+    ],
+  ],
+  "docs/template/agent-worker-playbook.md": [
+    ["- `pnpm check:workflow-graph-boundary`\n", ""],
+  ],
+  "tooling/generators/src/customer-dispatcher.ts": [
+    [
+      'focusedGates: ["pnpm check:workflow-graph-boundary"],',
+      'focusedGates: ["pnpm check:confect-contracts"],',
+    ],
+  ],
+  "tooling/generators/src/customer-runtime.ts": [
+    ['  "pnpm check:workflow-graph-boundary",\n', ""],
+    [
+      "5. Run \\`pnpm confect:codegen\\`, \\`pnpm check:workflow-graph-boundary\\`, and focused workflow tests.",
+      "5. Run \\`pnpm confect:codegen\\` and focused workflow tests after selecting workflow automation.",
+    ],
+    [
+      '"Run pnpm check:workflow-graph-boundary and focused workflow tests.",',
+      '"Select workflow automation before running focused workflow tests.",',
+    ],
+  ],
+  "tooling/generators/src/private-package.ts": [
+    ['            "pnpm check:workflow-graph-boundary",\n', ""],
+  ],
+};
+
+const customerDocumentationCommandReplacements: Readonly<
+  Record<string, readonly (readonly [string, string])[]>
+> = {
+  "docs/template/client-intake-wizard.md": [
+    [
+      '`pnpm template:intake -- --name "Client Brain" --write` creates\n`docs/template/generated/client-intake.md` and updates `template-instance.json`\nwith an `intake` block.',
+      "The factory records reviewed intake before generating a customer target.\nGenerated targets retain that accepted intake in `template-instance.json`.",
+    ],
+    ['pnpm template:intake -- --name "Client Brain" --write\n', ""],
+  ],
+  "docs/template/env-manifest.md": [
+    [
+      "`pnpm deploy:doctor` reads `project.config.json` and",
+      "The factory deployment doctor reads `project.config.json` and",
+    ],
+  ],
+  "docs/template/how-to-add-notification.md": [
+    [
+      "Use the notification generator:",
+      "Use the emitted feature generator to extend the canonical notification system:",
+    ],
+    [
+      "pnpm template:add-notification -- --name workflowCompleted",
+      "pnpm template:add-feature -- --name workflow-completed-notification --system notifications --disposition extend",
+    ],
+  ],
+  "docs/template/operations-runbook.md": [
+    [
+      "5. Run `pnpm build` and `pnpm smoke:web-static`.",
+      "5. Run `pnpm build` and the deployment owner's static smoke.",
+    ],
+    [
+      "deployment, require `pnpm smoke:hosted`, `pnpm smoke:hosted:browser`,\n   `pnpm smoke:hosted:a11y`, and `pnpm smoke:hosted:visual`. Upload the guarded",
+      "deployment, require the deployment owner's hosted liveness, browser,\n   accessibility, and visual canaries. Upload the guarded",
+    ],
+  ],
+  "docs/template/template-maturity-model.md": [
+    [
+      "**Required commands:** `pnpm check:format`, `pnpm smoke:web-static`,\n`pnpm smoke:hosted:browser`, `pnpm smoke:hosted:a11y`,\n`pnpm smoke:hosted:visual`.",
+      "**Required commands:** `pnpm check:format` plus deployment-owned static,\nbrowser, accessibility, and visual canaries.",
+    ],
+    ["`pnpm review:completion`.", "`pnpm review:contract`."],
+    ["`pnpm evals`.", "`pnpm test`."],
+    ["`pnpm deploy:doctor`.", "`pnpm verify`."],
+    [
+      "**Required commands:** `pnpm template:doctor -- --mode live`,\n`pnpm deploy:doctor`, `pnpm verify`, hosted smoke against the client domain, and",
+      "**Required commands:** `pnpm template:doctor -- --mode live`, an external\ndeployment-authority doctor, `pnpm verify`, hosted smoke against the client\ndomain, and",
+    ],
+  ],
+};
+
+const applyProjectionReplacements = (
+  files: readonly GeneratedFile[],
+  replacementsByPath: Readonly<
+    Record<string, readonly (readonly [string, string])[]>
+  >,
+  label: string,
+): readonly GeneratedFile[] =>
+  files.map((file) => {
+    const replacements = replacementsByPath[file.path];
+    if (replacements === undefined) return file;
+    let content = file.content;
+    for (const [search, replacement] of replacements) {
+      if (!content.includes(search))
+        throw new Error(`${label} projection marker is missing: ${file.path}`);
+      content = content.replace(search, replacement);
+    }
+    return { ...file, content };
+  });
+
+const projectWorkflowCommandReferences = (
+  files: readonly GeneratedFile[],
+  selection: SaasApplicationPatternSelection,
+): readonly GeneratedFile[] => {
+  const documented = applyProjectionReplacements(
+    files,
+    customerDocumentationCommandReplacements,
+    "Customer documentation command",
+  );
+  if (selectsSaasApplicationPattern(selection, "workflow-automation"))
+    return documented;
+  const projected = applyProjectionReplacements(
+    documented,
+    neutralWorkflowCommandReplacements,
+    "Neutral workflow command",
+  );
+  const managedPath = ".agents/skills/maestro/references/workflow-authoring.md";
+  const managed = projected.find(({ path }) => path === managedPath);
+  const manifestPath = "docs/template/customer-context.manifest.json";
+  const manifestFile = projected.find(({ path }) => path === manifestPath);
+  if (managed === undefined || manifestFile === undefined)
+    throw new Error("Neutral workflow customer-context projection is missing.");
+  const manifest = JSON.parse(manifestFile.content) as {
+    readonly schemaVersion: number;
+    readonly files: readonly {
+      readonly path: string;
+      readonly sha256: string;
+      readonly validation?: string;
+    }[];
+  };
+  let synchronized = false;
+  const manifestContent = `${JSON.stringify(
+    {
+      ...manifest,
+      files: manifest.files.map((file) => {
+        if (file.path !== managedPath) return file;
+        synchronized = true;
+        return {
+          ...file,
+          sha256: `sha256:${createHash("sha256")
+            .update(managed.content)
+            .digest("hex")}`,
+        };
+      }),
+    },
+    null,
+    2,
+  )}\n`;
+  if (!synchronized)
+    throw new Error("Neutral workflow customer-context entry is missing.");
+  const manifestChecksum = `sha256:${createHash("sha256")
+    .update(manifestContent)
+    .digest("hex")}`;
+  const checkerPath = "tooling/quality/check-customer-context.mts";
+  const checker = projected.find(({ path }) => path === checkerPath);
+  const checksumMarker = /const MANIFEST_SHA256 =\n {2}"sha256:[a-f0-9]{64}";/u;
+  if (checker === undefined || !checksumMarker.test(checker.content))
+    throw new Error("Neutral workflow customer-context checker is missing.");
+  const checkerContent = checker.content.replace(
+    checksumMarker,
+    `const MANIFEST_SHA256 =\n  "${manifestChecksum}";`,
+  );
+  return projected.map((file) => {
+    if (file.path === manifestPath)
+      return { ...file, content: manifestContent };
+    if (file.path === checkerPath) return { ...file, content: checkerContent };
+    return file;
+  });
+};
+
+const currentSaasApplicationFiles = (
+  options: {
+    readonly name: string;
+    readonly firstOutcome?: string;
+  } & SaasApplicationPatternSelection,
+): readonly GeneratedFile[] =>
+  [
+    ...buildCurrentSaasApplicationChassisFiles(options),
+    ...(selectsSaasApplicationPattern(options, "records-example")
+      ? buildCurrentRecordsExampleFiles(options)
+      : []),
+  ].map((file) => {
     let content = file.content
       .replaceAll(
         "packages/convex/confect/records.spec.ts",
@@ -316,13 +510,20 @@ const currentSaasApplicationFiles = (options: {
 export const buildFactorySaasApplicationFiles = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
-}): readonly GeneratedFile[] => [
-  ...currentSaasApplicationFiles(options),
-  ...currentContractFiles(options),
-  ...buildSaasRegistrationProjections(),
-  ...currentCustomerSourceProjections(),
-  recordsFeatureProvenance(),
-];
+  readonly patterns?: SaasApplicationPatternSelection["patterns"];
+}): readonly GeneratedFile[] =>
+  projectWorkflowCommandReferences(
+    [
+      ...currentSaasApplicationFiles(options),
+      ...currentContractFiles(options),
+      ...buildSaasRegistrationProjections({ patterns: options.patterns }),
+      ...currentCustomerSourceProjections(options),
+      ...(selectsSaasApplicationPattern(options, "records-example")
+        ? [recordsFeatureProvenance()]
+        : []),
+    ],
+    options,
+  );
 
 /** Historical projection used only to reproduce the immutable alpha.1 plan. */
 export const buildAlpha1SaasApplicationFiles = (options: {

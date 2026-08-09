@@ -1,10 +1,5 @@
-# Git hooks — shifted-left quality gates. Pre-commit auto-formats; pre-push
-# runs deterministic gates AND injects the AI gate rubrics so agents
-# self-review against the exact criteria CI's taste + contract judges use.
-#
-# Agents don't care about wait time — catching issues here saves a CI
-# round-trip. Humans who want a fast push can skip the heavy checks:
-#   LEFTHOOK_EXCLUDE=deterministic git push
+# Fast local hygiene. Full deterministic admission runs once on the immutable
+# delivery-batch head in Woodpecker.
 
 pre-commit:
   commands:
@@ -18,52 +13,3 @@ pre-commit:
     qlty-staged:
       glob: "*.{ts,tsx,mts,mjs,cjs,py,rs,go}"
       run: pnpm check:qlty -- --staged
-
-pre-push:
-  commands:
-    debt:
-      run: pnpm check:debt
-    typecheck:
-      tags: deterministic
-      run: pnpm typecheck
-    lint:
-      tags: deterministic
-      run: pnpm lint
-    deps:
-      tags: deterministic
-      run: pnpm check:deps
-    knip:
-      tags: deterministic
-      run: pnpm check:knip
-    gates:
-      tags: deterministic
-      run: pnpm check:gates
-    workflow-semantics:
-      tags: deterministic
-      run: pnpm check:workflow:fast
-    system-catalog:
-      tags: deterministic
-      run: pnpm check:system-catalog
-    system-topology:
-      tags: deterministic
-      run: pnpm check:system-topology
-    data-resources:
-      tags: deterministic
-      run: pnpm check:data-resources
-    append-only-tables:
-      tags: deterministic
-      run: pnpm check:append-only-tables
-    promotion-boundary:
-      tags: deterministic
-      run: pnpm check:promotion-boundary
-    qlty-diff:
-      tags: deterministic
-      run: pnpm check:qlty -- --diff
-    layer-boundaries:
-      tags: deterministic
-      run: pnpm check:layer-boundaries
-    cucumber-contracts:
-      tags: deterministic
-      run: pnpm acceptance:check && pnpm acceptance:features
-    rubric:
-      run: bash scripts/pre-push-rubric.sh

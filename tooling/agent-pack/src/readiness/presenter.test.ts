@@ -80,6 +80,25 @@ describe("build readiness presenter", () => {
     expect(view.selection.recipe).toContain("approval-background-automation");
   });
 
+  it.each(["seam", "unverified"] as const)(
+    "does not claim a %s screen is available",
+    (status) => {
+      const view = presentBuildReadiness(
+        input({
+          surfaces: [
+            {
+              id: "workspace-membership",
+              kind: "screen",
+              status,
+            },
+          ],
+        }),
+      );
+
+      expect(view.summary.screens).toBe("Not verified");
+    },
+  );
+
   it("projects independent per-environment provider posture", () => {
     const view = presentBuildReadiness(
       input({

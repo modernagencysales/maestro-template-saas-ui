@@ -10,7 +10,7 @@ import { cliSuccess } from "../result";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
 export const CREATE_HELP =
-  'maestro create <target> --name "My App" --outcome "Track client requests" [--demo-only] [--write --privacy-reviewed] [--human|--details|--json]\n';
+  'maestro create <target> --name "My App" --outcome "Track client requests" [--demo-only] [--write] [--human|--details|--json]\n';
 
 export function createCreateCliHandler<Args, Data extends AgentPackJsonValue>(
   command: AgentPackCommand<"create", Args, Data>,
@@ -50,21 +50,9 @@ function projectCreateResultForJson<Data extends AgentPackJsonValue>(
   result: AgentPackResult<"create", Data | null>,
 ): unknown {
   const data = asJsonRecord(result.data);
-  if (data === undefined) return result;
+  if (!hasCreatePreviewData(data)) return result;
   const preview = data.preview;
   const release = data.release;
-  if (
-    !isJsonRecord(preview) ||
-    !isJsonRecord(release) ||
-    !Array.isArray(preview.writes) ||
-    !Array.isArray(preview.omissions) ||
-    !Array.isArray(preview.collisions) ||
-    typeof preview.preflightFingerprint !== "string" ||
-    typeof preview.totalBytes !== "number" ||
-    typeof release.ownershipManifest !== "string" ||
-    typeof release.ownershipManifestChecksum !== "string"
-  )
-    return result;
 
   return {
     ...result,
@@ -87,65 +75,133 @@ function projectCreateResultForJson<Data extends AgentPackJsonValue>(
   };
 }
 
+type CreatePreviewJson = {
+  readonly [key: string]: AgentPackJsonValue;
+  readonly writes: readonly AgentPackJsonValue[];
+  readonly omissions: readonly AgentPackJsonValue[];
+  readonly collisions: readonly AgentPackJsonValue[];
+  readonly preflightFingerprint: string;
+  readonly totalBytes: number;
+};
+
+type CreateReleaseJson = {
+  readonly [key: string]: AgentPackJsonValue;
+  readonly ownershipManifest: string;
+  readonly ownershipManifestChecksum: string;
+};
+
+function hasCreatePreviewData(
+  data: { readonly [key: string]: AgentPackJsonValue } | undefined,
+): data is {
+  readonly [key: string]: AgentPackJsonValue;
+  readonly preview: CreatePreviewJson;
+  readonly release: CreateReleaseJson;
+} {
+  if (
+    data === undefined ||
+    !isJsonRecord(data.preview) ||
+    !isJsonRecord(data.release)
+  )
+    return false;
+  const { preview, release } = data;
+  return [
+    Array.isArray(preview.writes),
+    Array.isArray(preview.omissions),
+    Array.isArray(preview.collisions),
+    typeof preview.preflightFingerprint === "string",
+    typeof preview.totalBytes === "number",
+    typeof release.ownershipManifest === "string",
+    typeof release.ownershipManifestChecksum === "string",
+  ].every(Boolean);
+}
+
 function parseCreateCli(argv: readonly string[]): {
   readonly input: unknown;
   readonly renderMode: FactoryCliRenderMode;
 } {
   const target = argv[0]?.startsWith("--") ? undefined : argv[0];
-  let name: string | undefined;
-  let outcome: string | undefined;
-  let demoOnly = false;
-  let write = false;
-  let privacyReviewed = false;
+  const parsed = parseCreateArguments(argv, target === undefined ? 0 : 1);
+  const valid =
+    target !== undefined &&
+    parsed.valid &&
+    parsed.values.name !== undefined &&
+    parsed.values.outcome !== undefined;
+  return {
+    input: valid ? { target, ...parsed.values, ...parsed.flags } : {},
+    renderMode: parsed.renderMode,
+  };
+}
+
+function parseCreateArguments(
+  argv: readonly string[],
+  start: number,
+): {
+  readonly flags: Record<"demoOnly" | "write", boolean>;
+  readonly renderMode: FactoryCliRenderMode;
+  readonly valid: boolean;
+  readonly values: Record<"name" | "outcome", string | undefined>;
+} {
+  const values: Record<"name" | "outcome", string | undefined> = {
+    name: undefined,
+    outcome: undefined,
+  };
+  const flags: Record<"demoOnly" | "write", boolean> = {
+    demoOnly: false,
+    write: false,
+  };
   let renderMode: FactoryCliRenderMode = "human";
   let renderSeen = false;
-  let valid = target !== undefined;
-  for (
-    let index = target === undefined ? 0 : 1;
-    index < argv.length;
-    index += 1
-  ) {
+  let valid = true;
+  for (let index = start; index < argv.length; index += 1) {
     const token = argv[index];
-    if (token === "--demo-only") {
-      if (demoOnly) valid = false;
-      demoOnly = true;
-      continue;
-    }
-    if (token === "--write") {
-      if (write) valid = false;
-      write = true;
-      continue;
-    }
-    if (token === "--privacy-reviewed") {
-      if (privacyReviewed) valid = false;
-      privacyReviewed = true;
+    const flag = createFlagFor(token);
+    if (flag !== undefined) {
+      valid &&= !flags[flag];
+      flags[flag] = true;
       continue;
     }
     const selected = renderModeFor(token);
     if (selected !== undefined) {
-      if (renderSeen) valid = false;
+      valid &&= !renderSeen;
       renderMode = selected;
       renderSeen = true;
       continue;
     }
     const value = argv[index + 1];
-    if (value === undefined || value.startsWith("--")) {
+    const named = createNamedOption(token, value, values);
+    if (named === undefined) {
       valid = false;
       continue;
     }
     index += 1;
-    if (token === "--name" && name === undefined) name = value;
-    else if (token === "--outcome" && outcome === undefined) outcome = value;
-    else valid = false;
+    values[named.key] = named.value;
   }
-  if (name === undefined || outcome === undefined) valid = false;
-  if ((write && !privacyReviewed) || (!write && privacyReviewed)) valid = false;
-  return {
-    input: valid
-      ? { target, name, outcome, demoOnly, write, privacyReviewed }
-      : {},
-    renderMode,
-  };
+  return { flags, renderMode, valid, values };
+}
+
+function createFlagFor(
+  token: string | undefined,
+): "demoOnly" | "write" | undefined {
+  if (token === "--demo-only") return "demoOnly";
+  if (token === "--write") return "write";
+  return undefined;
+}
+
+function createNamedOption(
+  token: string | undefined,
+  value: string | undefined,
+  values: Readonly<Record<"name" | "outcome", string | undefined>>,
+): { readonly key: "name" | "outcome"; readonly value: string } | undefined {
+  const key =
+    token === "--name" || token === "--outcome" ? token.slice(2) : undefined;
+  if (
+    (key !== "name" && key !== "outcome") ||
+    values[key] !== undefined ||
+    value === undefined ||
+    value.startsWith("--")
+  )
+    return undefined;
+  return { key, value };
 }
 
 function renderModeFor(

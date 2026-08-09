@@ -4,6 +4,9 @@ import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+const DEPLOY_NODE_IMAGE =
+  "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a";
+
 type DeployPolicy = {
   readonly schemaVersion: 1;
   readonly primitiveOwner: string;
@@ -44,7 +47,7 @@ export const deployTrustRootSha256 = (
   return deployPolicySha256(JSON.stringify(manifest));
 };
 
-export const validateDeployAuthoritySources = (input: {
+type DeployAuthorityInput = {
   readonly sources: Readonly<Record<string, string>>;
   readonly packageScripts: Readonly<Record<string, string>>;
   readonly pipeline: string;
@@ -54,7 +57,12 @@ export const validateDeployAuthoritySources = (input: {
   readonly trustMembers: Readonly<Record<string, string>>;
   readonly trustedDeployRootSha256?: string;
   readonly ci?: boolean;
-}): readonly string[] => {
+};
+
+// eslint-disable-next-line complexity -- AP-008 tracks decomposing this pre-existing fail-closed deploy authority validator.
+export function validateDeployAuthoritySources(
+  input: DeployAuthorityInput,
+): readonly string[] {
   const failures: string[] = [];
   const expectedTrustMembers = [
     "tooling/quality/check-deploy-authority.mts",
@@ -100,6 +108,7 @@ export const validateDeployAuthoritySources = (input: {
   ) {
     return ["deploy policy manifest has an invalid shape"];
   }
+  failures.push(...canonicalNodeImageFailures(input.pipeline, policy));
 
   const actualTrustRoot = deployTrustRootSha256(input.trustMembers);
   if (input.ci && !input.trustedDeployRootSha256) {
@@ -414,7 +423,7 @@ export const validateDeployAuthoritySources = (input: {
     'git show "$TRUSTED_CI_SELF_PROTECTION_COMMIT:tooling/ci/ci-self-protection.sh"',
     "export npm_config_ignore_scripts=true",
     'source "$TRUSTED_SETUP_PATH"',
-    '[[ "$(node --version)" == "v22.12.0" ]]',
+    '[[ "$(node --version)" == "v22.23.2" ]]',
     'node --experimental-strip-types "$TRUSTED_VERIFIER_PATH"',
     'TEMPLATE_CI_SETUP=skip bash "$TRUSTED_SELF_PROTECTION_PATH"',
     "unset npm_config_ignore_scripts",
@@ -488,7 +497,7 @@ export const validateDeployAuthoritySources = (input: {
     );
   }
   return failures;
-};
+}
 
 const containsDeployPrimitive = (source: string): boolean => {
   const normalized = source
@@ -522,6 +531,24 @@ const pipelineBlocks = (pipeline: string): readonly string[] => {
     start = end < lines.length ? end : -1;
   }
   return blocks;
+};
+
+const canonicalNodeImageFailures = (
+  pipeline: string,
+  policy: DeployPolicy,
+): readonly string[] => {
+  const stepNames = [
+    "trusted-ci-policy",
+    policy.jobs.staging.preflight,
+    policy.jobs.staging.deploy,
+    policy.jobs.production.preflight,
+    policy.jobs.production.deploy,
+  ];
+  return stepNames.flatMap((stepName) =>
+    pipelineBlock(pipeline, stepName)?.includes(`image: ${DEPLOY_NODE_IMAGE}`)
+      ? []
+      : [`${stepName} must use the canonical Node image`],
+  );
 };
 
 const escapeRegex = (value: string): string =>

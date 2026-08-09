@@ -19,7 +19,6 @@ export type CustomerCreateInput = {
   readonly outcome: string;
   readonly demoOnly: boolean;
   readonly write: boolean;
-  readonly privacyReviewed: boolean;
 };
 
 export type CustomerCreateReleaseFacts = {
@@ -203,28 +202,17 @@ export function createCustomerCreateCommand(
 function decodeCreateInput(
   value: unknown,
 ): AgentPackArgumentResult<CustomerCreateInput> {
-  const allowed = new Set([
-    "target",
-    "name",
-    "outcome",
-    "demoOnly",
-    "write",
-    "privacyReviewed",
-  ]);
+  const allowed = new Set(["target", "name", "outcome", "demoOnly", "write"]);
   if (!isRecord(value) || !Object.keys(value).every((key) => allowed.has(key)))
     return invalidCreateInput();
   const demoOnly = value.demoOnly ?? false;
   const write = value.write ?? false;
-  const privacyReviewed = value.privacyReviewed ?? false;
   if (
     !nonEmptyString(value.target) ||
     !nonEmptyString(value.name) ||
     !nonEmptyString(value.outcome) ||
     typeof demoOnly !== "boolean" ||
-    typeof write !== "boolean" ||
-    typeof privacyReviewed !== "boolean" ||
-    (write && !privacyReviewed) ||
-    (!write && privacyReviewed)
+    typeof write !== "boolean"
   )
     return invalidCreateInput();
   return {
@@ -235,7 +223,6 @@ function decodeCreateInput(
       outcome: value.outcome.trim(),
       demoOnly,
       write,
-      privacyReviewed,
     },
   };
 }
@@ -248,10 +235,10 @@ function invalidCreateInput(): AgentPackArgumentResult<CustomerCreateInput> {
         code: "AGENT_PACK_CREATE_INVALID_ARGUMENTS",
         severity: "error",
         message:
-          "Create accepts one target plus name, outcome, demo-only, and a privacy-reviewed write.",
+          "Create accepts one target plus name, outcome, demo-only, and write.",
         safeToContinue: true,
         nextAction:
-          "Preview the app and privacy disclosure, then acknowledge it with --privacy-reviewed when writing.",
+          "Preview the app and privacy disclosure, then use --write when ready.",
         rerun:
           'pnpm maestro -- create <target> --name "My App" --outcome "Track client requests"',
       },
@@ -416,7 +403,7 @@ function privacyDiagnostic(
   return createFirstRunPrivacyDiagnostic(disclosure, {
     rerun: materialized
       ? `pnpm --dir ${JSON.stringify(input.target)} maestro -- preflight --mode fake`
-      : `${rerun(input)} --write --privacy-reviewed`,
+      : `${rerun(input)} --write`,
   });
 }
 

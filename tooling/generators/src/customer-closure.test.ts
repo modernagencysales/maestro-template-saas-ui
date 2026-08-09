@@ -57,7 +57,11 @@ describe("customer generator closure", () => {
       expect(closure).toContain(resolve(sourceDir, name));
     }
     const projectedPaths = new Set(
-      buildSaasApplicationTargetPlan().entries.map(({ path }) => path),
+      buildSaasApplicationTargetPlan({
+        name: "SaaS Application",
+        firstOutcome: "Deliver the first customer outcome",
+        patterns: ["workflow-automation"],
+      }).entries.map(({ path }) => path),
     );
     for (const path of closure) {
       const relative = path.slice(sourceDir.length + 1);

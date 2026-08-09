@@ -29,11 +29,11 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     );
   });
 
-  it("has no duplicate GitHub or legacy Woodpecker verification authority", () => {
+  it("keeps Woodpecker as the PR verification authority", () => {
     expect(existsSync(resolve(root, ".github/workflows/quality.yml"))).toBe(
       false,
     );
-    expect(existsSync(resolve(root, ".woodpecker/verify.yml"))).toBe(false);
+    expect(existsSync(resolve(root, ".woodpecker/verify.yml"))).toBe(true);
   });
 
   it("keeps the trusted policy first and exact runner classes", () => {
@@ -45,25 +45,14 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     expect(read(".woodpecker/epoch.yml")).toContain("role: factory-ci");
   });
 
-  it("keeps provider secrets behind a trusted bounded-review step", () => {
+  it("keeps the firewall limited to its deterministic authority", () => {
     const firewall = read(".woodpecker/firewall.yml");
-    expect(firewall).toContain("name: bounded-ai-review");
-    expect(firewall).toContain('git archive "origin/$${BASE_BRANCH}"');
-    expect(firewall).toContain(
-      'node --experimental-strip-types --experimental-transform-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
+    const steps = [...firewall.matchAll(/^\s*- name: ([^\n]+)/gm)].map(
+      ([, name]) => name,
     );
-    expect(firewall).toContain(
-      'export CONTRACT_REVIEW_WORKTREE="$CI_WORKSPACE"',
-    );
-    expect(firewall).toContain('export TASTE_REVIEW_WORKTREE="$CI_WORKSPACE"');
-    expect(firewall).toContain("OPENROUTER_API_KEY:");
-    expect(firewall).toContain("from_secret: openrouter_api_key");
-    const candidateStep = firewall.slice(
-      firewall.indexOf("name: firewall"),
-      firewall.indexOf("name: bounded-ai-review"),
-    );
-    expect(candidateStep).not.toContain("GITHUB_TOKEN");
-    expect(candidateStep).not.toContain("OPENROUTER_API_KEY");
+    expect(steps).toEqual(["trusted-ci-policy", "firewall"]);
+    expect(firewall).not.toContain("OPENROUTER_API_KEY");
+    expect(firewall).not.toContain("ai-review-cycle.mts");
   });
 
   it("bootstraps from the reviewed lockfile without an uninstalled proxy", () => {

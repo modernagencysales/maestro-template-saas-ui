@@ -3,7 +3,6 @@ import { expectDescriptorPassesAndFails } from "./src/check-test-helpers.mts";
 import {
   cannedRegistryImport,
   cannedRegistryImportFailures,
-  cannedRuntimeSuccess,
   descriptor,
   missingExternalValidationError,
   missingCliGeneratedRefUsage,
@@ -19,6 +18,12 @@ import {
 describe("check:headless-surface-contract", () => {
   it("passes and fails on its declared requirements", async () => {
     await expectDescriptorPassesAndFails(descriptor);
+  });
+
+  it("does not pin the removed canned runtime source proof", () => {
+    expect(
+      descriptor.requirements.flatMap(({ includes }) => includes),
+    ).not.toContain("cannedRuntimeSuccess");
   });
 
   it("reports exposed manifest operations without typed errors", () => {
@@ -121,18 +126,6 @@ describe("check:headless-surface-contract", () => {
     ).toEqual([
       "tooling/workflow/src/workflow-compat.ts imports forbidden canned registry templateRegistry",
     ]);
-  });
-
-  it("reports canned runtime success markers", () => {
-    expect(
-      cannedRuntimeSuccess("return { ok: true, result: { accepted: true } };"),
-    ).toContain("accepted");
-
-    expect(
-      cannedRuntimeSuccess(
-        "return executeHeadlessOperation(adapter, request);",
-      ),
-    ).toEqual([]);
   });
 
   it("reports missing generated ref mappings", () => {

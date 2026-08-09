@@ -81,10 +81,7 @@ Perform these registrations in one controller-owned integration slice:
    - append `pnpm check:app-map` to `verify` beside the other deterministic
      topology checks;
    - append `pnpm --dir tooling/app-map test` to `test:tooling`.
-3. Just recipes in `Justfile`:
-   - `test-app-map: pnpm test:app-map`
-   - `check-app-map: pnpm check:app-map`
-4. CLI composition:
+3. CLI composition:
    - add the read-only handler in `apps/cli/src/factory/map.ts`;
    - register it once in the `handlers` array in
      `apps/cli/src/factory/composition.ts`;
@@ -93,14 +90,14 @@ Perform these registrations in one controller-owned integration slice:
    - return nonzero with the package diagnostics when `buildAppMap` is not OK;
    - add handler/router tests, but do not add MCP, mutation, or background
      rebuild behavior.
-5. Build Readiness projection:
+4. Build Readiness projection:
    - adapt a successful map into the existing `screens`, `data`, `automations`,
      and `connections` summary in
      `tooling/agent-pack/src/readiness/presenter.ts`;
    - keep full nodes and affected systems under technical details;
    - compose the adapter in `apps/cli/src/factory/composition.ts`; do not make
      the Agent Pack read App Map source files directly.
-6. Gate registry:
+5. Gate registry:
    - add an `app-map` static descriptor named `check:app-map` to
      `tooling/quality/src/check-definitions.mts`, with canonical doc
      `docs/template/app-map.md` and focused paths `tooling/app-map` plus the
@@ -120,6 +117,6 @@ After the G parser seam, A/root adapter, and mechanical registrations are each
 reviewed and merged, run the App Map focused package checks, the double-build
 `cmp`, `pnpm check:system-catalog`, `pnpm check:system-topology`,
 `pnpm check:data-resources`, `pnpm check:workflow-semantics`, and
-`pnpm check:headless-surface-contract`. Full `just verify` belongs to the
+`pnpm check:headless-surface-contract`. Full `pnpm verify` belongs to the
 controller's accepted integration checkpoint, not this core correction. Passing
 the leaf checks alone is not a WP-5.1 or CP-9 completion claim.

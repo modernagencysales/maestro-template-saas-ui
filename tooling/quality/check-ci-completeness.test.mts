@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { expectDescriptorPassesAndFails } from "./src/check-test-helpers.mts";
 import {
@@ -30,22 +31,104 @@ describe("check:ci-completeness", () => {
     expect(requirements).toContain("check:data-resources");
     expect(requirements).toContain("check:promotion-boundary");
     expect(requirements).not.toContain(".github/workflows/quality.yml");
-    expect(requirements).toContain("Justfile");
+    expect(requirements).not.toContain("Justfile");
     expect(requirements).toContain("lefthook.yml");
-    expect(requirements).toContain("bounded-ai-review");
+    expect(requirements).not.toContain("bounded-ai-review");
     const firewallPipeline = descriptor.requirements.find(
       ({ file }) => file === ".woodpecker/firewall.yml",
     );
-    expect(firewallPipeline?.includes).toContain(
-      'git archive "origin/$${BASE_BRANCH}"',
+    const firewallIncludes = firewallPipeline?.includes;
+    expect(firewallIncludes).toContain("trusted-ci-policy");
+    expect(firewallIncludes).toContain(
+      "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a",
     );
-    expect(firewallPipeline?.includes).toContain(
-      'node --experimental-strip-types --experimental-transform-types "$TRUSTED_TREE/tooling/quality/ai-review-cycle.mts"',
-    );
+    expect(firewallIncludes).toContain("tooling/ci/firewall.sh");
+    expect(firewallIncludes).not.toContain("ai-review-cycle.mts");
     const firewallScript = descriptor.requirements.find(
       ({ file }) => file === "tooling/ci/firewall.sh",
     );
     expect(firewallScript?.includes).not.toContain("pnpm review:bounded");
+    expect(firewallScript?.includes).toContain(
+      "if ! bash tooling/ci/install-qlty.sh",
+    );
+    expect(firewallScript?.includes).not.toContain("pnpm acceptance:check");
+    expect(firewallScript?.includes).not.toContain("pnpm acceptance:features");
+
+    const hook = descriptor.requirements.find(
+      ({ file }) => file === "lefthook.yml",
+    );
+    expect(hook?.includes).toEqual(
+      expect.arrayContaining([
+        "pnpm prettier --write {staged_files}",
+        "ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}",
+        "pnpm check:qlty -- --staged",
+      ]),
+    );
+    expect(hook?.absent).toEqual(
+      expect.arrayContaining([
+        "pre-push-rubric.sh",
+        "pnpm typecheck",
+        "pnpm test",
+        "check:workflow",
+        "check:system",
+        "check:data-resources",
+        "check:promotion-boundary",
+        "acceptance:",
+        "cucumber",
+      ]),
+    );
+  });
+
+  it("pins required-context reachability and unique nested checks", () => {
+    const verifyChassis = descriptor.requirements.find(
+      ({ file }) => file === "tooling/ci/verify-chassis.sh",
+    );
+    expect(verifyChassis?.includes).toEqual(
+      expect.arrayContaining([
+        "bash tooling/ci/install-gitleaks.sh",
+        "pnpm verify",
+        "pnpm --dir apps/web test:runtime-longevity",
+      ]),
+    );
+    expect(verifyChassis?.absent).toEqual(
+      expect.arrayContaining([
+        "install-gitleaks.sh || true",
+        "if ! bash tooling/ci/install-gitleaks.sh",
+        "pnpm --dir tooling/agent-pack test:customer",
+        "pnpm --dir tooling/generators test",
+        "pnpm --dir tooling/release test",
+        "pnpm --dir apps/cli test:create-root-admission",
+        "pnpm --dir apps/cli test:create-root-integration",
+        "pnpm --dir apps/web typecheck",
+        "pnpm --dir apps/web build",
+      ]),
+    );
+
+    const rootPackage = descriptor.requirements.find(
+      ({ file, includes }) =>
+        file === "package.json" && includes?.includes('"verify"'),
+    );
+    expect(rootPackage?.includes).toEqual(
+      expect.arrayContaining([
+        '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
+        '"check:app-map": "pnpm --dir tooling/app-map check"',
+        '"check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts"',
+      ]),
+    );
+  });
+
+  it("assigns every protected path to the verified write-enabled operator", () => {
+    const rules = readFileSync(
+      new URL("../../.github/CODEOWNERS", import.meta.url),
+      "utf8",
+    )
+      .split("\n")
+      .map((line) => line.trim())
+      .filter((line) => line !== "" && !line.startsWith("#"));
+
+    expect(rules.length).toBeGreaterThan(0);
+    expect(rules.every((rule) => rule.endsWith(" @timkeeeeeen"))).toBe(true);
+    expect(rules.join("\n")).not.toContain("@kimprobably");
   });
 
   it("rejects concatenated or duplicated host verification terms", () => {
@@ -109,6 +192,24 @@ describe("check:ci-completeness", () => {
     ].join(" && ");
     expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
       "package.json scripts.verify must keep pnpm check:qlty advisory outside the root verdict",
+    );
+  });
+
+  it("keeps focused workspace aliases out of root verify", () => {
+    const verify = [
+      "pnpm test",
+      "pnpm test:workflow",
+      "pnpm check:app-map",
+      "pnpm check:config-drift",
+      "pnpm check:convex-ai-files",
+      "pnpm check:agent-pack",
+    ].join(" && ");
+
+    expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
+      "package.json scripts.verify must not rerun pnpm test:workflow after root test",
+    );
+    expect(validateRootVerifyHostTerms({ scripts: { verify } })).toContain(
+      "package.json scripts.verify must not rerun pnpm check:app-map after root test",
     );
   });
 });

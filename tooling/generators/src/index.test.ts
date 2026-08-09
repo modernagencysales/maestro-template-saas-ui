@@ -1188,6 +1188,7 @@ describe("template app factory generators", () => {
     }
   });
 
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this generated capability contract assertion.
   it("builds Confect-oriented capability generator files", () => {
     const generated = buildCapabilityFiles({
       name: "summarize source",
@@ -1420,6 +1421,7 @@ describe("template app factory generators", () => {
     });
   });
 
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this generated workflow contract assertion.
   it("builds workflow generator files with durable Confect contracts", () => {
     const generated = buildWorkflowFiles({
       name: "source grounded plan",
@@ -1826,7 +1828,7 @@ describe("template app factory generators", () => {
     }
   });
 
-  it("builds web-only agent seat generator files", () => {
+  it("builds a neutral agent declaration without an invented seat", () => {
     const generated = buildAgentFiles({
       name: "workflow architect",
       system: "workflow-runtime",
@@ -1837,14 +1839,11 @@ describe("template app factory generators", () => {
     expect(generated).toMatchObject({
       name: "workflowArchitect",
       pascalName: "WorkflowArchitect",
-      surfaces: ["web"],
+      surfaces: [],
       headlessExposure: false,
     });
     expect(generated.files.map((file) => file.path)).toEqual([
-      "packages/convex/confect/agents/workflowArchitect.spec.ts",
-      "packages/convex/confect/agents/workflowArchitect.impl.ts",
-      "packages/convex/confect/agents/workflowArchitect.tools.ts",
-      "packages/convex/test/workflowArchitect.agent.test.ts",
+      "packages/convex/confect/agents/workflowArchitect.ts",
       "docs/template/generated/agents/workflowArchitect.md",
       "docs/template/generated/provenance/add-agent/workflowArchitect.json",
     ]);
@@ -1852,32 +1851,15 @@ describe("template app factory generators", () => {
       generated.files.some((file) => file.path.endsWith(".headless.json")),
     ).toBe(false);
 
-    const spec = generated.files[0]?.content ?? "";
-    const impl = generated.files[1]?.content ?? "";
-    const tools = generated.files[2]?.content ?? "";
-    const test = generated.files[3]?.content ?? "";
-    const docs = generated.files[4]?.content ?? "";
-
-    expect(spec).toContain('surfaces: ["web"]');
-    expect(spec).toContain('agentSeat: "web-facing"');
-    expect(spec).toContain("headlessExposure: false");
-    expect(spec).toContain("FunctionSpec.publicMutation");
-    expect(spec).toContain("FunctionSpec.publicQuery");
-    expect(spec).not.toContain('["api", "cli", "mcp"]');
-    expect(spec).not.toContain(".headless.json");
-    expect(impl).toContain("No model provider or external tool was called.");
-    expect(impl).not.toContain("createAgentRuntime");
-    expect(tools).toContain(
-      "workflowArchitectTools: readonly WorkflowArchitectTool[] = []",
-    );
-    expect(test).toContain("headlessExposure: false");
-    expect(docs).toContain('Surfaces: `["web"]`');
-    expect(docs).toContain("does not create API, CLI, MCP");
-    expect(docs).toContain("`.headless.json`");
-    expect(docs).toContain("Keep API, CLI, and MCP exposure out");
+    const declaration = generated.files[0]?.content ?? "";
+    const docs = generated.files[1]?.content ?? "";
+    expect(declaration).toContain("surfaces: []");
+    expect(declaration).toContain("capabilities: []");
+    expect(declaration).not.toContain("FunctionSpec");
+    expect(docs).toContain("select a UI seat");
   });
 
-  it("writes generated agent files through the CLI and keeps the alias equivalent", () => {
+  it("keeps the explicit agent-seat command distinct from neutral add-agent", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-agent-"));
 
     try {
@@ -1932,17 +1914,24 @@ describe("template app factory generators", () => {
 
       expect(result.exitCode).toBe(0);
       expect(aliasResult.exitCode).toBe(0);
-      expect(parsed.files.map((file) => file.path)).toEqual(
+      expect(parsed.files.map((file) => file.path)).not.toEqual(
         aliasParsed.files.map((file) => file.path),
       );
-      expect(parsed.surfaces).toEqual(["web"]);
+      expect(parsed.surfaces).toEqual([]);
       expect(aliasParsed.surfaces).toEqual(["web"]);
       expect(parsed.headlessExposure).toBe(false);
       expect(aliasParsed.headlessExposure).toBe(false);
-      expect(existsSync(specPath)).toBe(true);
-      expect(existsSync(toolsPath)).toBe(true);
+      expect(existsSync(specPath)).toBe(false);
+      expect(existsSync(toolsPath)).toBe(false);
       expect(existsSync(docsPath)).toBe(true);
-      expect(readFileSync(specPath, "utf8")).toContain('surfaces: ["web"]');
+      expect(aliasParsed.files.map(({ path }) => path)).toEqual(
+        expect.arrayContaining([
+          "packages/convex/confect/agents/workflowArchitect.spec.ts",
+          "packages/convex/confect/agents/workflowArchitect.impl.ts",
+          "packages/convex/confect/agents/workflowArchitect.tools.ts",
+          "packages/convex/test/workflowArchitect.agent.test.ts",
+        ]),
+      );
       expect(readFileSync(docsPath, "utf8")).not.toContain(
         "headless registry entry",
       );
@@ -1976,6 +1965,7 @@ describe("template app factory generators", () => {
     expect(smokeSource).toContain("Generated workflow runner is missing");
   });
 
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this generated promotion contract assertion.
   it("builds production-target capability promotion files", () => {
     const promoted = buildCapabilityPromotionFiles({
       name: "summarize source",
@@ -2228,7 +2218,7 @@ describe("template app factory generators", () => {
     }
   });
 
-  it("imports the exact reviewed private package plan through the root CLI", () => {
+  it("imports a recomputed private package plan through the root CLI", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-private-import-"));
     const fixture = join(cwd, "fixtures/generic-ai-ops");
 
@@ -2253,22 +2243,6 @@ describe("template app factory generators", () => {
           "knowledge-brain",
           "--disposition",
           "extend",
-        ],
-        cwd,
-      );
-      const preview = JSON.parse(dryRun.stdout) as {
-        readonly previewFingerprint: string;
-      };
-      const unconfirmed = runGeneratorCli(
-        [
-          "private-package:import",
-          "--fixture",
-          "fixtures/generic-ai-ops",
-          "--system",
-          "knowledge-brain",
-          "--disposition",
-          "extend",
-          "--write",
         ],
         cwd,
       );
@@ -2300,12 +2274,11 @@ describe("template app factory generators", () => {
           readsSecrets: false,
           productionRegistrations: false,
         },
-        previewFingerprint: expect.stringMatching(
-          /^private_package_sha256:[0-9a-f]{64}$/,
-        ),
       });
-      expect(unconfirmed.exitCode).toBe(1);
-      expect(unconfirmed.stderr).toContain("fingerprint mismatch");
+      expect(JSON.parse(dryRun.stdout)).toMatchObject({
+        confirmationCommand:
+          'pnpm template:private-package:import -- --fixture "fixtures/generic-ai-ops" --system "knowledge-brain" --disposition extend --write',
+      });
       expect(existsSync(planPath)).toBe(false);
       const imported = runGeneratorCli(
         [
@@ -2317,8 +2290,6 @@ describe("template app factory generators", () => {
           "--disposition",
           "extend",
           "--write",
-          "--preflight-fingerprint",
-          preview.previewFingerprint,
         ],
         cwd,
       );

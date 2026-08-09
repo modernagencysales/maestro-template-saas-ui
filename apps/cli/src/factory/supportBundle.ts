@@ -9,7 +9,7 @@ import type { CliResult } from "../types";
 import { runAgentPackCommandAsCli, type FactoryCliRenderMode } from "./router";
 
 export const SUPPORT_BUNDLE_HELP =
-  "maestro support-bundle [--output .maestro/support/<name>.json] [--write --preview-fingerprint <support_preview_sha256:...>] [--human|--details|--json]\n";
+  "maestro support-bundle [--output .maestro/support/<name>.json] [--write] [--human|--details|--json]\n";
 
 export function createSupportBundleCliHandler<
   Args,
@@ -48,52 +48,53 @@ function parseSupportBundleCli(argv: readonly string[]): {
 } {
   let output: string | undefined;
   let write = false;
-  let previewFingerprint: string | undefined;
   let renderMode: FactoryCliRenderMode = "human";
   let renderSeen = false;
   let valid = true;
   for (let index = 0; index < argv.length; index += 1) {
     const token = argv[index];
     if (token === "--write") {
-      if (write) valid = false;
+      valid &&= !write;
       write = true;
       continue;
     }
     const selected = renderModeFor(token);
     if (selected !== undefined) {
-      if (renderSeen) valid = false;
+      valid &&= !renderSeen;
       renderMode = selected;
       renderSeen = true;
       continue;
     }
     const value = argv[index + 1];
-    if (value === undefined || value.startsWith("--")) {
+    if (!isSupportOutputValue(token, value, output)) {
       valid = false;
       continue;
     }
     index += 1;
-    if (token === "--output" && output === undefined) output = value;
-    else if (
-      token === "--preview-fingerprint" &&
-      previewFingerprint === undefined
-    )
-      previewFingerprint = value;
-    else valid = false;
+    output = value;
   }
-  if (
-    (write && previewFingerprint === undefined) ||
-    (!write && previewFingerprint)
-  )
-    valid = false;
   return {
     input: valid
       ? {
           ...(output === undefined ? {} : { output }),
-          ...(write ? { write, previewFingerprint } : {}),
+          write,
         }
-      : {},
+      : { invalid: true },
     renderMode,
   };
+}
+
+function isSupportOutputValue(
+  token: string | undefined,
+  value: string | undefined,
+  output: string | undefined,
+): value is string {
+  return (
+    token === "--output" &&
+    output === undefined &&
+    value !== undefined &&
+    !value.startsWith("--")
+  );
 }
 
 function renderModeFor(

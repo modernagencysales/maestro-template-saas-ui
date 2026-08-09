@@ -28,9 +28,7 @@ describe("maestro-template CLI", () => {
     expect(help).toContain("maestro contracts add <journey>");
     expect(help).toContain("maestro add <outcome-or-recipe>");
     expect(help).toContain("maestro support-bundle");
-    expect(help).toContain(
-      "maestro plan-check --plan <manifest.json> [--human|--details|--json]",
-    );
+    expect(help).not.toContain("plan-check");
     expect(help).toContain("maestro mcp\n");
     expect(help).toContain("maestro mcp configure --host <claude-code|codex>");
     await expect(runCliAsync(["scaffold", "--help"])).resolves.toMatchObject({

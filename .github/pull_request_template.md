@@ -9,7 +9,7 @@
 ## Verification (paste evidence — do not assert)
 
 ```
-# output of: just verify (or the focused gate chain for this change)
+# output of: pnpm verify (or the focused gate chain for this change)
 ```
 
 ## Checklist
@@ -37,5 +37,5 @@
 - [ ] `check:system-catalog`, `check:system-topology`, `check:data-resources`,
       and `check:promotion-boundary` pass
 
-> Draft first. Never self-merge. A green `just verify` is the definition of
+> Draft first. Never self-merge. A green `pnpm verify` is the definition of
 > ready for CI.

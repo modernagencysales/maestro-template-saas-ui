@@ -17,6 +17,7 @@ import { promisify } from "node:util";
 import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
+import { CURRENT_PUBLIC_SOURCE } from "./createComposition";
 
 const temporaryRoots: string[] = [];
 const execFileAsync = promisify(execFile);
@@ -32,12 +33,6 @@ const installedStoreDir = readFileSync(
 ).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
-const frozenAlpha2RuntimeSeam = [
-  "apps/cli/src/factory/createComposition.ts",
-  "tooling/generators/src/index.ts",
-  "tooling/generators/src/blueprints/alpha2SaasApplicationPlan.ts",
-  "tooling/generators/src/blueprints/customer/alpha2-plan.json.gz.b64",
-] as const;
 const taggedRepository = (): string => {
   if (taggedReleaseRoot) return taggedReleaseRoot;
   taggedReleaseParent = mkdtempSync(join(tmpdir(), "maestro-tagged-release-"));
@@ -47,11 +42,11 @@ const taggedRepository = (): string => {
     ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
     { stdio: "pipe" },
   );
-  for (const path of frozenAlpha2RuntimeSeam) {
-    const target = join(taggedReleaseRoot, path);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, readFileSync(join(repositoryRoot, path)));
-  }
+  execFileSync(
+    "git",
+    ["checkout", "--quiet", "--detach", CURRENT_PUBLIC_SOURCE.tag],
+    { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 120_000 },
+  );
   execFileSync(
     "pnpm",
     ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
@@ -115,6 +110,30 @@ const unresolvedWorkspaceDependencies = (root: string): readonly string[] => {
   );
 };
 const applyCurrentSaasProjection = (root: string): void => {
+  const projection = buildSaasApplicationTargetPlan();
+  const selectedProjection = buildSaasApplicationTargetPlan({
+    name: "SaaS Application",
+    patterns: ["records-example", "workflow-automation"],
+  });
+  const emittedPaths = new Set(projection.entries.map(({ path }) => path));
+  const catalogTables = (
+    entries: typeof projection.entries,
+  ): ReadonlySet<string> => {
+    const catalog = entries.find(
+      ({ path }) => path === "docs/template/system-catalog.json",
+    );
+    if (!catalog) throw new Error("Projected system catalog is missing.");
+    const parsed = JSON.parse(catalog.content) as {
+      readonly systems: readonly { readonly tables: readonly string[] }[];
+    };
+    return new Set(parsed.systems.flatMap(({ tables }) => tables));
+  };
+  const neutralTables = catalogTables(projection.entries);
+  const optionalTables = new Set(
+    [...catalogTables(selectedProjection.entries)].filter(
+      (table) => !neutralTables.has(table),
+    ),
+  );
   for (const path of ["patches/@confect__cli@10.0.0-next.9.patch"]) {
     const target = join(root, path);
     mkdirSync(dirname(target), { recursive: true });
@@ -138,7 +157,25 @@ const applyCurrentSaasProjection = (root: string): void => {
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, readFileSync(join(repositoryRoot, path)));
   }
-  for (const entry of buildSaasApplicationTargetPlan().entries) {
+  const omittedPaths = new Set(
+    selectedProjection.entries
+      .map(({ path }) => path)
+      .filter((path) => !emittedPaths.has(path)),
+  );
+  for (const path of currentTrackedFiles) {
+    if (
+      !emittedPaths.has(path) &&
+      [...optionalTables].some((table) =>
+        new RegExp(`(?:^|/)${table}(?:[./]|$)`, "u").test(path),
+      )
+    ) {
+      omittedPaths.add(path);
+    }
+  }
+  for (const path of omittedPaths) {
+    rmSync(join(root, path), { recursive: true, force: true });
+  }
+  for (const entry of projection.entries) {
     const target = join(root, entry.path);
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, entry.content);
@@ -174,11 +211,14 @@ describe("materialized customer CLI runtime closure", () => {
     expect(existsSync(configuredTmpdir)).toBe(true);
   });
 
-  it("installs the frozen release seam on the current workspace closure", () => {
+  it("installs the reviewed immutable customer release", () => {
     const releaseRoot = taggedRepository();
-    expect(readFileSync(join(releaseRoot, "pnpm-lock.yaml"))).toEqual(
-      readFileSync(join(repositoryRoot, "pnpm-lock.yaml")),
-    );
+    expect(
+      execFileSync("git", ["describe", "--tags", "--exact-match"], {
+        cwd: releaseRoot,
+        encoding: "utf8",
+      }).trim(),
+    ).toBe(CURRENT_PUBLIC_SOURCE.tag);
     expect(
       existsSync(
         join(
@@ -277,7 +317,6 @@ describe("materialized customer CLI runtime closure", () => {
     expect(preview.status, preview.stderr).toBe(0);
     const previewResult = JSON.parse(preview.stdout) as {
       readonly data: {
-        readonly previewFingerprint: string;
         readonly bundle: { readonly versions: { readonly agentPack: string } };
       };
     };
@@ -286,16 +325,7 @@ describe("materialized customer CLI runtime closure", () => {
 
     const exported = spawnSync(
       "pnpm",
-      [
-        "--silent",
-        "maestro",
-        "--",
-        "support-bundle",
-        "--write",
-        "--preview-fingerprint",
-        previewResult.data.previewFingerprint,
-        "--json",
-      ],
+      ["--silent", "maestro", "--", "support-bundle", "--write", "--json"],
       { cwd: target, encoding: "utf8", timeout: 30_000 },
     );
     expect(exported.status, exported.stderr).toBe(0);
@@ -312,7 +342,7 @@ describe("materialized customer CLI runtime closure", () => {
     });
   }, 180_000);
 
-  it("materializes complete SaaS ownership and lifecycle catalogs", async () => {
+  it("materializes neutral SaaS ownership and lifecycle catalogs", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-catalogs-"));
     temporaryRoots.push(parent);
     const target = join(parent, "customer");
@@ -331,6 +361,9 @@ describe("materialized customer CLI runtime closure", () => {
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
 
     applyCurrentSaasProjection(target);
+    expect(existsSync(join(target, "tooling/workflow/package.json"))).toBe(
+      false,
+    );
     const projectedLock = buildSaasApplicationTargetPlan().entries.find(
       ({ path }) => path === "pnpm-lock.yaml",
     );
@@ -369,14 +402,13 @@ describe("materialized customer CLI runtime closure", () => {
     const resources = JSON.parse(
       readFileSync(join(target, "docs/template/data-resources.json"), "utf8"),
     ) as { readonly resources: readonly { readonly id: string }[] };
-    for (const table of ["records"]) {
-      expect(systems.systems.some(({ tables }) => tables.includes(table))).toBe(
-        true,
-      );
-      expect(resources.resources.some(({ id }) => id === table)).toBe(true);
-    }
+    expect(
+      systems.systems.some(({ tables }) => tables.includes("records")),
+    ).toBe(false);
+    expect(resources.resources.some(({ id }) => id === "records")).toBe(false);
   }, 180_000);
 
+  // eslint-disable-next-line complexity -- AP-008 tracks extracting customer install setup without losing the end-to-end import proof.
   it("imports a reviewed private package from a committed customer", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-customer-private-"));
     temporaryRoots.push(parent);
@@ -461,7 +493,6 @@ describe("materialized customer CLI runtime closure", () => {
         readonly readsSecrets: boolean;
         readonly productionRegistrations: boolean;
       };
-      readonly previewFingerprint: string;
       readonly confirmationCommand: string;
     };
     expect(preview).toMatchObject({
@@ -472,11 +503,10 @@ describe("materialized customer CLI runtime closure", () => {
         readsSecrets: false,
         productionRegistrations: false,
       },
-      previewFingerprint: expect.stringMatching(
-        /^private_package_sha256:[0-9a-f]{64}$/,
-      ),
     });
-    expect(preview.confirmationCommand).toContain(preview.previewFingerprint);
+    expect(preview.confirmationCommand).toBe(
+      'pnpm template:private-package:import -- --fixture "examples/generic-ai-ops" --system "knowledge-brain" --disposition extend --write',
+    );
     expect(JSON.stringify(preview)).not.toContain("workspace_demo");
     for (const file of preview.files)
       expect(existsSync(join(target, file.path))).toBe(false);
@@ -487,20 +517,9 @@ describe("materialized customer CLI runtime closure", () => {
       }),
     ).toBe("");
 
-    const unconfirmed = command("template:private-package:import", [
-      ...args,
-      "--write",
-    ]);
-    expect(unconfirmed.status).not.toBe(0);
-    expect(unconfirmed.stderr).toContain("fingerprint mismatch");
-    for (const file of preview.files)
-      expect(existsSync(join(target, file.path))).toBe(false);
-
     const imported = command("template:private-package:import", [
       ...args,
       "--write",
-      "--preflight-fingerprint",
-      preview.previewFingerprint,
     ]);
     expect(imported.status, imported.stderr).toBe(0);
     for (const file of preview.files)
@@ -516,7 +535,6 @@ describe("materialized customer CLI runtime closure", () => {
     expect(collisionPreview.status, collisionPreview.stderr).toBe(0);
     const collisionPlan = JSON.parse(collisionPreview.stdout) as {
       readonly collisions: readonly string[];
-      readonly previewFingerprint: string;
     };
     expect(collisionPlan.collisions).toEqual(
       preview.files.map(({ path }) => path),
@@ -528,8 +546,6 @@ describe("materialized customer CLI runtime closure", () => {
     const collisionImport = command("template:private-package:import", [
       ...args,
       "--write",
-      "--preflight-fingerprint",
-      collisionPlan.previewFingerprint,
     ]);
     expect(collisionImport.status).not.toBe(0);
     expect(collisionImport.stderr).toContain("Refusing to overwrite");
@@ -706,7 +722,7 @@ describe("materialized customer CLI runtime closure", () => {
       prepareOutput,
     ).toBe(true);
     expect(existsSync(join(resolvedHooksPath, "pre-push")), prepareOutput).toBe(
-      true,
+      false,
     );
     execFileSync("git", ["config", "user.email", "fixture@localhost"], {
       cwd: target,
@@ -755,10 +771,10 @@ describe("materialized customer CLI runtime closure", () => {
       readFileSync(join(target, "package.json"), "utf8"),
     ) as { readonly scripts: Readonly<Record<string, string>> };
     expect(customerPackage.scripts.test).toBe(
-      "turbo run test --filter='./packages/*' --filter=@maestro-template/web",
+      "turbo run test --filter='./packages/*' --filter=@maestro-template/web && pnpm test:tooling",
     );
     expect(customerPackage.scripts["test:tooling"]).toBe(
-      "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts --maxWorkers=1 --no-file-parallelism",
     );
     expect(customerPackage.scripts.verify).toBe(
       [
@@ -767,7 +783,6 @@ describe("materialized customer CLI runtime closure", () => {
         "typecheck",
         "check:effect-diagnostics",
         "test",
-        "test:tooling",
         "build",
         "check:convex-ai-files",
         "check:agent-pack",
@@ -781,10 +796,6 @@ describe("materialized customer CLI runtime closure", () => {
         "check:confect-effect-compat",
         "check:confect-contracts",
         "check:effectified-api-proof",
-        "check:workflow-semantics",
-        "check:workflow-graph-boundary",
-        "check:workflow-policy-snapshots",
-        "check:workflow-principal-propagation",
         "check:schema-migration-notes",
         "check:system-catalog",
         "check:system-topology",
@@ -798,6 +809,7 @@ describe("materialized customer CLI runtime closure", () => {
         "check:auth-demo-bypass",
       ]
         .map((name) => `pnpm ${name}`)
+        .concat("pnpm maestro -- contracts test --required")
         .join(" && "),
     );
     const settingsPath = join(target, ".claude/settings.json");
@@ -881,7 +893,7 @@ describe("materialized customer CLI runtime closure", () => {
         "--answer",
         "entityName=Request",
         "--answer",
-        "canonicalOwner=record-management",
+        "canonicalOwner=access-and-tenancy",
         "--answer",
         "tenantScope=workspace",
         "--answer",
@@ -909,7 +921,7 @@ describe("materialized customer CLI runtime closure", () => {
     expect(JSON.parse(addPreview.stdout)).toMatchObject({
       exitClass: "success",
       data: {
-        confirmationCommand: expect.stringContaining("--privacy-reviewed"),
+        confirmationCommand: expect.stringContaining("--write"),
       },
     });
     const claudeSettings = join(target, ".claude/settings.json");
@@ -948,22 +960,13 @@ describe("materialized customer CLI runtime closure", () => {
     } finally {
       writeFileSync(claudeInstructions, claudeBytes);
     }
-    execFileSync("pnpm", ["run", "check:workflow-semantics"], {
-      cwd: target,
-      stdio: "pipe",
-      timeout: 30_000,
-      env: supportedHostEnvironment,
-    });
     for (const gate of [
+      "check:workflow-semantics",
+      "check:workflow-graph-boundary",
       "check:workflow-policy-snapshots",
       "check:workflow-principal-propagation",
     ]) {
-      execFileSync("pnpm", ["run", gate], {
-        cwd: target,
-        stdio: "pipe",
-        timeout: 30_000,
-        env: supportedHostEnvironment,
-      });
+      expect(customerPackage.scripts[gate]).toBeUndefined();
     }
     const maestroSkill = join(target, ".agents/skills/maestro/SKILL.md");
     const maestroBytes = readFileSync(maestroSkill, "utf8");

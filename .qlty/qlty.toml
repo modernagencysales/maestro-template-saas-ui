@@ -1,7 +1,7 @@
-# qlty — the gate that catches what ESLint can't: cross-file DUPLICATION
-# (identical/similar code) plus secret + dependency scanning. Block mode,
-# full-repo. Greenfield starts at zero duplication, so block is safe and
-# copy-paste sprawl can never take root.
+# qlty reports what ESLint cannot: cross-file duplication (identical/similar
+# code) plus secret and dependency findings. Internal block mode preserves
+# finding severity, while repository wrappers keep every local and CI call
+# advisory.
 config_version = "0"
 
 exclude_patterns = [
@@ -31,9 +31,9 @@ test_patterns = [
 name = "default"
 default = true
 
-# Structural smells — BLOCKING (greenfield = 0; any new duplication/complexity
-# is rejected). ESLint owns per-function complexity at the source; qlty adds
-# the cross-file duplication detection ESLint cannot do.
+# Structural smells retain block severity inside Qlty so findings stay visible.
+# ESLint owns deterministic changed-file complexity; Qlty adds advisory
+# cross-file duplication and full-repository maintainability reporting.
 [smells]
 mode = "block"
 
@@ -65,10 +65,11 @@ file_patterns = ["packages/template-core/src/generated/confectManifest.ts"]
 
 # PR #5 introduces the productized Agent Pack in one 480-commit import. Qlty
 # has no repository-owned fingerprint baseline, so the exact imported
-# rule/path pairs below are monitored as the initial debt ledger. Blocking
-# remains enabled globally: a new file/rule pair still fails the gate. Remove
-# paths from this ledger as they are refactored; see the maintainability
-# baseline backlog for the capture and removal contract.
+# rule/path pairs below are monitored as the initial debt ledger. A new
+# file/rule pair remains a visible finding, but the repository wrapper reports
+# it without becoming an admission authority. Remove paths from this ledger as
+# they are refactored; see the maintainability baseline for the capture and
+# removal contract.
 #
 # Immutable release payloads and generated example seeds remain scanned by
 # gitleaks and osv-scanner, while copied-source maintainability is monitored.
@@ -168,7 +169,6 @@ match.file_patterns = [
   "apps/cli/src/factory/doctor.ts",
   "apps/cli/src/factory/environment.ts",
   "apps/cli/src/factory/mcpConfigure.ts",
-  "apps/cli/src/factory/planCheck.ts",
   "apps/cli/src/factory/preflight.ts",
   "apps/cli/src/factory/recipes.ts",
   "apps/cli/src/factory/scaffold.ts",

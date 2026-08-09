@@ -14,7 +14,6 @@ export const coverageRatchetDirs = [
   "tooling/workflow",
   "tooling/release",
   "tooling/generators",
-  "tooling/stack",
   "apps/cli",
   "apps/web",
 ];

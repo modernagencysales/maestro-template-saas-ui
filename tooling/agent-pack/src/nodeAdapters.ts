@@ -39,6 +39,21 @@ type NodeExecOptions = {
 
 type PackageManifest = Record<string, unknown> | undefined;
 
+const NODE_ENGINE_RANGE = "^22.23.2 || ^24.0.0 || >=26.0.0";
+
+function execExitCode(error: NodeExecError | null): number | null {
+  if (error === null) return 0;
+  if (
+    error.code === "ENOENT" ||
+    error.code === "ETIMEDOUT" ||
+    error.killed === true ||
+    error.signal != null
+  ) {
+    return null;
+  }
+  return typeof error.code === "number" ? error.code : null;
+}
+
 export type NodeExecFilePrimitive = (
   file: string,
   args: readonly string[],
@@ -77,20 +92,7 @@ export function createNodeExecFileAdapter(
         stdout: string,
         stderr: string,
       ): void => {
-        const unavailable =
-          error?.code === "ENOENT" ||
-          error?.code === "ETIMEDOUT" ||
-          error?.killed === true ||
-          error?.signal != null;
-        const exitCode =
-          error === null
-            ? 0
-            : unavailable
-              ? null
-              : typeof error.code === "number"
-                ? error.code
-                : null;
-        resolveResult({ exitCode, stdout, stderr });
+        resolveResult({ exitCode: execExitCode(error), stdout, stderr });
       };
 
       try {
@@ -157,7 +159,6 @@ export type WorkflowProjectionRule = {
 
 export type NodePreflightPolicy = {
   readonly supportedPlatforms: readonly string[];
-  readonly supportedNodeMajors: readonly number[];
   readonly supportedPnpmVersions?: readonly string[];
   readonly minimumGitVersion: string;
   readonly minimumDiskBytes: number;
@@ -225,13 +226,7 @@ export function createNodePreflightRuntimeReader(input: {
           resolve(repo.sourceRoot, "packages/convex/package.json"),
         ),
         safeExec(exec, "pnpm", ["--version"]),
-        request.mode === "fake"
-          ? Promise.resolve({ exitCode: 1, stdout: "", stderr: "" })
-          : safeExec(exec, "pnpm", [
-              "ping",
-              "--registry",
-              "https://registry.npmjs.org",
-            ]),
+        networkObservation(request.mode, exec),
         safeExec(exec, "corepack", ["--version"]),
         safeExec(exec, "git", ["--version"]),
         safeExec(exec, "git", ["worktree", "list", "--porcelain"]),
@@ -270,7 +265,6 @@ export function createNodePreflightRuntimeReader(input: {
       ]);
 
       const currentNode = nodeVersion().replace(/^v/, "");
-      const currentNodeMajor = numericPrefix(currentNode);
       const currentPnpm = successfulText(pnpm) ?? "unavailable";
       const requiredPnpm = packageManagerVersion(rootManifest);
       const currentGit =
@@ -301,138 +295,79 @@ export function createNodePreflightRuntimeReader(input: {
         input.workflowRules,
         input.publishedWorkflowRuleIds,
       );
-      const nodeSupported =
-        currentNodeMajor !== undefined &&
-        input.policy.supportedNodeMajors.includes(currentNodeMajor);
-      const pnpmSupported =
-        requiredPnpm !== "unavailable" &&
-        (currentPnpm === requiredPnpm ||
-          (input.policy.supportedPnpmVersions ?? []).includes(currentPnpm));
+      const nodeSupported = supportedNode(currentNode);
+      const pnpmSupported = supportedPnpm(
+        currentPnpm,
+        requiredPnpm,
+        input.policy.supportedPnpmVersions,
+      );
       const packageVersionsBound = versionsBoundToOneAuthority(versions);
       const observedGitRoot = successfulText(gitRoot);
-      const dirtyPaths =
-        dirty.exitCode === 0 ? porcelainPaths(dirty.stdout) : undefined;
-      const collisions =
-        dirtyPaths === undefined
-          ? "unknown"
-          : targetDirtyCollisions(repo, dirtyPaths);
-      const availableEnvironmentNames = Object.entries(environmentSnapshot)
-        .filter(([, value]) => typeof value === "string" && value.trim() !== "")
-        .map(([name]) => name)
-        .sort();
-      const networkPosture =
-        network.exitCode === 0
-          ? "online"
-          : typeof network.exitCode === "number"
-            ? "offline"
-            : "unknown";
+      const dirtyPaths = successfulPorcelainPaths(dirty);
+      const collisions = collisionPosture(repo, dirtyPaths);
+      const availableEnvironmentNames =
+        configuredEnvironmentNames(environmentSnapshot);
+      const networkPosture = observedNetworkPosture(network);
       const authPosture = request.mode === "fake" ? "not-required" : "unknown";
-      const [canonicalGitRoot, canonicalSourceRoot] =
-        observedGitRoot === undefined
-          ? [undefined, undefined]
-          : await Promise.all([
-              canonicalPath(input.fs, observedGitRoot),
-              canonicalPath(input.fs, repo.sourceRoot),
-            ]);
-      const rootMatches =
-        observedGitRoot === undefined
-          ? "unknown"
-          : canonicalGitRoot === canonicalSourceRoot;
-      const generatedDriftPosture =
-        generatedDrift.exitCode === 0
-          ? generatedDrift.stdout.trim().length > 0
-          : "unknown";
+      const rootMatches = await observedRootMatches(
+        input.fs,
+        observedGitRoot,
+        repo.sourceRoot,
+      );
+      const generatedDriftPosture = observedGeneratedDrift(generatedDrift);
 
       return {
-        host: {
-          os,
+        host: hostSnapshot({
           architecture: architecture(),
-          osSupported: input.policy.supportedPlatforms.includes(os),
-          node: {
-            current: currentNode,
-            required: `major ${input.policy.supportedNodeMajors.join(" or ")}`,
-            supported: nodeSupported,
-          },
-          pnpm: {
-            current: currentPnpm,
-            required: requiredPnpm,
-            supported: pnpmSupported,
-          },
-          corepack: corepack.exitCode === 0 ? "ready" : "missing",
-          git: {
-            current: currentGit,
-            required: `>=${input.policy.minimumGitVersion} with worktree support`,
-            supported:
-              gitVersion.exitCode === 0 &&
-              gitVersionSupported &&
-              worktreeSupported,
-            worktree: worktreeSupported,
-          },
-        },
+          corepack,
+          currentGit,
+          currentNode,
+          currentPnpm,
+          gitVersion,
+          gitVersionSupported,
+          nodeSupported,
+          os,
+          pnpmSupported,
+          policy: input.policy,
+          requiredPnpm,
+          worktreeSupported,
+        }),
         prerequisites: {
           dependencies: dependenciesInstalled ? "installed" : "missing",
           disk,
           ports: portsReady,
         },
-        repository: {
-          ...repository,
-          commit: successfulText(commit) ?? "unavailable",
-          gitRoot:
-            observedGitRoot === undefined
-              ? "unavailable"
-              : comparableRepositoryPath(observedGitRoot),
-          rootMatches,
-          canonicalBase:
-            successfulText(canonicalBase)?.replace(/^origin\//, "") ??
-            "unavailable",
-          canonicalTag: successfulText(canonicalTag) ?? "unavailable",
-          dirty: dirtyPaths === undefined ? "unknown" : dirtyPaths.length > 0,
-          generatedDrift: generatedDriftPosture,
+        repository: repositorySnapshot({
+          canonicalBase,
+          canonicalTag,
           collisions,
+          commit,
+          dirtyPaths,
+          generatedDriftPosture,
           hostIntegration,
-        },
+          observedGitRoot,
+          repository,
+          rootMatches,
+        }),
         network: networkPosture,
         auth: authPosture,
-        observationDiagnostics: {
-          ...(networkPosture === "unknown"
-            ? {
-                network:
-                  "The bounded pnpm registry probe timed out or its executable was unavailable.",
-              }
-            : {}),
-          ...(authPosture === "unknown"
-            ? {
-                auth: "Read-only preflight inspected provider configuration names but does not authenticate or read credential values.",
-              }
-            : {}),
-          ...(rootMatches === "unknown"
-            ? { root: "git rev-parse --show-toplevel was unavailable." }
-            : {}),
-          ...(dirtyPaths === undefined
-            ? { dirty: "git status was unavailable or timed out." }
-            : {}),
-          ...(collisions === "unknown"
-            ? {
-                collisions:
-                  "Collision attribution requires a successful bounded git status observation.",
-              }
-            : {}),
-          ...(generatedDriftPosture === "unknown"
-            ? {
-                generatedDrift:
-                  "Generated-path git status was unavailable or timed out.",
-              }
-            : {}),
-        },
-        versionsCompatible:
-          input.policy.supportedPlatforms.includes(os) &&
-          nodeSupported &&
-          pnpmSupported &&
-          gitVersion.exitCode === 0 &&
-          gitVersionSupported &&
-          worktreeSupported &&
-          packageVersionsBound &&
-          !workflow.publishedDrift,
+        observationDiagnostics: observationDiagnostics({
+          authPosture,
+          collisions,
+          dirtyPaths,
+          generatedDriftPosture,
+          networkPosture,
+          rootMatches,
+        }),
+        versionsCompatible: compatibleVersions({
+          gitVersion,
+          gitVersionSupported,
+          nodeSupported,
+          osSupported: input.policy.supportedPlatforms.includes(os),
+          packageVersionsBound,
+          pnpmSupported,
+          worktreeSupported,
+        }),
         versions,
         workflow,
         availableEnvironmentNames,
@@ -452,6 +387,226 @@ export function createNodePreflightRuntimeReader(input: {
       } satisfies PreflightRuntimeSnapshot;
     },
   };
+}
+
+function networkObservation(
+  mode: "fake" | "live" | "test",
+  exec: (
+    file: string,
+    args: readonly string[],
+  ) => Promise<VerificationExecResult>,
+): Promise<VerificationExecResult> {
+  return mode === "fake"
+    ? Promise.resolve({ exitCode: 1, stdout: "", stderr: "" })
+    : safeExec(exec, "pnpm", [
+        "ping",
+        "--registry",
+        "https://registry.npmjs.org",
+      ]);
+}
+
+function supportedNode(version: string): boolean {
+  const match = /^(\d+)\.(\d+)\.(\d+)$/.exec(version);
+  if (match === null) return false;
+  const major = Number(match[1]);
+  if (major === 22) return versionAtLeast(version, "22.23.2");
+  return major === 24 || major >= 26;
+}
+
+function supportedPnpm(
+  current: string,
+  required: string,
+  compatible: readonly string[] | undefined,
+): boolean {
+  return (
+    required !== "unavailable" &&
+    (current === required || (compatible ?? []).includes(current))
+  );
+}
+
+function successfulPorcelainPaths(
+  result: VerificationExecResult,
+): readonly string[] | undefined {
+  return result.exitCode === 0 ? porcelainPaths(result.stdout) : undefined;
+}
+
+function collisionPosture(
+  repo: RepositoryContext,
+  dirtyPaths: readonly string[] | undefined,
+): PreflightRuntimeSnapshot["repository"]["collisions"] {
+  return dirtyPaths === undefined
+    ? "unknown"
+    : targetDirtyCollisions(repo, dirtyPaths);
+}
+
+function configuredEnvironmentNames(
+  environment: Readonly<Record<string, string | undefined>>,
+): readonly string[] {
+  return Object.entries(environment)
+    .filter(([, value]) => typeof value === "string" && value.trim() !== "")
+    .map(([name]) => name)
+    .sort();
+}
+
+function observedNetworkPosture(
+  result: VerificationExecResult,
+): PreflightRuntimeSnapshot["network"] {
+  if (result.exitCode === 0) return "online";
+  return typeof result.exitCode === "number" ? "offline" : "unknown";
+}
+
+async function observedRootMatches(
+  fs: NodePreflightFileSystem,
+  observedRoot: string | undefined,
+  sourceRoot: string,
+): Promise<PreflightRuntimeSnapshot["repository"]["rootMatches"]> {
+  if (observedRoot === undefined) return "unknown";
+  const [canonicalObservedRoot, canonicalSourceRoot] = await Promise.all([
+    canonicalPath(fs, observedRoot),
+    canonicalPath(fs, sourceRoot),
+  ]);
+  return canonicalObservedRoot === canonicalSourceRoot;
+}
+
+function observedGeneratedDrift(
+  result: VerificationExecResult,
+): PreflightRuntimeSnapshot["repository"]["generatedDrift"] {
+  return result.exitCode === 0 ? result.stdout.trim().length > 0 : "unknown";
+}
+
+function hostSnapshot(input: {
+  readonly architecture: string;
+  readonly corepack: VerificationExecResult;
+  readonly currentGit: string;
+  readonly currentNode: string;
+  readonly currentPnpm: string;
+  readonly gitVersion: VerificationExecResult;
+  readonly gitVersionSupported: boolean;
+  readonly nodeSupported: boolean;
+  readonly os: string;
+  readonly pnpmSupported: boolean;
+  readonly policy: NodePreflightPolicy;
+  readonly requiredPnpm: string;
+  readonly worktreeSupported: boolean;
+}): PreflightRuntimeSnapshot["host"] {
+  return {
+    os: input.os,
+    architecture: input.architecture,
+    osSupported: input.policy.supportedPlatforms.includes(input.os),
+    node: {
+      current: input.currentNode,
+      required: NODE_ENGINE_RANGE,
+      supported: input.nodeSupported,
+    },
+    pnpm: {
+      current: input.currentPnpm,
+      required: input.requiredPnpm,
+      supported: input.pnpmSupported,
+    },
+    corepack: input.corepack.exitCode === 0 ? "ready" : "missing",
+    git: {
+      current: input.currentGit,
+      required: `>=${input.policy.minimumGitVersion} with worktree support`,
+      supported:
+        input.gitVersion.exitCode === 0 &&
+        input.gitVersionSupported &&
+        input.worktreeSupported,
+      worktree: input.worktreeSupported,
+    },
+  };
+}
+
+function repositorySnapshot(input: {
+  readonly canonicalBase: VerificationExecResult;
+  readonly canonicalTag: VerificationExecResult;
+  readonly collisions: PreflightRuntimeSnapshot["repository"]["collisions"];
+  readonly commit: VerificationExecResult;
+  readonly dirtyPaths: readonly string[] | undefined;
+  readonly generatedDriftPosture: PreflightRuntimeSnapshot["repository"]["generatedDrift"];
+  readonly hostIntegration: PreflightRuntimeSnapshot["repository"]["hostIntegration"];
+  readonly observedGitRoot: string | undefined;
+  readonly repository: ReturnType<typeof repositoryPosture>;
+  readonly rootMatches: PreflightRuntimeSnapshot["repository"]["rootMatches"];
+}): PreflightRuntimeSnapshot["repository"] {
+  return {
+    ...input.repository,
+    commit: successfulText(input.commit) ?? "unavailable",
+    gitRoot:
+      input.observedGitRoot === undefined
+        ? "unavailable"
+        : comparableRepositoryPath(input.observedGitRoot),
+    rootMatches: input.rootMatches,
+    canonicalBase:
+      successfulText(input.canonicalBase)?.replace(/^origin\//, "") ??
+      "unavailable",
+    canonicalTag: successfulText(input.canonicalTag) ?? "unavailable",
+    dirty:
+      input.dirtyPaths === undefined ? "unknown" : input.dirtyPaths.length > 0,
+    generatedDrift: input.generatedDriftPosture,
+    collisions: input.collisions,
+    hostIntegration: input.hostIntegration,
+  };
+}
+
+function observationDiagnostics(input: {
+  readonly authPosture: PreflightRuntimeSnapshot["auth"];
+  readonly collisions: PreflightRuntimeSnapshot["repository"]["collisions"];
+  readonly dirtyPaths: readonly string[] | undefined;
+  readonly generatedDriftPosture: PreflightRuntimeSnapshot["repository"]["generatedDrift"];
+  readonly networkPosture: PreflightRuntimeSnapshot["network"];
+  readonly rootMatches: PreflightRuntimeSnapshot["repository"]["rootMatches"];
+}): NonNullable<PreflightRuntimeSnapshot["observationDiagnostics"]> {
+  return {
+    ...(input.networkPosture === "unknown"
+      ? {
+          network:
+            "The bounded pnpm registry probe timed out or its executable was unavailable.",
+        }
+      : {}),
+    ...(input.authPosture === "unknown"
+      ? {
+          auth: "Read-only preflight inspected provider configuration names but does not authenticate or read credential values.",
+        }
+      : {}),
+    ...(input.rootMatches === "unknown"
+      ? { root: "git rev-parse --show-toplevel was unavailable." }
+      : {}),
+    ...(input.dirtyPaths === undefined
+      ? { dirty: "git status was unavailable or timed out." }
+      : {}),
+    ...(input.collisions === "unknown"
+      ? {
+          collisions:
+            "Collision attribution requires a successful bounded git status observation.",
+        }
+      : {}),
+    ...(input.generatedDriftPosture === "unknown"
+      ? {
+          generatedDrift:
+            "Generated-path git status was unavailable or timed out.",
+        }
+      : {}),
+  };
+}
+
+function compatibleVersions(input: {
+  readonly gitVersion: VerificationExecResult;
+  readonly gitVersionSupported: boolean;
+  readonly nodeSupported: boolean;
+  readonly osSupported: boolean;
+  readonly packageVersionsBound: boolean;
+  readonly pnpmSupported: boolean;
+  readonly worktreeSupported: boolean;
+}): boolean {
+  return (
+    input.osSupported &&
+    input.nodeSupported &&
+    input.pnpmSupported &&
+    input.gitVersion.exitCode === 0 &&
+    input.gitVersionSupported &&
+    input.worktreeSupported &&
+    input.packageVersionsBound
+  );
 }
 
 function porcelainPaths(stdout: string): readonly string[] {
@@ -510,14 +665,10 @@ function validatePolicy(policy: NodePreflightPolicy): void {
   const positive = [policy.metadataTimeoutMs, policy.maxBufferBytes];
   if (
     policy.supportedPlatforms.length === 0 ||
-    policy.supportedNodeMajors.length === 0 ||
     !/^\d+\.\d+(?:\.\d+)?$/.test(policy.minimumGitVersion) ||
     !positive.every((value) => Number.isSafeInteger(value) && value > 0) ||
     !Number.isSafeInteger(policy.minimumDiskBytes) ||
     policy.minimumDiskBytes < 0 ||
-    !policy.supportedNodeMajors.every(
-      (major) => Number.isSafeInteger(major) && major > 0,
-    ) ||
     !policy.requiredPorts.every(
       (port) => Number.isSafeInteger(port) && port > 0 && port <= 65_535,
     )
@@ -595,10 +746,7 @@ async function hostIntegrationPosture(
   const [canonical, rootManifest, packagedManifest] = await Promise.all([
     managedFileHashes(
       fs,
-      resolve(
-        repo.sourceRoot,
-        "agent-pack/generated/codex/.agents/skills/maestro",
-      ),
+      resolve(repo.sourceRoot, "agent-pack/skills/maestro"),
       maxBytes,
     ),
     optionalText(
@@ -612,16 +760,24 @@ async function hostIntegrationPosture(
   ]);
   const manifestText = rootManifest ?? packagedManifest;
   if (manifestText !== undefined) {
-    const expected = managedManifestHashes(manifestText);
-    return expected !== undefined &&
-      sameHashes(expected, installed) &&
-      (canonical === undefined || sameHashes(expected, canonical))
-      ? "current"
-      : "stale";
+    return manifestIntegrationPosture(manifestText, installed, canonical);
   }
 
   if (canonical === undefined || canonical.size === 0) return "stale";
   return sameHashes(canonical, installed) ? "current" : "stale";
+}
+
+function manifestIntegrationPosture(
+  manifestText: string,
+  installed: ReadonlyMap<string, string>,
+  canonical: ReadonlyMap<string, string> | undefined,
+): "current" | "stale" {
+  const expected = managedManifestHashes(manifestText);
+  if (expected === undefined || !sameHashes(expected, installed))
+    return "stale";
+  return canonical === undefined || sameHashes(expected, canonical)
+    ? "current"
+    : "stale";
 }
 
 async function managedFileHashes(
@@ -631,6 +787,35 @@ async function managedFileHashes(
 ): Promise<ReadonlyMap<string, string> | undefined> {
   const hashes = new Map<string, string>();
   let totalBytes = 0;
+  const validName = (name: string): boolean =>
+    name.length > 0 &&
+    name !== "." &&
+    name !== ".." &&
+    !name.includes("/") &&
+    !name.includes("\\");
+  const visitEntry = async (
+    entry: Awaited<
+      ReturnType<NodePreflightFileSystem["readDirectory"]>
+    >[number],
+    directory: string,
+    prefix: string,
+    visit: (childDirectory: string, childPrefix: string) => Promise<boolean>,
+  ): Promise<boolean> => {
+    if (!validName(entry.name)) return false;
+    const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
+    const absolutePath = resolve(directory, entry.name);
+    if (entry.kind === "directory") return visit(absolutePath, relativePath);
+    if (entry.kind !== "file") return false;
+    const content = await optionalText(fs, absolutePath);
+    if (content === undefined) return false;
+    totalBytes += Buffer.byteLength(content, "utf8");
+    if (totalBytes > maxBytes) return false;
+    hashes.set(
+      relativePath,
+      `sha256:${createHash("sha256").update(content).digest("hex")}`,
+    );
+    return true;
+  };
   const visit = async (directory: string, prefix: string): Promise<boolean> => {
     let entries;
     try {
@@ -642,34 +827,7 @@ async function managedFileHashes(
     for (const entry of [...entries].sort((left, right) =>
       left.name.localeCompare(right.name),
     )) {
-      if (
-        entry.name.length === 0 ||
-        entry.name === "." ||
-        entry.name === ".." ||
-        entry.name.includes("/") ||
-        entry.name.includes("\\")
-      ) {
-        return false;
-      }
-      const relativePath = prefix ? `${prefix}/${entry.name}` : entry.name;
-      const absolutePath = resolve(directory, entry.name);
-      if (entry.kind === "directory") {
-        if (!(await visit(absolutePath, relativePath))) return false;
-        continue;
-      }
-      if (entry.kind !== "file") return false;
-      let content: string;
-      try {
-        content = await fs.readFile(absolutePath);
-      } catch {
-        return false;
-      }
-      totalBytes += Buffer.byteLength(content, "utf8");
-      if (totalBytes > maxBytes) return false;
-      hashes.set(
-        relativePath,
-        `sha256:${createHash("sha256").update(content).digest("hex")}`,
-      );
+      if (!(await visitEntry(entry, directory, prefix, visit))) return false;
     }
     return true;
   };
@@ -681,27 +839,15 @@ function managedManifestHashes(
 ): ReadonlyMap<string, string> | undefined {
   try {
     const value: unknown = JSON.parse(text);
-    if (
-      !isRecord(value) ||
-      value.schemaVersion !== 1 ||
-      !Array.isArray(value.files)
-    ) {
-      return undefined;
-    }
+    if (!isManagedManifest(value)) return undefined;
     const prefix = ".agents/skills/maestro/";
     const hashes = new Map<string, string>();
     for (const entry of value.files) {
-      if (!isRecord(entry) || typeof entry.path !== "string") continue;
-      if (!entry.path.startsWith(prefix)) continue;
+      if (!isManagedManifestEntry(entry) || !entry.path.startsWith(prefix)) {
+        continue;
+      }
       const relativePath = entry.path.slice(prefix.length);
-      if (
-        relativePath.length === 0 ||
-        relativePath.startsWith("/") ||
-        relativePath.split("/").includes("..") ||
-        typeof entry.sha256 !== "string" ||
-        !/^sha256:[0-9a-f]{64}$/.test(entry.sha256) ||
-        hashes.has(relativePath)
-      ) {
+      if (!validManagedManifestHash(entry.sha256, relativePath, hashes)) {
         return undefined;
       }
       hashes.set(relativePath, entry.sha256);
@@ -710,6 +856,35 @@ function managedManifestHashes(
   } catch {
     return undefined;
   }
+}
+
+function isManagedManifest(
+  value: unknown,
+): value is { readonly files: readonly unknown[]; readonly schemaVersion: 1 } {
+  return (
+    isRecord(value) && value.schemaVersion === 1 && Array.isArray(value.files)
+  );
+}
+
+function isManagedManifestEntry(
+  value: unknown,
+): value is { readonly path: string; readonly sha256?: unknown } {
+  return isRecord(value) && typeof value.path === "string";
+}
+
+function validManagedManifestHash(
+  hash: unknown,
+  path: string,
+  hashes: ReadonlyMap<string, string>,
+): hash is string {
+  return (
+    path.length > 0 &&
+    !path.startsWith("/") &&
+    !path.split("/").includes("..") &&
+    typeof hash === "string" &&
+    /^sha256:[0-9a-f]{64}$/.test(hash) &&
+    !hashes.has(path)
+  );
 }
 
 function sameHashes(
@@ -901,25 +1076,14 @@ function releaseAuthorityCandidate(
     const value: unknown = JSON.parse(text);
     if (!isRecord(value)) return { status: "invalid" };
     if (!Object.hasOwn(value, "release")) return { status: "absent" };
-    if (!isRecord(value.release) || !isRecord(value.ownership)) {
+    if (!isReleaseFields(value.release)) {
+      return { status: "invalid" };
+    }
+    if (!isOwnershipFields(value.ownership, value.release.version)) {
       return { status: "invalid" };
     }
     const { version, tag, sourceCommit, sourceChecksum } = value.release;
     const { manifest, manifestChecksum } = value.ownership;
-    if (
-      typeof version !== "string" ||
-      !exactSemver(version) ||
-      tag !== `maestro-template-v${version}` ||
-      typeof sourceCommit !== "string" ||
-      !/^[0-9a-f]{40}$/.test(sourceCommit) ||
-      typeof sourceChecksum !== "string" ||
-      !/^sha256:[0-9a-f]{64}$/.test(sourceChecksum) ||
-      manifest !== `releases/v${version}/manifest.json` ||
-      typeof manifestChecksum !== "string" ||
-      !/^sha256:[0-9a-f]{64}$/.test(manifestChecksum)
-    ) {
-      return { status: "invalid" };
-    }
     return {
       status: "candidate",
       value: {
@@ -934,6 +1098,35 @@ function releaseAuthorityCandidate(
   } catch {
     return { status: "invalid" };
   }
+}
+
+function isReleaseFields(
+  value: unknown,
+): value is Omit<ReleaseAuthorityCandidate, "manifest" | "manifestChecksum"> {
+  if (!isRecord(value)) return false;
+  const { version, tag, sourceCommit, sourceChecksum } = value;
+  return (
+    typeof version === "string" &&
+    exactSemver(version) &&
+    tag === `maestro-template-v${version}` &&
+    typeof sourceCommit === "string" &&
+    /^[0-9a-f]{40}$/.test(sourceCommit) &&
+    typeof sourceChecksum === "string" &&
+    /^sha256:[0-9a-f]{64}$/.test(sourceChecksum)
+  );
+}
+
+function isOwnershipFields(
+  value: unknown,
+  version: string,
+): value is Pick<ReleaseAuthorityCandidate, "manifest" | "manifestChecksum"> {
+  if (!isRecord(value)) return false;
+  const { manifest, manifestChecksum } = value;
+  return (
+    manifest === `releases/v${version}/manifest.json` &&
+    typeof manifestChecksum === "string" &&
+    /^sha256:[0-9a-f]{64}$/.test(manifestChecksum)
+  );
 }
 
 function versionsBoundToOneAuthority(
@@ -951,7 +1144,6 @@ function versionsBoundToOneAuthority(
     versions.template === authority &&
     [
       versions.convex,
-      versions.workflow,
       versions.workpool,
       versions.confect,
       versions.effect,
@@ -1001,11 +1193,6 @@ async function canonicalPath(
   } catch {
     return resolve(path);
   }
-}
-
-function numericPrefix(version: string): number | undefined {
-  const value = Number.parseInt(version.match(/^\d+/)?.[0] ?? "", 10);
-  return Number.isSafeInteger(value) ? value : undefined;
 }
 
 function versionAtLeast(current: string, minimum: string): boolean {

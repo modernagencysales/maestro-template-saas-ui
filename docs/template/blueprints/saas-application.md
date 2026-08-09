@@ -6,13 +6,12 @@ Status: implemented generator blueprint. Classification: `template-gap`, backlog
 ## Outcome
 
 `saas-application` is the workflow-optional starting point for an ordinary
-workspace SaaS application. It supplies one neutral `record` vertical slice so a
-new owner can rename the noun, start in fake mode, create a row, return to the
-list, and read its detail before configuring a provider.
+workspace SaaS application. Its default projection is a neutral chassis; it does
+not invent a product entity, CRUD route, or workflow runtime.
 
 ```bash
-pnpm maestro -- create ../my-app --name "My App" --outcome "Create and review records"
-pnpm maestro -- create ../my-app --name "My App" --outcome "Create and review records" --write
+pnpm maestro -- create ../my-app --name "My App" --outcome "Deliver the first customer outcome"
+pnpm maestro -- create ../my-app --name "My App" --outcome "Deliver the first customer outcome" --write
 pnpm --dir ../my-app maestro -- start --mode fake
 ```
 
@@ -28,35 +27,34 @@ validates the range and uniqueness before spawning anything. The current
 TanStack/Vite hosting artifact is `apps/web/dist/client`. A fork introducing
 Astro owns a separate declared and tested artifact path.
 
-## Canonical Slice
+## Canonical Composition
 
-The contract reuses the existing layer order:
+The mandatory chassis retains workspace tenancy, deployment authority, headless
+infrastructure, provider seams, and the draft first-outcome contract. Two
+source-controlled optional patterns are canonical:
 
-```text
-workspace route -> screen -> record feature -> Confect adapter
-headless surface ---------------------------> shared operation contract
-                                              -> Confect functions -> table
-```
+- `records-example`: complete synthetic seeds, table, Confect functions,
+  adapters, feature, screen, route, Gherkin and steps, generated registrations,
+  governance metadata, docs, and provenance;
+- `workflow-automation`: workflow package, runtime source, tables, generated
+  bindings, scripts, dependencies, catalog/topology facts, and lockfile
+  importer.
 
-- Entity: `record`, deliberately neutral and renameable.
-- Tenancy: `workspaceId` on every list, read, and create operation.
-- Primitive: table and route CRUD.
-- UI states: loading, empty, error, list, detail, and create.
-- Headless parity: web/API/CLI projections use the same operation IDs and
-  payload contract.
-- Governed operations: no capability is generated for ordinary CRUD. Introduce
-  one only for a reviewed policy, approval, audit, or similar governed action.
+Factory patterns remain under source control even when a generated customer
+target omits them. Internal composition selects them through
+`buildSaasApplicationTargetPlan({ patterns: [...] })`; there is no parallel
+manifest, plugin discovery system, or create CLI flag.
 
 This blueprint does not introduce a second shell, state adapter, feature model,
 Confect tree, or Convex access path.
 
 ## Fake, Local, And Provider Posture
 
-The fake adapter is behavior, not a green placeholder: its workspace-scoped
-store performs create/list/read with deterministic synthetic records. Local mode
-uses the generated Confect spec and implementation after codegen; readiness
-labels it a `seam` until local start verifies the generated refs. Missing local
-or live setup reports unavailable behavior and cannot claim success.
+The neutral fake posture is deterministic behavior, not a green placeholder.
+When `records-example` is selected, its workspace-scoped store performs
+create/list/read with synthetic records. Local mode uses generated Confect refs
+only for materialized systems. Missing local or live setup reports unavailable
+behavior and cannot claim success.
 
 No live provider, plugin, MCP server, GTM pack, agency behavior, or
 customer-specific rule is required. Every handoff/readiness entry uses one of
@@ -64,13 +62,12 @@ customer-specific rule is required. Every handoff/readiness entry uses one of
 
 ## Optional Automation
 
-The base blueprint has no workflow. Approval or background automation remains
-`unavailable` unless the workflow semantic ledger supports every exact primitive
-required by that variant. A later reviewed variant must separately prove stable
-versions, principal reauthorization, bounded payloads, cleanup, and its Trust
-Receipt; none of those claims are inferred here.
+The base blueprint has no workflow. Selecting `workflow-automation` restores the
+maintained runtime closure. A product workflow must still prove supported
+semantics, stable versions, principal reauthorization, bounded payloads, and
+cleanup; selection alone makes none of those product claims.
 
-## Deterministic Sources
+## Records Example Sources
 
 - `examples/saas-application/seed/workspace.json`
 - `examples/saas-application/seed/records.json`
@@ -79,5 +76,6 @@ Receipt; none of those claims are inferred here.
 - `examples/saas-application/seed/source/` (the executable table, Confect,
   adapter, feature, screen, and route source copied by the blueprint)
 
-All values are public synthetic fixtures. Replace them through the renamed
-entity contract, never with copied customer files.
+These files remain factory reference material unless `records-example` is
+selected. All values are public synthetic fixtures. Replace them through the
+renamed entity contract, never with copied customer files.

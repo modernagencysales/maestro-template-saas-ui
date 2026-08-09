@@ -124,26 +124,27 @@ describe("create CLI adapter", () => {
     expect(result.stdout).toContain('"omitted/path-999.md"');
   });
 
-  it("passes write intent only with explicit privacy review", async () => {
+  it("passes write intent with --write alone", async () => {
+    const test = fixture();
+    const result = await runCreateCli(
+      test.command,
+      [...argv, "--write", "--json"],
+      "/factory",
+    );
+    expect(result.exitCode).toBe(0);
+    expect(test.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ write: true }),
+      expect.anything(),
+    );
+  });
+
+  it("rejects the obsolete privacy review argument", async () => {
     const test = fixture();
     const result = await runCreateCli(
       test.command,
       [...argv, "--write", "--privacy-reviewed", "--json"],
       "/factory",
     );
-    expect(result.exitCode).toBe(0);
-    expect(test.execute).toHaveBeenCalledWith(
-      expect.objectContaining({ write: true, privacyReviewed: true }),
-      expect.anything(),
-    );
-  });
-
-  it.each([
-    ["write without review", [...argv, "--write", "--json"]],
-    ["review without write", [...argv, "--privacy-reviewed", "--json"]],
-  ])("rejects %s", async (_case, args) => {
-    const test = fixture();
-    const result = await runCreateCli(test.command, args, "/factory");
     expect(result.exitCode).toBe(2);
     expect(test.execute).not.toHaveBeenCalled();
   });

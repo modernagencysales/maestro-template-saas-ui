@@ -6,6 +6,7 @@ import {
   type RecipeCatalogProjection,
   type RecipeCommandProjection,
 } from "./recipes.js";
+import { mutationBlockingPreflightCodes } from "./preflight.js";
 import { createRepositoryContext } from "./repoContext.js";
 
 const context = {
@@ -132,8 +133,7 @@ const dependencies = {
   preflight: {
     inspect: async () => ({
       fingerprint: "preflight_sha256:fixture",
-      safeToMutate: true,
-      cleanWorktree: true,
+      blockingCodes: [],
     }),
   },
   transaction: {
@@ -178,11 +178,12 @@ describe("recipe commands", () => {
           ],
         },
         preflightFingerprint: "preflight_sha256:fixture",
-        confirmationCommand: expect.stringMatching(
-          /--write.*--privacy-reviewed.*--plan-fingerprint.*--preflight-fingerprint/,
-        ),
+        confirmationCommand: expect.stringMatching(/--write/),
       },
     });
+    expect(JSON.stringify(result.data)).not.toMatch(
+      /privacy-reviewed|plan-fingerprint|preflight-fingerprint/,
+    );
     expect(JSON.stringify(result)).not.toMatch(
       /choose (a|an) (database|framework|architecture|provider)/i,
     );
@@ -347,47 +348,62 @@ describe("recipe commands", () => {
     });
   });
 
-  it("requires exact preview authority before applying one transaction", async () => {
+  it("rebuilds the current plan and writes despite unrelated dirty worktree state", async () => {
     applied = 0;
+    let currentBeforeSha256 = "sha256:before-preview";
+    let appliedBeforeSha256: string | null | undefined;
+    const command = createAddRecipeCommand({
+      ...dependencies,
+      generators: {
+        ...dependencies.generators,
+        preview: async () => ({
+          ok: true as const,
+          output: {
+            files: [
+              {
+                path: "apps/web/src/features/request.ts",
+                content: "export const request = true;\n",
+                beforeSha256: currentBeforeSha256,
+              },
+            ],
+            provenancePaths: [],
+            collisions: [],
+            semanticRuleIds: [],
+            manualFollowUp: [],
+            codegen: [
+              "pnpm confect:codegen",
+              "pnpm confect:manifest",
+              "pnpm format",
+              "pnpm --dir apps/web build",
+            ],
+            focusedGates: ["pnpm --dir apps/web typecheck"],
+          },
+        }),
+      },
+      transaction: {
+        apply: async ({ plan }) => {
+          applied += 1;
+          appliedBeforeSha256 = plan.operations[0]?.beforeSha256;
+          return { ok: true as const, receipt };
+        },
+      },
+    });
     const preview = await executeAgentPackCommand(
-      createAddRecipeCommand(dependencies),
+      command,
       { query: "crud-business-entity", answers: { name: "Request" } },
       context,
     );
-    const previewData = preview.data as {
-      readonly plan: { readonly fingerprint: string };
-      readonly preflightFingerprint: string;
-    };
-    const stale = await executeAgentPackCommand(
-      createAddRecipeCommand(dependencies),
-      {
-        query: "crud-business-entity",
-        answers: { name: "Request" },
-        write: true,
-        privacyReviewed: true,
-        planFingerprint: "recipe_plan_sha256:stale",
-        preflightFingerprint: previewData.preflightFingerprint,
-      },
-      context,
-    );
-    expect(stale).toMatchObject({
-      mutationPosture: "write",
-      exitClass: "blockedMutation",
-      diagnostics: [{ code: "AGENT_PACK_RECIPE_AUTHORITY_STALE" }],
-    });
-    expect(applied).toBe(0);
+    currentBeforeSha256 = "sha256:before-write";
     const written = await executeAgentPackCommand(
-      createAddRecipeCommand(dependencies),
+      command,
       {
         query: "crud-business-entity",
         answers: { name: "Request" },
         write: true,
-        privacyReviewed: true,
-        planFingerprint: previewData.plan.fingerprint,
-        preflightFingerprint: previewData.preflightFingerprint,
       },
       context,
     );
+    expect(preview).toMatchObject({ exitClass: "success" });
     expect(written).toMatchObject({
       mutationPosture: "write",
       exitClass: "success",
@@ -404,5 +420,33 @@ describe("recipe commands", () => {
     });
     expect(written.data).not.toHaveProperty("confirmationCommand");
     expect(applied).toBe(1);
+    expect(appliedBeforeSha256).toBe("sha256:before-write");
+  });
+
+  it("reports every concurrent retained preflight denial before applying", async () => {
+    applied = 0;
+    const result = await executeAgentPackCommand(
+      createAddRecipeCommand({
+        ...dependencies,
+        preflight: {
+          inspect: async () => ({
+            fingerprint: "preflight_sha256:blocked",
+            blockingCodes: mutationBlockingPreflightCodes,
+          }),
+        },
+      }),
+      {
+        query: "crud-business-entity",
+        answers: { name: "Request" },
+        write: true,
+      },
+      context,
+    );
+
+    expect(result).toMatchObject({ exitClass: "blockedMutation" });
+    expect(result.diagnostics.map(({ code }) => code)).toEqual(
+      mutationBlockingPreflightCodes,
+    );
+    expect(applied).toBe(0);
   });
 });

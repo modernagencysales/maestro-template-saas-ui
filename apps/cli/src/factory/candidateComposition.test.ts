@@ -73,10 +73,40 @@ const git = (repository: string, args: readonly string[]): Buffer =>
     maxBuffer: 512 * 1024 * 1024,
   });
 
-const buildCandidateReleaseFixture = (input: {
+type SaasPlanBuilder = (options: {
   readonly name: string;
-  readonly outcome: string;
-}) => {
+  readonly firstOutcome?: string;
+}) => ReturnType<typeof buildSaasApplicationTargetPlan>;
+
+const buildSelectedSaasPlan: SaasPlanBuilder = (options) =>
+  buildSaasApplicationTargetPlan({
+    ...options,
+    patterns: ["records-example", "workflow-automation"],
+  });
+
+const isWorkflowPatternPath = (path: string): boolean =>
+  [
+    "tooling/workflow/",
+    "packages/convex/confect/workflows/",
+    "packages/convex/confect/workflowContracts/",
+    "packages/convex/confect/workflowRunners/",
+    "packages/convex/confect/_generated/registeredFunctions/workflow",
+    "packages/convex/confect/_generated/tables/workflow",
+    "packages/convex/confect/tables/workflow",
+    "packages/convex/confect/demo/showcase.",
+    "packages/convex/convex/components/workflow",
+    "packages/convex/convex/workflows/",
+    "packages/convex/convex/workflowContracts/",
+    "packages/convex/convex/workflowRunners/",
+  ].some((prefix) => path.startsWith(prefix));
+
+const buildCandidateReleaseFixture = (
+  input: {
+    readonly name: string;
+    readonly outcome: string;
+  },
+  buildPlan: SaasPlanBuilder = buildSelectedSaasPlan,
+) => {
   const parent = mkdtempSync(join(tmpdir(), "maestro-candidate-composition-"));
   temporaryRoots.push(parent);
   const candidateRoot = join(parent, "candidate");
@@ -114,10 +144,20 @@ const buildCandidateReleaseFixture = (input: {
     .trim()
     .split("\n")
     .filter(Boolean);
-  const plan = buildSaasApplicationTargetPlan({
+  const plan = buildPlan({
     name: input.name,
     firstOutcome: input.outcome,
   });
+  const materializedPaths = new Set(plan.entries.map((entry) => entry.path));
+  const optionalPatternPaths = new Set(
+    buildSelectedSaasPlan({
+      name: input.name,
+      firstOutcome: input.outcome,
+    }).entries.map((entry) => entry.path),
+  );
+  const workflowSelected = materializedPaths.has(
+    "tooling/workflow/package.json",
+  );
   const blueprintOwnedPaths = new Set(
     plan.entries
       .filter((entry) => entry.replaces === undefined)
@@ -125,7 +165,10 @@ const buildCandidateReleaseFixture = (input: {
   );
   const paths = [
     ...buildCustomerOwnershipInventory(sourcePaths).map((entry) =>
-      blueprintOwnedPaths.has(entry.path)
+      blueprintOwnedPaths.has(entry.path) ||
+      (optionalPatternPaths.has(entry.path) &&
+        !materializedPaths.has(entry.path)) ||
+      (!workflowSelected && isWorkflowPatternPath(entry.path))
         ? {
             path: entry.path,
             match: "exact" as const,
@@ -318,17 +361,13 @@ describe("candidate customer composition", () => {
     expect(existsSync(pnpmExecutable)).toBe(true);
   });
 
-  it("materializes and verifies an untouched Confect 10 and Effect 4 candidate", async () => {
-    expect(installedStoreDir).toBeTruthy();
-    expect(
-      execFileSync("pnpm", ["--version"], {
-        env: candidateEnvironment(),
-        encoding: "utf8",
-      }).trim(),
-    ).toBe("10.12.1");
-    const name = "Candidate Validation";
-    const outcome = "Validate the exact candidate customer artifact";
-    const fixture = buildCandidateReleaseFixture({ name, outcome });
+  it("materializes a neutral chassis without optional product patterns", async () => {
+    const name = "Neutral Candidate";
+    const outcome = "Deliver the first customer outcome";
+    const fixture = buildCandidateReleaseFixture(
+      { name, outcome },
+      buildSaasApplicationTargetPlan,
+    );
     const create = loadCustomerCreateComposition(
       fixture.source,
       buildSaasApplicationTargetPlan,
@@ -343,7 +382,58 @@ describe("candidate customer composition", () => {
         outcome,
         "--demo-only",
         "--write",
-        "--privacy-reviewed",
+        "--json",
+      ],
+      fixture.candidateRoot,
+    );
+    expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
+
+    const files = listFiles(fixture.targetRoot);
+    for (const path of [
+      "features/records.feature",
+      "apps/web/src/features/records/records-surface.tsx",
+      "apps/web/src/screens/records-screen.tsx",
+      "apps/web/src/routes/_workspace.records.tsx",
+      "tooling/workflow/package.json",
+    ])
+      expect(files, path).not.toContain(path);
+    expect(files.filter(isWorkflowPatternPath)).toEqual([]);
+    expect(files).toContain("packages/convex/confect/deployAuthority/store.ts");
+    expect(
+      existsSync(
+        join(
+          repositoryRoot,
+          "examples/saas-application/seed/source/features/records.feature",
+        ),
+      ),
+    ).toBe(true);
+  }, 30_000);
+
+  it("materializes and verifies an untouched Confect 10 and Effect 4 candidate", async () => {
+    expect(installedStoreDir).toBeTruthy();
+    expect(
+      execFileSync("pnpm", ["--version"], {
+        env: candidateEnvironment(),
+        encoding: "utf8",
+      }).trim(),
+    ).toBe("10.12.1");
+    const name = "Candidate Validation";
+    const outcome = "Validate the exact candidate customer artifact";
+    const fixture = buildCandidateReleaseFixture({ name, outcome });
+    const create = loadCustomerCreateComposition(
+      fixture.source,
+      buildSelectedSaasPlan,
+    );
+    const result = await create.run(
+      [
+        "create",
+        fixture.targetRoot,
+        "--name",
+        name,
+        "--outcome",
+        outcome,
+        "--demo-only",
+        "--write",
         "--json",
       ],
       fixture.candidateRoot,
@@ -579,7 +669,7 @@ describe("candidate customer composition", () => {
     // it against the materialized dependency/schema set before checking it.
     await runCandidatePnpm(fixture.targetRoot, ["confect:manifest"]);
     const generatedManifestBefore = readFileSync(generatedManifestPath, "utf8");
-    const plannedManifest = buildSaasApplicationTargetPlan({
+    const plannedManifest = buildSelectedSaasPlan({
       name,
       firstOutcome: outcome,
     }).entries.find(

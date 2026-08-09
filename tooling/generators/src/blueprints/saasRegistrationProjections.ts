@@ -1,5 +1,9 @@
 import { existsSync, readFileSync } from "node:fs";
 import type { GeneratedFile } from "../index";
+import {
+  selectsSaasApplicationPattern,
+  type SaasApplicationPatternSelection,
+} from "./saasApplicationPatterns";
 
 const asset = (path: string): string =>
   readFileSync(
@@ -25,6 +29,15 @@ const currentPublicDocument = (path: string): string =>
     "utf8",
   );
 
+const customerEngineeringRules = (workflowSelected: boolean): string => {
+  const rules = currentPublicDocument("enforced-engineering-rules.md");
+  if (workflowSelected) return rules;
+  return rules
+    .split("\n")
+    .filter((line) => !line.startsWith("| Workflow "))
+    .join("\n");
+};
+
 const currentSource = (path: string): string => {
   const url = new URL(`../../../../${path}`, import.meta.url);
   return existsSync(url) ? readFileSync(url, "utf8") : releasedSource(path);
@@ -33,6 +46,31 @@ const currentSource = (path: string): string => {
 const source = (path: string): string => currentSource(path);
 const currentGeneratorSource = (path: string): string =>
   readFileSync(new URL(`../${path}`, import.meta.url), "utf8");
+
+const customerRuntimeSource = (
+  current: boolean,
+  selection: SaasApplicationPatternSelection,
+): string => {
+  const value = current
+    ? currentGeneratorSource("customer-runtime.ts")
+    : source("tooling/generators/src/customer-runtime.ts");
+  return current &&
+    !selectsSaasApplicationPattern(selection, "workflow-automation")
+    ? replace(
+        value,
+        'export { buildWorkflowFiles } from "./workflow-files";\n',
+        [
+          "export const buildWorkflowFiles = (",
+          "  options: WorkflowGeneratorOptions,",
+          "): WorkflowGeneratorResult => {",
+          "  void options;",
+          '  throw new Error("Workflow automation pattern is not selected.");',
+          "};",
+          "",
+        ].join("\n"),
+      )
+    : value;
+};
 
 export const CURRENT_FACTORY_PRODUCT_TABLES = [
   "buildPackEntitlements",
@@ -54,7 +92,9 @@ export const CURRENT_FACTORY_PRODUCT_TABLES = [
   "supportIncidents",
 ] as const;
 
-const customerReadme = (): string => `# Generated Maestro App
+const customerReadme = (
+  recordsSelected: boolean,
+): string => `# Generated Maestro App
 
 This is a customer application generated from an immutable Maestro release. Its
 release, blueprint, and personalization facts live in \`template-instance.json\`.
@@ -79,10 +119,11 @@ node maestro-template.mjs start --mode fake
 If Corepack is unavailable, use the bootstrap report's exact
 \`npx --yes pnpm@10.12.1 install --frozen-lockfile\` fallback.
 
-The starter includes a neutral, workspace-owned \`record\` slice. Open the URL
-printed after \`/health\` becomes ready, then exercise \`/records\`: create a
-record, return to the list, and open its detail. Rename the noun when you build
-the first real product outcome.
+${
+  recordsSelected
+    ? "The selected `records-example` pattern includes a workspace-owned record slice. Open the URL printed after `/health` becomes ready, then exercise `/records`: create a record, return to the list, and open its detail."
+    : "The starter is a neutral product chassis. Implement the first real product outcome before promoting its `@wip` contract to `@required`; select `records-example` only when a runnable CRUD reference is useful."
+}
 
 ## The method
 
@@ -314,8 +355,9 @@ const currentCustomerRootTestExclusions = (): string =>
 
 export const CUSTOMER_ROOT_SCRIPTS = [
   "maestro",
+  "acceptance:syntax",
   "acceptance:check",
-  "acceptance:features",
+  "acceptance:required-selection",
   "acceptance:cucumber",
   "format",
   "check:format",
@@ -406,7 +448,6 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:qlty",
   "contract-review",
   "review:contract",
-  "review:bounded",
   "taste",
   "taste:eval",
   "verify",
@@ -420,15 +461,44 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:app-map",
 ] as const;
 
-const customerPackage = (current: boolean): string => {
+const WORKFLOW_CUSTOMER_SCRIPTS = new Set([
+  "test:workflow",
+  "check:workflow:fast",
+  "check:workflow-semantics",
+  "check:workflow-graph-boundary",
+  "check:workflow-policy-snapshots",
+  "check:workflow-principal-propagation",
+  "check:workflow-version-immutability",
+  "check:workflow-publication-generation",
+]);
+
+const customerPackage = (
+  current: boolean,
+  selection: SaasApplicationPatternSelection,
+  // eslint-disable-next-line complexity -- AP-008 tracks extracting optional script-group rendering.
+): string => {
   if (!current) return releasedSource("package.json");
+  const workflowSelected = selectsSaasApplicationPattern(
+    selection,
+    "workflow-automation",
+  );
   const value = JSON.parse(source("package.json")) as {
     scripts: Record<string, string>;
   };
   const sourceScripts = value.scripts;
+  const generatedAcceptanceScripts: Readonly<Record<string, string>> = {
+    "acceptance:syntax": "tsx tooling/acceptance/source-check.mts",
+    "acceptance:check":
+      "pnpm acceptance:syntax && cucumber-js --config cucumber.cjs --dry-run --tags @required",
+    "acceptance:required-selection":
+      "tsx tooling/acceptance/required-selection.mts",
+    "acceptance:cucumber": "cucumber-js --config cucumber.cjs",
+  };
   value.scripts = Object.fromEntries(
-    CUSTOMER_ROOT_SCRIPTS.map((name) => {
-      const command = sourceScripts[name];
+    CUSTOMER_ROOT_SCRIPTS.filter(
+      (name) => workflowSelected || !WORKFLOW_CUSTOMER_SCRIPTS.has(name),
+    ).map((name) => {
+      const command = generatedAcceptanceScripts[name] ?? sourceScripts[name];
       if (command === undefined) {
         throw new Error(`missing customer root script: ${name}`);
       }
@@ -436,13 +506,14 @@ const customerPackage = (current: boolean): string => {
     }),
   );
   value.scripts.test =
-    "turbo run test --filter='./packages/*' --filter=@maestro-template/web";
-  value.scripts["test:tooling"] =
-    "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism";
+    "turbo run test --filter='./packages/*' --filter=@maestro-template/web && pnpm test:tooling";
+  value.scripts["test:tooling"] = workflowSelected
+    ? "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism"
+    : "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts --maxWorkers=1 --no-file-parallelism";
   value.scripts["check:coverage-ratchet"] =
-    `vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts`;
+    `vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality${workflowSelected ? " tooling/workflow" : ""} tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts`;
   value.scripts["coverage:update-baseline"] =
-    `vitest run --coverage packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality tooling/workflow tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts --update`;
+    `vitest run --coverage packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality${workflowSelected ? " tooling/workflow" : ""} tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts --update`;
   value.scripts["check:agent-pack"] =
     "tsx tooling/quality/check-agent-pack.mts";
   value.scripts["check:layer-boundaries"] =
@@ -454,7 +525,6 @@ const customerPackage = (current: boolean): string => {
     "typecheck",
     "check:effect-diagnostics",
     "test",
-    "test:tooling",
     "build",
     "check:convex-ai-files",
     "check:agent-pack",
@@ -484,6 +554,7 @@ const customerPackage = (current: boolean): string => {
     "check:posthog-readiness",
     "check:auth-demo-bypass",
   ]
+    .filter((name) => workflowSelected || !WORKFLOW_CUSTOMER_SCRIPTS.has(name))
     .map((name) => `pnpm ${name}`)
     .join(" && ");
   value.scripts.verify += " && pnpm maestro -- contracts test --required";
@@ -515,8 +586,9 @@ const customerPackage = (current: boolean): string => {
         );
     }
   }
-  value.scripts["maestro:crud-proof"] =
-    "tsx tooling/generators/src/crud-proof.ts --mode fake";
+  if (selectsSaasApplicationPattern(selection, "records-example"))
+    value.scripts["maestro:crud-proof"] =
+      "tsx tooling/generators/src/crud-proof.ts --mode fake";
   value.scripts["template:smoke"] =
     "tsx tooling/generators/src/customer-cli.ts smoke";
   return `${JSON.stringify(value, null, 2)}\n`;
@@ -538,12 +610,47 @@ const customerGeneratorPackage = (): string => {
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
-const customerPackageWithoutAppIdeaEvaluator = (path: string): string => {
+const customerPackageWithoutOptionalPatterns = (
+  path: string,
+  selection: SaasApplicationPatternSelection,
+): string => {
   const value = JSON.parse(currentSource(path)) as {
     dependencies: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/app-idea-evaluator"];
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
+    delete value.dependencies["@maestro-template/workflow-tooling"];
   return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerConvexPackage = (
+  selection: SaasApplicationPatternSelection,
+): string => {
+  const value = JSON.parse(currentSource("packages/convex/package.json")) as {
+    dependencies: Record<string, string>;
+  };
+  delete value.dependencies["@maestro-template/app-idea-evaluator"];
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation")) {
+    delete value.dependencies["@convex-dev/workflow"];
+    delete value.dependencies["@maestro-template/workflow-tooling"];
+  }
+  return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerConvexConfig = (workflowSelected: boolean): string => {
+  let value = currentSource("packages/convex/convex/convex.config.ts");
+  if (workflowSelected) return value;
+  for (const line of [
+    'import workflow from "@convex-dev/workflow/convex.config";\n',
+    'import workflowDeadline from "./components/workflowDeadline/convex.config";\n',
+    'import workflowAdmission from "./components/workflowAdmission/convex.config";\n',
+    'app.use(workpool, { name: "workflowDeadlineWorkpool" });\n',
+    'app.use(workflow, { name: "workflow" });\n',
+    'app.use(workflowDeadline, { name: "workflowDeadline" });\n',
+    'app.use(workflowAdmission, { name: "workflowAdmission" });\n',
+  ])
+    value = replace(value, line, "");
+  return value;
 };
 
 const customerQualityPackage = (): string => {
@@ -558,12 +665,15 @@ const customerQualityPackage = (): string => {
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
-const customerCliPackage = (): string => {
+const customerCliPackage = (
+  selection: SaasApplicationPatternSelection,
+): string => {
   const value = JSON.parse(source("apps/cli/package.json")) as {
     dependencies: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/release-tooling"];
-  delete value.dependencies["@maestro-template/stack-tooling"];
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
+    delete value.dependencies["@maestro-template/workflow-tooling"];
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
@@ -597,7 +707,68 @@ const removeLockfileImporterDependency = (
   return `${value.slice(0, start)}${projected}${value.slice(end)}`;
 };
 
-const customerLockfile = (): string => {
+const removeLockfileImporter = (
+  value: string,
+  importerPath: string,
+): string => {
+  const startMarker = `  ${importerPath}:`;
+  const start = value.indexOf(startMarker);
+  if (start < 0)
+    throw new Error(`Customer lockfile importer is missing: ${importerPath}`);
+  const remainderStart = start + startMarker.length;
+  const nextMatch = /\n {2}\S/gu.exec(value.slice(remainderStart));
+  const nextImporter =
+    nextMatch === null ? -1 : remainderStart + nextMatch.index + 1;
+  const packages = value.indexOf("\npackages:", start);
+  const end =
+    nextImporter >= 0 && (packages < 0 || nextImporter < packages)
+      ? nextImporter + 1
+      : packages + 1;
+  if (end <= start)
+    throw new Error(
+      `Customer lockfile importer end is missing: ${importerPath}`,
+    );
+  return `${value.slice(0, start)}${value.slice(end)}`;
+};
+
+const removeLockfileImporterDependencyByName = (
+  value: string,
+  importerPath: string,
+  dependency: string,
+): string => {
+  const importerMarker = `  ${importerPath}:`;
+  const importerStart = value.indexOf(importerMarker);
+  const importerBodyStart = importerStart + importerMarker.length;
+  const nextImporter = /^ {2}\S.*$/gmu.exec(value.slice(importerBodyStart));
+  const packages = value.indexOf("\npackages:", importerStart);
+  const importerEnd =
+    nextImporter === null ? packages : importerBodyStart + nextImporter.index;
+  const dependencyStart = value.indexOf(
+    `      "${dependency}":`,
+    importerStart,
+  );
+  if (
+    importerStart < 0 ||
+    importerEnd <= importerStart ||
+    dependencyStart < importerStart ||
+    dependencyStart >= importerEnd
+  )
+    throw new Error(
+      `Customer lockfile dependency is missing: ${importerPath} -> ${dependency}`,
+    );
+  const nextDependency = /^ {6}\S.*$/gmu.exec(
+    value.slice(dependencyStart + 1, importerEnd),
+  );
+  const dependencyEnd =
+    nextDependency === null
+      ? importerEnd
+      : dependencyStart + 1 + nextDependency.index;
+  return `${value.slice(0, dependencyStart)}${value.slice(dependencyEnd)}`;
+};
+
+const customerLockfile = (
+  selection: SaasApplicationPatternSelection,
+): string => {
   let value = source("pnpm-lock.yaml");
   const appIdeaEvaluatorFromRoot =
     '      "@maestro-template/app-idea-evaluator":\n        specifier: workspace:*\n        version: link:../../packages/app-idea-evaluator\n';
@@ -609,6 +780,21 @@ const customerLockfile = (): string => {
     "packages/app-idea-evaluator",
     appIdeaEvaluatorFromRoot,
   );
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
+    value = removeLockfileImporter(value, "tooling/workflow");
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
+    value = removeLockfileImporterDependencyByName(
+      value,
+      "packages/convex",
+      "@convex-dev/workflow",
+    );
+  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
+    for (const importer of ["apps/cli", "apps/web", "packages/convex"])
+      value = removeLockfileImporterDependencyByName(
+        value,
+        importer,
+        "@maestro-template/workflow-tooling",
+      );
   value = removeLockfileImporterDependency(
     value,
     "packages/convex",
@@ -618,25 +804,19 @@ const customerLockfile = (): string => {
   value = removeLockfileImporterDependency(
     value,
     "tooling/generators",
-    "tooling/pr-backlog",
+    "tooling/quality",
     appIdeaEvaluatorFromRoot,
   );
   value = removeLockfileImporterDependency(
     value,
     "apps/cli",
-    "apps/voice-relay",
+    "apps/web",
     '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/release\n',
   );
   value = removeLockfileImporterDependency(
     value,
-    "apps/cli",
-    "apps/voice-relay",
-    '      "@maestro-template/stack-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/stack\n',
-  );
-  value = removeLockfileImporterDependency(
-    value,
     "tooling/generators",
-    "tooling/pr-backlog",
+    "tooling/quality",
     '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../release\n',
   );
   if (
@@ -672,9 +852,50 @@ const customerAgentPackCheck = (): string => {
     '  console.log("Customer context, receipts, and MCP posture are valid.");',
   );
 };
-const customerCliEntry = (current: boolean): string => {
+const customerCliModuleSource = (
+  path: "apps/cli/src/commands.ts" | "apps/cli/src/index.ts",
+  selection: SaasApplicationPatternSelection,
+): string => {
+  const value = currentSource(path);
+  return selectsSaasApplicationPattern(selection, "workflow-automation")
+    ? value
+    : replace(
+        value,
+        'from "@maestro-template/workflow-tooling";',
+        'from "./headlessRegistry";',
+      );
+};
+
+const neutralHeadlessRegistrySource = (): string => {
+  let value = currentSource("tooling/workflow/src/index.ts");
+  value = replace(
+    value,
+    'import {\n  describeDefaultWorkflow,\n  describeWorkflowRegistry,\n  runDefaultWorkflow,\n  runWorkflowRegistry,\n} from "./workflow-compat";\n',
+    "",
+  );
+  value = replace(
+    value,
+    "export const describeWorkflowTemplate = (registry?: TemplateRegistry) =>\n  registry === undefined\n    ? describeDefaultWorkflow(\n        confectManifest.functions.length,\n        buildHeadlessOperations().length,\n      )\n    : describeWorkflowRegistry(\n        registry,\n        confectManifest.functions.length,\n        buildHeadlessOperations(registry).length,\n      );",
+    'export const describeWorkflowTemplate = (registry?: TemplateRegistry) => {\n  void registry;\n  return {\n    id: "workflow-automation",\n    status: "unavailable",\n    contractFunctions: confectManifest.functions.length,\n    headlessOperations: buildHeadlessOperations().length,\n  } as const;\n};',
+  );
+  value = replace(
+    value,
+    'const workflowRunMcpTool: McpToolEntry = {\n  name: "template.workflow.run",\n  description: "Run the template workflow compatibility adapter.",\n  inputSchema: {\n    type: "object",\n    additionalProperties: false,\n  },\n  typedErrors: [],\n};\n\nexport const buildMcpTools = (\n  registry?: TemplateRegistry,\n): readonly McpToolEntry[] => [\n  ...buildGeneratedMcpTools(registry),\n  workflowRunMcpTool,\n];\n\nexport const runTemplateWorkflow = (\n  registry?: TemplateRegistry,\n): WorkflowRunReceipt =>\n  registry === undefined ? runDefaultWorkflow() : runWorkflowRegistry(registry);',
+    'export const buildMcpTools = buildGeneratedMcpTools;\n\nexport const runTemplateWorkflow = (): WorkflowRunReceipt => {\n  throw new Error("Workflow automation pattern is not selected.");\n};',
+  );
+  return replace(
+    value,
+    "  if (toolName === workflowRunMcpTool.name) {\n    return mcpText(runTemplateWorkflow(registry));\n  }\n\n",
+    "",
+  );
+};
+
+const customerCliEntry = (
+  current: boolean,
+  selection: SaasApplicationPatternSelection,
+): string => {
   if (!current) return releasedSource("apps/cli/src/index.ts");
-  let value = currentSource("apps/cli/src/index.ts");
+  let value = customerCliModuleSource("apps/cli/src/index.ts", selection);
   value = replace(
     value,
     'import { createFactoryCliComposition } from "./factory/composition";',
@@ -756,6 +977,23 @@ const factoryProductTablePattern = new RegExp(
   "u",
 );
 
+const WORKFLOW_TABLES = [
+  "workflowArtifacts",
+  "workflowEffectReservations",
+  "workflowEventInstances",
+  "workflowRunContextManifests",
+  "workflowRunEvents",
+  "workflowRunEvidenceSnapshots",
+  "workflowRunLinks",
+  "workflowRuns",
+  "workflowStageRuns",
+] as const;
+
+const workflowTablePattern = new RegExp(
+  `\\b(?:${WORKFLOW_TABLES.join("|")})\\b`,
+  "u",
+);
+
 const withoutFactoryProductTableLines = (value: string): string =>
   value
     .split("\n")
@@ -765,6 +1003,19 @@ const withoutFactoryProductTableLines = (value: string): string =>
 const withoutFactoryProductTableNames = (value: string): string => {
   let projected = value;
   for (const table of CURRENT_FACTORY_PRODUCT_TABLES)
+    projected = projected.replace(` | "${table}"`, "");
+  return projected;
+};
+
+const withoutWorkflowTableLines = (value: string): string =>
+  value
+    .split("\n")
+    .filter((line) => !workflowTablePattern.test(line))
+    .join("\n");
+
+const withoutWorkflowTableNames = (value: string): string => {
+  let projected = value;
+  for (const table of WORKFLOW_TABLES)
     projected = projected.replace(` | "${table}"`, "");
   return projected;
 };
@@ -835,10 +1086,43 @@ const withoutFactoryProductConfectGroups = (value: string): string => {
   return projected;
 };
 
-const databaseSchema = (): string => {
+const withoutWorkflowConfectGroups = (value: string): string => {
+  let projected = value
+    .split("\n")
+    .filter(
+      (line) =>
+        !(
+          line.startsWith("import ") &&
+          (line.includes('from "../workflowContracts/') ||
+            line.includes('from "../workflowRunners/') ||
+            line.includes('from "../workflows/'))
+        ) &&
+        !(
+          line.startsWith("  | GroupSpec.NamedAt") &&
+          (line.includes('"workflowContracts"') ||
+            line.includes('"workflowRunners"') ||
+            line.includes('>, "workflows">'))
+        ),
+    )
+    .join("\n");
+  for (const marker of [
+    '.addAt("workflowContracts",',
+    '.addAt("workflowRunners",',
+    '.addAt("workflows",',
+  ])
+    projected = removeChainedCall(projected, marker);
+  return projected;
+};
+
+const databaseSchema = (
+  recordsSelected: boolean,
+  workflowSelected: boolean,
+): string => {
   let value = withoutFactoryProductTableLines(
     source("packages/convex/confect/_generated/schema.ts"),
   );
+  if (!workflowSelected) value = withoutWorkflowTableLines(value);
+  if (!recordsSelected) return value;
   value = replace(
     value,
     'import promptRegistry from "./tables/promptRegistry";',
@@ -852,10 +1136,15 @@ const databaseSchema = (): string => {
   return replace(value, "  promptRegistry,", "  promptRegistry,\n  records,");
 };
 
-const convexSchema = (): string => {
+const convexSchema = (
+  recordsSelected: boolean,
+  workflowSelected: boolean,
+): string => {
   let value = withoutFactoryProductTableLines(
     source("packages/convex/confect/_generated/convexSchema.ts"),
   );
+  if (!workflowSelected) value = withoutWorkflowTableLines(value);
+  if (!recordsSelected) return value;
   value = replace(
     value,
     'import promptRegistry from "./tables/promptRegistry";',
@@ -868,12 +1157,18 @@ const convexSchema = (): string => {
   );
 };
 
-const confectSpec = (current: boolean): string => {
+const confectSpec = (
+  current: boolean,
+  recordsSelected: boolean,
+  workflowSelected: boolean,
+): string => {
   let value = current
     ? withoutFactoryProductConfectGroups(
         source("packages/convex/confect/_generated/spec.ts"),
       )
     : source("packages/convex/confect/_generated/spec.ts");
+  if (!workflowSelected) value = withoutWorkflowConfectGroups(value);
+  if (!recordsSelected) return value;
   if (!current) {
     value = replace(
       value,
@@ -896,31 +1191,50 @@ const confectSpec = (current: boolean): string => {
     'import ops_versioning from "../ops/versioning.spec";',
     'import ops_versioning from "../ops/versioning.spec";\nimport records_records from "../records/records.spec";',
   );
+  const typeMarker = workflowSelected
+    ? '  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "workflowContracts"'
+    : '  | GroupSpec.NamedAt<typeof editorSync, "editorSync">';
   value = replace(
     value,
-    '  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "workflowContracts"',
-    '  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "records", never, GroupSpec.NamedAt<typeof records_records, "records">>, "records">\n  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "workflowContracts"',
+    typeMarker,
+    `  | GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "records", never, GroupSpec.NamedAt<typeof records_records, "records">>, "records">\n${typeMarker}`,
   );
+  const registrationMarker = workflowSelected
+    ? ').addAt("workflowContracts", GroupSpec.makeAt("workflowContracts")'
+    : ').addAt("editorSync", editorSync)';
   return replace(
     value,
-    ').addAt("workflowContracts", GroupSpec.makeAt("workflowContracts")',
-    ').addAt("records", GroupSpec.makeAt("records").addGroupAt("records", records_records)).addAt("workflowContracts", GroupSpec.makeAt("workflowContracts")',
+    registrationMarker,
+    `).addAt("records", GroupSpec.makeAt("records").addGroupAt("records", records_records))${registrationMarker.slice(1)}`,
   );
 };
 
-const confectIds = (): string =>
-  replace(
-    withoutFactoryProductTableNames(
-      source("packages/convex/confect/_generated/id.ts"),
-    ),
-    ' | "promptRegistry" | "transformBlocks"',
-    ' | "promptRegistry" | "records" | "transformBlocks"',
+const confectIds = (
+  recordsSelected: boolean,
+  workflowSelected: boolean,
+): string => {
+  let value = withoutFactoryProductTableNames(
+    source("packages/convex/confect/_generated/id.ts"),
   );
+  if (!workflowSelected) value = withoutWorkflowTableNames(value);
+  return recordsSelected
+    ? replace(
+        value,
+        ' | "promptRegistry" | "transformBlocks"',
+        ' | "promptRegistry" | "records" | "transformBlocks"',
+      )
+    : value;
+};
 
-const confectDocs = (): string => {
+const confectDocs = (
+  recordsSelected: boolean,
+  workflowSelected: boolean,
+): string => {
   let value = withoutFactoryProductTableLines(
     source("packages/convex/confect/_generated/docs.ts"),
   );
+  if (!workflowSelected) value = withoutWorkflowTableLines(value);
+  if (!recordsSelected) return value;
   value = replace(
     value,
     'export type PromptRegistryDoc = Document.Document<typeof schemaDefinition, "promptRegistry">;',
@@ -933,7 +1247,7 @@ const confectDocs = (): string => {
   );
 };
 
-const routeTree = (current: boolean): string => {
+const routeTree = (current: boolean, recordsSelected: boolean): string => {
   let value = current
     ? currentGeneratorSource("blueprints/customer/routeTree.gen.ts.txt")
     : source("apps/web/src/routeTree.gen.ts");
@@ -970,6 +1284,7 @@ const routeTree = (current: boolean): string => {
       "  IndexRoute: IndexRoute,\n  DashboardRoute: DashboardRoute,",
     );
   }
+  if (!recordsSelected) return value;
   value = replace(
     value,
     "import { Route as WorkspaceRunsRouteImport } from './routes/_workspace.runs'",
@@ -1014,16 +1329,22 @@ const routeTree = (current: boolean): string => {
 };
 
 export const buildSaasRegistrationProjections = (
-  options: { readonly current?: boolean } = {},
+  options: {
+    readonly current?: boolean;
+  } & SaasApplicationPatternSelection = {},
   // eslint-disable-next-line complexity -- this is a declarative file projection, not branching behavior
 ): readonly GeneratedFile[] => {
   const current = options.current ?? true;
+  const workflowSelected =
+    !current || selectsSaasApplicationPattern(options, "workflow-automation");
+  const recordsSelected =
+    !current || selectsSaasApplicationPattern(options, "records-example");
   return [
     ...(current
       ? [
           {
             path: "README.md",
-            content: customerReadme(),
+            content: customerReadme(recordsSelected),
           },
           {
             path: "docs/template/agent-pack-privacy.md",
@@ -1038,13 +1359,25 @@ export const buildSaasRegistrationProjections = (
             content: currentPublicDocument("coding-standards.md"),
           },
           {
+            path: "docs/template/enforced-engineering-rules.md",
+            content: customerEngineeringRules(workflowSelected),
+          },
+          ...(workflowSelected
+            ? [
+                {
+                  path: "tooling/workflow/package.json",
+                  content: currentSource("tooling/workflow/package.json"),
+                },
+              ]
+            : []),
+          {
             path: "cucumber.cjs",
             content: currentSource("cucumber.cjs"),
           },
-          {
-            path: "tooling/acceptance/check-features.mts",
-            content: currentSource("tooling/acceptance/check-features.mts"),
-          },
+          ...[
+            "tooling/acceptance/required-selection.mts",
+            "tooling/acceptance/source-check.mts",
+          ].map((path) => ({ path, content: currentSource(path) })),
           {
             path: "AGENTS.md",
             content: currentSource("AGENTS.md"),
@@ -1115,9 +1448,7 @@ export const buildSaasRegistrationProjections = (
           },
           {
             path: "packages/convex/package.json",
-            content: customerPackageWithoutAppIdeaEvaluator(
-              "packages/convex/package.json",
-            ),
+            content: customerConvexPackage(options),
           },
           {
             path: "tooling/quality/check-convex-generation.mts",
@@ -1149,13 +1480,24 @@ export const buildSaasRegistrationProjections = (
       ? [
           {
             path: "apps/cli/src/commands.ts",
-            content: currentSource("apps/cli/src/commands.ts"),
+            content: customerCliModuleSource(
+              "apps/cli/src/commands.ts",
+              options,
+            ),
           },
+          ...(!workflowSelected
+            ? [
+                {
+                  path: "apps/cli/src/headlessRegistry.ts",
+                  content: neutralHeadlessRegistrySource(),
+                },
+              ]
+            : []),
         ]
       : []),
     {
       path: "apps/cli/src/index.ts",
-      content: customerCliEntry(current),
+      content: customerCliEntry(current, options),
     },
     ...(current
       ? [
@@ -1167,14 +1509,15 @@ export const buildSaasRegistrationProjections = (
       : []),
     {
       path: "apps/cli/package.json",
-      content: customerCliPackage(),
+      content: customerCliPackage(options),
     },
     ...(current
       ? [
           {
             path: "apps/web/package.json",
-            content: customerPackageWithoutAppIdeaEvaluator(
+            content: customerPackageWithoutOptionalPatterns(
               "apps/web/package.json",
+              options,
             ),
           },
         ]
@@ -1205,9 +1548,9 @@ export const buildSaasRegistrationProjections = (
       : []),
     ...(current ? [{ path: ".npmrc", content: currentSource(".npmrc") }] : []),
     { path: ".prettierignore", content: currentSource(".prettierignore") },
-    { path: "package.json", content: customerPackage(current) },
+    { path: "package.json", content: customerPackage(current, options) },
     ...(current
-      ? [{ path: "pnpm-lock.yaml", content: customerLockfile() }]
+      ? [{ path: "pnpm-lock.yaml", content: customerLockfile(options) }]
       : []),
     ...(current
       ? [
@@ -1250,7 +1593,6 @@ export const buildSaasRegistrationProjections = (
     ...(current
       ? [
           "lefthook.yml",
-          "scripts/pre-push-rubric.sh",
           "tooling/quality/contract-review-rubric.md",
           "tooling/quality/taste-review.mts",
         ].map((path) => ({ path, content: currentSource(path) }))
@@ -1284,12 +1626,18 @@ export const buildSaasRegistrationProjections = (
       content:
         name === "workflow-source-closure.ts"
           ? currentGeneratorSource(name)
-          : source(`tooling/generators/src/${name}`),
+          : name === "customer-runtime.ts"
+            ? customerRuntimeSource(current, options)
+            : source(`tooling/generators/src/${name}`),
     })),
     ...[
-      "tooling/generators/src/workflow-files.ts",
-      "tooling/generators/src/workflow-predeploy.ts",
-      ...(current
+      ...(workflowSelected
+        ? [
+            "tooling/generators/src/workflow-files.ts",
+            "tooling/generators/src/workflow-predeploy.ts",
+          ]
+        : []),
+      ...(current && workflowSelected
         ? [
             "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
             "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
@@ -1306,56 +1654,68 @@ export const buildSaasRegistrationProjections = (
         : []),
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
-      "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+      ...(workflowSelected
+        ? ["packages/convex/confect/_generated/tables/workflowArtifacts.ts"]
+        : []),
       ...(!current
         ? ["packages/convex/confect/ops/dataResources.generated.ts"]
         : []),
-      ...(current ? CURRENT_EMAIL_CLOSURE : []),
+      ...(current
+        ? CURRENT_EMAIL_CLOSURE.filter(
+            (path) => workflowSelected || !path.startsWith("tooling/workflow/"),
+          )
+        : []),
       ...(current ? CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE : []),
       ...(current ? CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE : []),
-      "packages/convex/confect/tables/workflowArtifacts.ts",
-      "packages/convex/confect/tables/workflowRuns.ts",
-      "packages/convex/confect/tables/workflowStageRuns.ts",
-      "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
-      "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
-      "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
-      "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
-      "packages/convex/confect/workflows/_kit/lifecycle.ts",
-      "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
-      "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
-      "packages/convex/confect/workflows/_kit/lifecycleState.ts",
-      "packages/convex/confect/workflows/_kit/lifecycleSweep.ts",
-      "packages/convex/confect/workflows/_kit/observedStage.ts",
-      "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
-      "packages/convex/confect/workflows/_kit/payloadBudget.ts",
-      "packages/convex/confect/workflows/_kit/policySnapshot.ts",
-      "packages/convex/confect/workflows/_kit/principal.ts",
-      "packages/convex/confect/workflows/_kit/subworkflows.ts",
-      "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
-      "packages/convex/confect/workflows/lifecycleAdapters.ts",
-      "packages/convex/confect/workflows/lifecycle.impl.ts",
-      "packages/convex/confect/workflows/lifecycleInspection.ts",
-      "packages/convex/confect/workflows/lifecyclePersistence.ts",
-      "packages/convex/confect/workflows/lifecycleReconciliation.ts",
-      "packages/convex/confect/workflows/lifecycle.spec.ts",
-      "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
-      "packages/convex/test/workflow-lifecycle-registration.test.ts",
-      "tooling/quality/check-workflow-policy-snapshots.mts",
-      "tooling/quality/check-workflow-principal-propagation.mts",
-      "tooling/quality/fixtures/workflow-policy-snapshots.json",
+      ...(workflowSelected
+        ? [
+            "packages/convex/confect/tables/workflowArtifacts.ts",
+            "packages/convex/confect/tables/workflowRuns.ts",
+            "packages/convex/confect/tables/workflowStageRuns.ts",
+            "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
+            "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+            "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
+            "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+            "packages/convex/confect/workflows/_kit/lifecycle.ts",
+            "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
+            "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+            "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+            "packages/convex/confect/workflows/_kit/lifecycleSweep.ts",
+            "packages/convex/confect/workflows/_kit/observedStage.ts",
+            "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
+            "packages/convex/confect/workflows/_kit/payloadBudget.ts",
+            "packages/convex/confect/workflows/_kit/policySnapshot.ts",
+            "packages/convex/confect/workflows/_kit/principal.ts",
+            "packages/convex/confect/workflows/_kit/subworkflows.ts",
+            "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+            "packages/convex/confect/workflows/lifecycleAdapters.ts",
+            "packages/convex/confect/workflows/lifecycle.impl.ts",
+            "packages/convex/confect/workflows/lifecycleInspection.ts",
+            "packages/convex/confect/workflows/lifecyclePersistence.ts",
+            "packages/convex/confect/workflows/lifecycleReconciliation.ts",
+            "packages/convex/confect/workflows/lifecycle.spec.ts",
+            "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
+            "packages/convex/test/workflow-lifecycle-registration.test.ts",
+            "tooling/quality/check-workflow-policy-snapshots.mts",
+            "tooling/quality/check-workflow-principal-propagation.mts",
+            "tooling/quality/fixtures/workflow-policy-snapshots.json",
+          ]
+        : []),
     ].map((path) => ({
       path,
       content:
         path === "packages/convex/confect/_generated/docs.ts"
           ? current
-            ? confectDocs()
+            ? confectDocs(recordsSelected, workflowSelected)
             : source(path)
           : path.endsWith("Current.ts") ||
               path.endsWith("workflowSchedule.ts") ||
               path.endsWith("workflowScheduledCapability.ts")
             ? currentSource(path)
-            : source(path),
+            : path === "packages/convex/convex/convex.config.ts" && current
+              ? customerConvexConfig(workflowSelected)
+              : source(path),
     })),
     ...[
       "start.ts",
@@ -1440,48 +1800,63 @@ export const buildSaasRegistrationProjections = (
       ),
     },
     ...customerContextProjections(),
-    {
-      path: "packages/convex/confect/_generated/tables/records.ts",
-      content:
-        'import unnamed from "../../tables/records";\n\nexport default unnamed("records");\n',
-    },
+    ...(recordsSelected
+      ? [
+          {
+            path: "packages/convex/confect/_generated/tables/records.ts",
+            content:
+              'import unnamed from "../../tables/records";\n\nexport default unnamed("records");\n',
+          },
+        ]
+      : []),
     {
       path: "packages/convex/confect/_generated/schema.ts",
-      content: databaseSchema(),
+      content: databaseSchema(recordsSelected, workflowSelected),
     },
     {
       path: "packages/convex/confect/_generated/convexSchema.ts",
-      content: convexSchema(),
+      content: convexSchema(recordsSelected, workflowSelected),
     },
     {
       path: "packages/convex/confect/_generated/spec.ts",
-      content: confectSpec(current),
+      content: confectSpec(current, recordsSelected, workflowSelected),
     },
     {
       path: "packages/convex/confect/_generated/id.ts",
-      content: confectIds(),
+      content: confectIds(recordsSelected, workflowSelected),
     },
+    ...(recordsSelected
+      ? [
+          {
+            path: current
+              ? "packages/convex/confect/_generated/registeredFunctions/records/records.ts"
+              : "packages/convex/confect/_generated/registeredFunctions/records.ts",
+            content: current
+              ? 'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../../schema";\nimport records from "../../../records/records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../../records/records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n'
+              : 'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../schema";\nimport records from "../../records/records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../records/records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n',
+          },
+          {
+            path: current
+              ? "packages/convex/convex/records/records.ts"
+              : "packages/convex/convex/records.ts",
+            content: current
+              ? 'import registeredFunctions from "../../confect/_generated/registeredFunctions/records/records";\n\nexport const create = registeredFunctions.create;\nexport const list = registeredFunctions.list;\nexport const read = registeredFunctions.read;\n'
+              : 'import registeredFunctions from "../confect/_generated/registeredFunctions/records";\n\nexport const list = registeredFunctions.list;\nexport const read = registeredFunctions.read;\nexport const create = registeredFunctions.create;\n',
+          },
+        ]
+      : []),
     {
-      path: current
-        ? "packages/convex/confect/_generated/registeredFunctions/records/records.ts"
-        : "packages/convex/confect/_generated/registeredFunctions/records.ts",
-      content: current
-        ? 'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../../schema";\nimport records from "../../../records/records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../../records/records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n'
-        : 'import { RegisteredConvexFunction, RegisteredFunctions } from "@confect/server";\nimport databaseSchema from "../schema";\nimport records from "../../records/records.impl";\n\nexport default RegisteredFunctions.buildForGroup<typeof import("../../records/records.spec")["default"]>(databaseSchema, records, RegisteredConvexFunction.make);\n',
+      path: "apps/web/src/routeTree.gen.ts",
+      content: routeTree(current, recordsSelected),
     },
-    {
-      path: current
-        ? "packages/convex/convex/records/records.ts"
-        : "packages/convex/convex/records.ts",
-      content: current
-        ? 'import registeredFunctions from "../../confect/_generated/registeredFunctions/records/records";\n\nexport const create = registeredFunctions.create;\nexport const list = registeredFunctions.list;\nexport const read = registeredFunctions.read;\n'
-        : 'import registeredFunctions from "../confect/_generated/registeredFunctions/records";\n\nexport const list = registeredFunctions.list;\nexport const read = registeredFunctions.read;\nexport const create = registeredFunctions.create;\n',
-    },
-    { path: "apps/web/src/routeTree.gen.ts", content: routeTree(current) },
-    {
-      path: "apps/web/src/routeRegistry.generated.ts",
-      content:
-        'export const saasApplicationRoutes = { records: "/records" } as const;\n',
-    },
+    ...(recordsSelected
+      ? [
+          {
+            path: "apps/web/src/routeRegistry.generated.ts",
+            content:
+              'export const saasApplicationRoutes = { records: "/records" } as const;\n',
+          },
+        ]
+      : []),
   ];
 };

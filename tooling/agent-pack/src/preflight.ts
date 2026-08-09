@@ -143,6 +143,16 @@ const blockedCodes = new Set([
   "AGENT_PACK_PROVIDER_MISSING",
 ]);
 
+/** Concrete preflight denials that prohibit a local mutation. */
+export const mutationBlockingPreflightCodes = [
+  ...unavailableCodes,
+  ...blockedCodes,
+] as const;
+export const isMutationBlockingPreflightCode = (code: string): boolean =>
+  mutationBlockingPreflightCodes.includes(
+    code as (typeof mutationBlockingPreflightCodes)[number],
+  );
+
 export function createPreflightCommand(probe: PreflightProbe) {
   return defineAgentPackCommand({
     id: "preflight",
@@ -158,8 +168,8 @@ export function createPreflightCommand(probe: PreflightProbe) {
         ? inspected.fingerprintBinding
         : "environment_binding_sha256:unavailable";
       const diagnostics = preflightDiagnostics(facts, input.mode);
-      const safeToMutate = !diagnostics.some(
-        ({ code }) => unavailableCodes.has(code) || blockedCodes.has(code),
+      const safeToMutate = !diagnostics.some(({ code }) =>
+        isMutationBlockingPreflightCode(code),
       );
       return {
         mutationPosture: "read-only",
@@ -238,14 +248,9 @@ function preflightDiagnostics(
   const diagnostics: AgentPackDiagnostic[] = [];
   const add = (
     condition: boolean,
-    code: string,
-    message: string,
-    safe: boolean,
-    nextAction: string,
-    rerun: string,
+    ...args: Parameters<typeof diagnostic>
   ): void => {
-    if (condition)
-      diagnostics.push(diagnostic(code, message, safe, nextAction, rerun));
+    if (condition) diagnostics.push(diagnostic(...args));
   };
   add(
     !facts.host.osSupported,
@@ -398,7 +403,9 @@ function preflightDiagnostics(
     "pnpm maestro -- preflight --details",
   );
   add(
-    facts.workflow.status === "unsupported" || facts.workflow.publishedDrift,
+    facts.app.modules.includes("workflows") &&
+      (facts.workflow.status === "unsupported" ||
+        facts.workflow.publishedDrift),
     "AGENT_PACK_WORKFLOW_UNSAFE",
     "Workflow semantics are unsupported or differ from the published ledger.",
     false,
@@ -502,7 +509,7 @@ function diagnostic(
 
 function worksNow(facts: PreflightFacts): string {
   if (facts.app.providerMode === "fake")
-    return "What works now: the app uses sample data saved locally.";
+    return "What works now: the app uses deterministic in-memory sample data.";
   return `What works now: the app uses a connected ${facts.app.providerMode === "test" ? "test account" : "live account"}.`;
 }
 

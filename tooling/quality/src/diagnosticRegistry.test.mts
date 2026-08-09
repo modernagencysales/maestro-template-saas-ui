@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { readFile } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { defineDiagnosticRegistryProjection } from "../../agent-pack/src/diagnostics.js";
 import { checkDescriptors } from "./check-definitions.mts";
 import {
@@ -15,15 +17,24 @@ describe("quality diagnostic registry", () => {
     expect(new Set(gateIds).size).toBe(gateIds.length);
   });
 
-  it("provides complete, exact metadata for every registered check", () => {
+  it("provides complete diagnostic metadata without copied command bodies", async () => {
+    const packageJson = JSON.parse(
+      await readFile(
+        fileURLToPath(new URL("../../../package.json", import.meta.url)),
+        "utf8",
+      ),
+    ) as { readonly scripts: Readonly<Record<string, unknown>> };
+
     for (const [gateId, descriptor] of Object.entries(checkDescriptors)) {
       expect(descriptor).toMatchObject({
         gateId,
         argv: ["pnpm", descriptor.name.split(" ")[0]],
         rerun: ["pnpm", descriptor.name.split(" ")[0]],
-        canonicalScriptBody: expect.any(String),
       });
-      expect(descriptor.canonicalScriptBody.trim()).not.toBe("");
+      expect(descriptor).not.toHaveProperty("canonicalScriptBody");
+      const [, script] = descriptor.argv;
+      expect(packageJson.scripts[script ?? ""]).toEqual(expect.any(String));
+      expect((packageJson.scripts[script ?? ""] as string).trim()).not.toBe("");
       expect(descriptor.canonicalDoc).toMatch(/^docs\/.+\.md$/);
       expect(descriptor.repairHint).not.toMatch(
         /(?:disable|skip|bypass|weaken).{0,24}(?:gate|check|test)/i,
@@ -32,6 +43,26 @@ describe("quality diagnostic registry", () => {
         expect.arrayContaining(descriptor.requirements.map(({ file }) => file)),
       );
     }
+
+    expect(
+      diagnosticRegistryDescriptors.every((descriptor) =>
+        Object.keys(descriptor).every((key) =>
+          [
+            "gateId",
+            "posture",
+            "evidenceClass",
+            "canonicalDoc",
+            "repairHint",
+            "argv",
+            "rerun",
+            "focusedPathPrefixes",
+            "defaultFocused",
+            "prerequisiteCheck",
+            "semanticRuleIds",
+          ].includes(key),
+        ),
+      ),
+    ).toBe(true);
   });
 
   it("classifies each gate by the evidence its invoked command proves", () => {

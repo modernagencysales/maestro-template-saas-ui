@@ -1,5 +1,9 @@
 # Coding Standards
 
+For executable gate ownership and focused commands, use
+[enforced engineering rules](enforced-engineering-rules.md). This document keeps
+the rationale, examples, and domain exceptions.
+
 ## TypeScript
 
 - No `any`.
@@ -8,20 +12,18 @@
 - No `@ts-ignore`.
 - Prefer narrow interfaces and explicit return types at public boundaries.
 - Use Effect schemas for durable data, public args, returns, and typed errors.
-- Keep cyclomatic complexity at or below 10, nesting depth at or below 4, and
-  parameter count at or below 5. The staged-file ESLint ratchet enforces these
-  cheap checks without making untouched baseline debt block unrelated work; Qlty
-  owns broader diff smell detection.
+- Prefer small functions, guard clauses, and input objects when they make the
+  domain clearer; the index owns the executable complexity limits and checks.
 
 ## Plans And Acceptance
 
 - Every plan names non-empty quality targets, mechanical architecture rules,
   Cucumber features, denial cases, focused tests, and conflict domains.
 - Quality targets must be package scripts and architecture rules must name
-  mechanical entries in `docs/rule-coverage.md`; do not restate coding prose.
-- Each `.feature` has exactly one `@wip` or `@required` lifecycle tag. Each
-  Scenario has exactly one `@ui`, `@cli`, or `@cross_surface` interaction tag; a
-  required Feature includes at least one cross-surface Scenario.
+  mechanical entries in the enforced engineering rules index; do not restate
+  coding prose.
+- Gherkin lifecycle and surface conventions belong to the current customer
+  contract; do not add parallel acceptance metadata.
 - Gherkin describes observable behavior and denial cases, never shell commands,
   source paths, functions, or database tables.
 
@@ -65,6 +67,9 @@ atomic transaction.
 
 - Source-text-only tests are not behavior proof.
 - New behavior gets focused tests before implementation.
+- Run focused affected checks for each task commit. Run full `pnpm verify` once
+  for the integrated delivery batch on its immutable final head; Woodpecker is
+  the only blocking full-verification authority.
 - Capability tests cover auth first, role denial, cross-workspace denial,
   invalid input, typed error, idempotency, and side-effect ordering.
 - Frontend adapter tests cover loading, empty, ready, mutation success, typed

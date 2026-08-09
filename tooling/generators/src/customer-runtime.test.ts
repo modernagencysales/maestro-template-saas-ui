@@ -14,6 +14,7 @@ import {
   runCustomerGeneratorCli,
   runReviewedGenerator,
 } from "./customer-dispatcher";
+import { buildAgentFiles } from "./customer-runtime";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
 
@@ -32,6 +33,60 @@ const seedCatalogs = (cwd: string): void => {
 };
 
 describe("customer generator runtime", () => {
+  it("builds a neutral agent declaration", () => {
+    const generated = buildAgentFiles({
+      name: "workflow architect",
+      system: "workflow-runtime",
+      disposition: "reuse",
+    });
+
+    expect(generated).toMatchObject({
+      name: "workflowArchitect",
+      surfaces: [],
+      headlessExposure: false,
+    });
+    expect(generated.files.map(({ path }) => path)).toEqual([
+      "packages/convex/confect/agents/workflowArchitect.ts",
+      "docs/template/generated/agents/workflowArchitect.md",
+      "docs/template/generated/provenance/add-agent/workflowArchitect.json",
+    ]);
+  });
+
+  it("rejects legacy private-package acknowledgement flags", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-private-"));
+    const fixture = join(cwd, "examples/generic-ai-ops");
+    try {
+      mkdirSync(fixture, { recursive: true });
+      writeFileSync(
+        join(fixture, "template-package.json"),
+        `${JSON.stringify({ name: "generic-ai-ops" })}\n`,
+      );
+      for (const legacyFlag of [
+        ["--preflight-fingerprint", "legacy"],
+        ["--privacy-reviewed"],
+      ]) {
+        const result = runCustomerGeneratorCli(
+          [
+            "private-package:import",
+            "--fixture",
+            "examples/generic-ai-ops",
+            "--system",
+            "knowledge-brain",
+            "--disposition",
+            "extend",
+            "--write",
+            ...legacyFlag,
+          ],
+          cwd,
+        );
+        expect(result.exitCode).toBe(1);
+        expect(result.stderr).toContain(`does not accept ${legacyFlag[0]}`);
+      }
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it("doctors the canonical versioned instance emitted by public create", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-doctor-"));
     const instancePath = join(cwd, "template-instance.json");

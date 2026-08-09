@@ -39,6 +39,47 @@ const installations = new Map<CompatibilitySet["name"], string>();
 const repoRoot = resolve(import.meta.dirname, "../../..");
 const execFileAsync = promisify(execFile);
 
+const diagnosticText = (value: unknown): string => {
+  if (typeof value === "string") return value.trimEnd();
+  if (Buffer.isBuffer(value)) return value.toString("utf8").trimEnd();
+  return "(none)";
+};
+
+const pnpmFailureMessage = (error: unknown): string => {
+  const failure = error as {
+    readonly code?: number | string | null;
+    readonly signal?: NodeJS.Signals | null;
+    readonly stdout?: unknown;
+    readonly stderr?: unknown;
+  };
+  return [
+    `pnpm failed (code=${failure.code ?? "unknown"}, signal=${failure.signal ?? "none"})`,
+    "stdout:",
+    diagnosticText(failure.stdout),
+    "stderr:",
+    diagnosticText(failure.stderr),
+  ].join("\n");
+};
+
+it("preserves pnpm child failure diagnostics", () => {
+  expect(
+    pnpmFailureMessage({
+      code: 1,
+      signal: null,
+      stdout: "captured stdout",
+      stderr: "captured stderr",
+    }),
+  ).toBe(
+    "pnpm failed (code=1, signal=none)\nstdout:\ncaptured stdout\nstderr:\ncaptured stderr",
+  );
+});
+
+it("approves isolated Vitest builds through pnpm 11 workspace settings", () => {
+  expect(compatibilityWorkspace()).toBe(
+    "packages: []\nallowBuilds:\n  esbuild: true\n",
+  );
+});
+
 const runPnpm = (root: string, ...args: readonly string[]): string =>
   execFileSync("pnpm", [...args], {
     cwd: root,
@@ -50,11 +91,33 @@ const runPnpmAsync = async (
   root: string,
   ...args: readonly string[]
 ): Promise<void> => {
-  await execFileAsync("pnpm", [...args], {
-    cwd: root,
-    encoding: "utf8",
-  });
+  try {
+    await execFileAsync("pnpm", [...args], {
+      cwd: root,
+      encoding: "utf8",
+    });
+  } catch (error) {
+    throw new Error(pnpmFailureMessage(error), { cause: error });
+  }
 };
+
+const compatibilityPackage = (set: CompatibilitySet) => ({
+  name: `maestro-workpool-${set.workpool}-proof`,
+  private: true,
+  dependencies: {
+    "@convex-dev/workflow": set.workflow,
+    "@convex-dev/workpool": set.workpool,
+    convex: set.convex,
+    "convex-helpers": "0.1.111",
+    "convex-test": "0.0.54",
+  },
+  devDependencies: {
+    vitest: "3.2.6",
+  },
+});
+
+const compatibilityWorkspace = (): string =>
+  "packages: []\nallowBuilds:\n  esbuild: true\n";
 
 describe("isolated Workpool compatibility behavior", () => {
   beforeAll(async () => {
@@ -65,33 +128,14 @@ describe("isolated Workpool compatibility behavior", () => {
       installations.set(set.name, root);
       writeFileSync(
         join(root, "package.json"),
-        JSON.stringify({
-          name: `maestro-workpool-${set.workpool}-proof`,
-          private: true,
-          dependencies: {
-            "@convex-dev/workflow": set.workflow,
-            "@convex-dev/workpool": set.workpool,
-            convex: set.convex,
-            "convex-helpers": "0.1.111",
-            "convex-test": "0.0.54",
-          },
-          devDependencies: {
-            vitest: "3.2.6",
-          },
-        }),
+        JSON.stringify(compatibilityPackage(set)),
       );
-      await runPnpmAsync(
-        root,
-        "install",
-        "--ignore-workspace",
-        "--lockfile-only",
+      writeFileSync(
+        join(root, "pnpm-workspace.yaml"),
+        compatibilityWorkspace(),
       );
-      await runPnpmAsync(
-        root,
-        "install",
-        "--ignore-workspace",
-        "--frozen-lockfile",
-      );
+      await runPnpmAsync(root, "install", "--lockfile-only");
+      await runPnpmAsync(root, "install", "--frozen-lockfile");
 
       cpSync(
         join(root, "node_modules/@convex-dev/workpool/src"),

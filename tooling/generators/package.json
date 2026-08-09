@@ -12,6 +12,9 @@
     "@maestro-template/release-tooling": "workspace:*",
     "@maestro-template/template-core": "workspace:*"
   },
+  "devDependencies": {
+    "yaml": "^2.9.0"
+  },
   "scripts": {
     "cli": "tsx src/cli.ts",
     "build": "tsc -p tsconfig.json --outDir dist --declaration",

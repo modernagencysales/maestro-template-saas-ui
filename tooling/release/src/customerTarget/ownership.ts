@@ -23,7 +23,6 @@ const FACTORY_ONLY_PREFIXES = [
   ".superpowers/",
   ".vscode/",
   "agent-pack/",
-  "apps/voice-relay/",
   "docs/design-intake/",
   "docs/migration/",
   "docs/superpowers/",
@@ -43,9 +42,7 @@ const FACTORY_ONLY_PREFIXES = [
   "releases/",
   "repos/",
   "tooling/evals/",
-  "tooling/pr-backlog/",
   "tooling/release/",
-  "tooling/stack/",
 ] as const;
 
 const FACTORY_PRODUCT_TABLES = [
@@ -144,7 +141,6 @@ const CUSTOMER_EXTENSION_EXACT = new Set([
 
 const GENERATED_EXACT = new Set([
   ".claude/settings.json",
-  "Justfile",
   "package.json",
   "tsconfig.json",
   "apps/web/src/routeTree.gen.ts",

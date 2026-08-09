@@ -1,8 +1,8 @@
 import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { describe, expect, it } from "vitest";
-import { evaluateStaticCheck } from "./gate.mts";
+import { describe, expect, it, vi } from "vitest";
+import { evaluateStaticCheck, runStaticCheck } from "./gate.mts";
 
 async function withRepo<T>(
   files: Record<string, string>,
@@ -59,5 +59,26 @@ describe("evaluateStaticCheck", () => {
     expect(result.failures).toEqual([
       "README must describe the template: README.md is missing `template`",
     ]);
+  });
+
+  it("reports successful static checks without a pin-only claim", async () => {
+    const log = vi.spyOn(console, "log").mockImplementation(() => undefined);
+    await withRepo({ "README.md": "template\n" }, async (repo) =>
+      runStaticCheck(
+        {
+          name: "docs",
+          requirements: [
+            {
+              file: "README.md",
+              includes: ["template"],
+              message: "README must describe the template",
+            },
+          ],
+        },
+        repo,
+      ),
+    );
+    expect(log).toHaveBeenCalledWith("docs: ok");
+    expect(log).not.toHaveBeenCalledWith(expect.stringContaining("pin-only"));
   });
 });

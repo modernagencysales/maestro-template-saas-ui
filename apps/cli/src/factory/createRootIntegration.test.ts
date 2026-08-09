@@ -25,6 +25,7 @@ import { CURRENT_PUBLIC_SOURCE } from "./createComposition";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
 const execFileAsync = promisify(execFile);
+const generatedCommandTimeoutMs = 90_000;
 const temporaryRoots: string[] = [];
 const originalPath = process.env.PATH;
 const originalStoreDir = process.env.npm_config_store_dir;
@@ -35,14 +36,90 @@ const installedStoreDir = readFileSync(
 ).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
+const isWorkflowPatternPath = (path: string): boolean =>
+  [
+    "tooling/workflow/",
+    "packages/convex/confect/workflows/",
+    "packages/convex/confect/workflowContracts/",
+    "packages/convex/confect/workflowRunners/",
+    "packages/convex/confect/_generated/registeredFunctions/workflow",
+    "packages/convex/confect/_generated/tables/workflow",
+    "packages/convex/confect/tables/workflow",
+    "packages/convex/confect/demo/showcase.",
+    "packages/convex/convex/components/workflow",
+    "packages/convex/convex/workflows/",
+    "packages/convex/convex/workflowContracts/",
+    "packages/convex/convex/workflowRunners/",
+  ].some((prefix) => path.startsWith(prefix));
+
+const runGeneratedPnpm = (
+  cwd: string,
+  args: readonly string[],
+): Promise<{
+  readonly status: number | null;
+  readonly stdout: string;
+  readonly stderr: string;
+}> =>
+  new Promise((resolveRun) => {
+    execFile(
+      "pnpm",
+      args,
+      {
+        cwd,
+        encoding: "utf8",
+        maxBuffer: 10 * 1024 * 1024,
+        timeout: generatedCommandTimeoutMs,
+      },
+      (error, stdout, stderr) => {
+        resolveRun({
+          status:
+            error === null
+              ? 0
+              : typeof error.code === "number"
+                ? error.code
+                : null,
+          stdout,
+          stderr: `${stderr}${error?.message ?? ""}`,
+        });
+      },
+    );
+  });
+
+const shouldOmitCurrentProjectionPath = (input: {
+  readonly action: "copy" | "generate" | "omit" | "preserve";
+  readonly path: string;
+  readonly optionalPatternPaths: ReadonlySet<string>;
+  readonly projectedPaths: ReadonlySet<string>;
+  readonly workflowSelected: boolean;
+}): boolean =>
+  input.action === "omit" ||
+  (input.optionalPatternPaths.has(input.path) &&
+    !input.projectedPaths.has(input.path)) ||
+  (!input.workflowSelected && isWorkflowPatternPath(input.path));
+
 const applyCurrentSaasProjection = (
   root: string,
-  options: { readonly name: string; readonly firstOutcome: string },
+  options: {
+    readonly name: string;
+    readonly firstOutcome: string;
+    readonly patterns?: readonly ("records-example" | "workflow-automation")[];
+  },
 ): void => {
+  const plan = buildSaasApplicationTargetPlan(options);
+  const projectedPaths = new Set(plan.entries.map((entry) => entry.path));
+  const optionalPatternPaths = new Set(
+    buildSaasApplicationTargetPlan({
+      ...options,
+      patterns: ["records-example", "workflow-automation"],
+    }).entries.map((entry) => entry.path),
+  );
+  const workflowSelected =
+    options.patterns?.includes("workflow-automation") === true;
   const targetLocalPaths = new Set([
     ".maestro-create-journal.json",
     "template-instance.json",
   ]);
+  rmSync(join(root, "Justfile"), { force: true });
   const existingPaths = Object.keys(snapshotTargetBytes(root)).filter(
     (path) => !targetLocalPaths.has(path),
   );
@@ -66,27 +143,44 @@ const applyCurrentSaasProjection = (
     currentTrackedFiles,
   )) {
     const target = join(root, path);
-    if (action === "omit") {
+    if (
+      shouldOmitCurrentProjectionPath({
+        action,
+        path,
+        optionalPatternPaths,
+        projectedPaths,
+        workflowSelected,
+      })
+    ) {
       rmSync(target, { force: true });
       continue;
     }
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, readFileSync(join(repoRoot, path)));
   }
-  for (const entry of buildSaasApplicationTargetPlan(options).entries) {
+  for (const entry of plan.entries) {
     const target = join(root, entry.path);
     mkdirSync(dirname(target), { recursive: true });
     writeFileSync(target, entry.content);
   }
-};
-const materializeCurrentSaasPlan = (
-  root: string,
-  options: { readonly name: string; readonly firstOutcome: string },
-): void => {
-  for (const entry of buildSaasApplicationTargetPlan(options).entries) {
-    const target = join(root, entry.path);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, entry.content);
+  const instancePath = join(root, "template-instance.json");
+  if (!existsSync(instancePath)) {
+    writeFileSync(
+      instancePath,
+      `${JSON.stringify(
+        {
+          schemaVersion: 1,
+          blueprint: { id: "saas-application" },
+          personalization: {
+            name: options.name,
+            firstOutcome: options.firstOutcome,
+            demoOnly: true,
+          },
+        },
+        null,
+        2,
+      )}\n`,
+    );
   }
 };
 const taggedRepository = (): string => {
@@ -144,7 +238,6 @@ beforeAll(() => {
   expect(execFileSync("pnpm", ["--version"], { encoding: "utf8" }).trim()).toBe(
     "10.12.1",
   );
-  taggedRepository();
 }, 240_000);
 afterAll(async () => {
   try {
@@ -216,7 +309,6 @@ describe("create root integration", () => {
       "verify",
       "verify-export",
       "check",
-      "plan-check",
       "scaffold",
       "support-bundle",
       "upgrade",
@@ -503,8 +595,10 @@ describe("create root integration", () => {
     const projectionOptions = {
       name: "My App",
       firstOutcome: "Create and review records",
+      patterns: ["records-example", "workflow-automation"],
     } as const;
     applyCurrentSaasProjection(compileRoot, projectionOptions);
+    expect(existsSync(join(compileRoot, "Justfile"))).toBe(false);
     expect(
       existsSync(join(compileRoot, "packages/convex/confect/records.spec.ts")),
     ).toBe(false);
@@ -526,16 +620,10 @@ describe("create root integration", () => {
       { cwd: compileRoot, encoding: "utf8", timeout: 120_000 },
     );
     expect(`${install.stdout}\n${install.stderr}`).not.toContain("ERR_PNPM");
-    execFileSync("pnpm", ["confect:codegen"], {
-      cwd: compileRoot,
-      stdio: "pipe",
-      timeout: 30_000,
-    });
-    execFileSync("pnpm", ["confect:manifest"], {
-      cwd: compileRoot,
-      stdio: "pipe",
-      timeout: 30_000,
-    });
+    for (const args of [["confect:codegen"], ["confect:manifest"]] as const) {
+      const result = await runGeneratedPnpm(compileRoot, args);
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    }
     const dirtyManifest = readFileSync(
       join(
         compileRoot,
@@ -543,11 +631,9 @@ describe("create root integration", () => {
       ),
     );
     expect(dirtyManifest.toString()).toContain('"records"');
-    const manifestCheck = spawnSync("pnpm", ["check:confect-manifest"], {
-      cwd: compileRoot,
-      encoding: "utf8",
-      timeout: 30_000,
-    });
+    const manifestCheck = await runGeneratedPnpm(compileRoot, [
+      "check:confect-manifest",
+    ]);
     expect(
       manifestCheck.status,
       `${manifestCheck.stdout}\n${manifestCheck.stderr}`,
@@ -720,31 +806,34 @@ describe("create root integration", () => {
       expect(readFileSync(join(targetRoot, path)), path).toEqual(bytes);
   }, 180_000);
 
-  it("executes the required records contract in a fresh current target", async () => {
+  it("keeps a fresh neutral target red until a required journey is admitted", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-contract-target-"));
     temporaryRoots.push(parent);
     const targetRoot = join(parent, "app");
-    const created = await runTaggedCli([
-      "create",
-      targetRoot,
-      "--name",
-      "Contract Prototype",
-      "--outcome",
-      "Create and review records",
-      "--demo-only",
-      "--write",
-      "--privacy-reviewed",
-      "--json",
-    ]);
-    expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
-
-    materializeCurrentSaasPlan(targetRoot, {
+    mkdirSync(targetRoot, { recursive: true });
+    applyCurrentSaasProjection(targetRoot, {
       name: "Contract Prototype",
       firstOutcome: "Create and review records",
     });
     expect(
       readFileSync(join(targetRoot, "features/first-outcome.feature"), "utf8"),
     ).toContain("@wip\nFeature: Create and review records");
+    for (const path of [
+      "features/records.feature",
+      "apps/web/src/features/records/records-surface.tsx",
+      "apps/web/src/screens/records-screen.tsx",
+      "apps/web/src/routes/_workspace.records.tsx",
+      "tooling/workflow/package.json",
+    ])
+      expect(existsSync(join(targetRoot, path)), path).toBe(false);
+    expect(
+      existsSync(
+        join(
+          repoRoot,
+          "examples/saas-application/seed/source/features/records.feature",
+        ),
+      ),
+    ).toBe(true);
     for (const args of [
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
       ["confect:codegen"],
@@ -783,69 +872,108 @@ describe("create root integration", () => {
       "test",
       "--required",
     ];
-    const recordsSurface = join(
-      targetRoot,
-      "apps/web/src/features/records/records-surface.tsx",
-    );
-    const originalSurface = readFileSync(recordsSurface, "utf8");
-    expect(originalSurface).toContain("Save record");
-    writeFileSync(
-      recordsSurface,
-      originalSurface.replace("Save record", "Save draft"),
-    );
-    execFileSync("git", ["add", recordsSurface], { cwd: targetRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Maestro Contracts",
-        "-c",
-        "user.email=contracts@template.local",
-        "commit",
-        "--no-verify",
-        "--quiet",
-        "-m",
-        "break visible contract",
-      ],
-      { cwd: targetRoot },
-    );
-    const mutation = spawnSync("pnpm", contractArgs, {
-      cwd: targetRoot,
-      encoding: "utf8",
-      timeout: 180_000,
-    });
-    expect(mutation.status).not.toBe(0);
-    expect(`${mutation.stdout}\n${mutation.stderr}`).toContain("Save record");
-
-    rmSync(join(targetRoot, ".convex"), { recursive: true, force: true });
-    writeFileSync(recordsSurface, originalSurface);
-    expect(
-      execFileSync("git", ["diff"], { cwd: targetRoot, encoding: "utf8" }),
-    ).not.toContain("mtk_live_");
-    execFileSync("git", ["add", "-u"], { cwd: targetRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Maestro Contracts",
-        "-c",
-        "user.email=contracts@template.local",
-        "commit",
-        "--no-verify",
-        "--quiet",
-        "-m",
-        "restore visible contract",
-      ],
-      { cwd: targetRoot },
-    );
     const contracts = spawnSync("pnpm", contractArgs, {
       cwd: targetRoot,
       encoding: "utf8",
       timeout: 180_000,
     });
-    expect(contracts.status, `${contracts.stdout}\n${contracts.stderr}`).toBe(
-      0,
+    expect(
+      contracts.status,
+      `${contracts.stdout}\n${contracts.stderr}`,
+    ).not.toBe(0);
+    expect(`${contracts.stdout}\n${contracts.stderr}`).toContain(
+      "@required must select at least one Cucumber Scenario before delivery.",
     );
+  }, 300_000);
+
+  it("executes the selected records example by journey name", async () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-records-contract-"));
+    temporaryRoots.push(parent);
+    const targetRoot = join(parent, "app");
+    mkdirSync(targetRoot, { recursive: true });
+    applyCurrentSaasProjection(targetRoot, {
+      name: "Records Example",
+      firstOutcome: "Create and review records",
+      patterns: ["records-example"],
+    });
+    expect(
+      JSON.parse(
+        readFileSync(join(targetRoot, "template-instance.json"), "utf8"),
+      ),
+    ).toMatchObject({
+      blueprint: { id: "saas-application" },
+      personalization: {
+        name: "Records Example",
+        firstOutcome: "Create and review records",
+        demoOnly: true,
+      },
+    });
+    expect(
+      readFileSync(join(targetRoot, "features/records.feature"), "utf8"),
+    ).not.toContain("@required");
+    for (const path of [
+      "features/step_definitions/records.journeys.ts",
+      "features/support/contracts-scenario.ts",
+      "features/support/contracts-runtime.ts",
+      "features/support/contracts-world.ts",
+    ])
+      expect(existsSync(join(targetRoot, path)), path).toBe(true);
+    for (const path of [
+      "packages/convex/confect/_generated/registeredFunctions/workflows/subworkflowLinksCurrent.ts",
+      "packages/convex/convex/components/workflowDeadline/convex.config.ts",
+      "packages/convex/convex/workflows/deadlinesCurrent.ts",
+    ])
+      expect(existsSync(join(targetRoot, path)), path).toBe(false);
+    for (const args of [
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      ["confect:codegen"],
+    ]) {
+      const result = spawnSync("pnpm", args, {
+        cwd: targetRoot,
+        encoding: "utf8",
+        timeout: 240_000,
+      });
+      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
+    }
+    execFileSync("git", ["init", "--quiet"], { cwd: targetRoot });
+    execFileSync("git", ["add", "."], { cwd: targetRoot });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Maestro Contracts",
+        "-c",
+        "user.email=contracts@template.local",
+        "commit",
+        "--no-verify",
+        "--quiet",
+        "-m",
+        "records example fixture",
+      ],
+      { cwd: targetRoot },
+    );
+
+    let contracts: { readonly stdout: string; readonly stderr: string };
+    try {
+      contracts = await execFileAsync(
+        "pnpm",
+        ["--silent", "maestro", "--", "contracts", "test", "records"],
+        {
+          cwd: targetRoot,
+          encoding: "utf8",
+          timeout: 180_000,
+          maxBuffer: 10 * 1024 * 1024,
+        },
+      );
+    } catch (error) {
+      const failure = error as Error & {
+        readonly stdout?: string;
+        readonly stderr?: string;
+      };
+      throw new Error(
+        `${failure.stdout ?? ""}\n${failure.stderr ?? failure.message}`,
+      );
+    }
     expect(contracts.stdout).toContain("4 scenarios (4 passed)");
   }, 300_000);
 });

@@ -64,6 +64,13 @@ describe("diagnostic registry projection", () => {
 
   it.each([
     ["bash", "-lc", "pnpm test"],
+    ["bash", "-lc", "true"],
+    ["dash", "-c", "id"],
+    ["cmd", "/c", "id"],
+    ["powershell", "-Command", "id"],
+    ["pwsh", "-Command", "id"],
+    ["python", "-c", "id"],
+    ["just", "verify"],
     ["pnpm", "test"],
     ["pnpm", "exec", "vitest"],
     ["pnpm", "check:*"],
@@ -71,6 +78,23 @@ describe("diagnostic registry projection", () => {
     expect(
       validateDiagnosticDescriptor({ ...descriptor, argv, rerun: argv }),
     ).toMatchObject({ ok: false });
+  });
+
+  it("accepts direct executable and pnpm --dir command identities", () => {
+    expect(
+      validateDiagnosticDescriptor({
+        ...descriptor,
+        argv: ["gitleaks", "detect", "--redact"],
+        rerun: ["gitleaks", "detect", "--redact"],
+      }),
+    ).toEqual({ ok: true });
+    expect(
+      validateDiagnosticDescriptor({
+        ...descriptor,
+        argv: ["pnpm", "--dir", "tooling/agent-pack", "test"],
+        rerun: ["pnpm", "--dir", "tooling/agent-pack", "test"],
+      }),
+    ).toEqual({ ok: true });
   });
 
   it("rejects duplicate registry gate ids rather than owning another gate list", () => {

@@ -106,7 +106,10 @@ export function presentBuildReadiness(
           : `${recipe.id}: ${recipe.outcome}`,
     },
     summary: {
-      screens: input.surfaces.some(({ kind }) => kind === "screen")
+      screens: input.surfaces.some(
+        ({ kind, status }) =>
+          kind === "screen" && (status === "real" || status === "fake"),
+      )
         ? "Available"
         : "Not verified",
       data: dataSummary(input.surfaces),

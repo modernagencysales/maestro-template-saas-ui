@@ -53,4 +53,7 @@ to reuse/extend the existing slice or choose a deliberately reviewed name.
 - `pnpm check:data-resources`
 - `pnpm check:promotion-boundary`
 - `pnpm check:layer-boundaries`
-- `just verify`
+
+Run these focused gates for the route task. Defer `pnpm verify` to the delivery
+batch: run it once on the immutable final head, with Woodpecker as the blocking
+verification authority.

@@ -18,7 +18,6 @@ const descriptors: readonly DiagnosticDescriptor[] = [
     repairHint: "Fix the reported Agent Pack invariant.",
     argv: ["pnpm", "check:agent-pack"],
     rerun: ["pnpm", "check:agent-pack"],
-    canonicalScriptBody: "fixture",
     semanticRuleIds: ["agent-pack/result-envelope"],
   },
   {
@@ -29,7 +28,6 @@ const descriptors: readonly DiagnosticDescriptor[] = [
     repairHint: "Review the reported product-quality finding.",
     argv: ["pnpm", "taste:eval"],
     rerun: ["pnpm", "taste:eval"],
-    canonicalScriptBody: "fixture",
   },
 ];
 const agentPackDescriptor = descriptors[0];
@@ -175,7 +173,7 @@ describe("execFile verification runner", () => {
     ]);
   });
 
-  it("does not pass a focused gate whose target script was replaced by a no-op", async () => {
+  it("uses the current root package script as the focused command authority", async () => {
     const execute = vi.fn<VerificationExecFile>(async () => ({
       exitCode: 0,
       stdout: "success",
@@ -193,17 +191,14 @@ describe("execFile verification runner", () => {
       descriptors: [agentPackDescriptor],
     });
 
-    expect(observations).toEqual([
-      {
-        gateId: "agent-pack",
-        status: "unavailable",
-        message: expect.stringContaining(
-          "does not match the canonical gate binding",
-        ),
-        semanticRuleIds: ["agent-pack/result-envelope"],
-      },
+    expect(observations).toMatchObject([
+      { gateId: "agent-pack", status: "pass" },
     ]);
-    expect(execute).not.toHaveBeenCalled();
+    expect(execute).toHaveBeenCalledWith("pnpm", ["check:agent-pack"], {
+      cwd: "/repo",
+      timeoutMs: 5_000,
+      maxBufferBytes: 64_000,
+    });
   });
 
   it("passes an unchanged focused script outside the full verify plan", async () => {
@@ -235,6 +230,42 @@ describe("execFile verification runner", () => {
     expect(readFile).toHaveBeenCalledWith("/repo/package.json", {
       maxBytes: 32_000,
     });
+  });
+
+  it("executes direct and pnpm --dir descriptors without reading root scripts", async () => {
+    const execute = vi.fn<VerificationExecFile>(async () => ({
+      exitCode: 0,
+      stdout: "success",
+      stderr: "",
+    }));
+    const readFile = vi.fn<VerificationReadFile>(async () => {
+      throw new Error("Root package scripts must not be consulted.");
+    });
+    const observations = await runner(execute, { readFile }).run({
+      scope: "focused",
+      repo,
+      changed: [],
+      descriptors: [
+        {
+          ...agentPackDescriptor,
+          argv: ["gitleaks", "detect", "--redact"],
+          rerun: ["gitleaks", "detect", "--redact"],
+        },
+        {
+          ...agentPackDescriptor,
+          gateId: "agent-pack-dir",
+          argv: ["pnpm", "--dir", "tooling/agent-pack", "test"],
+          rerun: ["pnpm", "--dir", "tooling/agent-pack", "test"],
+        },
+      ],
+    });
+
+    expect(observations.map(({ status }) => status)).toEqual(["pass", "pass"]);
+    expect(readFile).not.toHaveBeenCalled();
+    expect(execute.mock.calls.map(([file, args]) => [file, ...args])).toEqual([
+      ["gitleaks", "detect", "--redact"],
+      ["pnpm", "--dir", "tooling/agent-pack", "test"],
+    ]);
   });
 
   it("keeps a gate unavailable when its declared executable prerequisite is missing", async () => {
@@ -295,7 +326,7 @@ describe("execFile verification runner", () => {
       descriptors,
     });
 
-    expect(execFile).toHaveBeenCalledWith("just", ["verify"], {
+    expect(execFile).toHaveBeenCalledWith("pnpm", ["verify"], {
       cwd: "/repo",
       timeoutMs: 10_000,
       maxBufferBytes: 64_000,
@@ -317,7 +348,7 @@ describe("execFile verification runner", () => {
     ]);
   });
 
-  it("does not pass a canonical gate whose target script was replaced by a no-op", async () => {
+  it("uses the current root package script as the full-run command authority", async () => {
     const execute = vi.fn<VerificationExecFile>(async () => ({
       exitCode: 0,
       stdout: "success",
@@ -335,18 +366,12 @@ describe("execFile verification runner", () => {
       descriptors: [agentPackDescriptor],
     });
 
-    expect(observations).toEqual([
-      {
-        gateId: "agent-pack",
-        status: "unavailable",
-        message: expect.stringContaining(
-          "does not match the canonical gate binding",
-        ),
-        semanticRuleIds: ["agent-pack/result-envelope"],
-      },
+    expect(observations).toMatchObject([
+      { gateId: "agent-pack", status: "pass" },
     ]);
     expect(execute.mock.calls.map(([file, args]) => [file, ...args])).toEqual([
-      ["just", "verify"],
+      ["pnpm", "verify"],
+      ["pnpm", "check:agent-pack"],
     ]);
   });
 
@@ -355,13 +380,6 @@ describe("execFile verification runner", () => {
       fileURLToPath(new URL("../../../package.json", import.meta.url)),
       "utf8",
     );
-    const rootManifest = JSON.parse(rootPackageJson) as {
-      readonly scripts: Readonly<Record<string, string>>;
-    };
-    const canonicalAgentPack = {
-      ...agentPackDescriptor,
-      canonicalScriptBody: rootManifest.scripts["check:agent-pack"],
-    };
     const observations = await runner(
       async () => ({ exitCode: 0, stdout: "success", stderr: "" }),
       { readFile: async () => rootPackageJson },
@@ -369,7 +387,7 @@ describe("execFile verification runner", () => {
       scope: "full",
       repo,
       changed: [],
-      descriptors: [canonicalAgentPack],
+      descriptors: [agentPackDescriptor],
     });
 
     expect(observations).toMatchObject([
@@ -428,7 +446,8 @@ describe("execFile verification runner", () => {
 
   it("attributes a failed full run until the exact causal blocker", async () => {
     const execute = vi.fn<VerificationExecFile>(async (file, args) => {
-      if (file === "just") return { exitCode: 1, stdout: "", stderr: "" };
+      if (file === "pnpm" && args[0] === "verify")
+        return { exitCode: 1, stdout: "", stderr: "" };
       if (args[0] === "check:agent-pack") {
         return { exitCode: 0, stdout: "", stderr: "" };
       }
@@ -452,7 +471,7 @@ describe("execFile verification runner", () => {
       },
     ]);
     expect(execute.mock.calls.map(([file, args]) => [file, ...args])).toEqual([
-      ["just", "verify"],
+      ["pnpm", "verify"],
       ["pnpm", "check:agent-pack"],
       ["pnpm", "taste:eval"],
     ]);
@@ -466,7 +485,8 @@ describe("execFile verification runner", () => {
       rerun: ["pnpm", "check:types"] as const,
     };
     const execute = vi.fn<VerificationExecFile>(async (file, args) => {
-      if (file === "just") return { exitCode: 1, stdout: "", stderr: "" };
+      if (file === "pnpm" && args[0] === "verify")
+        return { exitCode: 1, stdout: "", stderr: "" };
       if (args[0] === "check:agent-pack") {
         return { exitCode: 0, stdout: "", stderr: "" };
       }
@@ -494,7 +514,7 @@ describe("execFile verification runner", () => {
       },
       {
         gateId: "maestro/full-verify",
-        diagnostic: { rerun: "just verify" },
+        diagnostic: { rerun: "pnpm verify" },
       },
     ]);
   });
@@ -552,7 +572,7 @@ describe("execFile verification runner", () => {
     ).toEqual([repo, otherRepo]);
     expect(
       execFile.mock.calls
-        .filter(([file]) => file === "just")
+        .filter(([file, args]) => file === "pnpm" && args[0] === "verify")
         .map(([, , options]) => options.cwd),
     ).toEqual(["/repo", "/other-repo"]);
   });

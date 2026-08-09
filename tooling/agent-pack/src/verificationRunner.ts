@@ -36,9 +36,18 @@ export type VerificationReadFile = (
 type FingerprintValue = string | number | boolean | null;
 type VerifyPlanEntry = {
   readonly argv: readonly [string, ...string[]];
-  readonly scriptBody: string;
 };
 type PackageScripts = Readonly<Record<string, unknown>>;
+type ExecutionContext = {
+  readonly execFile: VerificationExecFile;
+  readonly cwd: string;
+  readonly timeoutMs: number;
+  readonly maxBufferBytes: number;
+};
+type ExecutionCommand = {
+  readonly file: string;
+  readonly args: readonly string[];
+};
 
 export function createExecFileVerificationRunner(input: {
   readonly execFile: VerificationExecFile;
@@ -73,56 +82,22 @@ export function createExecFileVerificationRunner(input: {
   }
   return {
     inspect: async (repo) => {
-      const commitResult = await safeExec(
-        input.execFile,
-        "git",
-        ["rev-parse", "HEAD"],
-        repo.sourceRoot,
-        input.limits.metadataTimeoutMs,
-        input.limits.maxBufferBytes,
-      );
-      const dirtyResult = await safeExec(
-        input.execFile,
-        "git",
-        ["status", "--porcelain=v1"],
-        repo.sourceRoot,
-        input.limits.metadataTimeoutMs,
-        input.limits.maxBufferBytes,
-      );
-      const [environment, providerPosture] = await Promise.all([
+      const [repository, environment, providerPosture] = await Promise.all([
+        readRepositoryState(
+          input.execFile,
+          repo.sourceRoot,
+          input.limits.metadataTimeoutMs,
+          input.limits.maxBufferBytes,
+        ),
         safelyRead(() => input.environment(repo)),
         safelyRead(() => input.providerPosture(repo)),
       ]);
-      const commit = commitResult?.stdout.trim() ?? "";
-      const repositoryFingerprint =
-        /^[0-9a-f]{7,64}$/i.test(commit) && dirtyResult?.exitCode === 0
-          ? fingerprint("repository", {
-              commit,
-              status: dirtyResult.stdout
-                .split(/\r?\n/)
-                .filter(Boolean)
-                .sort()
-                .join("\n"),
-            })
-          : "repository_sha256:unavailable";
-
-      return {
-        createdAt: input.now(),
-        subject: {
-          commit: /^[0-9a-f]{7,64}$/i.test(commit) ? commit : "unavailable",
-          dirty:
-            dirtyResult?.exitCode !== 0 || dirtyResult.stdout.trim().length > 0,
-        },
-        repositoryFingerprint,
-        environmentFingerprint:
-          environment === undefined
-            ? "environment_sha256:unavailable"
-            : fingerprint("environment", environment),
-        providerPostureFingerprint:
-          providerPosture === undefined
-            ? "providers_sha256:unavailable"
-            : fingerprint("providers", providerPosture),
-      };
+      return describeRepository(
+        input.now(),
+        repository,
+        environment,
+        providerPosture,
+      );
     },
     run: async (request) =>
       request.scope === "full"
@@ -137,6 +112,81 @@ export function createExecFileVerificationRunner(input: {
   };
 }
 
+async function readRepositoryState(
+  execFile: VerificationExecFile,
+  cwd: string,
+  timeoutMs: number,
+  maxBufferBytes: number,
+): Promise<{
+  readonly commitResult: VerificationExecResult | undefined;
+  readonly dirtyResult: VerificationExecResult | undefined;
+}> {
+  const context = { execFile, cwd, timeoutMs, maxBufferBytes };
+  const [commitResult, dirtyResult] = await Promise.all([
+    safeExec(context, { file: "git", args: ["rev-parse", "HEAD"] }),
+    safeExec(context, { file: "git", args: ["status", "--porcelain=v1"] }),
+  ]);
+  return { commitResult, dirtyResult };
+}
+
+function describeRepository(
+  createdAt: string,
+  repository: {
+    readonly commitResult: VerificationExecResult | undefined;
+    readonly dirtyResult: VerificationExecResult | undefined;
+  },
+  environment: Readonly<Record<string, FingerprintValue>> | undefined,
+  providerPosture: Readonly<Record<string, unknown>> | undefined,
+) {
+  const commit = repository.commitResult?.stdout.trim() ?? "";
+  return {
+    createdAt,
+    subject: repositorySubject(commit, repository.dirtyResult),
+    repositoryFingerprint: repositoryFingerprint(
+      commit,
+      repository.dirtyResult,
+    ),
+    environmentFingerprint: optionalFingerprint("environment", environment),
+    providerPostureFingerprint: optionalFingerprint(
+      "providers",
+      providerPosture,
+    ),
+  };
+}
+
+function repositorySubject(
+  commit: string,
+  dirtyResult: VerificationExecResult | undefined,
+) {
+  return {
+    commit: /^[0-9a-f]{7,64}$/i.test(commit) ? commit : "unavailable",
+    dirty:
+      dirtyResult?.exitCode !== 0 || dirtyResult?.stdout.trim().length !== 0,
+  };
+}
+
+function repositoryFingerprint(
+  commit: string,
+  dirtyResult: VerificationExecResult | undefined,
+): `repository_sha256:${string}` | "repository_sha256:unavailable" {
+  if (!/^[0-9a-f]{7,64}$/i.test(commit) || dirtyResult?.exitCode !== 0) {
+    return "repository_sha256:unavailable";
+  }
+  return fingerprint("repository", {
+    commit,
+    status: dirtyResult.stdout.split(/\r?\n/).filter(Boolean).sort().join("\n"),
+  });
+}
+
+function optionalFingerprint<const Kind extends "environment" | "providers">(
+  kind: Kind,
+  value: Readonly<Record<string, unknown>> | undefined,
+): `${Kind}_sha256:${string}` | `${Kind}_sha256:unavailable` {
+  return value === undefined
+    ? `${kind}_sha256:unavailable`
+    : fingerprint(kind, value);
+}
+
 async function runFocused(
   execFile: VerificationExecFile,
   readFile: VerificationReadFile,
@@ -148,31 +198,26 @@ async function runFocused(
     readonly packageJsonMaxBytes: number;
   },
 ): Promise<readonly VerificationRunObservation[]> {
-  const scripts = await readPackageScripts(
-    readFile,
-    resolve(cwd, "package.json"),
-    limits.packageJsonMaxBytes,
-  );
-  if (scripts === undefined) {
-    return descriptors.map((descriptor) =>
-      unavailable(descriptor, "the focused package script plan is unavailable"),
-    );
-  }
+  const rootScripts = descriptors.some(({ argv }) => isRootPnpmScript(argv))
+    ? await readPackageScripts(
+        readFile,
+        resolve(cwd, "package.json"),
+        limits.packageJsonMaxBytes,
+      )
+    : undefined;
   return Promise.all(
     descriptors.map((descriptor) => {
       if (!validateDiagnosticDescriptor(descriptor).ok) {
         return unavailable(descriptor);
       }
-      const entry = focusedPlanEntry(descriptor, scripts);
-      if (entry === undefined) {
+      if (
+        isRootPnpmScript(descriptor.argv) &&
+        !hasCurrentRootScript(descriptor.argv, rootScripts)
+      ) {
         return unavailable(
           descriptor,
-          `the target script body for ${descriptor.argv.join(" ")} is unavailable`,
+          `the target root package script for ${descriptor.argv.join(" ")} is unavailable`,
         );
-      }
-      const scriptBlocker = canonicalScriptBlocker(descriptor, entry);
-      if (scriptBlocker !== undefined) {
-        return unavailable(descriptor, scriptBlocker);
       }
       return runDescriptor(
         execFile,
@@ -202,12 +247,13 @@ async function runFull(
       limits.packageJsonMaxBytes,
     ),
     safeExec(
-      execFile,
-      "just",
-      ["verify"],
-      request.repo.sourceRoot,
-      limits.fullTimeoutMs,
-      limits.maxBufferBytes,
+      {
+        execFile,
+        cwd: request.repo.sourceRoot,
+        timeoutMs: limits.fullTimeoutMs,
+        maxBufferBytes: limits.maxBufferBytes,
+      },
+      { file: "pnpm", args: ["verify"] },
     ),
   ]);
   if (!plan) {
@@ -220,27 +266,20 @@ async function runFull(
   }
   if (result?.exitCode === null || result === undefined) {
     return request.descriptors.map((descriptor) =>
-      unavailable(descriptor, "just verify was unavailable"),
+      unavailable(descriptor, "pnpm verify was unavailable"),
     );
   }
   if (result.exitCode !== 0) {
     return attributeFailedFull(execFile, request, plan, limits);
   }
-  const planned = new Map(
-    plan.map((entry) => [argvKey(entry.argv), entry] as const),
-  );
+  const planned = new Set(plan.map(({ argv }) => argvKey(argv)));
   return Promise.all(
     request.descriptors.map(async (descriptor) => {
-      const entry = planned.get(argvKey(descriptor.argv));
-      if (entry === undefined) {
+      if (!planned.has(argvKey(descriptor.argv))) {
         return unavailable(
           descriptor,
           "the gate is not a member of the canonical full verify plan",
         );
-      }
-      const scriptBlocker = canonicalScriptBlocker(descriptor, entry);
-      if (scriptBlocker !== undefined) {
-        return unavailable(descriptor, scriptBlocker);
       }
       return runDescriptor(
         execFile,
@@ -265,111 +304,165 @@ async function attributeFailedFull(
       descriptor,
     ]),
   );
-  const observations = new Map<string, VerificationRunObservation>();
-  let blocker: string | undefined;
-
-  for (const entry of plan) {
-    if (blocker !== undefined) break;
-    const { argv } = entry;
-    const [file, ...args] = argv;
-    const descriptor = byCommand.get(argvKey(argv));
-    const rendered = argv.join(" ");
-    if (descriptor !== undefined) {
-      const scriptBlocker = canonicalScriptBlocker(descriptor, entry);
-      if (scriptBlocker !== undefined) {
-        blocker = scriptBlocker;
-        observations.set(
-          descriptor.gateId,
-          unavailable(descriptor, scriptBlocker),
-        );
-        continue;
-      }
-      const prerequisiteBlocker = await unavailablePrerequisite(
-        execFile,
-        descriptor,
-        request.repo.sourceRoot,
-        limits.fullTimeoutMs,
-        limits.maxBufferBytes,
-      );
-      if (prerequisiteBlocker !== undefined) {
-        blocker = prerequisiteBlocker;
-        observations.set(
-          descriptor.gateId,
-          unavailable(descriptor, prerequisiteBlocker),
-        );
-        continue;
-      }
-    }
-    const result = await safeExec(
+  const replay = await replayFullPlan(
+    {
       execFile,
-      file,
-      args,
-      request.repo.sourceRoot,
-      limits.fullTimeoutMs,
-      limits.maxBufferBytes,
-    );
-    if (result === undefined || result.exitCode === null) {
-      blocker = rendered;
-      if (descriptor !== undefined) {
-        observations.set(
-          descriptor.gateId,
-          unavailable(descriptor, `${rendered} was unavailable`),
-        );
-      }
-      continue;
-    }
-    if (descriptor !== undefined) {
-      observations.set(descriptor.gateId, {
-        gateId: descriptor.gateId,
-        status: result.exitCode === 0 ? "pass" : "fail",
-        message:
-          result.exitCode === 0
-            ? `Verification gate ${descriptor.gateId} passed during deterministic full-run attribution.`
-            : `${rendered} exited with code ${result.exitCode}.`,
-        ...(descriptor.semanticRuleIds
-          ? { semanticRuleIds: descriptor.semanticRuleIds }
-          : {}),
-      });
-    }
-    if (result.exitCode !== 0) blocker = rendered;
-  }
+      cwd: request.repo.sourceRoot,
+      timeoutMs: limits.fullTimeoutMs,
+      maxBufferBytes: limits.maxBufferBytes,
+    },
+    plan,
+    byCommand,
+  );
+  return [
+    ...attributeFullObservations(request.descriptors, plan, replay),
+    fullVerifyFailure(replay.blocker),
+  ];
+}
 
-  const attributed = request.descriptors.map((descriptor) => {
-    const observation = observations.get(descriptor.gateId);
-    if (observation !== undefined) return observation;
-    const isPlanned = plan.some(
-      ({ argv }) => argvKey(argv) === argvKey(descriptor.argv),
+type FullReplay = {
+  readonly observations: ReadonlyMap<string, VerificationRunObservation>;
+  readonly blocker?: string;
+};
+
+async function replayFullPlan(
+  context: ExecutionContext,
+  plan: readonly VerifyPlanEntry[],
+  byCommand: ReadonlyMap<string, DiagnosticDescriptor>,
+): Promise<FullReplay> {
+  const observations = new Map<string, VerificationRunObservation>();
+  for (const entry of plan) {
+    const replay = await replayFullEntry(
+      context,
+      entry,
+      byCommand.get(argvKey(entry.argv)),
     );
+    if (replay.observation !== undefined) {
+      observations.set(replay.observation.gateId, replay.observation);
+    }
+    if (replay.blocker !== undefined)
+      return { observations, blocker: replay.blocker };
+  }
+  return { observations };
+}
+
+async function replayFullEntry(
+  context: ExecutionContext,
+  entry: VerifyPlanEntry,
+  descriptor: DiagnosticDescriptor | undefined,
+): Promise<{
+  readonly observation?: VerificationRunObservation;
+  readonly blocker?: string;
+}> {
+  const rendered = entry.argv.join(" ");
+  const prerequisiteBlocker =
+    descriptor === undefined
+      ? undefined
+      : await unavailablePrerequisite(
+          context.execFile,
+          descriptor,
+          context.cwd,
+          context.timeoutMs,
+          context.maxBufferBytes,
+        );
+  if (prerequisiteBlocker !== undefined && descriptor !== undefined) {
+    return {
+      blocker: prerequisiteBlocker,
+      observation: unavailable(descriptor, prerequisiteBlocker),
+    };
+  }
+  const [file, ...args] = entry.argv;
+  const result = await safeExec(context, { file, args });
+  if (result === undefined || result.exitCode === null) {
+    return {
+      blocker: rendered,
+      ...(descriptor === undefined
+        ? {}
+        : {
+            observation: unavailable(descriptor, `${rendered} was unavailable`),
+          }),
+    };
+  }
+  return {
+    ...(descriptor === undefined
+      ? {}
+      : {
+          observation: attributedObservation(
+            descriptor,
+            rendered,
+            result.exitCode,
+          ),
+        }),
+    ...(result.exitCode === 0 ? {} : { blocker: rendered }),
+  };
+}
+
+function attributedObservation(
+  descriptor: DiagnosticDescriptor,
+  rendered: string,
+  exitCode: number,
+): VerificationRunObservation {
+  return {
+    gateId: descriptor.gateId,
+    status: exitCode === 0 ? "pass" : "fail",
+    message:
+      exitCode === 0
+        ? `Verification gate ${descriptor.gateId} passed during deterministic full-run attribution.`
+        : `${rendered} exited with code ${exitCode}.`,
+    ...(descriptor.semanticRuleIds
+      ? { semanticRuleIds: descriptor.semanticRuleIds }
+      : {}),
+  };
+}
+
+function attributeFullObservations(
+  descriptors: readonly DiagnosticDescriptor[],
+  plan: readonly VerifyPlanEntry[],
+  replay: FullReplay,
+): readonly VerificationRunObservation[] {
+  return descriptors.map((descriptor) => {
+    const observation = replay.observations.get(descriptor.gateId);
+    if (observation !== undefined) return observation;
     return unavailable(
       descriptor,
-      blocker === undefined
-        ? isPlanned
-          ? "just verify failed although its exact attribution replay passed"
-          : "the gate is not a member of the canonical full verify plan"
-        : `blocked by ${blocker}`,
+      unavailableFullReason(descriptor, plan, replay.blocker),
     );
   });
+}
 
-  return [
-    ...attributed,
-    {
-      gateId: "maestro/full-verify",
-      status: "fail",
-      message: `just verify exited with code; deterministic attribution${blocker === undefined ? " found no gate blocker" : ` stopped at ${blocker}`}.`,
-      diagnostic: {
-        code: "AGENT_PACK_FULL_VERIFY_FAILED",
-        severity: "error",
-        message:
-          blocker === undefined
-            ? "just verify failed although every attributable command passed on replay."
-            : `just verify failed; deterministic attribution stopped at ${blocker}.`,
-        safeToContinue: false,
-        nextAction:
-          "Repair the reported invariant in its owning source; do not edit or weaken a gate.",
-        rerun: "just verify",
-      },
+function unavailableFullReason(
+  descriptor: DiagnosticDescriptor,
+  plan: readonly VerifyPlanEntry[],
+  blocker: string | undefined,
+): string {
+  if (blocker !== undefined) return `blocked by ${blocker}`;
+  return plan.some(({ argv }) => argvKey(argv) === argvKey(descriptor.argv))
+    ? "pnpm verify failed although its exact attribution replay passed"
+    : "the gate is not a member of the canonical full verify plan";
+}
+
+function fullVerifyFailure(
+  blocker: string | undefined,
+): VerificationRunObservation {
+  const stopped =
+    blocker === undefined ? " found no gate blocker" : ` stopped at ${blocker}`;
+  return {
+    gateId: "maestro/full-verify",
+    status: "fail",
+    message: `pnpm verify exited with code; deterministic attribution${stopped}.`,
+    diagnostic: {
+      code: "AGENT_PACK_FULL_VERIFY_FAILED",
+      severity: "error",
+      message:
+        blocker === undefined
+          ? "pnpm verify failed although every attributable command passed on replay."
+          : `pnpm verify failed; deterministic attribution stopped at ${blocker}.`,
+      safeToContinue: false,
+      nextAction:
+        "Repair the reported invariant in its owning source; do not edit or weaken a gate.",
+      rerun: "pnpm verify",
     },
-  ];
+  };
 }
 
 async function runDescriptor(
@@ -394,12 +487,8 @@ async function runDescriptor(
   }
   const [file, ...args] = descriptor.argv;
   const result = await safeExec(
-    execFile,
-    file,
-    args,
-    cwd,
-    timeoutMs,
-    maxBufferBytes,
+    { execFile, cwd, timeoutMs, maxBufferBytes },
+    { file, args },
   );
   if (result?.exitCode === null || result === undefined) {
     return unavailable(descriptor);
@@ -417,16 +506,6 @@ async function runDescriptor(
   };
 }
 
-function canonicalScriptBlocker(
-  descriptor: DiagnosticDescriptor,
-  entry: VerifyPlanEntry,
-): string | undefined {
-  return descriptor.canonicalScriptBody !== undefined &&
-    entry.scriptBody === descriptor.canonicalScriptBody
-    ? undefined
-    : `the target script body for ${descriptor.argv.join(" ")} does not match the canonical gate binding`;
-}
-
 async function unavailablePrerequisite(
   execFile: VerificationExecFile,
   descriptor: DiagnosticDescriptor,
@@ -438,12 +517,8 @@ async function unavailablePrerequisite(
   const [file, ...args] = descriptor.prerequisiteCheck;
   const rendered = descriptor.prerequisiteCheck.join(" ");
   const result = await safeExec(
-    execFile,
-    file,
-    args,
-    cwd,
-    timeoutMs,
-    maxBufferBytes,
+    { execFile, cwd, timeoutMs, maxBufferBytes },
+    { file, args },
   );
   return result?.exitCode === 0
     ? undefined
@@ -451,12 +526,8 @@ async function unavailablePrerequisite(
 }
 
 async function safeExec(
-  execFile: VerificationExecFile,
-  file: string,
-  args: readonly string[],
-  cwd: string,
-  timeoutMs: number,
-  maxBufferBytes: number,
+  { execFile, cwd, timeoutMs, maxBufferBytes }: ExecutionContext,
+  { file, args }: ExecutionCommand,
 ): Promise<VerificationExecResult | undefined> {
   try {
     return await execFile(file, args, { cwd, timeoutMs, maxBufferBytes });
@@ -482,30 +553,37 @@ async function readVerifyPlan(
 ): Promise<readonly VerifyPlanEntry[] | undefined> {
   const scripts = await readPackageScripts(readFile, path, maxBytes);
   if (scripts === undefined) return undefined;
-  const verify = scripts.verify;
+  return parseVerifyPlan(scripts, scripts.verify);
+}
+
+function parseVerifyPlan(
+  scripts: PackageScripts,
+  verify: unknown,
+): readonly VerifyPlanEntry[] | undefined {
   if (typeof verify !== "string" || verify.trim() === "") return undefined;
   const commands = verify.trim().split("&&");
   const plan: VerifyPlanEntry[] = [];
   const members = new Set<string>();
   for (const command of commands) {
-    const match = /^pnpm ([a-z0-9][a-z0-9:_-]*)$/.exec(command.trim());
-    const script = match?.[1];
-    const scriptBody = script === undefined ? undefined : scripts[script];
-    if (
-      script === undefined ||
-      !Object.hasOwn(scripts, script) ||
-      typeof scriptBody !== "string" ||
-      scriptBody.trim() === ""
-    ) {
-      return undefined;
-    }
-    const argv = ["pnpm", script] as const;
+    const argv = parseVerifyPlanEntry(command, scripts);
+    if (argv === undefined) return undefined;
     const member = argvKey(argv);
     if (members.has(member)) return undefined;
     members.add(member);
-    plan.push({ argv, scriptBody });
+    plan.push({ argv });
   }
   return plan.length > 0 ? plan : undefined;
+}
+
+function parseVerifyPlanEntry(
+  command: string,
+  scripts: PackageScripts,
+): readonly ["pnpm", string] | undefined {
+  const script = /^pnpm ([a-z0-9][a-z0-9:_-]*)$/.exec(command.trim())?.[1];
+  if (script === undefined) return undefined;
+  return hasCurrentRootScript(["pnpm", script], scripts)
+    ? ["pnpm", script]
+    : undefined;
 }
 
 async function readPackageScripts(
@@ -524,21 +602,23 @@ async function readPackageScripts(
   }
 }
 
-function focusedPlanEntry(
-  descriptor: DiagnosticDescriptor,
-  scripts: PackageScripts,
-): VerifyPlanEntry | undefined {
-  const [file, script, ...args] = descriptor.argv;
-  const scriptBody =
-    file === "pnpm" && script !== undefined && args.length === 0
-      ? scripts[script]
-      : undefined;
-  return script !== undefined &&
-    Object.hasOwn(scripts, script) &&
+function isRootPnpmScript(
+  argv: readonly string[],
+): argv is readonly ["pnpm", string] {
+  return argv[0] === "pnpm" && argv.length === 2 && argv[1] !== undefined;
+}
+
+function hasCurrentRootScript(
+  argv: readonly ["pnpm", string],
+  scripts: PackageScripts | undefined,
+): boolean {
+  const script = argv[1];
+  const scriptBody = scripts?.[script];
+  return (
+    Object.hasOwn(scripts ?? {}, script) &&
     typeof scriptBody === "string" &&
     scriptBody.trim() !== ""
-    ? { argv: [file, script], scriptBody }
-    : undefined;
+  );
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

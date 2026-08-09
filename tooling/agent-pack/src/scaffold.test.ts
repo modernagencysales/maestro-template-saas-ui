@@ -3,7 +3,6 @@ import { executeAgentPackCommand } from "./contracts.js";
 import { createRepositoryContext } from "./repoContext.js";
 import {
   createScaffoldCommand,
-  fingerprintScaffoldPreview,
   type ScaffoldDependencies,
   type ScaffoldGeneratorOutput,
 } from "./scaffold.js";
@@ -29,11 +28,6 @@ const output: ScaffoldGeneratorOutput = {
   codegen: ["pnpm confect:codegen", "pnpm confect:manifest"],
   focusedGates: ["pnpm check:confect-contracts"],
 };
-const previewFingerprint = fingerprintScaffoldPreview(
-  { generatorId: "add-capability", args },
-  output,
-);
-
 function dependencies(
   overrides: Partial<ScaffoldDependencies> = {},
 ): ScaffoldDependencies {
@@ -55,46 +49,6 @@ function dependencies(
 }
 
 describe("scaffold command", () => {
-  it("fingerprints the exact canonical preview", () => {
-    const reorderedArgs = {
-      disposition: "extend",
-      system: "knowledge-brain",
-      name: "sourceBrief",
-    };
-
-    expect(
-      fingerprintScaffoldPreview(
-        { generatorId: "add-capability", args: reorderedArgs },
-        output,
-      ),
-    ).toBe(previewFingerprint);
-    expect(
-      fingerprintScaffoldPreview(
-        {
-          generatorId: "add-capability",
-          args: { ...args, name: "changedBrief" },
-        },
-        output,
-      ),
-    ).not.toBe(previewFingerprint);
-    const firstFile = output.files[0];
-    if (firstFile === undefined) throw new Error("fixture file is required");
-    expect(
-      fingerprintScaffoldPreview(
-        { generatorId: "add-capability", args },
-        {
-          ...output,
-          files: [
-            {
-              ...firstFile,
-              content: "export const changed = true;\n",
-            },
-          ],
-        },
-      ),
-    ).not.toBe(previewFingerprint);
-  });
-
   it("previews by default and preserves generator bytes", async () => {
     const run = vi.fn(async () => ({ ok: true as const, output }));
     const result = await executeAgentPackCommand(
@@ -123,14 +77,6 @@ describe("scaffold command", () => {
           classification: "review-required",
           secrets: "names-only",
         },
-        previewFingerprint: expect.stringMatching(/^scaffold_sha256:/),
-        confirmation: {
-          argv: expect.arrayContaining([
-            "--preflight-fingerprint",
-            "preflight_sha256:current",
-            "--preview-fingerprint",
-          ]),
-        },
       },
     });
     expect(result.data?.output?.files[0]?.content).toBe(
@@ -138,7 +84,22 @@ describe("scaffold command", () => {
     );
   });
 
-  it("writes only after a passing matching preflight fingerprint", async () => {
+  it("does not discover reviewed ADRs without workflow rules", async () => {
+    const reviewedAdrRefs = vi.fn(() => new Set<string>());
+    await executeAgentPackCommand(
+      createScaffoldCommand(
+        dependencies({
+          workflow: { semantics: [], reviewedAdrRefs },
+        }),
+      ),
+      { generatorId: "add-capability", args },
+      context,
+    );
+
+    expect(reviewedAdrRefs).not.toHaveBeenCalled();
+  });
+
+  it("writes despite unrelated worktree changes", async () => {
     const events: string[] = [];
     const run = vi.fn(async (request) => {
       events.push(request.write ? "write" : "preview");
@@ -149,7 +110,7 @@ describe("scaffold command", () => {
       return {
         fingerprint: "preflight_sha256:current",
         safeToMutate: true,
-        cleanWorktree: true,
+        cleanWorktree: false,
       };
     });
     const result = await executeAgentPackCommand(
@@ -163,13 +124,11 @@ describe("scaffold command", () => {
         generatorId: "add-capability",
         args,
         write: true,
-        preflightFingerprint: "preflight_sha256:current",
-        previewFingerprint,
       },
       context,
     );
 
-    expect(events).toEqual(["preview", "preflight", "write"]);
+    expect(events).toEqual(["preflight", "preview", "write"]);
     expect(result).toMatchObject({
       mutationPosture: "write",
       exitClass: "success",
@@ -177,78 +136,7 @@ describe("scaffold command", () => {
     });
   });
 
-  it.each([
-    ["missing", undefined, true],
-    ["changed", "preflight_sha256:stale", true],
-    ["blocking", "preflight_sha256:current", false],
-  ] as const)(
-    "blocks a %s preflight fingerprint before writing",
-    async (_case, fingerprint, safeToMutate) => {
-      const run = vi.fn(async () => ({ ok: true as const, output }));
-      const result = await executeAgentPackCommand(
-        createScaffoldCommand(
-          dependencies({
-            generators: { resolve: () => ({ supported: true }), run },
-            preflight: {
-              inspect: async () => ({
-                fingerprint: "preflight_sha256:current",
-                safeToMutate,
-                cleanWorktree: true,
-              }),
-            },
-          }),
-        ),
-        {
-          generatorId: "add-capability",
-          args,
-          write: true,
-          previewFingerprint,
-          ...(fingerprint === undefined
-            ? {}
-            : { preflightFingerprint: fingerprint }),
-        },
-        context,
-      );
-
-      expect(run).toHaveBeenCalledOnce();
-      expect(result).toMatchObject({
-        exitClass: "blockedMutation",
-        diagnostics: [{ code: "AGENT_PACK_SCAFFOLD_PREFLIGHT_STALE" }],
-      });
-    },
-  );
-
-  it("blocks a missing exact preview fingerprint before writing", async () => {
-    const run = vi.fn(async () => ({ ok: true as const, output }));
-    const result = await executeAgentPackCommand(
-      createScaffoldCommand(
-        dependencies({
-          generators: { resolve: () => ({ supported: true }), run },
-        }),
-      ),
-      {
-        generatorId: "add-capability",
-        args,
-        write: true,
-        preflightFingerprint: "preflight_sha256:current",
-      },
-      context,
-    );
-
-    expect(run).toHaveBeenCalledOnce();
-    expect(run).toHaveBeenCalledWith({
-      generatorId: "add-capability",
-      args,
-      write: false,
-      repo: context.repo,
-    });
-    expect(result).toMatchObject({
-      exitClass: "blockedMutation",
-      diagnostics: [{ code: "AGENT_PACK_SCAFFOLD_PREVIEW_STALE" }],
-    });
-  });
-
-  it("refuses a dirty worktree even when preview paths do not overlap", async () => {
+  it("blocks an unsafe preflight before writing", async () => {
     const run = vi.fn(async () => ({ ok: true as const, output }));
     const result = await executeAgentPackCommand(
       createScaffoldCommand(
@@ -257,8 +145,8 @@ describe("scaffold command", () => {
           preflight: {
             inspect: async () => ({
               fingerprint: "preflight_sha256:current",
-              safeToMutate: true,
-              cleanWorktree: false,
+              safeToMutate: false,
+              cleanWorktree: true,
             }),
           },
         }),
@@ -267,17 +155,14 @@ describe("scaffold command", () => {
         generatorId: "add-capability",
         args,
         write: true,
-        preflightFingerprint: "preflight_sha256:current",
-        previewFingerprint,
       },
       context,
     );
 
-    expect(output.collisions).toEqual([]);
     expect(run).toHaveBeenCalledOnce();
     expect(result).toMatchObject({
       exitClass: "blockedMutation",
-      diagnostics: [{ code: "AGENT_PACK_SCAFFOLD_WORKTREE_DIRTY" }],
+      diagnostics: [{ code: "AGENT_PACK_SCAFFOLD_PREFLIGHT_UNSAFE" }],
     });
   });
 
@@ -294,16 +179,38 @@ describe("scaffold command", () => {
         generatorId: "add-capability",
         args,
         write: true,
-        preflightFingerprint: "preflight_sha256:current",
-        previewFingerprint: fingerprintScaffoldPreview(
-          { generatorId: "add-capability", args },
-          collided,
-        ),
       },
       context,
     );
 
     expect(run).toHaveBeenCalledOnce();
+    expect(result).toMatchObject({
+      exitClass: "blockedMutation",
+      diagnostics: [{ code: "AGENT_PACK_SCAFFOLD_COLLISION" }],
+      data: { output: collided },
+    });
+  });
+
+  it("refuses an owned collision found by the write-time recomputation", async () => {
+    const collided = { ...output, collisions: ["generated/sourceBrief.ts"] };
+    const run = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: true as const, output })
+      .mockResolvedValueOnce({ ok: true as const, output: collided });
+    const result = await executeAgentPackCommand(
+      createScaffoldCommand(
+        dependencies({
+          generators: { resolve: () => ({ supported: true }), run },
+        }),
+      ),
+      { generatorId: "add-capability", args, write: true },
+      context,
+    );
+
+    expect(run.mock.calls.map(([request]) => request.write)).toEqual([
+      false,
+      true,
+    ]);
     expect(result).toMatchObject({
       exitClass: "blockedMutation",
       diagnostics: [{ code: "AGENT_PACK_SCAFFOLD_COLLISION" }],
