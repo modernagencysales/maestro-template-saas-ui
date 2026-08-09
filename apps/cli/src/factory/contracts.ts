@@ -17,7 +17,6 @@ const runContractProcess: RunContractProcess = (args, cwd) => {
   const result = spawnSync("pnpm", [...args], {
     cwd,
     encoding: "utf8",
-    env: process.env,
   });
   return {
     exitCode: result.status === 0 ? 0 : 1,
