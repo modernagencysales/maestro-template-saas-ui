@@ -313,25 +313,92 @@ const neutralWorkflowCommandReplacements: Readonly<
   ],
 };
 
-const projectWorkflowCommandReferences = (
+const customerDocumentationCommandReplacements: Readonly<
+  Record<string, readonly (readonly [string, string])[]>
+> = {
+  "docs/template/client-intake-wizard.md": [
+    [
+      '`pnpm template:intake -- --name "Client Brain" --write` creates\n`docs/template/generated/client-intake.md` and updates `template-instance.json`\nwith an `intake` block.',
+      "The factory records reviewed intake before generating a customer target.\nGenerated targets retain that accepted intake in `template-instance.json`.",
+    ],
+    ['pnpm template:intake -- --name "Client Brain" --write\n', ""],
+  ],
+  "docs/template/env-manifest.md": [
+    [
+      "`pnpm deploy:doctor` reads `project.config.json` and",
+      "The factory deployment doctor reads `project.config.json` and",
+    ],
+  ],
+  "docs/template/how-to-add-notification.md": [
+    [
+      "Use the notification generator:",
+      "Use the emitted feature generator to extend the canonical notification system:",
+    ],
+    [
+      "pnpm template:add-notification -- --name workflowCompleted",
+      "pnpm template:add-feature -- --name workflow-completed-notification --system notifications --disposition extend",
+    ],
+  ],
+  "docs/template/operations-runbook.md": [
+    [
+      "5. Run `pnpm build` and `pnpm smoke:web-static`.",
+      "5. Run `pnpm build` and the deployment owner's static smoke.",
+    ],
+    [
+      "deployment, require `pnpm smoke:hosted`, `pnpm smoke:hosted:browser`,\n   `pnpm smoke:hosted:a11y`, and `pnpm smoke:hosted:visual`. Upload the guarded",
+      "deployment, require the deployment owner's hosted liveness, browser,\n   accessibility, and visual canaries. Upload the guarded",
+    ],
+  ],
+  "docs/template/template-maturity-model.md": [
+    [
+      "**Required commands:** `pnpm check:format`, `pnpm smoke:web-static`,\n`pnpm smoke:hosted:browser`, `pnpm smoke:hosted:a11y`,\n`pnpm smoke:hosted:visual`.",
+      "**Required commands:** `pnpm check:format` plus deployment-owned static,\nbrowser, accessibility, and visual canaries.",
+    ],
+    ["`pnpm review:completion`.", "`pnpm review:contract`."],
+    ["`pnpm evals`.", "`pnpm test`."],
+    ["`pnpm deploy:doctor`.", "`pnpm verify`."],
+    [
+      "**Required commands:** `pnpm template:doctor -- --mode live`,\n`pnpm deploy:doctor`, `pnpm verify`, hosted smoke against the client domain, and",
+      "**Required commands:** `pnpm template:doctor -- --mode live`, an external\ndeployment-authority doctor, `pnpm verify`, hosted smoke against the client\ndomain, and",
+    ],
+  ],
+};
+
+const applyProjectionReplacements = (
   files: readonly GeneratedFile[],
-  selection: SaasApplicationPatternSelection,
-): readonly GeneratedFile[] => {
-  if (selectsSaasApplicationPattern(selection, "workflow-automation"))
-    return files;
-  const projected = files.map((file) => {
-    const replacements = neutralWorkflowCommandReplacements[file.path];
+  replacementsByPath: Readonly<
+    Record<string, readonly (readonly [string, string])[]>
+  >,
+  label: string,
+): readonly GeneratedFile[] =>
+  files.map((file) => {
+    const replacements = replacementsByPath[file.path];
     if (replacements === undefined) return file;
     let content = file.content;
     for (const [search, replacement] of replacements) {
       if (!content.includes(search))
-        throw new Error(
-          `Neutral workflow command projection marker is missing: ${file.path}`,
-        );
+        throw new Error(`${label} projection marker is missing: ${file.path}`);
       content = content.replace(search, replacement);
     }
     return { ...file, content };
   });
+
+const projectWorkflowCommandReferences = (
+  files: readonly GeneratedFile[],
+  selection: SaasApplicationPatternSelection,
+): readonly GeneratedFile[] => {
+  const documented = applyProjectionReplacements(
+    files,
+    customerDocumentationCommandReplacements,
+    "Customer documentation command",
+  );
+  if (selectsSaasApplicationPattern(selection, "workflow-automation"))
+    return documented;
+  const projected = applyProjectionReplacements(
+    documented,
+    neutralWorkflowCommandReplacements,
+    "Neutral workflow command",
+  );
   const managedPath = ".agents/skills/maestro/references/workflow-authoring.md";
   const managed = projected.find(({ path }) => path === managedPath);
   const manifestPath = "docs/template/customer-context.manifest.json";

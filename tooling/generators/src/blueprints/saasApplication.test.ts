@@ -1389,13 +1389,32 @@ Feature: Reconcile disputed invoices
             match[1] === undefined ? [] : [{ command: match[1], path }],
         ),
       );
-      return { references, scripts: root.scripts ?? {} };
+      const scripts = root.scripts ?? {};
+      const missingDocumentedScripts = projectedEntries
+        .filter(({ path }) => path.endsWith(".md"))
+        .flatMap(({ path, content }) =>
+          [
+            ...content.matchAll(
+              /pnpm ((?:acceptance|check|deploy|evals|review|smoke|template|test|verify)[a-z0-9:-]*)/gu,
+            ),
+          ].flatMap((match) => {
+            const command = match[1];
+            return command === undefined ||
+              command.endsWith(":") ||
+              scripts[command] !== undefined
+              ? []
+              : [{ command, path }];
+          }),
+        );
+      return { missingDocumentedScripts, references, scripts };
     };
 
     const neutral = projection();
     const selected = projection(["workflow-automation"]);
 
     expect(neutral.references).toEqual([]);
+    expect(neutral.missingDocumentedScripts).toEqual([]);
+    expect(selected.missingDocumentedScripts).toEqual([]);
     expect(selected.references.map(({ command }) => command)).toEqual(
       expect.arrayContaining([
         "check:workflow:fast",
