@@ -112,6 +112,8 @@ describe("frontend platform routes", () => {
         purpose: "any maskable",
       },
     ]);
+    expect(manifest).not.toHaveProperty("background_color");
+    expect(manifest).not.toHaveProperty("theme_color");
     expect(JSON.stringify(manifest).toLowerCase()).not.toContain("offline");
   });
 
@@ -124,6 +126,11 @@ describe("frontend platform routes", () => {
     );
     expect(read("public/favicon.svg")).toContain("Maestro Template");
     expect(read("public/social-card.svg")).toContain("Maestro Template");
+    for (const asset of ["public/favicon.svg", "public/social-card.svg"]) {
+      const source = read(asset);
+      expect(source).toContain('fill="currentColor"');
+      expect(source).not.toMatch(/#[\da-f]{3,8}\b|(?:rgb|hsl)a?\(/iu);
+    }
     expect(read("src/routes/__root.tsx")).toContain("buildTemplateRouteHead");
   });
 });

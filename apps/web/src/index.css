@@ -1,44 +1,21 @@
 :root {
-  color-scheme: light;
+  color-scheme: light dark;
   font-family:
-    Inter,
+    "Inter Variable",
     ui-sans-serif,
     system-ui,
     -apple-system,
     BlinkMacSystemFont,
     "Segoe UI",
     sans-serif;
-  background: #ffffff;
-  color: #1f1f1f;
-  --template-bg: #ffffff;
-  --template-page: #ffffff;
-  --template-text: #1f1f1f;
-  --template-muted: #5f5e5a;
-  --template-subtle: #f7f6f3;
-  --template-border: #e9e9e7;
-  --template-hover: #f1f1ef;
-  --template-active: #eeeeec;
-  --template-focus: #2383e2;
-  --template-danger: #d44c47;
-  --template-success: #448361;
-  --template-warning: #cb912f;
-  --template-source: #0f766e;
-  --template-capability: #2563eb;
-  --template-agent: #7c3aed;
-  --template-approval: #b45309;
-  --template-output: #15803d;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
 }
 
 .idea-public-shell {
   min-height: 100vh;
-  background:
-    radial-gradient(
-      circle at 84% 4%,
-      rgb(255 222 173 / 38%),
-      transparent 29rem
-    ),
-    #fbfaf7;
-  color: #191816;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
 }
 
 .idea-public-header,
@@ -72,8 +49,8 @@
   height: 34px;
   place-items: center;
   border-radius: 9px;
-  background: #191816;
-  color: #fff;
+  background: var(--chakra-colors-fg);
+  color: var(--chakra-colors-bg);
   font-family: Georgia, serif;
   font-size: 19px;
 }
@@ -91,7 +68,7 @@
   min-height: 44px;
   display: inline-flex;
   align-items: center;
-  color: #59554d;
+  color: var(--chakra-colors-fg);
   font-size: 14px;
   font-weight: 600;
   text-decoration: none;
@@ -99,7 +76,7 @@
 
 .idea-public-nav a:hover,
 .idea-public-footer a:hover {
-  color: #191816;
+  color: var(--chakra-colors-fg);
   text-decoration: underline;
   text-underline-offset: 4px;
 }
@@ -123,7 +100,7 @@
   align-items: center;
   gap: 8px;
   margin: 0 0 18px;
-  color: #885319;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
   font-weight: 750;
   letter-spacing: 0.08em;
@@ -151,7 +128,7 @@
 .idea-hero-body {
   max-width: 600px;
   margin: 22px 0 0;
-  color: #59554d;
+  color: var(--chakra-colors-fg);
   font-size: 18px;
   line-height: 1.65;
 }
@@ -165,7 +142,7 @@
 }
 
 .idea-hero-actions > span {
-  color: #6c675e;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
 }
 
@@ -185,14 +162,12 @@
 }
 
 .idea-primary-action {
-  background: #191816;
-  box-shadow: 0 9px 22px rgb(25 24 22 / 16%);
-  color: #fff;
+  background: var(--chakra-colors-fg);
+  color: var(--chakra-colors-bg);
 }
 
 .idea-primary-action:hover {
-  background: #34312c;
-  box-shadow: 0 12px 28px rgb(25 24 22 / 20%);
+  background: var(--chakra-colors-fg);
 }
 
 .idea-primary-action:active,
@@ -203,12 +178,9 @@
 .idea-report-preview {
   position: relative;
   padding: 34px;
-  border: 1px solid rgb(31 29 25 / 10%);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 26px;
-  background: rgb(255 255 255 / 76%);
-  box-shadow:
-    0 1px 0 rgb(255 255 255 / 90%) inset,
-    0 28px 80px rgb(54 42 24 / 10%);
+  background: var(--chakra-colors-bg);
   backdrop-filter: blur(18px);
 }
 
@@ -217,14 +189,14 @@
   inset: 12px;
   z-index: -1;
   border-radius: 18px;
-  background: #fff;
+  background: var(--chakra-colors-bg);
   content: "";
 }
 
 .idea-preview-kicker,
 .idea-preview-next {
   margin: 0;
-  color: #797369;
+  color: var(--chakra-colors-fg);
   font-size: 12px;
   font-weight: 750;
   letter-spacing: 0.08em;
@@ -247,7 +219,7 @@
 }
 
 .idea-preview-score span {
-  color: #8a847a;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-report-preview h2 {
@@ -259,26 +231,26 @@
 
 .idea-report-preview p:not(.idea-preview-kicker, .idea-preview-next) {
   margin: 0;
-  color: #5f5a52;
+  color: var(--chakra-colors-fg);
   line-height: 1.6;
 }
 
 .idea-preview-rule {
   height: 1px;
   margin: 26px 0;
-  background: #e7e2d9;
+  background: var(--chakra-colors-bg);
 }
 
 .idea-preview-next + p {
   margin-top: 8px !important;
-  color: #292722 !important;
+  color: var(--chakra-colors-fg) !important;
   font-weight: 600;
 }
 
 .idea-proof-strip {
   display: grid;
   padding: 24px max(20px, calc((100vw - 1180px) / 2));
-  background: #efe8dc;
+  background: var(--chakra-colors-bg);
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 20px;
 }
@@ -288,7 +260,7 @@
   margin: 0;
   align-items: flex-start;
   gap: 10px;
-  color: #49443d;
+  color: var(--chakra-colors-fg);
   font-size: 14px;
   font-weight: 620;
 }
@@ -296,7 +268,7 @@
 .idea-proof-strip svg {
   flex: 0 0 auto;
   margin-top: 2px;
-  color: #87531b;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-how {
@@ -330,11 +302,11 @@
 
 .idea-how li {
   padding-top: 24px;
-  border-top: 1px solid #d9d2c6;
+  border-top: 1px solid var(--chakra-colors-border);
 }
 
 .idea-how li > span {
-  color: #96612a;
+  color: var(--chakra-colors-fg);
   font-family: Georgia, "Times New Roman", serif;
   font-size: 17px;
 }
@@ -347,7 +319,7 @@
 
 .idea-how li p {
   margin: 0;
-  color: #625d55;
+  color: var(--chakra-colors-fg);
   line-height: 1.65;
 }
 
@@ -360,8 +332,8 @@
   justify-content: space-between;
   gap: 48px;
   border-radius: 26px;
-  background: #1e1c19;
-  color: #fff;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
 }
 
 .idea-upgrade > div {
@@ -369,31 +341,31 @@
 }
 
 .idea-upgrade .idea-section-label {
-  color: #dab786;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-upgrade p:not(.idea-section-label) {
   max-width: 650px;
   margin: 22px 0 0;
-  color: #d2cec7;
+  color: var(--chakra-colors-fg);
   font-size: 17px;
   line-height: 1.65;
 }
 
 .idea-secondary-action {
   flex: 0 0 auto;
-  background: #f6efe4;
-  color: #1e1c19;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
 }
 
 .idea-secondary-action:hover {
-  background: #fff;
+  background: var(--chakra-colors-bg);
 }
 
 .idea-public-footer {
   min-height: 108px;
-  border-top: 1px solid #e0dbd2;
-  color: #6b665e;
+  border-top: 1px solid var(--chakra-colors-border);
+  color: var(--chakra-colors-fg);
   font-size: 14px;
 }
 
@@ -413,19 +385,19 @@
 }
 
 .idea-information p {
-  color: #59554d;
+  color: var(--chakra-colors-fg);
   font-size: 17px;
   line-height: 1.7;
 }
 
 .idea-information a {
-  color: #704215;
+  color: var(--chakra-colors-fg);
   font-weight: 700;
   text-underline-offset: 3px;
 }
 
 .idea-information a.idea-primary-action {
-  color: #fff;
+  color: var(--chakra-colors-fg);
 }
 
 @media (max-width: 860px) {
@@ -536,7 +508,7 @@
   align-items: center;
   justify-content: space-between;
   gap: 20px;
-  color: #6b665e;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
   font-weight: 600;
 }
@@ -562,14 +534,14 @@
 
 .idea-intake-layout aside > p:first-child {
   margin: 0 0 10px;
-  color: #26231f;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
   font-weight: 700;
 }
 
 .idea-intake-layout aside > p:last-child {
   margin: 22px 0 0;
-  color: #746e64;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
   line-height: 1.6;
 }
@@ -578,14 +550,14 @@
   height: 5px;
   overflow: hidden;
   border-radius: 99px;
-  background: #dfd9cf;
+  background: var(--chakra-colors-bg);
 }
 
 .idea-progress-track span {
   display: block;
   height: 100%;
   border-radius: inherit;
-  background: #8a551e;
+  background: var(--chakra-colors-bg);
   transition: width 180ms ease-out;
 }
 
@@ -602,7 +574,7 @@
 .idea-question-help {
   max-width: 580px;
   margin: 20px 0 34px;
-  color: #686259;
+  color: var(--chakra-colors-fg);
   font-size: 16px;
   line-height: 1.65;
 }
@@ -617,28 +589,27 @@
 .idea-intake textarea {
   width: 100%;
   min-height: 188px;
-  border: 1px solid #cfc7bb;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 14px;
-  background: rgb(255 255 255 / 82%);
-  color: #1c1a17;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   padding: 16px 18px;
-  box-shadow: 0 8px 28px rgb(43 35 24 / 5%);
   font-size: 16px;
   line-height: 1.55;
   resize: vertical;
 }
 
 .idea-intake textarea::placeholder {
-  color: #9b958c;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-intake textarea[aria-invalid="true"] {
-  border-color: #b74740;
+  border-color: var(--chakra-colors-border);
 }
 
 .idea-field-error {
   margin: 8px 0 0;
-  color: #a43c36;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
   font-weight: 620;
 }
@@ -663,7 +634,7 @@
   border: 0;
   border-radius: 9px;
   background: transparent;
-  color: #39352f;
+  color: var(--chakra-colors-fg);
   padding: 11px 15px;
   cursor: pointer;
   font-weight: 680;
@@ -671,8 +642,8 @@
 }
 
 .idea-intake-actions .idea-primary-action {
-  background: #191816;
-  color: #fff;
+  background: var(--chakra-colors-fg);
+  color: var(--chakra-colors-bg);
 }
 
 .idea-intake-actions button:disabled {
@@ -689,21 +660,21 @@
   padding: clamp(32px, 7vw, 72px);
   align-items: end;
   border-radius: 26px;
-  background: #1e1c19;
-  color: #fff;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 46px;
 }
 
 .idea-report-header .idea-section-label,
 .idea-build-pack-offer .idea-section-label {
-  color: #ddb887;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-report-header > div:first-child > p:last-child {
   max-width: 650px;
   margin: 22px 0 0;
-  color: #d1ccc4;
+  color: var(--chakra-colors-fg);
   font-size: 17px;
   line-height: 1.65;
 }
@@ -723,7 +694,7 @@
 }
 
 .idea-report-score span {
-  color: #a9a49d;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-report-grid {
@@ -736,9 +707,9 @@
 .idea-report-grid section,
 .idea-report-section {
   padding: 30px;
-  border: 1px solid #ded8cf;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 18px;
-  background: rgb(255 255 255 / 70%);
+  background: var(--chakra-colors-bg);
 }
 
 .idea-report-grid h2,
@@ -766,19 +737,19 @@
   display: grid;
   padding: 18px 0;
   align-items: start;
-  border-top: 1px solid #e3ddd4;
+  border-top: 1px solid var(--chakra-colors-border);
   grid-template-columns: 44px 1fr;
   gap: 12px;
 }
 
 .idea-take-list span {
-  color: #91602b;
+  color: var(--chakra-colors-fg);
   font-family: Georgia, "Times New Roman", serif;
 }
 
 .idea-take-list p {
   margin: 0;
-  color: #49443d;
+  color: var(--chakra-colors-fg);
   font-size: 16px;
   line-height: 1.6;
 }
@@ -789,8 +760,8 @@
   padding: clamp(30px, 6vw, 60px);
   align-items: end;
   border-radius: 24px;
-  background: #1e1c19;
-  color: #fff;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 46px;
 }
@@ -798,7 +769,7 @@
 .idea-build-pack-offer p:not(.idea-section-label) {
   max-width: 590px;
   margin: 18px 0 0;
-  color: #d1ccc4;
+  color: var(--chakra-colors-fg);
   line-height: 1.65;
 }
 
@@ -814,12 +785,12 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  color: #e7e3dd;
+  color: var(--chakra-colors-fg);
   font-size: 14px;
 }
 
 .idea-build-pack-offer li svg {
-  color: #ddb887;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-report-ownership {
@@ -827,9 +798,9 @@
   margin-top: 24px;
   padding: clamp(24px, 4vw, 38px);
   align-items: end;
-  border: 1px solid #dcd4c9;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 20px;
-  background: #fff;
+  background: var(--chakra-colors-bg);
   grid-template-columns: minmax(0, 0.8fr) minmax(320px, 1fr);
   gap: 36px;
 }
@@ -844,7 +815,7 @@
 
 .idea-report-ownership p {
   margin: 0;
-  color: #625d55;
+  color: var(--chakra-colors-fg);
   line-height: 1.6;
 }
 
@@ -858,14 +829,14 @@
 .idea-ownership-form-row input {
   min-width: 0;
   padding: 12px 14px;
-  border: 1px solid #cfc7bc;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--chakra-colors-bg);
   font: inherit;
 }
 
 .idea-ownership-form-row input:focus-visible {
-  outline: 3px solid #c8863a;
+  outline: 3px solid var(--chakra-colors-focus-ring);
   outline-offset: 2px;
 }
 
@@ -879,22 +850,22 @@
   padding: 18px;
   align-items: flex-start;
   border-radius: 14px;
-  background: #f1f6ee;
+  background: var(--chakra-colors-bg);
   gap: 12px;
 }
 
 .idea-ownership-success svg {
   flex: 0 0 auto;
-  color: #446338;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-report-revision {
   display: grid;
   margin-top: 24px;
   padding: clamp(24px, 4vw, 38px);
-  border: 1px solid #dcd4c9;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 20px;
-  background: #f8f5ef;
+  background: var(--chakra-colors-bg);
   grid-template-columns: minmax(0, 0.8fr) minmax(320px, 1fr);
   gap: 36px;
 }
@@ -918,15 +889,15 @@
   min-height: 132px;
   resize: vertical;
   padding: 14px;
-  border: 1px solid #cfc7bc;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 10px;
-  background: #fff;
+  background: var(--chakra-colors-bg);
   font: inherit;
   line-height: 1.5;
 }
 
 .idea-report-revision textarea:focus-visible {
-  outline: 3px solid #c8863a;
+  outline: 3px solid var(--chakra-colors-focus-ring);
   outline-offset: 2px;
 }
 
@@ -934,8 +905,8 @@
   align-self: start;
   padding: 18px;
   border-radius: 14px;
-  background: #f1f6ee;
-  color: #31482a;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
 }
 
 .idea-revision-success p {
@@ -953,9 +924,9 @@
   margin-top: 14px;
   padding: 14px;
   align-items: center;
-  border: 1px solid #d9b7ae;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 12px;
-  background: #fff5f2;
+  background: var(--chakra-colors-bg);
   flex-wrap: wrap;
   gap: 10px;
 }
@@ -963,13 +934,13 @@
 .idea-delete-confirmation p {
   width: 100%;
   margin: 0;
-  color: #6f3026;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-delete-confirmation button:last-child {
-  border-color: #8e3528;
-  background: #8e3528;
-  color: #fff;
+  border-color: var(--chakra-colors-border);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
 }
 
 .idea-report-actions {
@@ -978,15 +949,15 @@
 
 .idea-report-actions button,
 .idea-report-actions a {
-  border: 1px solid #d5cec3;
-  background: #fff;
+  border: 1px solid var(--chakra-colors-border);
+  background: var(--chakra-colors-bg);
 }
 
 .idea-loading {
   display: grid;
   min-height: 70vh;
   place-items: center;
-  color: #625d55;
+  color: var(--chakra-colors-fg);
 }
 
 @media (max-width: 760px) {
@@ -1075,7 +1046,7 @@
 
 .idea-checkout section > p:not(.idea-section-label) {
   margin: 22px 0 0;
-  color: #625d55;
+  color: var(--chakra-colors-fg);
   font-size: 17px;
   line-height: 1.65;
 }
@@ -1093,26 +1064,25 @@
   display: flex;
   align-items: flex-start;
   gap: 11px;
-  color: #48433c;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-checkout section li svg {
   flex: 0 0 auto;
   margin-top: 3px;
-  color: #8a551e;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-checkout-card {
   padding: 30px;
-  border: 1px solid #d9d2c7;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 22px 60px rgb(50 39 22 / 9%);
+  background: var(--chakra-colors-bg);
 }
 
 .idea-checkout-card > p:first-child {
   margin: 0;
-  color: #716b62;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
   font-weight: 700;
   text-transform: uppercase;
@@ -1128,7 +1098,7 @@
 }
 
 .idea-checkout-card > p:not(:first-child) {
-  color: #625d55;
+  color: var(--chakra-colors-fg);
   font-size: 14px;
   line-height: 1.6;
 }
@@ -1146,7 +1116,7 @@
   align-items: center;
   justify-content: center;
   gap: 7px;
-  color: #7b756c;
+  color: var(--chakra-colors-fg);
   font-size: 12px;
 }
 
@@ -1157,7 +1127,7 @@
 }
 
 .idea-checkout-email label {
-  color: #37332e;
+  color: var(--chakra-colors-fg);
   font-size: 14px;
   font-weight: 700;
 }
@@ -1166,21 +1136,21 @@
   width: 100%;
   min-height: 44px;
   padding: 10px 12px;
-  border: 1px solid #cfc6b9;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 10px;
-  background: #fff;
-  color: #2f2b26;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   font: inherit;
 }
 
 .idea-checkout-email input:focus-visible {
-  outline: 2px solid #8a551e;
+  outline: 2px solid var(--chakra-colors-focus-ring);
   outline-offset: 2px;
 }
 
 .idea-checkout-email > p {
   margin: 0;
-  color: #716b62;
+  color: var(--chakra-colors-fg);
   font-size: 12px;
   line-height: 1.45;
 }
@@ -1198,19 +1168,19 @@
 
 .idea-checkout-status > svg {
   margin-bottom: 26px;
-  color: #8a551e;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-checkout-status p {
   max-width: 560px;
-  color: #625d55;
+  color: var(--chakra-colors-fg);
   font-size: 17px;
   line-height: 1.65;
 }
 
 .idea-checkout-status a {
   margin-top: 12px;
-  color: #704215;
+  color: var(--chakra-colors-fg);
   font-weight: 700;
   text-underline-offset: 3px;
 }
@@ -1234,7 +1204,7 @@
   padding: 14px 16px;
   align-items: center;
   border-radius: 12px;
-  background: rgb(255 255 255 / 68%);
+  background: var(--chakra-colors-bg);
   grid-template-columns: 32px 1fr;
   gap: 10px;
 }
@@ -1243,30 +1213,30 @@
   width: 12px;
   height: 12px;
   margin-inline-start: 3px;
-  border: 2px solid #c6bfb4;
+  border: 2px solid var(--chakra-colors-border);
   border-radius: 50%;
 }
 
 .idea-pack-progress li[data-status="completed"] svg {
-  color: #32704d;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-pack-progress li[data-status="failed-recoverable"] {
-  background: #fff6e8;
+  background: var(--chakra-colors-bg);
 }
 
 .idea-pack-progress li[data-status="failed-recoverable"] svg {
-  color: #9a5c18;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-pack-progress li p {
   margin: 3px 0 0;
-  color: #746e65;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
 }
 
 .idea-pack-progress > p:last-child {
-  color: #6d675e;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
 }
 
@@ -1289,10 +1259,10 @@
   flex: 0 0 auto;
   align-items: center;
   gap: 9px;
-  border: 1px solid #cec7bc;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 9px;
-  background: #fff;
-  color: #2a2723;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   padding: 10px 15px;
   cursor: pointer;
   font-weight: 680;
@@ -1307,7 +1277,7 @@
 
 .idea-complete-pack > section {
   padding: 34px 0;
-  border-top: 1px solid #ddd7ce;
+  border-top: 1px solid var(--chakra-colors-border);
   scroll-margin-top: 24px;
 }
 
@@ -1321,7 +1291,7 @@
 
 .idea-complete-pack section p,
 .idea-complete-pack section li {
-  color: #514c45;
+  color: var(--chakra-colors-fg);
   font-size: 16px;
   line-height: 1.7;
 }
@@ -1334,7 +1304,7 @@
 }
 
 .idea-pack-id {
-  color: #888178;
+  color: var(--chakra-colors-fg);
   font-size: 12px;
 }
 
@@ -1350,12 +1320,12 @@
 .idea-maestro-summary {
   padding: clamp(34px, 6vw, 68px);
   border-radius: 24px;
-  background: #1d1b18;
-  color: #f8f3ea;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
 }
 
 .idea-maestro-summary .idea-section-label {
-  color: #d4a66d;
+  color: var(--chakra-colors-fg);
 }
 
 .idea-maestro-summary h1 {
@@ -1372,7 +1342,7 @@
 .idea-maestro-summary > p:not(.idea-section-label) {
   max-width: 62ch;
   margin: 24px 0 0;
-  color: #c9c2b8;
+  color: var(--chakra-colors-fg);
   font-size: 17px;
   line-height: 1.65;
   text-wrap: pretty;
@@ -1381,18 +1351,17 @@
 .idea-maestro-summary .idea-maestro-notice {
   padding: 14px 16px;
   border-radius: 12px;
-  background: rgb(255 255 255 / 8%);
-  color: #eee7dc;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
 }
 
 .idea-maestro-credit {
   display: grid;
   padding: clamp(28px, 5vw, 48px);
   align-items: end;
-  border: 1px solid #d9d2c7;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 20px;
-  background: #fff;
-  box-shadow: 0 22px 60px rgb(50 39 22 / 8%);
+  background: var(--chakra-colors-bg);
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 32px;
 }
@@ -1411,7 +1380,7 @@
 .idea-maestro-credit div > p:last-child {
   max-width: 56ch;
   margin: 16px 0 0;
-  color: #625d55;
+  color: var(--chakra-colors-fg);
   font-size: 16px;
   line-height: 1.6;
 }
@@ -1434,16 +1403,16 @@
   display: inline-flex;
   padding: 12px 16px;
   align-items: center;
-  border: 1px solid #cec7bc;
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 9px;
-  background: #fff;
-  color: #2a2723;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   font-weight: 680;
   text-decoration: none;
 }
 
 .idea-secondary-action:hover {
-  border-color: #9d9386;
+  border-color: var(--chakra-colors-border);
 }
 
 @media (max-width: 760px) {
@@ -1510,8 +1479,8 @@ body,
 
 body {
   margin: 0;
-  background: var(--template-bg);
-  color: var(--template-text);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   font-size: 15px;
   line-height: 1.5;
   letter-spacing: 0;
@@ -1526,12 +1495,26 @@ select {
   font: inherit;
 }
 
+input,
+textarea,
+select {
+  font-size: 16px;
+}
+
+@media (min-width: 48rem) {
+  input,
+  textarea,
+  select {
+    font-size: inherit;
+  }
+}
+
 a {
   color: inherit;
 }
 
 :focus-visible {
-  outline: 2px solid var(--template-focus);
+  outline: 2px solid var(--chakra-colors-focus-ring);
   outline-offset: 2px;
 }
 
@@ -1542,8 +1525,8 @@ a {
   z-index: 100;
   transform: translateY(-140%);
   border-radius: 6px;
-  background: var(--template-text);
-  color: var(--template-bg);
+  background: var(--chakra-colors-fg);
+  color: var(--chakra-colors-bg);
   padding: 8px 10px;
   text-decoration: none;
 }
@@ -1570,10 +1553,10 @@ a {
   align-items: center;
   justify-content: center;
   gap: 12px;
-  border-bottom: 1px solid var(--template-border);
+  border-bottom: 1px solid var(--chakra-colors-border);
   padding: 8px 16px;
-  background: #fff8db;
-  color: #5f3b00;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   font-size: 13px;
   text-align: center;
 }
@@ -1585,16 +1568,16 @@ a {
 
 .template-network-banner-action button {
   min-height: 28px;
-  border: 1px solid rgb(95 59 0 / 22%);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 6px;
-  background: rgb(255 255 255 / 72%);
-  color: #5f3b00;
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   padding: 4px 8px;
   cursor: pointer;
 }
 
 .template-network-banner-action button:hover {
-  background: #ffffff;
+  background: var(--chakra-colors-bg);
 }
 
 .template-cookie-banner {
@@ -1605,17 +1588,16 @@ a {
   display: grid;
   width: min(460px, calc(100vw - 36px));
   gap: 12px;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-page);
-  color: var(--template-text);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   padding: 14px;
-  box-shadow: 0 14px 42px rgb(15 15 15 / 16%);
 }
 
 .template-cookie-banner p {
   margin: 4px 0 0;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 13px;
 }
 
@@ -1628,17 +1610,17 @@ a {
 
 .template-cookie-banner-actions button {
   min-height: 34px;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 6px;
-  background: var(--template-page);
-  color: var(--template-text);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   padding: 7px 10px;
   cursor: pointer;
 }
 
 .template-cookie-banner-actions button:last-child {
-  background: var(--template-text);
-  color: var(--template-bg);
+  background: var(--chakra-colors-fg);
+  color: var(--chakra-colors-bg);
 }
 
 .sui-page__header,
@@ -1653,9 +1635,9 @@ a {
 }
 
 .template-empty-state {
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-subtle);
+  background: var(--chakra-colors-bg-subtle);
   padding: 18px;
 }
 
@@ -1666,16 +1648,16 @@ a {
 
 .template-empty-state p {
   margin: 0;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
 }
 
 .template-visual {
   min-width: 0;
   display: grid;
   gap: 14px;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-page);
+  background: var(--chakra-colors-bg);
   padding: 14px;
 }
 
@@ -1688,7 +1670,7 @@ a {
 
 .template-visual-header h2 {
   margin: 0;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 16px;
   line-height: 1.3;
 }
@@ -1697,10 +1679,10 @@ a {
   display: inline-flex;
   width: fit-content;
   align-items: center;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 999px;
-  background: var(--template-subtle);
-  color: var(--template-muted);
+  background: var(--chakra-colors-bg-subtle);
+  color: var(--chakra-colors-fg-muted);
   padding: 2px 8px;
   font-size: 12px;
   font-weight: 600;
@@ -1724,7 +1706,7 @@ a {
 .template-diff-row p {
   min-width: 0;
   margin: 0;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 6px;
   padding: 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
@@ -1736,26 +1718,26 @@ a {
 .template-diff-row p:first-of-type {
   border-color: color-mix(
     in srgb,
-    var(--template-danger) 28%,
-    var(--template-border)
+    var(--chakra-colors-fg-error) 28%,
+    var(--chakra-colors-border)
   );
   background: color-mix(
     in srgb,
-    var(--template-danger) 8%,
-    var(--template-page)
+    var(--chakra-colors-fg-error) 8%,
+    var(--chakra-colors-bg)
   );
 }
 
 .template-diff-row p:last-of-type {
   border-color: color-mix(
     in srgb,
-    var(--template-success) 28%,
-    var(--template-border)
+    var(--chakra-colors-fg-success) 28%,
+    var(--chakra-colors-border)
   );
   background: color-mix(
     in srgb,
-    var(--template-success) 8%,
-    var(--template-page)
+    var(--chakra-colors-fg-success) 8%,
+    var(--chakra-colors-bg)
   );
 }
 
@@ -1763,7 +1745,7 @@ a {
   display: grid;
   gap: 16px;
   margin-top: 32px;
-  border-top: 1px solid var(--template-border);
+  border-top: 1px solid var(--chakra-colors-border);
   padding-top: 24px;
 }
 
@@ -1775,7 +1757,7 @@ a {
 
 .template-form-panel header p:not(.eyebrow) {
   margin: 6px 0 0;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
 }
 
 .template-form {
@@ -1789,7 +1771,7 @@ a {
 }
 
 .template-form-field span:first-child {
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 13px;
   font-weight: 600;
 }
@@ -1797,10 +1779,10 @@ a {
 .template-form-field input,
 .template-form-field textarea {
   width: 100%;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 6px;
-  background: var(--template-page);
-  color: var(--template-text);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   padding: 8px 10px;
 }
 
@@ -1810,7 +1792,7 @@ a {
 }
 
 .template-form-error {
-  color: var(--template-danger);
+  color: var(--chakra-colors-fg-error);
   font-size: 12px;
 }
 
@@ -1823,16 +1805,16 @@ a {
 }
 
 .template-form-status {
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 13px;
 }
 
 .template-form-actions button {
   min-height: 36px;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 6px;
-  background: var(--template-text);
-  color: var(--template-bg);
+  background: var(--chakra-colors-fg);
+  color: var(--chakra-colors-bg);
   padding: 8px 12px;
   cursor: pointer;
 }
@@ -1848,7 +1830,7 @@ a {
   z-index: 110;
   display: grid;
   place-items: center;
-  background: rgb(15 15 15 / 38%);
+  background: var(--chakra-colors-bg);
   padding: 18px;
 }
 
@@ -1856,11 +1838,10 @@ a {
   width: min(520px, 100%);
   max-height: calc(100vh - 36px);
   overflow: auto;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-page);
-  color: var(--template-text);
-  box-shadow: 0 18px 60px rgb(15 15 15 / 18%);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
 }
 
 .template-dialog-header {
@@ -1868,7 +1849,7 @@ a {
   align-items: flex-start;
   justify-content: space-between;
   gap: 18px;
-  border-bottom: 1px solid var(--template-border);
+  border-bottom: 1px solid var(--chakra-colors-border);
   padding: 18px 18px 14px;
 }
 
@@ -1880,7 +1861,7 @@ a {
 
 .template-dialog-header p {
   margin: 6px 0 0;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 13px;
 }
 
@@ -1891,13 +1872,13 @@ a {
   border: 0;
   border-radius: 6px;
   background: transparent;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   cursor: pointer;
 }
 
 .template-dialog-close:hover {
-  background: var(--template-hover);
-  color: var(--template-text);
+  background: var(--chakra-colors-bg-muted);
+  color: var(--chakra-colors-fg);
 }
 
 .template-dialog-body {
@@ -1915,13 +1896,12 @@ a {
 
 .template-toast {
   max-width: min(360px, calc(100vw - 36px));
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-text);
-  color: var(--template-bg);
+  background: var(--chakra-colors-fg);
+  color: var(--chakra-colors-bg);
   padding: 10px 12px;
   font-size: 13px;
-  box-shadow: 0 12px 36px rgb(15 15 15 / 12%);
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 10px;
@@ -1930,7 +1910,8 @@ a {
 
 .template-toast p {
   margin: 4px 0 0;
-  color: rgb(255 255 255 / 78%);
+  color: inherit;
+  opacity: 0.78;
 }
 
 .template-toast button {
@@ -1944,15 +1925,18 @@ a {
 }
 
 .template-toast.success {
-  background: #0f5d3d;
+  background: var(--chakra-colors-bg-success);
+  color: var(--chakra-colors-fg-success);
 }
 
 .template-toast.warning {
-  background: #7a4a00;
+  background: var(--chakra-colors-bg-warning);
+  color: var(--chakra-colors-fg-warning);
 }
 
 .template-toast.danger {
-  background: var(--template-danger);
+  background: var(--chakra-colors-bg-error);
+  color: var(--chakra-colors-fg-error);
 }
 
 .template-route-state {
@@ -1960,8 +1944,8 @@ a {
   display: grid;
   place-items: center;
   padding: 24px;
-  background: var(--template-page);
-  color: var(--template-muted);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg-muted);
   text-align: center;
 }
 
@@ -1971,7 +1955,7 @@ a {
 
 .template-route-state-kicker {
   margin: 0 0 8px;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 12px;
   font-weight: 600;
   text-transform: uppercase;
@@ -1979,7 +1963,7 @@ a {
 
 .template-route-state h1 {
   margin: 0 0 8px;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 28px;
   line-height: 1.2;
 }
@@ -1998,26 +1982,26 @@ a {
 .template-route-state-actions a,
 .template-route-state-actions button {
   min-height: 36px;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 6px;
-  background: var(--template-page);
-  color: var(--template-text);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   padding: 8px 12px;
   text-decoration: none;
 }
 
 .template-route-state.error {
-  color: var(--template-danger);
+  color: var(--chakra-colors-fg-error);
 }
 
 .template-workspace-shell {
   min-height: 100vh;
-  background: var(--template-bg);
+  background: var(--chakra-colors-bg);
 }
 
 .template-sidebar {
-  border-right: 1px solid var(--template-border);
-  background: var(--template-subtle);
+  border-right: 1px solid var(--chakra-colors-border);
+  background: var(--chakra-colors-bg-subtle);
 }
 
 .template-sidebar-header,
@@ -2034,13 +2018,13 @@ a {
   border-radius: 6px;
   background: transparent;
   padding: 6px;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   text-align: left;
   cursor: default;
 }
 
 .template-workspace-switcher:hover {
-  background: var(--template-hover);
+  background: var(--chakra-colors-bg-muted);
 }
 
 .template-workspace-mark,
@@ -2052,8 +2036,8 @@ a {
   align-items: center;
   justify-content: center;
   border-radius: 5px;
-  background: #ffffff;
-  color: var(--template-muted);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg-muted);
   font-size: 12px;
   font-weight: 600;
 }
@@ -2067,14 +2051,14 @@ a {
 
 .template-workspace-name {
   display: block;
-  color: var(--template-text) !important;
+  color: var(--chakra-colors-fg) !important;
   font-size: 14px;
   font-weight: 600;
 }
 
 .template-workspace-subtitle {
   display: block;
-  color: #3f3e3a !important;
+  color: var(--chakra-colors-fg);
   font-size: 12px;
 }
 
@@ -2089,7 +2073,7 @@ a {
 .template-sidebar-group-label {
   margin: 0 0 4px;
   padding: 0 8px;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 11px;
   font-weight: 600;
   text-transform: uppercase;
@@ -2117,35 +2101,35 @@ a {
   border-radius: 6px;
   background: transparent;
   padding: 0;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   text-align: left;
   text-decoration: none;
   cursor: pointer;
 }
 
 .template-sidebar-row:hover {
-  background: var(--template-hover);
+  background: var(--chakra-colors-bg-muted);
 }
 
 .template-sidebar-row[aria-current="page"],
 .template-sidebar-row.is-active {
-  background: var(--template-active) !important;
-  color: var(--template-text) !important;
+  background: var(--chakra-colors-bg-emphasized) !important;
+  color: var(--chakra-colors-fg) !important;
   font-weight: 500;
 }
 
 .template-sidebar-hint {
   margin-left: auto;
-  color: #3f3e3a !important;
+  color: var(--chakra-colors-fg);
   font-size: 11px;
 }
 
 .template-sidebar-row .template-sidebar-label {
-  color: var(--template-text) !important;
+  color: var(--chakra-colors-fg) !important;
 }
 
 .template-sidebar-footer .template-sidebar-row {
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
 }
 
 .template-shell-topbar {
@@ -2156,8 +2140,8 @@ a {
   min-height: 44px;
   align-items: center;
   justify-content: space-between;
-  border-bottom: 1px solid var(--template-border);
-  background: color-mix(in srgb, var(--template-bg) 92%, transparent);
+  border-bottom: 1px solid var(--chakra-colors-border);
+  background: color-mix(in srgb, var(--chakra-colors-bg) 92%, transparent);
   padding: 0 14px;
   backdrop-filter: blur(12px);
 }
@@ -2165,7 +2149,7 @@ a {
 .template-topbar-title {
   min-width: 0;
   overflow: hidden;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 13px;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2173,7 +2157,7 @@ a {
 
 .template-shell-main {
   min-height: 100vh;
-  background: var(--template-page);
+  background: var(--chakra-colors-bg);
 }
 
 .template-shell-content {
@@ -2194,7 +2178,7 @@ a {
 
 .template-readable-page h1 {
   margin: 0;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 40px;
   line-height: 1.12;
   letter-spacing: 0;
@@ -2202,7 +2186,7 @@ a {
 
 .template-readable-page > p:not(.eyebrow) {
   margin: 18px 0 28px;
-  color: #37352f;
+  color: var(--chakra-colors-fg);
   font-size: 17px;
   line-height: 1.58;
 }
@@ -2225,7 +2209,7 @@ a {
 .template-notifications-header h2,
 .template-notification-row h3 {
   margin: 0;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 18px;
   line-height: 1.3;
   letter-spacing: 0;
@@ -2239,19 +2223,19 @@ a {
 
 .template-notification-row,
 .template-notification-prefs article {
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-page);
+  background: var(--chakra-colors-bg);
   padding: 14px;
 }
 
 .template-notification-row.unread {
-  border-left: 3px solid #2f6fed;
+  border-left: 3px solid var(--chakra-colors-border);
 }
 
 .template-notification-row p {
   margin: 6px 0 0;
-  color: #4f4e49;
+  color: var(--chakra-colors-fg);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -2265,7 +2249,7 @@ a {
 
 .template-notification-row footer {
   margin-top: 12px;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 13px;
 }
 
@@ -2273,7 +2257,7 @@ a {
 .template-notification-row button {
   border: 0;
   background: transparent;
-  color: #2f6fed;
+  color: var(--chakra-colors-fg);
   cursor: pointer;
   font: inherit;
   text-decoration: none;
@@ -2284,16 +2268,16 @@ a {
   grid-template-columns: minmax(120px, 1fr) repeat(3, auto);
   align-items: center;
   gap: 10px;
-  color: #4f4e49;
+  color: var(--chakra-colors-fg);
   font-size: 13px;
 }
 
 .template-platform-empty {
-  border: 1px dashed var(--template-border);
+  border: 1px dashed var(--chakra-colors-border);
   border-radius: 8px;
   margin: 0;
   padding: 18px;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
 }
 
 .template-health-surface {
@@ -2309,7 +2293,7 @@ a {
 
 .template-health-header h2 {
   margin: 0;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 18px;
   line-height: 1.3;
   letter-spacing: 0;
@@ -2318,7 +2302,7 @@ a {
 .template-health-header p,
 .template-health-footnote {
   margin: 6px 0 0;
-  color: #4f4e49;
+  color: var(--chakra-colors-fg);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -2331,20 +2315,20 @@ a {
 }
 
 .template-health-header dl div {
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-page);
+  background: var(--chakra-colors-bg);
   padding: 14px;
 }
 
 .template-health-header dt {
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 12px;
 }
 
 .template-health-header dd {
   margin: 4px 0 0;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 20px;
   font-weight: 650;
 }
@@ -2359,9 +2343,9 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-page);
+  background: var(--chakra-colors-bg);
   padding: 12px 14px;
 }
 
@@ -2371,14 +2355,14 @@ a {
 }
 
 .template-health-row strong {
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 14px;
   font-weight: 650;
   line-height: 1.3;
 }
 
 .template-health-row small {
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 12px;
   line-height: 1.4;
 }
@@ -2400,7 +2384,7 @@ a {
 .template-data-lifecycle-header h2,
 .template-data-lifecycle-row h3 {
   margin: 0;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 18px;
   line-height: 1.3;
   letter-spacing: 0;
@@ -2409,7 +2393,7 @@ a {
 .template-data-lifecycle-header p,
 .template-data-lifecycle-row p {
   margin: 6px 0 0;
-  color: #4f4e49;
+  color: var(--chakra-colors-fg);
   font-size: 14px;
   line-height: 1.5;
 }
@@ -2421,10 +2405,10 @@ a {
 }
 
 .template-data-lifecycle-actions button {
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-page);
-  color: var(--template-text);
+  background: var(--chakra-colors-bg);
+  color: var(--chakra-colors-fg);
   cursor: pointer;
   font: inherit;
   font-size: 13px;
@@ -2433,8 +2417,8 @@ a {
 }
 
 .template-data-lifecycle-actions button:first-child {
-  background: var(--template-text);
-  color: var(--template-page);
+  background: var(--chakra-colors-fg);
+  color: var(--chakra-colors-bg);
 }
 
 .template-data-lifecycle-summary {
@@ -2446,22 +2430,22 @@ a {
 
 .template-data-lifecycle-summary div,
 .template-data-lifecycle-row {
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
-  background: var(--template-page);
+  background: var(--chakra-colors-bg);
   padding: 14px;
 }
 
 .template-data-lifecycle-summary dt,
 .template-data-lifecycle-row dt {
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 12px;
 }
 
 .template-data-lifecycle-summary dd,
 .template-data-lifecycle-row dd {
   margin: 4px 0 0;
-  color: var(--template-text);
+  color: var(--chakra-colors-fg);
   font-size: 14px;
   font-weight: 600;
 }
@@ -2479,9 +2463,9 @@ a {
 }
 
 .template-data-lifecycle-row span {
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 999px;
-  color: var(--template-muted);
+  color: var(--chakra-colors-fg-muted);
   font-size: 12px;
   padding: 4px 8px;
   text-transform: capitalize;
@@ -2538,29 +2522,29 @@ a {
 .workflow-canvas {
   width: 100%;
   height: 320px;
-  border: 1px solid var(--template-border);
+  border: 1px solid var(--chakra-colors-border);
   border-radius: 8px;
   overflow: hidden;
 }
 
 .workflow-node.source {
-  border-color: var(--template-source);
+  border-color: var(--chakra-colors-border-emphasized);
 }
 
 .workflow-node.capability {
-  border-color: var(--template-capability);
+  border-color: var(--chakra-colors-border-emphasized);
 }
 
 .workflow-node.agent {
-  border-color: var(--template-agent);
+  border-color: var(--chakra-colors-border-emphasized);
 }
 
 .workflow-node.approval {
-  border-color: var(--template-approval);
+  border-color: var(--chakra-colors-border-emphasized);
 }
 
 .workflow-node.output {
-  border-color: var(--template-output);
+  border-color: var(--chakra-colors-border-emphasized);
 }
 
 @media (prefers-reduced-motion: reduce) {

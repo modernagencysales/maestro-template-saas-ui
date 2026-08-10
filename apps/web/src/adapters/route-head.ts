@@ -36,7 +36,6 @@ export const buildTemplateRouteHead = ({
       { title },
       { name: "description", content: description },
       { name: "application-name", content: siteName },
-      { name: "theme-color", content: "#111111" },
       { property: "og:site_name", content: siteName },
       { property: "og:type", content: "website" },
       { property: "og:title", content: title },

@@ -10,9 +10,11 @@ import { AuthKitProvider } from "@workos/authkit-tanstack-react-start/client";
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
+import "@fontsource-variable/inter";
 import { TemplateToastProvider } from "@maestro-template/ui";
 
 import { MaestroSaasUiProvider } from "../saas-ui/provider";
+import { ColorModeProvider } from "../saas-ui/color-mode";
 import {
   createBrowserWorkspaceStorage,
   WorkspaceProvider,
@@ -74,9 +76,11 @@ function RootComponent() {
                     pathname={location.pathname}
                   >
                     <MaestroSaasUiProvider>
-                      <TemplateToastProvider>
-                        <Outlet />
-                      </TemplateToastProvider>
+                      <ColorModeProvider>
+                        <TemplateToastProvider>
+                          <Outlet />
+                        </TemplateToastProvider>
+                      </ColorModeProvider>
                     </MaestroSaasUiProvider>
                   </WebRouteUxBoundary>
                 </RootDocument>
@@ -91,7 +95,7 @@ function RootComponent() {
 
 function RootDocument({ children }: { readonly children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
       <head>
         <HeadContent />
       </head>

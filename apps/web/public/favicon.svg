@@ -1,6 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title">
-  <title>Maestro Template</title>
-  <rect width="64" height="64" rx="14" fill="#111111" />
-  <path d="M16 43V21h7l9 13 9-13h7v22h-7V32L34 43h-4l-7-11v11z" fill="#ffffff" />
-  <path d="M20 49h24" stroke="#8bd3ff" stroke-width="4" stroke-linecap="round" />
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  viewBox="0 0 64 64"
+  role="img"
+  aria-labelledby="title"
+  fill="currentColor"
+>
+  <title id="title">Maestro Template</title>
+  <path d="M10 52V12h11l11 17 11-17h11v40H43V31L35 44h-6l-8-13v21z" />
 </svg>

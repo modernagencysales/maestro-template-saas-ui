@@ -27,6 +27,11 @@ describe("buildTemplateRouteHead", () => {
         { name: "twitter:card", content: "summary_large_image" },
       ]),
     );
+    expect(head.meta).not.toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({ name: "theme-color" }),
+      ]),
+    );
     expect(head.links).toEqual(
       expect.arrayContaining([
         {

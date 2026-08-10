@@ -155,6 +155,9 @@ importers:
       "@emotion/react":
         specifier: ^11.14.0
         version: 11.14.0(@types/react@19.2.17)(react@19.1.1)
+      "@fontsource-variable/inter":
+        specifier: 5.2.8
+        version: 5.2.8
       "@maestro-template/app-idea-evaluator":
         specifier: workspace:*
         version: link:../../packages/app-idea-evaluator
@@ -224,6 +227,9 @@ importers:
       lucide-react:
         specifier: ^1.22.0
         version: 1.22.0(react@19.1.1)
+      next-themes:
+        specifier: 0.4.6
+        version: 0.4.6(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       react:
         specifier: 19.1.1
         version: 19.1.1
@@ -1927,6 +1933,12 @@ packages:
     resolution:
       {
         integrity: sha512-RiB/yIh78pcIxl6lLMG0CgBXAZ2Y0eVHqMPYugu+9U0AeT6YBeiJpf7lbdJNIugFP5SIjwNRgo4DhR1Qxi26Gg==,
+      }
+
+  "@fontsource-variable/inter@5.2.8":
+    resolution:
+      {
+        integrity: sha512-kOfP2D+ykbcX/P3IFnokOhVRNoTozo5/JxhAIVYLpea/UBmCQ/YWPBfWIDuBImXX/15KH+eKh4xpEUyS2sQQGQ==,
       }
 
   "@handlewithcare/prosemirror-inputrules@0.1.4":
@@ -10534,6 +10546,8 @@ snapshots:
       tabbable: 6.5.0
 
   "@floating-ui/utils@0.2.11": {}
+
+  "@fontsource-variable/inter@5.2.8": {}
 
   "@handlewithcare/prosemirror-inputrules@0.1.4(prosemirror-model@1.25.9)(prosemirror-state@1.4.4)(prosemirror-view@1.42.0)":
     dependencies:
