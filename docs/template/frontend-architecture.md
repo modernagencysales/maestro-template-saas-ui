@@ -58,9 +58,12 @@ The intended provider tree is:
 ```text
 AuthKitProvider
   ConvexProviderWithAuth
-    PostHogWebProvider
-      WorkspaceProvider
-        route outlet / app shell
+    WorkspaceProvider
+      CookieConsentBoundary
+        PostHogWebProvider
+          SuiProvider
+            ColorModeProvider
+              route outlet / app shell
 ```
 
 Provider rules:
@@ -77,7 +80,8 @@ Provider rules:
 
 The web shell should use Saas UI primitives where possible:
 
-- `SuiProvider` with the Saas UI Pro default system for the web app provider.
+- One app-local `SuiProvider` system composed from the Saas UI Pro default
+  config without a template brand palette.
 - Saas UI layout, card, page, table, badge, button, input, and stack primitives
   for business-app surfaces.
 - Local `packages/ui` primitives for reusable template package components that
@@ -86,10 +90,27 @@ The web shell should use Saas UI primitives where possible:
 
 CSS rules:
 
-- Use `apps/web/src/index.css` for semantic tokens, font stack, density, focus,
-  motion, and workflow categorical colors.
-- Do not copy Maestro-specific product color names or route names into template
-  tokens.
+- Use `apps/web/src/index.css` only for structural rules the component system
+  does not own, root font smoothing, focus, responsive form sizing, and reduced
+  motion.
+- Use Chakra/Saas UI semantic roles and recipes. Do not author raw colors,
+  palette slots, workflow category palettes, product color names, or route names
+  in template styling.
+
+### Pattern source and CLI
+
+[`saas-ui-pattern-catalog.md`](./saas-ui-pattern-catalog.md) is the selection
+authority for the purchased starter, Pro blocks, and public compositions. Every
+entry is a live default, ready source, reference-only source, or rejected. Do
+not copy a purchased story, fixture, provider, or backend merely because its
+component is selected.
+
+`apps/web/components.json` configures `@saas-ui/cli@0.0.2`. Run the CLI from
+`apps/web`; its `@/*` alias resolves only to `apps/web/src/*` in both TypeScript
+and Vite. Install only cataloged live or ready registry roots. If a private or
+transitive registry request fails, record the public error and adapt the pinned
+purchased source with its repo, commit, and path. Do not hand-roll a substitute
+or add a speculative dependency.
 
 Block rules:
 

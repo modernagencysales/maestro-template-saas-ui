@@ -81,6 +81,7 @@ export default defineConfig({
   ],
   resolve: {
     alias: {
+      "@": fileURLToPath(new URL("./src/", import.meta.url)),
       "@maestro-template/template-core/generated/confectManifest":
         fileURLToPath(
           new URL(

@@ -1,0 +1,14 @@
+{
+  "$schema": "https://registry.saas-ui.dev/schema.json",
+  "system": "chakra",
+  "style": "default",
+  "rsc": false,
+  "tsx": true,
+  "aliases": {
+    "components": "@/components",
+    "utils": "@/lib/utils",
+    "ui": "@/components/ui",
+    "lib": "@/lib",
+    "hooks": "@/hooks"
+  }
+}
