@@ -458,6 +458,8 @@ const clientReleaseHandoffArtifacts = [
   "docs/template/generated/provider-setup-checklist.md",
   "docs/template/generated/handoff-packet.md",
   "docs/template/env-manifest.md",
+  "docs/template/enforced-engineering-rules.md",
+  "docs/template/saas-ui-pattern-catalog.md",
   "docs/template/template-release-process.md",
 ] as const;
 
@@ -465,6 +467,8 @@ const clientReleaseRequiredChecks = [
   "pnpm check:generators",
   "pnpm check:confect-contracts",
   "pnpm check:workflow-graph-boundary",
+  "pnpm check:semantic-colors",
+  "pnpm --dir apps/web test -- frontend-foundation.test.ts",
   "pnpm check:schema-migration-notes",
   "pnpm check:secret-canaries",
   "pnpm review:readiness",

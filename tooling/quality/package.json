@@ -8,7 +8,9 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
-    "@maestro-template/template-core": "workspace:*"
+    "@maestro-template/template-core": "workspace:*",
+    "color-name": "1.1.4",
+    "postcss": "8.5.16"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist --declaration",

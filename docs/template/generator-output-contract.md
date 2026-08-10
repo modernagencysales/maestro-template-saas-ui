@@ -59,6 +59,13 @@ For user-facing behavior, also emit or update:
 - route or navigation metadata.
 - screenshots or visual smoke notes when the rendered surface changes.
 
+Generators initialize business metadata in place. They preserve the checked-in
+`apps/web/components.json`, provider/system/color-mode/font setup, pathless
+`_workspace` shell, layouts, and `apps/web/src/saas-ui/patterns/` shelf. Do not
+copy, materialize, rewrite, or post-process a second frontend blueprint. Extend
+the existing foundation through a thin route and typed adapter, then run
+`pnpm check:semantic-colors` and the focused frontend-foundation test.
+
 `template:add-feature` is the production golden path. It emits the Confect
 capability plus contract → presenter/fixtures/tests → feature → screen → thin
 route, with auth, workspace tenancy, audit, observability, rollout, entitlement,

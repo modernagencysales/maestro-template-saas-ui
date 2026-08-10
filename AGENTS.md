@@ -57,6 +57,12 @@ factory/customer boundary. Use
 `docs/template/enforced-engineering-rules.md` to select focused checks; reserve
 full verification for an integrated batch or delivery candidate.
 
+Frontend work must also preserve the checked-in Saas UI foundation catalog in
+`docs/template/saas-ui-pattern-catalog.md`. Workspace examples use installed
+Saas UI/Chakra primitives and semantic color roles; run
+`pnpm check:semantic-colors` plus the focused frontend-foundation test after
+changing the shell, layouts, patterns, assets, or frontend dependencies.
+
 ## Layer Law
 
 ```text

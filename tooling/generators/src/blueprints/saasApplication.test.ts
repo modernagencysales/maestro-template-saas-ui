@@ -1827,6 +1827,12 @@ Feature: Reconcile disputed invoices
       "pnpm-workspace.yaml",
       "packages/convex/package.json",
       "tooling/quality/check-convex-generation.mts",
+      "tooling/quality/check-semantic-color-assets.mts",
+      "tooling/quality/check-semantic-color-assets.test.mts",
+      "eslint.config.mjs",
+      "tooling/eslint-plugin-template/index.mjs",
+      "tooling/eslint-plugin-template/rules/prefer-saas-ui-primitives.mjs",
+      "tooling/eslint-plugin-template/rules/require-semantic-colors.mjs",
       "apps/cli/src/factory/customerComposition.ts",
       "apps/cli/src/factory/contracts.ts",
       "apps/cli/src/factory/mcp.ts",
@@ -1953,7 +1959,6 @@ Feature: Reconcile disputed invoices
       "packages/convex/confect/_generated/id.ts",
       "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
       "packages/convex/convex/records/records.ts",
-      "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
       "apps/web/src/adapters/confect-generated-refs.test.ts",
       "docs/template/env-manifest.json",
@@ -1976,14 +1981,9 @@ Feature: Reconcile disputed invoices
         path.startsWith("examples/generic-ai-ops/seed/"),
       ),
     ).toBe(false);
-    const routeTree = first.find(
-      ({ path }) => path === "apps/web/src/routeTree.gen.ts",
-    )?.content;
-    expect(routeTree).toContain("path: '/records'");
-    expect(routeTree).not.toContain("saasApplicationRoutes");
-    expect(routeTree?.indexOf("'/_workspace/runs': {")).toBeLessThan(
-      routeTree?.indexOf("'/_workspace/records': {") ?? -1,
-    );
+    expect(
+      first.some(({ path }) => path === "apps/web/src/routeTree.gen.ts"),
+    ).toBe(false);
     expect(
       first.find(
         ({ path }) => path === "tooling/quality/install-lefthook-if-git.mjs",
@@ -2217,12 +2217,17 @@ Feature: Reconcile disputed invoices
     expect(posthog).toContain("shouldEnableAnalyticsCapture");
     expect(posthog).not.toContain("app-idea-evaluator");
     expect(posthog).not.toContain("public-funnel");
-    const routeTree = files.get("apps/web/src/routeTree.gen.ts") ?? "";
-    expect(routeTree).toContain("DashboardRouteImport");
-    expect(routeTree).toContain("WorkspaceRecordsRouteImport");
-    expect(routeTree).not.toContain("EvaluateRouteImport");
-    expect(routeTree).not.toContain("CheckoutReturnRouteImport");
-    expect(routeTree).not.toContain("BuildPackPackIdRouteImport");
+    expect(files.has("apps/web/src/routeTree.gen.ts")).toBe(false);
+  });
+
+  it("preserves the pathless workspace shell in generated customer routing", () => {
+    const files = buildFactorySaasApplicationFiles({ name: "My App" });
+    expect(
+      files.some(({ path }) => path === "apps/web/src/routeTree.gen.ts"),
+    ).toBe(false);
+    expect(
+      files.some(({ path }) => path === "apps/web/src/routes/_workspace.tsx"),
+    ).toBe(false);
   });
 
   // eslint-disable-next-line complexity -- AP-008 tracks splitting this declarative script-closure assertion.
@@ -2447,6 +2452,7 @@ Feature: Reconcile disputed invoices
         "check:convex-ai-files",
         "check:agent-pack",
         "check:route-tree",
+        "check:semantic-colors",
         "check:frontend-effect-boundary",
         "check:env-boundary",
         "check:provider-boundary",

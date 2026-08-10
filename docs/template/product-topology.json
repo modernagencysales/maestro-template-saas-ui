@@ -295,8 +295,8 @@
       "id": "route:dashboard",
       "kind": "route",
       "system": "knowledge-brain",
-      "path": "apps/web/src/routes/dashboard.tsx",
-      "responsibility": "present the evaluator report library dashboard",
+      "path": "apps/web/src/routes/_workspace.dashboard.tsx",
+      "responsibility": "present the truthful workspace dashboard",
       "surfaces": ["web"],
       "uses": ["access-and-tenancy"],
       "lifecycle": "active"

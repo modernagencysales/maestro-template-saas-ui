@@ -28,7 +28,7 @@ For a customer app, preview a reviewed release first:
 ```bash
 git clone https://github.com/modernagencysales/maestro-template-saas-ui.git
 cd maestro-template-saas-ui
-git checkout maestro-template-v0.2.0-alpha.2
+git checkout maestro-template-v0.2.0-alpha.4
 node scripts/maestro-bootstrap.mjs
 ```
 
@@ -192,6 +192,8 @@ pnpm check:data-resources
 pnpm check:schema-migration-notes
 pnpm check:confect-contracts
 pnpm --dir apps/web typecheck
+pnpm check:semantic-colors
+pnpm --dir apps/web test -- frontend-foundation.test.ts
 ```
 
 The successful write prints these commands in dependency order. The web build
@@ -225,6 +227,10 @@ The first app proof is that the neutral chassis starts cleanly in fake mode and
 continues to label its unimplemented first outcome as `@wip`. After a reviewed
 product slice is added, exercise that slice's promised loading, empty, error,
 read, edit, and mutation states before promoting its contract.
+
+Quickstart personalization preserves the checked-in Saas UI provider, appearance
+system, `_workspace` shell, layouts, and ready-source shelf. It updates business
+metadata in place; it does not copy or rewrite the frontend foundation.
 
 ## The method in one page
 

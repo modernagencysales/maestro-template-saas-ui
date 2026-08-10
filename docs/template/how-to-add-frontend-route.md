@@ -41,6 +41,9 @@ to reuse/extend the existing slice or choose a deliberately reviewed name.
    approved.
 5. If durable state is required, run `template:add-table` with the complete
    tenant, sensitivity, PII, export, delete, and retention posture.
+6. Keep workspace routes beneath the existing pathless `_workspace` boundary.
+   Compose the checked-in Saas UI patterns before adapting new purchased source;
+   do not add a second shell or speculative route.
 
 ## Tests And Gates
 
@@ -49,6 +52,8 @@ to reuse/extend the existing slice or choose a deliberately reviewed name.
 - `pnpm confect:codegen`
 - `pnpm build`
 - `pnpm check:route-tree`
+- `pnpm check:semantic-colors`
+- `pnpm --dir apps/web test -- frontend-foundation.test.ts`
 - `pnpm check:system-topology`
 - `pnpm check:data-resources`
 - `pnpm check:promotion-boundary`

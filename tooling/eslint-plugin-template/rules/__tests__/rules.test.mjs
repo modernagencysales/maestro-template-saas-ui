@@ -20,6 +20,8 @@ import noCrossDomainValueImport from "../no-cross-domain-value-import.mjs";
 import noRawScheduler from "../no-raw-scheduler.mjs";
 import frontendRouteThin from "../frontend-route-thin.mjs";
 import frontendRouteServerBoundary from "../frontend-route-server-boundary.mjs";
+import preferSaasUiPrimitives from "../prefer-saas-ui-primitives.mjs";
+import requireSemanticColors from "../require-semantic-colors.mjs";
 
 const tester = new RuleTester({
   languageOptions: {
@@ -806,4 +808,84 @@ tester.run("frontend-route-server-boundary", frontendRouteServerBoundary, {
       errors: [{ messageId: "helper" }],
     },
   ],
+});
+
+const WORKSPACE_EXAMPLE = "apps/web/src/saas-ui/patterns/example.tsx";
+
+tester.run("prefer-saas-ui-primitives", preferSaasUiPrimitives, {
+  valid: [
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: "export const Example = () => <Button>Save changes</Button>;",
+    },
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: "export const Example = () => <section><header>Settings</header></section>;",
+    },
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: 'export const Example = () => <input type="file" aria-label="Upload files" />;',
+    },
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: 'export const Example = () => <input type={"file"} aria-label="Upload files" />;',
+    },
+    {
+      filename: "apps/web/src/routes/index.tsx",
+      code: "export const Example = () => <button>Public action</button>;",
+    },
+  ],
+  invalid: ["button", "input", "select", "textarea", "table", "dialog"].map(
+    (element) => ({
+      filename: WORKSPACE_EXAMPLE,
+      code: `export const Example = () => <${element}>Example</${element}>;`,
+      errors: [{ messageId: "preferPrimitive" }],
+    }),
+  ),
+});
+
+tester.run("require-semantic-colors", requireSemanticColors, {
+  valid: [
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: 'export const Example = () => <Box color="fg.muted" bg="bg.subtle" />;',
+    },
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: 'export const recipe = { color: "fg.error", background: "bg.error" };',
+    },
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: 'export const Example = () => <Alert status="error" />;',
+    },
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: 'export const Example = () => <path fill="none" stroke="currentColor" />;',
+    },
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: 'export const chart = { color: "var(--chakra-colors-chart-primary)" };',
+    },
+    {
+      filename: WORKSPACE_EXAMPLE,
+      code: 'export const Example = () => <Box bg="sidebar.bg" />;',
+    },
+  ],
+  invalid: [
+    'export const Example = () => <Box color="#fff" />;',
+    'export const Example = () => <Box bg="rgb(0 0 0)" />;',
+    'export const recipe = { borderColor: "red.500" };',
+    'export const classes = { color: "text-red-500" };',
+    'export const Example = () => <path fill="white" />;',
+    'export const Example = () => <Line stroke="#123456" />;',
+    'export const Example = () => <Line stroke={"#123456"} />;',
+    'export const Example = () => <Button colorPalette="blue" />;',
+    'export const Example = () => <div className="text-red-500" />;',
+    'export const Example = () => <div className="bg-[#fff]" />;',
+    'export const token = { value: "oklch(50% 0.2 30)" };',
+  ].map((code) => ({
+    filename: WORKSPACE_EXAMPLE,
+    code,
+    errors: [{ messageId: "semanticColor" }],
+  })),
 });

@@ -18,6 +18,8 @@ import noCrossDomainValueImport from "./rules/no-cross-domain-value-import.mjs";
 import noRawScheduler from "./rules/no-raw-scheduler.mjs";
 import frontendRouteThin from "./rules/frontend-route-thin.mjs";
 import frontendRouteServerBoundary from "./rules/frontend-route-server-boundary.mjs";
+import preferSaasUiPrimitives from "./rules/prefer-saas-ui-primitives.mjs";
+import requireSemanticColors from "./rules/require-semantic-colors.mjs";
 
 export default {
   meta: { name: "eslint-plugin-template", version: "0.0.0" },
@@ -34,5 +36,7 @@ export default {
     "no-raw-scheduler": noRawScheduler,
     "frontend-route-thin": frontendRouteThin,
     "frontend-route-server-boundary": frontendRouteServerBoundary,
+    "prefer-saas-ui-primitives": preferSaasUiPrimitives,
+    "require-semantic-colors": requireSemanticColors,
   },
 };

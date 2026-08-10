@@ -110,4 +110,23 @@ export default [
       "template/frontend-route-server-boundary": "error",
     },
   },
+  {
+    files: [
+      "apps/web/src/saas-ui/**/*.{ts,tsx}",
+      "apps/web/src/routes/_workspace*.{ts,tsx}",
+    ],
+    ignores: ["**/*.test.{ts,tsx}"],
+    plugins: { template: templatePlugin },
+    rules: {
+      "template/prefer-saas-ui-primitives": "error",
+    },
+  },
+  {
+    files: ["apps/web/src/**/*.{ts,tsx}"],
+    ignores: ["**/*.test.{ts,tsx}"],
+    plugins: { template: templatePlugin },
+    rules: {
+      "template/require-semantic-colors": "error",
+    },
+  },
 ];

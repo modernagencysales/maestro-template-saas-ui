@@ -302,6 +302,7 @@ export const CURRENT_EMAIL_CLOSURE = [
 
 export const CURRENT_EMAIL_BASE_COPY_REPLACEMENTS = [
   ".env.example",
+  "eslint.config.mjs",
   "apps/web/src/features/setup/setup-surface.ts",
   "apps/web/src/sample/templateData.test.ts",
   "docs/template/client-handoff-packet.md",
@@ -328,6 +329,7 @@ export const CURRENT_EMAIL_BASE_COPY_REPLACEMENTS = [
   "packages/ui/src/visualize/visualize.test.tsx",
   "project.config.json",
   "tooling/confect-manifest/src/generate.ts",
+  "tooling/eslint-plugin-template/index.mjs",
   "tooling/quality/check-env-boundary.mts",
   "tooling/quality/check-env-boundary.test.mts",
   "tooling/workflow/src/index.test.ts",
@@ -408,6 +410,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:deps",
   "check:knip",
   "check:route-tree",
+  "check:semantic-colors",
   "check:frontend-effect-boundary",
   "check:env-boundary",
   "check:provider-boundary",
@@ -529,6 +532,7 @@ const customerPackage = (
     "check:convex-ai-files",
     "check:agent-pack",
     "check:route-tree",
+    "check:semantic-colors",
     "check:frontend-effect-boundary",
     "check:env-boundary",
     "check:provider-boundary",
@@ -1290,10 +1294,16 @@ const routeTree = (current: boolean, recordsSelected: boolean): string => {
     "import { Route as WorkspaceRunsRouteImport } from './routes/_workspace.runs'",
     "import { Route as WorkspaceRunsRouteImport } from './routes/_workspace.runs'\nimport { Route as WorkspaceRecordsRouteImport } from './routes/_workspace.records'",
   );
+  const hasWorkspaceBoundary = value.includes("const WorkspaceRoute =");
+  const runsId = hasWorkspaceBoundary ? "/runs" : "/_workspace/runs";
+  const parentRoute = hasWorkspaceBoundary
+    ? "WorkspaceRoute"
+    : "rootRouteImport";
+  const runsDefinition = `const WorkspaceRunsRoute = WorkspaceRunsRouteImport.update({\n  id: '${runsId}',\n  path: '/runs',\n  getParentRoute: () => ${parentRoute},\n} as any)`;
   value = replace(
     value,
-    "const WorkspaceRunsRoute = WorkspaceRunsRouteImport.update({\n  id: '/_workspace/runs',\n  path: '/runs',\n  getParentRoute: () => rootRouteImport,\n} as any)",
-    "const WorkspaceRunsRoute = WorkspaceRunsRouteImport.update({\n  id: '/_workspace/runs',\n  path: '/runs',\n  getParentRoute: () => rootRouteImport,\n} as any)\nconst WorkspaceRecordsRoute = WorkspaceRecordsRouteImport.update({\n  id: '/_workspace/records',\n  path: '/records',\n  getParentRoute: () => rootRouteImport,\n} as any)",
+    runsDefinition,
+    `${runsDefinition}\nconst WorkspaceRecordsRoute = WorkspaceRecordsRouteImport.update({\n  id: '/records',\n  path: '/records',\n  getParentRoute: () => ${parentRoute},\n} as any)`,
   );
   value = replaceAll(
     value,
@@ -1316,10 +1326,11 @@ const routeTree = (current: boolean, recordsSelected: boolean): string => {
     "  WorkspaceRunsRoute: typeof WorkspaceRunsRoute",
     "  WorkspaceRecordsRoute: typeof WorkspaceRecordsRoute\n  WorkspaceRunsRoute: typeof WorkspaceRunsRoute",
   );
+  const runsDeclaration = `    '/_workspace/runs': {\n      id: '/_workspace/runs'\n      path: '/runs'\n      fullPath: '/runs'\n      preLoaderRoute: typeof WorkspaceRunsRouteImport\n      parentRoute: typeof ${parentRoute}\n    }`;
   value = replace(
     value,
-    "    '/_workspace/runs': {\n      id: '/_workspace/runs'\n      path: '/runs'\n      fullPath: '/runs'\n      preLoaderRoute: typeof WorkspaceRunsRouteImport\n      parentRoute: typeof rootRouteImport\n    }",
-    "    '/_workspace/runs': {\n      id: '/_workspace/runs'\n      path: '/runs'\n      fullPath: '/runs'\n      preLoaderRoute: typeof WorkspaceRunsRouteImport\n      parentRoute: typeof rootRouteImport\n    }\n    '/_workspace/records': {\n      id: '/_workspace/records'\n      path: '/records'\n      fullPath: '/records'\n      preLoaderRoute: typeof WorkspaceRecordsRouteImport\n      parentRoute: typeof rootRouteImport\n    }",
+    runsDeclaration,
+    `${runsDeclaration}\n    '/_workspace/records': {\n      id: '/_workspace/records'\n      path: '/records'\n      fullPath: '/records'\n      preLoaderRoute: typeof WorkspaceRecordsRouteImport\n      parentRoute: typeof ${parentRoute}\n    }`,
   );
   return replace(
     value,
@@ -1456,6 +1467,35 @@ export const buildSaasRegistrationProjections = (
               "tooling/quality/check-convex-generation.mts",
             ),
           },
+          {
+            path: "tooling/quality/check-semantic-color-assets.mts",
+            content: currentSource(
+              "tooling/quality/check-semantic-color-assets.mts",
+            ),
+          },
+          {
+            path: "tooling/quality/check-semantic-color-assets.test.mts",
+            content: currentSource(
+              "tooling/quality/check-semantic-color-assets.test.mts",
+            ),
+          },
+          {
+            path: "eslint.config.mjs",
+            content: currentSource("eslint.config.mjs"),
+          },
+          {
+            path: "tooling/eslint-plugin-template/index.mjs",
+            content: currentSource("tooling/eslint-plugin-template/index.mjs"),
+          },
+          ...[
+            "prefer-saas-ui-primitives.mjs",
+            "require-semantic-colors.mjs",
+          ].map((rule) => ({
+            path: `tooling/eslint-plugin-template/rules/${rule}`,
+            content: currentSource(
+              `tooling/eslint-plugin-template/rules/${rule}`,
+            ),
+          })),
         ]
       : []),
     {
@@ -1845,10 +1885,14 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
-    {
-      path: "apps/web/src/routeTree.gen.ts",
-      content: routeTree(current, recordsSelected),
-    },
+    ...(!current
+      ? [
+          {
+            path: "apps/web/src/routeTree.gen.ts",
+            content: routeTree(false, recordsSelected),
+          },
+        ]
+      : []),
     ...(recordsSelected
       ? [
           {

@@ -703,6 +703,8 @@ describe("release tooling", () => {
       "docs/template/generated/provider-setup-checklist.md",
       "docs/template/generated/handoff-packet.md",
       "docs/template/env-manifest.md",
+      "docs/template/enforced-engineering-rules.md",
+      "docs/template/saas-ui-pattern-catalog.md",
       "docs/template/template-release-process.md",
     ];
 
@@ -734,6 +736,8 @@ describe("release tooling", () => {
             "pnpm check:generators",
             "pnpm check:confect-contracts",
             "pnpm check:workflow-graph-boundary",
+            "pnpm check:semantic-colors",
+            "pnpm --dir apps/web test -- frontend-foundation.test.ts",
           ]),
         },
         handoffArtifacts: expect.arrayContaining([
@@ -743,6 +747,10 @@ describe("release tooling", () => {
           }),
           expect.objectContaining({
             path: "template-instance.json",
+            status: "pass",
+          }),
+          expect.objectContaining({
+            path: "docs/template/enforced-engineering-rules.md",
             status: "pass",
           }),
         ]),
@@ -761,6 +769,8 @@ describe("release tooling", () => {
       "docs/template/generated/provider-setup-checklist.md",
       "docs/template/generated/handoff-packet.md",
       "docs/template/env-manifest.md",
+      "docs/template/enforced-engineering-rules.md",
+      "docs/template/saas-ui-pattern-catalog.md",
       "docs/template/template-release-process.md",
     ];
 

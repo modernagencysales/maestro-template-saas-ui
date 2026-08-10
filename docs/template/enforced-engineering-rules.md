@@ -43,6 +43,25 @@ pnpm tsx tooling/quality/check-eslint-debt-ratchet.mts <staged-files>
 pnpm check:qlty -- --staged
 ```
 
+## Frontend foundation
+
+- Preserve public `/`, workspace `/dashboard`, and the pathless `_workspace`
+  shell. Workspace child routes compose screens or selected app-local Saas UI
+  patterns; they do not create another shell.
+- Use installed Saas UI or Chakra primitives in workspace examples. Raw
+  `button`, `input`, `select`, `textarea`, `table`, and `dialog` elements are
+  rejected there, except native file and consent controls.
+- Use semantic color roles, recipes, and `currentColor`. Raw literals, palette
+  slots, named-color utilities, literal SVG/chart paint, and ad hoc
+  `colorPalette` values are rejected. Keep Light, Dark, and System behavior in
+  `apps/web/src/saas-ui/{provider,system,color-mode}.tsx`.
+- Keep the checked-in live and ready-source shelf under
+  `apps/web/src/saas-ui/patterns/` truthful: typed props and callbacks only, no
+  provider calls, default business records, demo metrics, or speculative routes.
+- `pnpm check:semantic-colors` is the deterministic color-source gate. Run the
+  focused `frontend-foundation.test.ts` whenever the shell, layouts, pattern
+  shelf, assets, or direct frontend dependencies change.
+
 ## Focused trigger index
 
 | Changed area                                       | Deterministic blocker / conditional proof                                                                                                                      | Local authoring or advisory review                                                         |

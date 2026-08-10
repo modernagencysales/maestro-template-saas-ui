@@ -605,6 +605,12 @@ importers:
       "@maestro-template/template-core":
         specifier: workspace:*
         version: link:../../packages/template-core
+      color-name:
+        specifier: 1.1.4
+        version: 1.1.4
+      postcss:
+        specifier: 8.5.16
+        version: 8.5.16
 
   tooling/release:
     dependencies:
