@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { providerAdapters } from "../../sample/templateData";
+import { templateRegistry } from "@maestro-template/template-core";
 import {
   buildOnboardingChecklistSteps,
   buildOnboardingDocumentSections,
@@ -9,9 +9,11 @@ import {
   toastForOnboardingContinue,
 } from "./setup-surface";
 
+const providerAdapterFixture = templateRegistry.providerAdapters;
+
 describe("setup surface", () => {
   it("explains provider posture without constructing live SDK clients", () => {
-    const sections = buildProviderSetupDocumentSections(providerAdapters);
+    const sections = buildProviderSetupDocumentSections(providerAdapterFixture);
 
     expect(sections.map((section) => section.heading)).toEqual([
       "Workspace setup",

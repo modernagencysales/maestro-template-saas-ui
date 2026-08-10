@@ -53,12 +53,9 @@ describe("data lifecycle surface presenter", () => {
     expect(view).toMatchObject({
       live: false,
       status: "unconfigured",
-      summary: { total: 2, exportRequests: 1, deleteRequests: 1 },
+      summary: { total: 0, exportRequests: 0, deleteRequests: 0 },
     });
-    expect(view.requests.map((request) => request.id)).toEqual([
-      "dsar_template_export",
-      "dsar_template_delete_hold",
-    ]);
+    expect(view.requests).toEqual([]);
   });
 
   it("maps live Confect DSAR rows into readable records", () => {

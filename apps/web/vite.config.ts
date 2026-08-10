@@ -75,6 +75,7 @@ export default defineConfig({
       router: {
         routesDirectory: "./routes",
         generatedRouteTree: "./routeTree.gen.ts",
+        routeFileIgnorePattern: ".*\\.test\\.tsx$",
       },
     }),
     react(),

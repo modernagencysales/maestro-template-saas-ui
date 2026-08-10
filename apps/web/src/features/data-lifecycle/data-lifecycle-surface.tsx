@@ -31,7 +31,7 @@ import {
 } from "../../adapters/confect-state";
 import { isConvexConfigured } from "../../env";
 import { useWorkspace } from "../../providers/workspace";
-import { StatusNotice } from "../../saas-ui/status-notice";
+import { StateNotice } from "../../saas-ui/patterns";
 
 type ListDsarRequestsRef =
   TemplateConfectRefs["public"]["ops"]["dataLifecycle"]["listDsarRequests"];
@@ -80,90 +80,10 @@ type LifecycleNoticeConfig = {
   readonly body: ReactNode;
   readonly icon: typeof AlertTriangle;
   readonly title: string;
-  readonly tone: "blue" | "gray" | "red" | "yellow";
+  readonly state: "loading" | "neutral" | "warning";
 };
 type LifecycleNoticeStatus =
   "loading" | "unconfigured" | "waiting_for_workspace";
-
-const fakeRequests: readonly DsarRequestData[] = [
-  {
-    workspaceId: "workspace_template" as DsarRequestData["workspaceId"],
-    requestId: "dsar_template_export",
-    requestedByUserId:
-      "user_template_admin" as DsarRequestData["requestedByUserId"],
-    subjectId: "customer_template",
-    kind: "export",
-    status: "ready-for-review",
-    dryRunOnly: true,
-    plannedAt: 1_783_200_000_000,
-    confirmation: {
-      required: true,
-      phrase: "CONFIRM DSAR EXPORT",
-      reason: "Operator review is required before fulfillment.",
-    },
-    exportManifest: [
-      {
-        resourceId: "brainPages",
-        exportMode: "markdown",
-        detail: "Brain pages export as markdown.",
-      },
-      {
-        resourceId: "notificationRecords",
-        exportMode: "redacted-json",
-        detail: "Notification records export without provider payloads.",
-      },
-    ],
-    deletePlan: [
-      {
-        resourceId: "brainPages",
-        deleteMode: "redact",
-        executable: false,
-        reason: "Dry-run only.",
-      },
-    ],
-  },
-  {
-    workspaceId: "workspace_template" as DsarRequestData["workspaceId"],
-    requestId: "dsar_template_delete_hold",
-    requestedByUserId:
-      "user_template_admin" as DsarRequestData["requestedByUserId"],
-    subjectId: "customer_legal_hold",
-    kind: "delete",
-    status: "blocked-by-legal-hold",
-    dryRunOnly: true,
-    plannedAt: 1_783_203_600_000,
-    legalHold: {
-      enabled: true,
-      reason: "Legal hold blocks destructive fulfillment.",
-    },
-    confirmation: {
-      required: true,
-      phrase: "CONFIRM DSAR DELETE",
-      reason: "Exact confirmation and legal review are required.",
-    },
-    exportManifest: [
-      {
-        resourceId: "dsarRequests",
-        exportMode: "json",
-        detail: "DSAR audit rows remain exportable.",
-      },
-    ],
-    deletePlan: [
-      {
-        resourceId: "dsarRequests",
-        deleteMode: "retain-audit",
-        executable: false,
-        reason: "Audit anchor retained.",
-      },
-      {
-        resourceId: "documents",
-        deleteMode: "redact",
-        executable: false,
-        reason: "Blocked while legal hold is active.",
-      },
-    ],
-  },
-];
 
 const toRequestView = (request: DsarRequestData): DataLifecycleRequest => ({
   id: request.requestId,
@@ -210,7 +130,7 @@ const liveDataLifecycleView = (
 };
 
 export const fakeDataLifecycleView = (): DataLifecycleViewModel => {
-  const requests = fakeRequests.map(toRequestView);
+  const requests: readonly DataLifecycleRequest[] = [];
 
   return {
     requests,
@@ -297,8 +217,8 @@ const makeFakeDsarRequest = ({
     phrase: dsarConfirmationPhraseByKind[kind],
     reason: "Dry-run planning requires human review before fulfillment.",
   },
-  exportManifest: fakeRequests[0]?.exportManifest ?? [],
-  deletePlan: fakeRequests[0]?.deletePlan ?? [],
+  exportManifest: [],
+  deletePlan: [],
 });
 
 const notifyFakeDsarRequest = (toast: TemplateToastApi) => {
@@ -381,8 +301,9 @@ const dataLifecycleQueryArgs = (
 function useDataLifecycleController(): DataLifecycleController {
   const workspace = useWorkspace();
   const toast = useTemplateToast();
-  const [fakeRequestRows, setFakeRequestRows] =
-    useState<readonly DsarRequestData[]>(fakeRequests);
+  const [fakeRequestRows, setFakeRequestRows] = useState<
+    readonly DsarRequestData[]
+  >([]);
   const workspaceId = workspaceIdForState(workspace);
   const queryArgs = dataLifecycleQueryArgs(workspaceId);
   const createDsarRequest = useTemplateMutation(
@@ -439,7 +360,7 @@ export function DataLifecycleSurface() {
       >
         <Box>
           <Heading size="md">DSAR request plans</Heading>
-          <Text color="gray.600" fontSize="sm">
+          <Text color="fg.muted" fontSize="sm">
             Dry-run export and delete plans stay auditable before a client fork
             enables destructive fulfillment.
           </Text>
@@ -450,7 +371,6 @@ export function DataLifecycleSurface() {
             Plan export
           </Button>
           <Button
-            colorPalette="red"
             onClick={() => requestDryRun("delete")}
             type="button"
             variant="outline"
@@ -475,12 +395,12 @@ export function DataLifecycleSurface() {
         <Card.Root borderRadius="md">
           <Card.Body>
             <HStack align="flex-start" gap="3">
-              <Icon as={ShieldCheck} boxSize="5" color="green.500" mt="0.5" />
+              <Icon as={ShieldCheck} boxSize="5" mt="0.5" />
               <Box>
                 <Text fontWeight="semibold">
                   No DSAR request plans recorded
                 </Text>
-                <Text color="gray.600" fontSize="sm">
+                <Text color="fg.muted" fontSize="sm">
                   Use Plan export or Plan delete to exercise the mutation path
                   in fake mode or against a configured Convex deployment.
                 </Text>
@@ -502,21 +422,13 @@ export function DataLifecycleSurface() {
                   <Box>
                     <HStack gap="2">
                       <Heading size="sm">{request.id}</Heading>
-                      <Badge
-                        colorPalette={
-                          request.kind === "export" ? "blue" : "red"
-                        }
-                      >
-                        {request.kind}
-                      </Badge>
+                      <Badge variant="outline">{request.kind}</Badge>
                     </HStack>
-                    <Text color="gray.600" fontSize="sm">
+                    <Text color="fg.muted" fontSize="sm">
                       Subject: {request.subject}
                     </Text>
                   </Box>
-                  <Badge colorPalette={lifecycleStatusTone(request.status)}>
-                    {request.status}
-                  </Badge>
+                  <Badge variant="outline">{request.status}</Badge>
                 </Flex>
                 <SimpleGrid columns={{ base: 1, md: 3 }} gap="3" mt="4">
                   <LifecycleDetail
@@ -545,20 +457,20 @@ function LifecycleStatusNotice({
 }) {
   if (view.status === "unavailable" && view.detail) {
     return (
-      <StatusNotice
+      <StateNotice
         icon={AlertTriangle}
+        state="failure"
         title="Data lifecycle backend unavailable"
-        tone="red"
       >
         {view.detail}
-      </StatusNotice>
+      </StateNotice>
     );
   }
 
   if (!view.live) {
     const notice = lifecycleNoticeForStatus(view.status);
 
-    return <StatusNotice {...notice}>{notice.body}</StatusNotice>;
+    return <StateNotice {...notice}>{notice.body}</StateNotice>;
   }
 
   return null;
@@ -584,13 +496,13 @@ const lifecycleNoticeByStatus: Record<
 > = {
   loading: {
     icon: AlertTriangle,
-    tone: "blue",
+    state: "loading",
     title: "Loading data lifecycle requests",
     body: <>The Confect query is waiting for live DSAR request rows.</>,
   },
   unconfigured: {
     icon: AlertTriangle,
-    tone: "gray",
+    state: "neutral",
     title: "Fake-safe local mode",
     body: (
       <>
@@ -601,7 +513,7 @@ const lifecycleNoticeByStatus: Record<
   },
   waiting_for_workspace: {
     icon: AlertTriangle,
-    tone: "yellow",
+    state: "warning",
     title: "Preparing workspace posture",
     body: <>The surface is waiting for the active workspace provider.</>,
   },
@@ -617,7 +529,7 @@ function LifecycleMetric({
   return (
     <Card.Root borderRadius="md">
       <Card.Body gap="2">
-        <Text color="gray.600" fontSize="sm" fontWeight="medium">
+        <Text color="fg.muted" fontSize="sm" fontWeight="medium">
           {label}
         </Text>
         <Heading size="xl">{value}</Heading>
@@ -634,14 +546,8 @@ function LifecycleDetail({
   readonly value: number | string;
 }) {
   return (
-    <Box
-      bg="gray.50"
-      borderColor="gray.200"
-      borderRadius="md"
-      borderWidth="1px"
-      p="3"
-    >
-      <Text color="gray.600" fontSize="xs" fontWeight="medium">
+    <Box bg="bg.muted" borderRadius="md" borderWidth="1px" p="3">
+      <Text color="fg.muted" fontSize="xs" fontWeight="medium">
         {label}
       </Text>
       <Text fontSize="sm" fontWeight="semibold" mt="1">
@@ -649,19 +555,6 @@ function LifecycleDetail({
       </Text>
     </Box>
   );
-}
-
-function lifecycleStatusTone(
-  status: DataLifecycleRequest["status"],
-): "blue" | "green" | "red" | "yellow" {
-  switch (status) {
-    case "ready-for-review":
-      return "green";
-    case "needs-confirmation":
-      return "yellow";
-    case "blocked-by-legal-hold":
-      return "red";
-  }
 }
 
 const dataLifecycleCreateToastCopy = {

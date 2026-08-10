@@ -3,48 +3,17 @@ import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
   TemplateCalendarBoard,
-  TemplateDataGrid,
   TemplateDiffView,
   TemplateFunnelView,
   TemplateHealthBoard,
-  TemplateKanbanBoard,
   TemplateLineagePanel,
   TemplateMetricTiles,
 } from "./index";
 
 const read = (path: string): string => readFileSync(path, "utf8");
 
-const states = ["loading", "empty", "ready", "error"] as const;
-
 describe("visualization primitives", () => {
-  it("renders data grid states from plain view models", () => {
-    expect(
-      states.map((state) =>
-        renderToStaticMarkup(
-          <TemplateDataGrid
-            columns={["Name", "Status"]}
-            rows={[["Acme", "Ready"]]}
-            state={state}
-          />,
-        ),
-      ),
-    ).toEqual([
-      expect.stringContaining("Loading data"),
-      expect.stringContaining("No rows"),
-      expect.stringContaining("Acme"),
-      expect.stringContaining("Could not load data"),
-    ]);
-  });
-
-  it("renders Kanban, calendar, funnel, and metric visualizations", () => {
-    expect(
-      renderToStaticMarkup(
-        <TemplateKanbanBoard
-          columns={[{ id: "todo", label: "To do", cards: ["Review"] }]}
-          state="ready"
-        />,
-      ),
-    ).toContain("Review");
+  it("renders calendar, funnel, and metric visualizations", () => {
     expect(
       renderToStaticMarkup(
         <TemplateCalendarBoard
@@ -111,8 +80,6 @@ describe("visualization primitives", () => {
 
   it("keeps visualization components on local primitives and away from backend imports", () => {
     const files = [
-      "data-grid.tsx",
-      "kanban-board.tsx",
       "calendar-board.tsx",
       "funnel-view.tsx",
       "metric-tiles.tsx",

@@ -1824,67 +1824,6 @@ a {
   opacity: 0.48;
 }
 
-.template-dialog-backdrop {
-  position: fixed;
-  inset: 0;
-  z-index: 110;
-  display: grid;
-  place-items: center;
-  background: var(--chakra-colors-bg);
-  padding: 18px;
-}
-
-.template-dialog {
-  width: min(520px, 100%);
-  max-height: calc(100vh - 36px);
-  overflow: auto;
-  border: 1px solid var(--chakra-colors-border);
-  border-radius: 8px;
-  background: var(--chakra-colors-bg);
-  color: var(--chakra-colors-fg);
-}
-
-.template-dialog-header {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 18px;
-  border-bottom: 1px solid var(--chakra-colors-border);
-  padding: 18px 18px 14px;
-}
-
-.template-dialog-header h2 {
-  margin: 0;
-  font-size: 18px;
-  line-height: 1.3;
-}
-
-.template-dialog-header p {
-  margin: 6px 0 0;
-  color: var(--chakra-colors-fg-muted);
-  font-size: 13px;
-}
-
-.template-dialog-close {
-  width: 28px;
-  height: 28px;
-  flex: 0 0 28px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--chakra-colors-fg-muted);
-  cursor: pointer;
-}
-
-.template-dialog-close:hover {
-  background: var(--chakra-colors-bg-muted);
-  color: var(--chakra-colors-fg);
-}
-
-.template-dialog-body {
-  padding: 18px;
-}
-
 .template-toast-region {
   position: fixed;
   right: 18px;

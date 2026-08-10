@@ -19,7 +19,7 @@ import {
 import { templateConfectRefs } from "@maestro-template/convex/refs";
 import { useTemplateQuery } from "../../adapters/confect-state";
 import { isConvexConfigured } from "../../env";
-import { StatusNotice } from "../../saas-ui/status-notice";
+import { StateNotice } from "../../saas-ui/patterns";
 import { presentLiveRuns, type LiveRunsView } from "./live-runs-presenter";
 
 /**
@@ -50,7 +50,7 @@ export function LiveWorkflowRunsPanel() {
         >
           <Box>
             <Heading size="md">Live workflow runs</Heading>
-            <Text color="gray.600" fontSize="sm">
+            <Text color="fg.muted" fontSize="sm">
               Convex subscription data normalized through the Confect adapter.
             </Text>
           </Box>
@@ -65,32 +65,32 @@ export function LiveWorkflowRunsPanel() {
 }
 
 const liveRunsBadgeByKind = {
-  connecting: { label: "Connecting", tone: "blue" },
-  unconfigured: { label: "Fake-safe", tone: "gray" },
-  unseeded: { label: "Seed required", tone: "yellow" },
-  unavailable: { label: "Unavailable", tone: "red" },
+  connecting: { label: "Connecting" },
+  unconfigured: { label: "Fake-safe" },
+  unseeded: { label: "Setup required" },
+  unavailable: { label: "Unavailable" },
 } as const;
 
 function LiveRunsStatusBadge({ view }: { readonly view: LiveRunsView }) {
   if (view.kind === "ready") {
-    return <Badge colorPalette="green">{view.runCount} live rows</Badge>;
+    return <Badge variant="outline">{view.runCount} live rows</Badge>;
   }
 
   const badge = liveRunsBadgeByKind[view.kind];
-  return <Badge colorPalette={badge.tone}>{badge.label}</Badge>;
+  return <Badge variant="outline">{badge.label}</Badge>;
 }
 
 const liveRunsNoticeByKind = {
   connecting: {
     icon: Activity,
     title: "Connecting to Convex",
-    tone: "blue",
+    state: "loading",
     body: <>The query is waiting for the live subscription to resolve.</>,
   },
   unconfigured: {
     icon: DatabaseZap,
     title: "No Convex deployment configured",
-    tone: "gray",
+    state: "neutral",
     body: (
       <>
         Set <code>VITE_CONVEX_URL</code> to connect this card to the seeded demo
@@ -101,7 +101,7 @@ const liveRunsNoticeByKind = {
   unseeded: {
     icon: AlertTriangle,
     title: "Demo workspace not seeded",
-    tone: "yellow",
+    state: "warning",
     body: (
       <>
         Run <code>convex run demo/showcase:seed</code> after deploying the
@@ -121,15 +121,15 @@ function LiveRunsBody({ view }: { readonly view: LiveRunsView }) {
       ? {
           icon: AlertTriangle,
           title: "Live backend unavailable",
-          tone: "red" as const,
+          state: "failure" as const,
           body: view.detail,
         }
       : liveRunsNoticeByKind[view.kind];
 
   return (
-    <StatusNotice icon={notice.icon} title={notice.title} tone={notice.tone}>
+    <StateNotice icon={notice.icon} state={notice.state} title={notice.title}>
       {notice.body}
-    </StatusNotice>
+    </StateNotice>
   );
 }
 
@@ -140,22 +140,22 @@ function ReadyLiveRuns({
 }) {
   if (view.rows.length === 0) {
     return (
-      <StatusNotice
+      <StateNotice
         icon={CheckCircle2}
+        state="success"
         title="Connected with no runs"
-        tone="green"
       >
         Workspace <strong>{view.workspaceName}</strong> is available, but no
         workflow runs have been recorded yet.
-      </StatusNotice>
+      </StateNotice>
     );
   }
 
   return (
     <Stack gap="4">
       <HStack align="flex-start" gap="3">
-        <Icon as={CheckCircle2} boxSize="5" color="green.500" mt="0.5" />
-        <Text color="gray.700" fontSize="sm">
+        <Icon as={CheckCircle2} boxSize="5" mt="0.5" />
+        <Text color="fg.muted" fontSize="sm">
           Streaming from workspace <strong>{view.workspaceName}</strong>. These
           rows come from the live backend, not bundled fixture data.
         </Text>
@@ -176,9 +176,7 @@ function ReadyLiveRuns({
                 <Table.Cell fontWeight="medium">{row.workflowId}</Table.Cell>
                 <Table.Cell>v{row.workflowVersion}</Table.Cell>
                 <Table.Cell>
-                  <Badge colorPalette={statusTone(row.status)}>
-                    {row.status}
-                  </Badge>
+                  <Badge variant="outline">{row.status}</Badge>
                 </Table.Cell>
                 <Table.Cell>{row.startedAtLabel}</Table.Cell>
               </Table.Row>
@@ -188,19 +186,4 @@ function ReadyLiveRuns({
       </Box>
     </Stack>
   );
-}
-
-const workflowStatusToneByStatus: Partial<
-  Record<string, "blue" | "green" | "red" | "yellow">
-> = {
-  completed: "green",
-  running: "blue",
-  queued: "yellow",
-  failed: "red",
-};
-
-function statusTone(
-  status: string,
-): "blue" | "green" | "gray" | "red" | "yellow" {
-  return workflowStatusToneByStatus[status] ?? "gray";
 }

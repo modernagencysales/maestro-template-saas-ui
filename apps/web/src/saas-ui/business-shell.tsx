@@ -58,8 +58,6 @@ import {
   type TemplateRouteKey,
 } from "../navigation/workspace";
 import { DataLifecycleSurface } from "../features/data-lifecycle/data-lifecycle-surface";
-import { AppearanceMenu } from "./appearance-menu";
-import { SettingsLayout } from "./layouts/settings-layout";
 
 const SIDEBAR_WIDTH_KEY = "maestro-sidebar-width";
 
@@ -383,14 +381,6 @@ export function BusinessDashboardRoute() {
         <TruthfulEmptyState description="The template does not invent pipeline, account, or task records." />
       </Page.Body>
     </BusinessPageRoot>
-  );
-}
-
-export function BusinessSettingsRoute() {
-  return (
-    <SettingsLayout navigation={<AppearanceMenu />} title="Settings">
-      <TruthfulEmptyState description="No workspace settings source is connected. Appearance remains available locally." />
-    </SettingsLayout>
   );
 }
 

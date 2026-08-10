@@ -13,6 +13,14 @@ const templateConfig = defineConfig({
         },
       },
     },
+    semanticTokens: {
+      colors: {
+        chart: {
+          primary: { value: "{colors.accent.solid}" },
+          secondary: { value: "{colors.fg.muted}" },
+        },
+      },
+    },
     textStyles: {
       metric: {
         value: {

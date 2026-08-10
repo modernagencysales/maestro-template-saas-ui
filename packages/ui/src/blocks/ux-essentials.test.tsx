@@ -1,8 +1,6 @@
-import { readFileSync } from "node:fs";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 import {
-  TemplateDialog,
   TemplateMainContent,
   TemplateRouteError,
   TemplateRouteFocusBoundary,
@@ -10,8 +8,6 @@ import {
   TemplateToastProvider,
   useTemplateToast,
 } from "./ux-essentials";
-
-const read = (path: string): string => readFileSync(path, "utf8");
 
 function ToastTrigger() {
   const toast = useTemplateToast();
@@ -124,55 +120,6 @@ describe("TemplateToastProvider", () => {
 
     expect(html).toContain("template-toast-missing-provider");
     expect(html).toContain("template-announcement-missing-provider");
-  });
-});
-
-describe("TemplateDialog", () => {
-  it("renders an accessible modal dialog with close control", () => {
-    const html = renderToStaticMarkup(
-      <TemplateDialog
-        description="Review the destructive action before continuing."
-        isOpen
-        onClose={() => {}}
-        title="Delete workspace"
-      >
-        <button type="button">Delete</button>
-      </TemplateDialog>,
-    );
-
-    expect(html).toContain('role="dialog"');
-    expect(html).toContain('aria-modal="true"');
-    expect(html).toContain("aria-labelledby=");
-    expect(html).toContain("aria-describedby=");
-    expect(html).toContain("Delete workspace");
-    expect(html).toContain("Review the destructive action");
-    expect(html).toContain("Close Delete workspace");
-  });
-
-  it("renders nothing while closed", () => {
-    const html = renderToStaticMarkup(
-      <TemplateDialog isOpen={false} onClose={() => {}} title="Settings">
-        Hidden
-      </TemplateDialog>,
-    );
-
-    expect(html).toBe("");
-  });
-
-  it("declares focus trapping, Escape close, and focus return behavior", () => {
-    const html = renderToStaticMarkup(
-      <TemplateDialog isOpen onClose={() => {}} title="Settings">
-        <button type="button">Save</button>
-      </TemplateDialog>,
-    );
-    const source = read("src/blocks/template-dialog.tsx");
-
-    expect(html).toContain('tabindex="-1"');
-    expect(source).toContain("trapTabKey");
-    expect(source).toContain('event.key === "Escape"');
-    expect(source).toContain('event.key !== "Tab"');
-    expect(source).toContain("returnFocusRef.current?.focus");
-    expect(source).toContain("focusFirstDialogElement");
   });
 });
 

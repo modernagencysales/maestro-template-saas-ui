@@ -1,12 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { providerAdapters } from "../../sample/templateData";
+import { templateRegistry } from "@maestro-template/template-core";
 import { buildSettingsDocumentSections } from "./settings-surface";
 
-const workspace = {
+const providerAdapterFixture = templateRegistry.providerAdapters;
+
+const workspaceFixture = {
   workspaceId: "workspace_template",
   organizationId: "org_template",
-  name: "Acme Demo",
-  slug: "acme-demo",
+  name: "Test workspace",
+  slug: "test-workspace",
   role: "owner",
   status: "active",
 } as const;
@@ -16,7 +18,7 @@ describe("settings surface", () => {
     const sections = buildSettingsDocumentSections({
       workspace: null,
       viewer: { role: "owner" },
-      providers: providerAdapters,
+      providers: providerAdapterFixture,
     });
 
     expect(sections).toEqual([
@@ -32,9 +34,9 @@ describe("settings surface", () => {
 
   it("shows admin settings, provider posture, fake billing, and safe env copy", () => {
     const sections = buildSettingsDocumentSections({
-      workspace,
+      workspace: workspaceFixture,
       viewer: { role: "owner" },
-      providers: providerAdapters,
+      providers: providerAdapterFixture,
     });
 
     expect(sections.map((section) => section.heading)).toEqual([
@@ -55,9 +57,9 @@ describe("settings surface", () => {
 
   it("hides member management language for non-admin settings viewers", () => {
     const sections = buildSettingsDocumentSections({
-      workspace,
+      workspace: workspaceFixture,
       viewer: { role: "viewer" },
-      providers: providerAdapters,
+      providers: providerAdapterFixture,
     });
 
     expect(sections[1]?.body).toEqual([
