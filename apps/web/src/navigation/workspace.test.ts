@@ -32,7 +32,8 @@ describe("template workspace navigation", () => {
   });
 
   it("resolves active route keys through longest-prefix matching", () => {
-    expect(activeTemplateRouteKey("/")).toBe("home");
+    expect(activeTemplateRouteKey("/")).toBeNull();
+    expect(activeTemplateRouteKey("/dashboard")).toBe("home");
     expect(activeTemplateRouteKey("/workflows")).toBe("workflows");
     expect(activeTemplateRouteKey("/workflows/run_123")).toBe("workflows");
     expect(activeTemplateRouteKey("/data-map")).toBe("dataMap");

@@ -11,9 +11,7 @@ const appRoot = fileURLToPath(new URL("..", import.meta.url));
 const read = (path: string): string =>
   readFileSync(resolve(appRoot, path), "utf8");
 const routeFileForPath = (path: string): string =>
-  path === "/"
-    ? "src/routes/index.tsx"
-    : `src/routes/_workspace.${path.slice(1).replaceAll("/", ".")}.tsx`;
+  `src/routes/_workspace.${path.slice(1).replaceAll("/", ".")}.tsx`;
 
 describe("frontend platform routes", () => {
   it("registers legal, onboarding, data lifecycle, and notification workspace routes in navigation", () => {
@@ -77,7 +75,7 @@ describe("frontend platform routes", () => {
       ).toBe(true);
     }
     expect(read("src/routes/index.tsx")).toContain("AppIdeaLanding");
-    expect(read("src/routes/dashboard.tsx")).toContain(
+    expect(read("src/routes/_workspace.dashboard.tsx")).toContain(
       "BusinessDashboardRoute",
     );
     expect(read("src/routes/_workspace.health.tsx")).toContain(

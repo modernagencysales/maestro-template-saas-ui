@@ -71,18 +71,18 @@ function RootComponent() {
             {(analyticsConsent) => (
               <PostHogWebProvider analyticsConsent={analyticsConsent}>
                 <RootDocument>
-                  <WebRouteUxBoundary
-                    href={location.href}
-                    pathname={location.pathname}
-                  >
-                    <MaestroSaasUiProvider>
-                      <ColorModeProvider>
+                  <MaestroSaasUiProvider>
+                    <ColorModeProvider>
+                      <WebRouteUxBoundary
+                        href={location.href}
+                        pathname={location.pathname}
+                      >
                         <TemplateToastProvider>
                           <Outlet />
                         </TemplateToastProvider>
-                      </ColorModeProvider>
-                    </MaestroSaasUiProvider>
-                  </WebRouteUxBoundary>
+                      </WebRouteUxBoundary>
+                    </ColorModeProvider>
+                  </MaestroSaasUiProvider>
                 </RootDocument>
               </PostHogWebProvider>
             )}

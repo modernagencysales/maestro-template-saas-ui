@@ -4,6 +4,7 @@ import { describeRouteAnnouncement } from "./route-announcements";
 describe("route announcements", () => {
   it("names template routes for screen-reader navigation updates", () => {
     expect(describeRouteAnnouncement("/")).toBe("Viewing Overview");
+    expect(describeRouteAnnouncement("/dashboard")).toBe("Viewing Overview");
     expect(describeRouteAnnouncement("/", "#brain")).toBe("Viewing Brain");
     expect(describeRouteAnnouncement("/", "#headless")).toBe(
       "Viewing API and MCP",
@@ -15,6 +16,7 @@ describe("route announcements", () => {
     expect(describeRouteAnnouncement("/data-lifecycle")).toBe(
       "Viewing Data Lifecycle",
     );
+    expect(describeRouteAnnouncement("/report/example")).toBe("Viewing Report");
   });
 
   it("falls back to an unknown-route announcement for unregistered paths", () => {

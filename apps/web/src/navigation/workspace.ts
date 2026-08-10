@@ -38,7 +38,7 @@ export const TEMPLATE_ROUTE_ITEMS: readonly TemplateRouteItem[] = [
   {
     key: "home",
     label: "Overview",
-    path: "/",
+    path: "/dashboard",
     icon: "M",
     description: "Template story, delivery leverage, and operating model.",
   },

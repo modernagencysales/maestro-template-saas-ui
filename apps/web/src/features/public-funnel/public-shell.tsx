@@ -7,9 +7,6 @@ export function PublicFunnelShell({
 }) {
   return (
     <div className="idea-public-shell">
-      <a className="template-skip-link" href="#main-content">
-        Skip to content
-      </a>
       <header className="idea-public-header">
         <a className="idea-wordmark" href="/" aria-label="Idea Check home">
           <span aria-hidden="true" className="idea-wordmark-mark">

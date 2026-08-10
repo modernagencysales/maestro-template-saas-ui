@@ -1,46 +1,41 @@
-import type { ComponentType, ReactNode } from "react";
-import { Link } from "@tanstack/react-router";
 import {
-  Badge,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  type ComponentType,
+  type ReactNode,
+} from "react";
+import { Link } from "@tanstack/react-router";
+import { ResizeHandle, Resizer, type ResizeHandler } from "@saas-ui-pro/react";
+import {
+  AppShell,
   Box,
   Button,
   Card,
   Flex,
-  Heading,
-  HStack,
   Icon,
-  Input,
+  Menu,
   Page,
-  Separator,
-  SimpleGrid,
+  Sidebar,
   Stack,
-  Table,
   Text,
 } from "@saas-ui/react";
-import {
-  TEMPLATE_NAV_CATEGORIES,
-  TEMPLATE_ROUTE_ITEMS,
-  type TemplateRouteKey,
-} from "../navigation/workspace";
-import { DataLifecycleSurface } from "../features/data-lifecycle/data-lifecycle-surface";
-import { LiveWorkflowRunsPanel } from "../features/workflows/live-runs-panel";
 import {
   Activity,
   BarChart3,
   Bell,
   Building2,
-  CheckCircle2,
+  ChevronDown,
   CreditCard,
-  Database,
   FileCode2,
   FileDown,
   FileText,
   HeartPulse,
   Home,
   KeyRound,
-  LifeBuoy,
-  Lock,
   Map,
+  Menu as MenuIcon,
   Plug,
   Scale,
   Search,
@@ -50,6 +45,23 @@ import {
   Users,
   Workflow,
 } from "lucide-react";
+import { RouteFocusBoundary } from "../navigation/route-ux-boundary";
+import { describeRouteAnnouncement } from "../navigation/route-announcements";
+import {
+  useBrowserNetworkState,
+  type WebNetworkState,
+} from "../navigation/network-state";
+import {
+  TEMPLATE_NAV_CATEGORIES,
+  TEMPLATE_ROUTE_ITEMS,
+  activeTemplateRouteKey,
+  type TemplateRouteKey,
+} from "../navigation/workspace";
+import { DataLifecycleSurface } from "../features/data-lifecycle/data-lifecycle-surface";
+import { AppearanceMenu } from "./appearance-menu";
+import { SettingsLayout } from "./layouts/settings-layout";
+
+const SIDEBAR_WIDTH_KEY = "maestro-sidebar-width";
 
 const navIconByKey = {
   admin: ShieldCheck,
@@ -74,631 +86,261 @@ const navIconByKey = {
   workflows: Workflow,
 } as const satisfies Record<TemplateRouteKey, ComponentType>;
 
-const metrics = [
-  { label: "Pipeline", value: "$428K", delta: "+12.4%" },
-  { label: "Active workflows", value: "37", delta: "+6 this week" },
-  { label: "Accounts touched", value: "184", delta: "82% SLA" },
-  { label: "Tasks due", value: "19", delta: "7 high priority" },
-] as const;
-
-const accounts = [
-  {
-    name: "Northstar Labs",
-    owner: "Avery Stone",
-    stage: "Proposal",
-    health: "Strong",
-  },
-  {
-    name: "Kinetic Cloud",
-    owner: "Morgan Lee",
-    stage: "Discovery",
-    health: "Watch",
-  },
-  {
-    name: "Fieldwire Systems",
-    owner: "Jordan Kim",
-    stage: "Pilot",
-    health: "Strong",
-  },
-] as const;
-
-const tasks = [
-  "Review proposal edits for Northstar Labs",
-  "Approve enrichment workflow changes",
-  "Send onboarding plan to Fieldwire Systems",
-] as const;
-
-const goldenPath = [
-  "TanStack Start owns routing and SSR query wiring.",
-  "Confect React hooks own Convex server state.",
-  "Effect runtime execution stays inside approved adapters.",
-  "Saas UI owns the visible business app surface.",
-] as const;
-
 const sectionDetails = {
-  admin: {
-    title: "Admin",
-    description:
-      "Govern workspace controls, audit posture, and operating standards.",
-    icon: ShieldCheck,
-    metric: "8 controls",
-    status: "Healthy",
-  },
-  agents: {
-    title: "Team",
-    description:
-      "Manage operators, automated assistants, and account ownership.",
-    icon: Users,
-    metric: "14 members",
-    status: "Active",
-  },
-  analytics: {
-    title: "Analytics",
-    description:
-      "Track revenue movement, workflow throughput, and conversion signals.",
-    icon: BarChart3,
-    metric: "24 reports",
-    status: "Live",
-  },
-  api: {
-    title: "API",
-    description:
-      "Review keys, webhooks, and integration usage for external systems.",
-    icon: FileCode2,
-    metric: "6 endpoints",
-    status: "Ready",
-  },
-  billing: {
-    title: "Billing",
-    description: "Plan usage, invoices, and commercial workspace details.",
-    icon: CreditCard,
-    metric: "Pro plan",
-    status: "Current",
-  },
-  brain: {
-    title: "Brain",
-    description: "Organize shared knowledge and approved source context.",
-    icon: FileText,
-    metric: "42 notes",
-    status: "Indexed",
-  },
-  capabilities: {
-    title: "Capabilities",
-    description:
-      "Catalog approved enrichment, routing, and execution capabilities.",
-    icon: KeyRound,
-    metric: "18 approved",
-    status: "Reviewed",
-  },
-  dataLifecycle: {
-    title: "Data lifecycle",
-    description: "Monitor retention, sync status, and governed data movement.",
-    icon: FileDown,
-    metric: "99.9% sync",
-    status: "Compliant",
-  },
-  dataMap: {
-    title: "Data map",
-    description:
-      "Map source systems, entities, ownership, and downstream consumers.",
-    icon: Database,
-    metric: "11 systems",
-    status: "Mapped",
-  },
-  documents: {
-    title: "Documents",
-    description:
-      "Store customer-facing plans, proposals, and implementation notes.",
-    icon: FileText,
-    metric: "32 docs",
-    status: "Organized",
-  },
-  health: {
-    title: "Health",
-    description:
-      "Review reliability, queue depth, and workspace service quality.",
-    icon: HeartPulse,
-    metric: "99.98%",
-    status: "Operational",
-  },
-  integrations: {
-    title: "Integrations",
-    description: "Connect CRM, warehouse, enrichment, and messaging systems.",
-    icon: Plug,
-    metric: "9 connected",
-    status: "Synced",
-  },
-  legal: {
-    title: "Legal",
-    description: "Review policy, compliance, and customer agreement surfaces.",
-    icon: Lock,
-    metric: "4 policies",
-    status: "Published",
-  },
-  notifications: {
-    title: "Notifications",
-    description:
-      "Configure alerts for account movement and operational events.",
-    icon: Bell,
-    metric: "12 rules",
-    status: "Enabled",
-  },
-  onboarding: {
-    title: "Onboarding",
-    description: "Guide new teams through setup, access, and first workflows.",
-    icon: LifeBuoy,
-    metric: "5 steps",
-    status: "In progress",
-  },
-  runs: {
-    title: "Runs",
-    description:
-      "Inspect recent workflow runs, outcomes, and exception queues.",
-    icon: Activity,
-    metric: "128 runs",
-    status: "Processing",
-  },
-  sources: {
-    title: "Accounts",
-    description:
-      "Control account inputs, source freshness, and enrichment readiness.",
-    icon: Building2,
-    metric: "184 accounts",
-    status: "Fresh",
-  },
-  workflows: {
-    title: "Workflows",
-    description: "Design and monitor operational workflows for revenue teams.",
-    icon: Workflow,
-    metric: "37 active",
-    status: "Running",
-  },
+  admin: ["Admin", "Workspace controls and audited operating posture."],
+  agents: ["Agents", "Operators and bounded automated assistants."],
+  analytics: ["Analytics", "Product and operational measurement."],
+  api: ["API / CLI / MCP", "Headless access to the shared operation registry."],
+  billing: [
+    "Billing",
+    "Commercial status supplied by an owned billing adapter.",
+  ],
+  brain: ["Brain", "Approved sources and grounded context."],
+  capabilities: [
+    "Capabilities",
+    "Reviewed actions available to people and agents.",
+  ],
+  dataMap: ["Data map", "Owned systems, entities, and downstream consumers."],
+  documents: ["Documents", "Customer-facing and internal authored knowledge."],
+  health: ["Health", "Provider and application operating posture."],
+  integrations: ["Integrations", "Connections to owned customer systems."],
+  legal: ["Legal", "Client-reviewed policy and agreement surfaces."],
+  notifications: ["Notifications", "Provider-neutral delivery preferences."],
+  onboarding: ["Onboarding", "Setup work for an owned customer journey."],
+  runs: ["Runs", "Workflow outcomes, receipts, and exceptions."],
+  sources: ["Sources", "Approved evidence and source freshness."],
+  workflows: ["Workflows", "Typed business processes and their execution."],
 } as const;
 
 export type BusinessSectionKey = keyof typeof sectionDetails;
 
-const routePathByKey = Object.fromEntries(
-  TEMPLATE_ROUTE_ITEMS.map((item) => [item.key, item.path]),
-) as Record<TemplateRouteKey, string>;
-
-export function BusinessDashboardRoute() {
-  return (
-    <BusinessAppShell>
-      <BusinessPageRoot>
-        <Page.Header
-          title="Revenue workspace"
-          description="A plain Saas UI business app with live Convex/Confect data boundaries."
-          actions={
-            <HStack gap="2">
-              <Button aria-label="Open notifications" variant="ghost">
-                <Icon as={Bell} boxSize="4" />
-              </Button>
-              <Button variant="solid">
-                <Icon as={Workflow} boxSize="4" />
-                New workflow
-              </Button>
-            </HStack>
-          }
-        />
-        <Page.Body px={{ base: "4", md: "6" }} pb="8">
-          <Stack gap="6">
-            <SimpleGrid columns={{ base: 1, md: 2, xl: 4 }} gap="4">
-              {metrics.map((metric) => (
-                <Card.Root key={metric.label} borderRadius="md">
-                  <Card.Body gap="3">
-                    <Text color="gray.600" fontSize="sm" fontWeight="medium">
-                      {metric.label}
-                    </Text>
-                    <Heading size="2xl">{metric.value}</Heading>
-                    <Badge alignSelf="flex-start" colorPalette="green">
-                      {metric.delta}
-                    </Badge>
-                  </Card.Body>
-                </Card.Root>
-              ))}
-            </SimpleGrid>
-
-            <SimpleGrid columns={{ base: 1, xl: 3 }} gap="4">
-              <Card.Root borderRadius="md" gridColumn={{ xl: "span 2" }}>
-                <Card.Header>
-                  <Flex
-                    align="center"
-                    direction={{ base: "column", md: "row" }}
-                    gap="3"
-                    justify="space-between"
-                  >
-                    <Box>
-                      <Heading size="md">Priority accounts</Heading>
-                      <Text color="gray.600" fontSize="sm">
-                        The accounts that need attention this week.
-                      </Text>
-                    </Box>
-                    <HStack
-                      bg="white"
-                      borderColor="gray.200"
-                      borderRadius="md"
-                      borderWidth="1px"
-                      gap="2"
-                      px="3"
-                      py="2"
-                      w={{ base: "100%", md: "280px" }}
-                    >
-                      <Icon as={Search} boxSize="4" color="gray.500" />
-                      <Input
-                        aria-label="Search accounts"
-                        borderWidth="0"
-                        placeholder="Search accounts"
-                        px="0"
-                      />
-                    </HStack>
-                  </Flex>
-                </Card.Header>
-                <Card.Body pt="0">
-                  <Box
-                    aria-label="Priority accounts table"
-                    overflowX="auto"
-                    tabIndex={0}
-                  >
-                    <Table.Root minW="680px">
-                      <Table.Header>
-                        <Table.Row>
-                          <Table.ColumnHeader>Account</Table.ColumnHeader>
-                          <Table.ColumnHeader>Owner</Table.ColumnHeader>
-                          <Table.ColumnHeader>Stage</Table.ColumnHeader>
-                          <Table.ColumnHeader>Health</Table.ColumnHeader>
-                        </Table.Row>
-                      </Table.Header>
-                      <Table.Body>
-                        {accounts.map((account) => (
-                          <Table.Row key={account.name}>
-                            <Table.Cell fontWeight="medium">
-                              {account.name}
-                            </Table.Cell>
-                            <Table.Cell>{account.owner}</Table.Cell>
-                            <Table.Cell>{account.stage}</Table.Cell>
-                            <Table.Cell>
-                              <Badge
-                                colorPalette={
-                                  account.health === "Strong"
-                                    ? "green"
-                                    : "yellow"
-                                }
-                              >
-                                {account.health}
-                              </Badge>
-                            </Table.Cell>
-                          </Table.Row>
-                        ))}
-                      </Table.Body>
-                    </Table.Root>
-                  </Box>
-                </Card.Body>
-              </Card.Root>
-
-              <Card.Root borderRadius="md">
-                <Card.Header>
-                  <Heading size="md">Today</Heading>
-                  <Text color="gray.600" fontSize="sm">
-                    Focused work queued from the workspace.
-                  </Text>
-                </Card.Header>
-                <Card.Body>
-                  <Stack gap="4">
-                    {tasks.map((task) => (
-                      <HStack key={task} align="flex-start" gap="3">
-                        <Icon
-                          as={CheckCircle2}
-                          boxSize="5"
-                          color="green.500"
-                          mt="0.5"
-                        />
-                        <Text>{task}</Text>
-                      </HStack>
-                    ))}
-                  </Stack>
-                </Card.Body>
-              </Card.Root>
-            </SimpleGrid>
-
-            <SimpleGrid columns={{ base: 1, xl: 3 }} gap="4">
-              <Box gridColumn={{ xl: "span 2" }}>
-                <LiveWorkflowRunsPanel />
-              </Box>
-              <Card.Root borderRadius="md">
-                <Card.Header>
-                  <Heading size="md">Golden path</Heading>
-                  <Text color="gray.600" fontSize="sm">
-                    The starter demonstrates the intended frontend stack without
-                    installing extra state libraries by default.
-                  </Text>
-                </Card.Header>
-                <Card.Body>
-                  <Stack gap="3">
-                    {goldenPath.map((item) => (
-                      <HStack key={item} align="flex-start" gap="3">
-                        <Icon
-                          as={CheckCircle2}
-                          boxSize="5"
-                          color="green.500"
-                          mt="0.5"
-                        />
-                        <Text fontSize="sm">{item}</Text>
-                      </HStack>
-                    ))}
-                  </Stack>
-                </Card.Body>
-              </Card.Root>
-            </SimpleGrid>
-          </Stack>
-        </Page.Body>
-      </BusinessPageRoot>
-    </BusinessAppShell>
-  );
-}
-
-export function BusinessSettingsRoute() {
-  return (
-    <BusinessAppShell activePath="/settings">
-      <BusinessPageRoot>
-        <Page.Header
-          title="Settings"
-          description="Workspace controls."
-          actions={
-            <HStack justify="flex-end">
-              <Button variant="solid">Save changes</Button>
-            </HStack>
-          }
-        />
-        <Page.Body px={{ base: "4", md: "6" }} pb="8">
-          <SimpleGrid columns={{ base: 1, xl: 3 }} gap="4">
-            <Card.Root borderRadius="md" gridColumn={{ xl: "span 2" }}>
-              <Card.Header>
-                <Heading size="md">Workspace profile</Heading>
-                <Text color="gray.600" fontSize="sm">
-                  Basic workspace details used across the application shell.
-                </Text>
-              </Card.Header>
-              <Card.Body>
-                <Stack gap="4">
-                  <SettingsField
-                    label="Workspace name"
-                    value="Maestro Growth Workspace"
-                  />
-                  <SettingsField
-                    label="Primary domain"
-                    value="maestrogtm.com"
-                  />
-                  <SettingsField label="Default owner" value="RevOps team" />
-                </Stack>
-              </Card.Body>
-            </Card.Root>
-
-            <Card.Root borderRadius="md">
-              <Card.Header>
-                <Heading size="md">Access</Heading>
-                <Text color="gray.600" fontSize="sm">
-                  Starter roles for the business app shell.
-                </Text>
-              </Card.Header>
-              <Card.Body>
-                <Stack gap="3">
-                  {["Admin", "Operator", "Viewer"].map((role) => (
-                    <Flex key={role} align="center" justify="space-between">
-                      <Text fontWeight="medium">{role}</Text>
-                      <Badge colorPalette="blue">Enabled</Badge>
-                    </Flex>
-                  ))}
-                </Stack>
-              </Card.Body>
-            </Card.Root>
-          </SimpleGrid>
-        </Page.Body>
-      </BusinessPageRoot>
-    </BusinessAppShell>
-  );
-}
-
-export function BusinessSectionRoute({
-  section,
-}: {
-  readonly section: BusinessSectionKey;
-}) {
-  const details = sectionDetails[section];
-  const IconComponent = details.icon;
-  const activePath = routePathByKey[section];
-
-  return (
-    <BusinessAppShell activePath={activePath}>
-      <BusinessPageRoot>
-        <Page.Header
-          title={details.title}
-          description={details.description}
-          actions={
-            <HStack justify="flex-end">
-              <Button variant="solid">
-                <Icon as={IconComponent} boxSize="4" />
-                Create
-              </Button>
-            </HStack>
-          }
-        />
-        <Page.Body px={{ base: "4", md: "6" }} pb="8">
-          <SimpleGrid columns={{ base: 1, xl: 3 }} gap="4">
-            <Card.Root borderRadius="md">
-              <Card.Body gap="3">
-                <Flex
-                  align="center"
-                  bg="gray.100"
-                  borderRadius="md"
-                  color="gray.800"
-                  h="10"
-                  justify="center"
-                  w="10"
-                >
-                  <Icon as={IconComponent} boxSize="5" />
-                </Flex>
-                <Text color="gray.600" fontSize="sm" fontWeight="medium">
-                  Current state
-                </Text>
-                <Heading size="xl">{details.metric}</Heading>
-                <Badge alignSelf="flex-start" colorPalette="green">
-                  {details.status}
-                </Badge>
-              </Card.Body>
-            </Card.Root>
-
-            <Card.Root borderRadius="md" gridColumn={{ xl: "span 2" }}>
-              <Card.Header>
-                <Heading size="md">Operating queue</Heading>
-                <Text color="gray.600" fontSize="sm">
-                  Starter business-app states for this route. Replace these rows
-                  with the first client-specific workflow or data model.
-                </Text>
-              </Card.Header>
-              <Card.Body>
-                <Stack gap="4">
-                  {[
-                    "Review ownership and priority",
-                    "Confirm automation readiness",
-                    "Publish the next workspace update",
-                  ].map((item) => (
-                    <Flex
-                      key={item}
-                      align="center"
-                      borderColor="gray.200"
-                      borderRadius="md"
-                      borderWidth="1px"
-                      justify="space-between"
-                      p="3"
-                    >
-                      <HStack gap="3">
-                        <Icon as={CheckCircle2} boxSize="5" color="green.500" />
-                        <Text fontWeight="medium">{item}</Text>
-                      </HStack>
-                      <Badge colorPalette="blue">Open</Badge>
-                    </Flex>
-                  ))}
-                </Stack>
-              </Card.Body>
-            </Card.Root>
-          </SimpleGrid>
-        </Page.Body>
-      </BusinessPageRoot>
-    </BusinessAppShell>
-  );
-}
-
-export function BusinessDataLifecycleRoute() {
-  return (
-    <BusinessAppShell activePath="/data-lifecycle">
-      <BusinessPageRoot>
-        <Page.Header
-          title="Data lifecycle"
-          description="A visible Confect query and mutation slice with fake-safe local behavior."
-          actions={
-            <HStack justify="flex-end">
-              <Badge colorPalette="blue">Confect-backed</Badge>
-            </HStack>
-          }
-        />
-        <Page.Body px={{ base: "4", md: "6" }} pb="8">
-          <DataLifecycleSurface />
-        </Page.Body>
-      </BusinessPageRoot>
-    </BusinessAppShell>
-  );
-}
-
 export function BusinessAppShell({
-  activePath = "/",
   children,
+  networkState: networkStateOverride,
+  pathname,
 }: {
-  readonly activePath?: string;
   readonly children: ReactNode;
+  readonly networkState?: WebNetworkState;
+  readonly pathname: string;
+}) {
+  const browserNetworkState = useBrowserNetworkState();
+  const networkState = networkStateOverride ?? browserNetworkState;
+  const activeKey = activeTemplateRouteKey(pathname) ?? "home";
+  const activeRoute = TEMPLATE_ROUTE_ITEMS.find(
+    (item) => item.key === activeKey,
+  );
+  const searchTriggerRef = useRef<HTMLButtonElement>(null);
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  useEffect(() => {
+    const handleShortcut = (event: KeyboardEvent) => {
+      const target = event.target;
+      if (
+        event.key !== "/" ||
+        event.altKey ||
+        event.ctrlKey ||
+        event.metaKey ||
+        target instanceof HTMLInputElement ||
+        target instanceof HTMLTextAreaElement ||
+        target instanceof HTMLSelectElement
+      ) {
+        return;
+      }
+
+      event.preventDefault();
+      setSearchOpen(true);
+      searchTriggerRef.current?.focus();
+    };
+
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
+
+  const retryCurrentRoute = useCallback(() => window.location.reload(), []);
+  return (
+    <RouteFocusBoundary
+      announcement={describeRouteAnnouncement(pathname)}
+      focusKey={pathname}
+      networkAction={retryCurrentRoute}
+      networkState={networkState}
+    >
+      <Sidebar.Provider>
+        <AppShell
+          bg="sidebar.bg"
+          minH="100dvh"
+          sidebar={<ClientResizableSidebar activeKey={activeKey} />}
+        >
+          <Sidebar.Inset minW="0">
+            <Flex
+              align="center"
+              as="header"
+              borderBottomWidth="1px"
+              gap="3"
+              minH="12"
+              px={{ base: "3", md: "4" }}
+            >
+              <Sidebar.Trigger asChild>
+                <Button
+                  aria-label="Open navigation"
+                  display={{ base: "inline-flex", lg: "none" }}
+                  size="sm"
+                  variant="ghost"
+                >
+                  <Icon as={MenuIcon} />
+                </Button>
+              </Sidebar.Trigger>
+              <Box aria-label="Breadcrumb" as="nav" flex="1" minW="0">
+                <Text color="fg.muted" fontSize="sm" truncate>
+                  Maestro workspace / {activeRoute?.label ?? "Overview"}
+                </Text>
+              </Box>
+              <Menu.Root
+                onOpenChange={({ open }) => setSearchOpen(open)}
+                open={searchOpen}
+              >
+                <Menu.Button
+                  aria-keyshortcuts="/"
+                  aria-label="Search routes"
+                  ref={searchTriggerRef}
+                  size="sm"
+                  variant="ghost"
+                >
+                  <Icon as={Search} />
+                  <Text display={{ base: "none", md: "inline" }}>Search</Text>
+                </Menu.Button>
+                <Menu.Content>
+                  {TEMPLATE_ROUTE_ITEMS.map((item) => (
+                    <Menu.Item asChild key={item.key} value={item.key}>
+                      <Link to={item.path}>{item.label}</Link>
+                    </Menu.Item>
+                  ))}
+                </Menu.Content>
+              </Menu.Root>
+            </Flex>
+            {children}
+          </Sidebar.Inset>
+        </AppShell>
+        <Sidebar.Backdrop />
+      </Sidebar.Provider>
+    </RouteFocusBoundary>
+  );
+}
+
+function ClientResizableSidebar({
+  activeKey,
+}: {
+  readonly activeKey: TemplateRouteKey;
+}) {
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  if (!mounted) return <WorkspaceSidebar activeKey={activeKey} />;
+
+  const storedValue = window.localStorage.getItem(SIDEBAR_WIDTH_KEY);
+  const storedWidth = storedValue === null ? Number.NaN : Number(storedValue);
+  const defaultWidth = Number.isFinite(storedWidth)
+    ? Math.min(360, Math.max(232, storedWidth))
+    : 272;
+  const persistSidebarWidth: ResizeHandler = ({ width }) => {
+    window.localStorage.setItem(SIDEBAR_WIDTH_KEY, String(Math.round(width)));
+  };
+
+  return (
+    <Resizer defaultWidth={defaultWidth} enabled onResize={persistSidebarWidth}>
+      <WorkspaceSidebar activeKey={activeKey} resizable />
+    </Resizer>
+  );
+}
+
+function WorkspaceSidebar({
+  activeKey,
+  resizable = false,
+}: {
+  readonly activeKey: TemplateRouteKey;
+  readonly resizable?: boolean;
 }) {
   return (
-    <Flex minH="100vh" bg="gray.50" direction={{ base: "column", lg: "row" }}>
-      <Box
-        bg="white"
-        borderBottomColor="gray.200"
-        borderBottomWidth="1px"
-        display={{ base: "block", lg: "none" }}
-      >
-        <HStack justify="space-between" px="4" py="3">
-          <BrandMark />
-          <Badge colorPalette="gray">Workspace</Badge>
-        </HStack>
-        <HStack
-          as="nav"
-          aria-label="Primary"
-          gap="2"
-          overflowX="auto"
-          px="4"
-          pb="3"
-          tabIndex={0}
-        >
-          {TEMPLATE_NAV_CATEGORIES.flatMap((category) => category.items).map(
-            (item) => (
-              <BusinessNavLink
-                isActive={item.path === activePath}
-                key={item.key}
-                layout="mobile"
-                routeKey={item.key}
-                to={item.path}
-              >
-                {item.label}
-              </BusinessNavLink>
-            ),
-          )}
-        </HStack>
-      </Box>
-      <Box
-        as="aside"
-        bg="white"
-        borderRightColor="gray.200"
-        borderRightWidth="1px"
-        display={{ base: "none", lg: "block" }}
-        flex="0 0 272px"
-        minH="100vh"
-        overflowY="auto"
-        px="4"
-        py="5"
-      >
-        <Stack gap="5">
-          <BrandMark />
-          <Separator />
-          <Stack as="nav" aria-label="Primary" gap="4">
-            {TEMPLATE_NAV_CATEGORIES.map((category) => (
-              <Stack gap="1" key={category.label}>
-                <Text
-                  color="gray.500"
-                  fontSize="xs"
-                  fontWeight="semibold"
-                  px="3"
-                  textTransform="uppercase"
-                >
-                  {category.label}
-                </Text>
-                {category.items.map((item) => (
-                  <BusinessNavLink
-                    isActive={item.path === activePath}
-                    key={item.key}
-                    layout="desktop"
-                    routeKey={item.key}
-                    to={item.path}
-                  >
-                    {item.label}
-                  </BusinessNavLink>
-                ))}
-              </Stack>
-            ))}
-          </Stack>
+    <Sidebar.Root
+      aria-label="Primary navigation"
+      maxW={resizable ? "360px" : undefined}
+      minW={resizable ? "232px" : undefined}
+    >
+      <Sidebar.Header gap="2">
+        <Menu.Root>
+          <Menu.Button
+            aria-label="Choose workspace"
+            justifyContent="flex-start"
+            variant="ghost"
+            width="full"
+          >
+            <Icon as={Building2} />
+            <Text flex="1" textAlign="start" truncate>
+              Maestro workspace
+            </Text>
+            <Icon as={ChevronDown} />
+          </Menu.Button>
+          <Menu.Content>
+            <Menu.Item value="current">Maestro workspace</Menu.Item>
+          </Menu.Content>
+        </Menu.Root>
+      </Sidebar.Header>
+      <Sidebar.Body>
+        <Stack as="nav" aria-label="Primary navigation" gap="4">
+          {TEMPLATE_NAV_CATEGORIES.map((category) => (
+            <Sidebar.Group key={category.label}>
+              <Sidebar.GroupHeader>
+                <Sidebar.GroupTitle>{category.label}</Sidebar.GroupTitle>
+              </Sidebar.GroupHeader>
+              <Sidebar.GroupContent>
+                {category.items.map((item) => {
+                  const IconComponent = navIconByKey[item.key];
+
+                  return (
+                    <Sidebar.NavItem key={item.key}>
+                      <Sidebar.NavButton
+                        asChild
+                        data-active={item.key === activeKey ? "" : undefined}
+                      >
+                        <Link to={item.path}>
+                          <Icon as={IconComponent} />
+                          <Text truncate>{item.label}</Text>
+                        </Link>
+                      </Sidebar.NavButton>
+                    </Sidebar.NavItem>
+                  );
+                })}
+              </Sidebar.GroupContent>
+            </Sidebar.Group>
+          ))}
         </Stack>
-      </Box>
-      <Box flex="1" minW="0">
-        {children}
-      </Box>
-    </Flex>
+      </Sidebar.Body>
+      <Sidebar.Footer>
+        <Menu.Root>
+          <Menu.Button
+            aria-label="Open user menu"
+            justifyContent="flex-start"
+            variant="ghost"
+            width="full"
+          >
+            <Icon as={UserRoundCheck} />
+            <Text flex="1" textAlign="start" truncate>
+              Template user
+            </Text>
+            <Icon as={ChevronDown} />
+          </Menu.Button>
+          <Menu.Content>
+            <Menu.Item asChild value="settings">
+              <Link to="/settings">Settings</Link>
+            </Menu.Item>
+          </Menu.Content>
+        </Menu.Root>
+        {resizable ? (
+          <Sidebar.Track asChild>
+            <ResizeHandle aria-label="Resize navigation" />
+          </Sidebar.Track>
+        ) : null}
+      </Sidebar.Footer>
+    </Sidebar.Root>
   );
 }
 
@@ -709,10 +351,9 @@ export function BusinessPageRoot({
 }) {
   return (
     <Page.Root
-      bg="gray.50"
-      className="template-shell-content"
-      id="template-main-content"
-      minH="100vh"
+      as="main"
+      id="workspace-main"
+      minH="calc(100dvh - var(--chakra-sizes-12))"
       tabIndex={-1}
     >
       {children}
@@ -720,89 +361,68 @@ export function BusinessPageRoot({
   );
 }
 
-function BusinessNavLink({
-  children,
-  isActive,
-  layout,
-  routeKey,
-  to,
-}: {
-  readonly children: ReactNode;
-  readonly isActive: boolean;
-  readonly layout: "desktop" | "mobile";
-  readonly routeKey: TemplateRouteKey;
-  readonly to: string;
-}) {
-  const IconComponent = navIconByKey[routeKey];
-
+function TruthfulEmptyState({ description }: { readonly description: string }) {
   return (
-    <Link
-      aria-current={isActive ? "page" : undefined}
-      className="template-sidebar-row"
-      style={layout === "mobile" ? { width: "auto" } : undefined}
-      to={to}
-    >
-      <HStack
-        bg={isActive ? "gray.100" : "transparent"}
-        borderRadius="md"
-        color={isActive ? "black" : "gray.700"}
-        flex={layout === "mobile" ? "0 0 auto" : undefined}
-        gap="3"
-        minH="9"
-        px="3"
-        py="2"
-      >
-        <Icon as={IconComponent} boxSize="4" />
-        <Text
-          className="template-sidebar-label"
-          fontSize="sm"
-          fontWeight="medium"
-          whiteSpace="nowrap"
-        >
-          {children}
-        </Text>
-      </HStack>
-    </Link>
+    <Card.Root maxW="2xl">
+      <Card.Body gap="2">
+        <Text fontWeight="semibold">No connected data yet</Text>
+        <Text color="fg.muted">{description}</Text>
+      </Card.Body>
+    </Card.Root>
   );
 }
 
-function BrandMark() {
+export function BusinessDashboardRoute() {
   return (
-    <HStack gap="3">
-      <Flex
-        align="center"
-        bg="black"
-        borderRadius="md"
-        color="white"
-        h="9"
-        justify="center"
-        w="9"
-      >
-        <Icon as={Activity} boxSize="5" />
-      </Flex>
-      <Box>
-        <Text fontWeight="bold">Maestro</Text>
-        <Text color="gray.500" fontSize="xs">
-          Business app
-        </Text>
-      </Box>
-    </HStack>
+    <BusinessPageRoot>
+      <Page.Header
+        description="Connect the first owned business slice to populate this workspace."
+        title="Overview"
+      />
+      <Page.Body px={{ base: "4", md: "6" }} py="6">
+        <TruthfulEmptyState description="The template does not invent pipeline, account, or task records." />
+      </Page.Body>
+    </BusinessPageRoot>
   );
 }
 
-function SettingsField({
-  label,
-  value,
-}: {
-  readonly label: string;
-  readonly value: string;
-}) {
+export function BusinessSettingsRoute() {
   return (
-    <Box>
-      <Text color="gray.600" fontSize="sm" fontWeight="medium" mb="1.5">
-        {label}
-      </Text>
-      <Input defaultValue={value} />
-    </Box>
+    <SettingsLayout navigation={<AppearanceMenu />} title="Settings">
+      <TruthfulEmptyState description="No workspace settings source is connected. Appearance remains available locally." />
+    </SettingsLayout>
+  );
+}
+
+export function BusinessSectionRoute({
+  section,
+}: {
+  readonly section: BusinessSectionKey;
+}) {
+  const [title, description] = sectionDetails[section];
+
+  return (
+    <BusinessPageRoot>
+      <Page.Header description={description} title={title} />
+      <Page.Body px={{ base: "4", md: "6" }} py="6">
+        <TruthfulEmptyState
+          description={`No ${title.toLocaleLowerCase()} source is connected.`}
+        />
+      </Page.Body>
+    </BusinessPageRoot>
+  );
+}
+
+export function BusinessDataLifecycleRoute() {
+  return (
+    <BusinessPageRoot>
+      <Page.Header
+        description="A visible Confect query and mutation slice with fake-safe local behavior."
+        title="Data lifecycle"
+      />
+      <Page.Body px={{ base: "4", md: "6" }} py="6">
+        <DataLifecycleSurface />
+      </Page.Body>
+    </BusinessPageRoot>
   );
 }

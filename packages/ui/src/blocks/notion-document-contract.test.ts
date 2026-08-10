@@ -14,7 +14,9 @@ describe("Notion document block contract", () => {
   it("keeps markdown-style page rendering out of route-local sample code", () => {
     const blocks = read("src/blocks/notion-document.tsx");
     const publicRootRoute = read("../../apps/web/src/routes/index.tsx");
-    const dashboardRoute = read("../../apps/web/src/routes/dashboard.tsx");
+    const dashboardRoute = read(
+      "../../apps/web/src/routes/_workspace.dashboard.tsx",
+    );
 
     expect(blocks).toContain("NotionDocumentPage");
     expect(blocks).toContain("renderInlineMarkdown");

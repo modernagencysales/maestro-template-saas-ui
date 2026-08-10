@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-export * from "./shell/template-workspace-shell";
 export * from "./blocks/notion-document";
 export * from "./blocks/ux-essentials";
 export * from "./coediting/coediting-shell";

@@ -14,7 +14,7 @@ describe("Saas UI shell style contract", () => {
 
     expect(root).toContain("MaestroSaasUiProvider");
     expect(provider).toContain("SuiProvider");
-    expect(provider).toContain("defaultSystem");
+    expect(provider).toContain("value={system}");
   });
 
   it("loads only the app and workflow styles from the root route head", () => {
@@ -27,7 +27,8 @@ describe("Saas UI shell style contract", () => {
 
   it("uses the Saas UI business shell instead of the old reference app route", () => {
     const index = read("src/routes/index.tsx");
-    const dashboard = read("src/routes/dashboard.tsx");
+    const dashboard = read("src/routes/_workspace.dashboard.tsx");
+    const workspace = read("src/routes/_workspace.tsx");
     const shell = read("src/saas-ui/business-shell.tsx");
 
     expect(index).toContain("AppIdeaLanding");
@@ -37,8 +38,8 @@ describe("Saas UI shell style contract", () => {
     expect(shell).toContain("BusinessAppShell");
     expect(shell).toContain("BusinessSectionRoute");
     expect(shell).toContain("BusinessPageRoot");
-    expect(shell).toContain('id="template-main-content"');
-    expect(shell).toContain("LiveWorkflowRunsPanel");
+    expect(shell).toContain('id="workspace-main"');
+    expect(workspace).toContain("BusinessAppShell");
   });
 
   it("owns global route UX wiring at the root route", () => {
@@ -52,7 +53,7 @@ describe("Saas UI shell style contract", () => {
     expect(root).toContain("analyticsConsent={analyticsConsent}");
     expect(root).toContain("useRouterState");
     expect(root).toContain("<Outlet />");
-    expect(boundary).toContain("TemplateRouteFocusBoundary");
+    expect(boundary).toContain("RouteFocusBoundary");
     expect(boundary).toContain("describeRouteAnnouncement");
     expect(boundary).toContain("useBrowserNetworkState");
     expect(boundary).toContain("networkState={networkState}");
@@ -78,8 +79,8 @@ describe("Saas UI shell style contract", () => {
     const shell = read("src/saas-ui/business-shell.tsx");
 
     expect(shell).toContain("TEMPLATE_NAV_CATEGORIES");
-    expect(shell).toContain('aria-label="Primary"');
-    expect(shell).toContain("template-sidebar-row");
+    expect(shell).toContain('aria-label="Primary navigation"');
+    expect(shell).toContain("Sidebar.NavButton");
   });
 
   it("surfaces a visible Confect query and mutation slice", () => {
@@ -106,7 +107,7 @@ describe("Saas UI shell style contract", () => {
 
     expect(css).toContain(".template-skip-link");
     expect(css).toContain(".template-live-region");
-    expect(css).toContain(".template-shell-content");
+    expect(css).not.toContain(".template-shell-content");
     expect(css).toContain(".template-network-banner");
     expect(css).toContain(".template-network-banner-action");
     expect(css).toContain(".template-cookie-banner");

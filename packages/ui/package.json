@@ -8,10 +8,6 @@
     ".": {
       "types": "./src/index.tsx",
       "default": "./dist/src/index.js"
-    },
-    "./settings": {
-      "types": "./src/settings/template-settings-panel.tsx",
-      "default": "./dist/src/settings/template-settings-panel.js"
     }
   },
   "scripts": {
