@@ -56,21 +56,15 @@ const behaviorId = nonBlankText.pipe(
 const workPackageId = nonBlankText.pipe(
   Schema.check(Schema.isPattern(/^WP-[A-Z0-9]+-[0-9]+$/u)),
 );
-const distinctNonEmpty = Schema.makeFilter((input: unknown) => {
-  if (!Array.isArray(input)) return "must be an array";
-  return new Set(input).size === input.length
-    ? undefined
-    : "must not contain duplicates";
-});
 const distinctBehaviorIds = Schema.NonEmptyArray(behaviorId).pipe(
-  Schema.check(distinctNonEmpty),
+  Schema.check(Schema.isUnique()),
 );
 const appMapTargets = Schema.NonEmptyArray(nonBlankText).pipe(
-  Schema.check(distinctNonEmpty),
+  Schema.check(Schema.isUnique()),
 );
 const productSurfaces = Schema.NonEmptyArray(
   Schema.Literals(["web-ui", "cli-process", "public-http"]),
-).pipe(Schema.check(distinctNonEmpty));
+).pipe(Schema.check(Schema.isUnique()));
 const WorkPackagePlanItemSchema = Schema.Struct({
   id: workPackageId,
   behaviorIds: distinctBehaviorIds,

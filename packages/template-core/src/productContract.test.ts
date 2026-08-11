@@ -106,4 +106,26 @@ describe("ProductContract", () => {
     expect(renderProductContractJsonSchema()).toContain('"schemaVersion"');
     expect(renderProductContractJsonSchema()).toMatch(/\n$/);
   });
+
+  it("projects runtime string, uniqueness, and optional-key constraints", () => {
+    const rendered = JSON.parse(renderProductContractJsonSchema()) as {
+      readonly properties: {
+        readonly product: {
+          readonly properties: {
+            readonly name: Record<string, unknown>;
+          };
+        };
+      };
+    };
+    expect(rendered.properties.product.properties.name).toMatchObject({
+      type: "string",
+      allOf: expect.arrayContaining([
+        { minLength: 1 },
+        { pattern: "^\\S[\\s\\S]*\\S$|^\\S$|^$" },
+      ]),
+    });
+    const serialized = JSON.stringify(rendered);
+    expect(serialized).toContain('"uniqueItems":true');
+    expect(serialized).not.toContain('"type":"null"');
+  });
 });

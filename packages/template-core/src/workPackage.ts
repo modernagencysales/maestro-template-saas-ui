@@ -22,14 +22,8 @@ export type WorkPackage =
     };
 
 const nonBlankText = Schema.Trim.pipe(Schema.check(Schema.isNonEmpty()));
-const distinct = Schema.makeFilter((input: unknown) => {
-  if (!Array.isArray(input)) return "must be an array";
-  return new Set(input).size === input.length
-    ? undefined
-    : "must not contain duplicates";
-});
 const distinctNonEmptyTexts = Schema.NonEmptyArray(nonBlankText).pipe(
-  Schema.check(distinct),
+  Schema.check(Schema.isUnique()),
 );
 
 export const WorkPackageSchema = Schema.Union([

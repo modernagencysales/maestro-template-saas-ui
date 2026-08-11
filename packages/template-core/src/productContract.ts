@@ -1,3 +1,4 @@
+import * as JsonSchema from "effect/JsonSchema";
 import * as Schema from "effect/Schema";
 
 export type ProductSurface = "web-ui" | "cli-process" | "public-http";
@@ -48,23 +49,9 @@ const positiveInteger = Schema.Number.pipe(
 );
 const surfaces = Schema.NonEmptyArray(
   Schema.Literals(["web-ui", "cli-process", "public-http"]),
-).pipe(
-  Schema.check(
-    Schema.makeFilter((values) =>
-      new Set(values).size === values.length
-        ? undefined
-        : "surfaces must not contain duplicates",
-    ),
-  ),
-);
+).pipe(Schema.check(Schema.isUnique()));
 const outcomes = Schema.NonEmptyArray(nonBlankText).pipe(
-  Schema.check(
-    Schema.makeFilter((values) =>
-      new Set(values).size === values.length
-        ? undefined
-        : "outcomes must not contain duplicates",
-    ),
-  ),
+  Schema.check(Schema.isUnique()),
 );
 const preconditions = Schema.Array(nonBlankText);
 const productBehaviorFields = {
@@ -87,7 +74,7 @@ const ProductBehaviorSchema = Schema.Union([
     ...productBehaviorFields,
     status: Schema.Literal("retired"),
     retirementReason: nonBlankText,
-    replacementBehaviorId: Schema.optional(behaviorId),
+    replacementBehaviorId: Schema.optionalKey(behaviorId),
   }),
 ]);
 
@@ -158,9 +145,7 @@ const bytewiseCompare = (left: string, right: string): number => {
   ) {
     const leftByte = leftBytes[index] ?? 0;
     const rightByte = rightBytes[index] ?? 0;
-    if (leftByte !== rightByte) {
-      return leftByte - rightByte;
-    }
+    if (leftByte !== rightByte) return leftByte - rightByte;
   }
   return leftBytes.length - rightBytes.length;
 };
@@ -207,123 +192,19 @@ export const renderProductContractMarkdown = (input: {
   ].join("\n");
 };
 
-export const renderProductContractJsonSchema = (): string =>
-  `${JSON.stringify(
+export const renderProductContractJsonSchema = (): string => {
+  const document = Schema.toJsonSchemaDocument(
+    Schema.toType(ProductContractSchema),
+  );
+  return `${JSON.stringify(
     {
-      $schema: "https://json-schema.org/draft/2020-12/schema",
-      title: "Product Contract",
-      type: "object",
-      additionalProperties: false,
-      required: ["schemaVersion", "product", "behaviors"],
-      properties: {
-        schemaVersion: { const: 1 },
-        product: {
-          type: "object",
-          additionalProperties: false,
-          required: ["id", "name", "summary"],
-          properties: {
-            id: { type: "string", minLength: 1 },
-            name: { type: "string", minLength: 1 },
-            summary: { type: "string", minLength: 1 },
-          },
-        },
-        behaviors: {
-          type: "array",
-          minItems: 1,
-          items: { $ref: "#/$defs/ProductBehavior" },
-        },
-      },
-      $defs: {
-        ProductBehavior: {
-          oneOf: [
-            {
-              type: "object",
-              additionalProperties: false,
-              required: [
-                "id",
-                "revision",
-                "title",
-                "actor",
-                "surfaces",
-                "preconditions",
-                "action",
-                "outcomes",
-                "status",
-              ],
-              properties: {
-                id: { type: "string", pattern: "^BHV-[A-Z0-9]+-[0-9]+$" },
-                revision: { type: "integer", exclusiveMinimum: 0 },
-                title: { type: "string", minLength: 1 },
-                actor: { type: "string", minLength: 1 },
-                surfaces: {
-                  type: "array",
-                  minItems: 1,
-                  uniqueItems: true,
-                  items: { enum: ["web-ui", "cli-process", "public-http"] },
-                },
-                preconditions: {
-                  type: "array",
-                  items: { type: "string", minLength: 1 },
-                },
-                action: { type: "string", minLength: 1 },
-                outcomes: {
-                  type: "array",
-                  minItems: 1,
-                  uniqueItems: true,
-                  items: { type: "string", minLength: 1 },
-                },
-                status: { enum: ["draft", "required"] },
-              },
-            },
-            {
-              type: "object",
-              additionalProperties: false,
-              required: [
-                "id",
-                "revision",
-                "title",
-                "actor",
-                "surfaces",
-                "preconditions",
-                "action",
-                "outcomes",
-                "status",
-                "retirementReason",
-              ],
-              properties: {
-                id: { type: "string", pattern: "^BHV-[A-Z0-9]+-[0-9]+$" },
-                revision: { type: "integer", exclusiveMinimum: 0 },
-                title: { type: "string", minLength: 1 },
-                actor: { type: "string", minLength: 1 },
-                surfaces: {
-                  type: "array",
-                  minItems: 1,
-                  uniqueItems: true,
-                  items: { enum: ["web-ui", "cli-process", "public-http"] },
-                },
-                preconditions: {
-                  type: "array",
-                  items: { type: "string", minLength: 1 },
-                },
-                action: { type: "string", minLength: 1 },
-                outcomes: {
-                  type: "array",
-                  minItems: 1,
-                  uniqueItems: true,
-                  items: { type: "string", minLength: 1 },
-                },
-                status: { const: "retired" },
-                retirementReason: { type: "string", minLength: 1 },
-                replacementBehaviorId: {
-                  type: "string",
-                  pattern: "^BHV-[A-Z0-9]+-[0-9]+$",
-                },
-              },
-            },
-          ],
-        },
-      },
+      $schema: JsonSchema.META_SCHEMA_URI_DRAFT_2020_12,
+      ...document.schema,
+      ...(Object.keys(document.definitions).length === 0
+        ? {}
+        : { $defs: document.definitions }),
     },
     null,
     2,
   )}\n`;
+};
