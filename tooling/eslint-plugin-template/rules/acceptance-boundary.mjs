@@ -60,9 +60,14 @@ const isCanonicalRuntimeModule = (info) =>
     info.filename,
   );
 
-const isFixtureSource = (info, source) =>
-  source.startsWith(".") &&
-  relativeTarget(info.filename, source) === `${info.supportRoot}/fixtures`;
+const isFixtureSource = (info, source) => {
+  if (!source.startsWith(".")) return false;
+  const target = relativeTarget(info.filename, source);
+  return (
+    target === `${info.supportRoot}/fixtures` ||
+    new RegExp(`${info.supportRoot}/fixtures\\.[cm]?[jt]sx?$`, "u").test(target)
+  );
+};
 
 const sourceAllowed = (info, source) => {
   if (source.startsWith("."))
@@ -507,6 +512,10 @@ const isCanonicalFixtureExpectExport = (node, sourceCode) => {
 
 const isTypeOnlyExport = (node) =>
   node?.exportKind === "type" ||
+  (node?.type === "ExportDefaultDeclaration" &&
+    ["TSInterfaceDeclaration", "TSTypeAliasDeclaration"].includes(
+      node.declaration?.type,
+    )) ||
   (node?.specifiers?.length > 0 &&
     node.specifiers.every((specifier) => specifier.exportKind === "type"));
 
@@ -840,9 +849,27 @@ export default {
             context.report({ node: node.source, messageId: "fixture" });
         }
       },
+      ExportDefaultDeclaration(node) {
+        if (
+          info &&
+          isCanonicalFixturesModule(info) &&
+          !isTypeOnlyExport(node)
+        ) {
+          invalidCanonicalFixtureExport = true;
+          context.report({ node, messageId: "fixture" });
+        }
+      },
       ExportAllDeclaration(node) {
         const source = String(node.source.value);
         reportImport(node.source, source);
+        if (
+          info &&
+          isCanonicalFixturesModule(info) &&
+          !isTypeOnlyExport(node)
+        ) {
+          invalidCanonicalFixtureExport = true;
+          context.report({ node, messageId: "fixture" });
+        }
         if (
           source === "@playwright/test" &&
           inside(info.supportRoot, info.filename)

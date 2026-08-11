@@ -1109,6 +1109,25 @@ test("no runtime", { "tag": "@BHV-REC-001-R1" }, async () => {});`,
     },
     {
       filename: ACCEPTANCE,
+      code: `import unsafeTest from "./support/fixtures.ts";
+const options = { tag: "@BHV-REC-001-R1" };
+unsafeTest("uses bare Playwright", options, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import * as fixtures from "./support/fixtures.ts";
+fixtures.test("uses bare Playwright", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { raw as test } from "./support/fixtures.ts";
+test("uses bare Playwright", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
       code: `import { test } from "./support/fixtures";
 function nested(test) {
   test("no runtime", { tag: "@BHV-REC-001-R1" }, async () => {});
@@ -1267,6 +1286,34 @@ export const test = base.extend({
 });
 export { expect };
 export const unsafeTest = base;`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({}, use) => {
+    const controller = createContractsRuntimeController();
+    const runtime = await controller.start();
+    try { await use(runtime); } finally { await controller.stop(); }
+  }, { scope: "worker", auto: true }],
+});
+export default base;`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({}, use) => {
+    const controller = createContractsRuntimeController();
+    const runtime = await controller.start();
+    try { await use(runtime); } finally { await controller.stop(); }
+  }, { scope: "worker", auto: true }],
+});
+export * from "./runtime";`,
       errors: [{ messageId: "fixture" }],
     },
     {
