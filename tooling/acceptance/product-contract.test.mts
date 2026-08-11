@@ -23,11 +23,21 @@ const contractPath = "product.contract.yaml";
 const schemaPath = "product.contract.schema.json";
 const generatedPath = "docs/template/generated/product-contract.md";
 
-const reportFor = (file: string): ParsedPlaywrightJsonReport => ({
+const reportFor = (
+  file: string,
+  sourceRoot = "/fixture",
+): ParsedPlaywrightJsonReport => ({
   config: {
     workers: 1,
     forbidOnly: true,
-    projects: [{ name: "acceptance-chromium", retries: 0 }],
+    projects: [
+      {
+        name: "acceptance-chromium",
+        retries: 0,
+        testDir: `${sourceRoot}/tests/acceptance`,
+        testMatch: "**/*.spec.ts",
+      },
+    ],
   },
   tests: [
     {
@@ -42,11 +52,18 @@ const reportFor = (file: string): ParsedPlaywrightJsonReport => ({
   ],
 });
 
-const emptyReport = (): ParsedPlaywrightJsonReport => ({
+const emptyReport = (sourceRoot = "/fixture"): ParsedPlaywrightJsonReport => ({
   config: {
     workers: 1,
     forbidOnly: true,
-    projects: [{ name: "acceptance-chromium", retries: 0 }],
+    projects: [
+      {
+        name: "acceptance-chromium",
+        retries: 0,
+        testDir: `${sourceRoot}/tests/acceptance`,
+        testMatch: "**/*.spec.ts",
+      },
+    ],
   },
   tests: [],
 });
@@ -429,7 +446,7 @@ proofs:
       repoRoot: root,
       sourceRoot: ".",
       readAcceptanceReport: async () =>
-        reportFor("tests/acceptance/records.spec.ts"),
+        reportFor("tests/acceptance/records.spec.ts", root),
     });
     const rendered = await readFile(
       join(root, "docs", "template", "generated", "product-contract.md"),
@@ -441,6 +458,25 @@ proofs:
     expect(
       await readFile(join(root, "product.contract.schema.json"), "utf8"),
     ).toContain("schemaVersion");
+    await expect(
+      generateProductContract({
+        repoRoot: root,
+        sourceRoot: ".",
+        readAcceptanceReport: async () => ({
+          ...reportFor("tests/acceptance/records.spec.ts", root),
+          config: {
+            ...reportFor("tests/acceptance/records.spec.ts", root).config,
+            projects: [
+              {
+                ...reportFor("tests/acceptance/records.spec.ts", root).config
+                  .projects[0],
+                testDir: join(root, "tests", "unit"),
+              },
+            ],
+          },
+        }),
+      }),
+    ).rejects.toThrow(/testDir/i);
   });
 
   it("checks a bounded seed root, preserves stale bytes, and resolves targets per package", async () => {
@@ -464,7 +500,7 @@ proofs:
       repoRoot: root,
       sourceRoot: "seed/source",
       readAcceptanceReport: async () =>
-        reportFor("tests/acceptance/records.spec.ts"),
+        reportFor("tests/acceptance/records.spec.ts", source),
     });
     const generatedPath = join(
       source,
@@ -484,7 +520,7 @@ proofs:
         resolveAppMapNodeIds: async () =>
           new Set(["route:records", "headless:executor"]),
         readAcceptanceReport: async () =>
-          reportFor("tests/acceptance/records.spec.ts"),
+          reportFor("tests/acceptance/records.spec.ts", source),
       });
       expect(findings.join("\n")).toMatch(/unresolved:required|stale/i);
       expect(findings.join("\n")).not.toMatch(
@@ -513,7 +549,7 @@ proofs:
     await generateProductContract({
       repoRoot: root,
       sourceRoot: ".",
-      readAcceptanceReport: async () => emptyReport(),
+      readAcceptanceReport: async () => emptyReport(root),
     });
     const previousBranch = process.env.CI_COMMIT_TARGET_BRANCH;
     process.env.CI_COMMIT_TARGET_BRANCH = "main";
@@ -523,7 +559,7 @@ proofs:
         sourceRoot: ".",
         allowFirstContract: true,
         resolveAppMapNodeIds: async () => new Set(),
-        readAcceptanceReport: async () => emptyReport(),
+        readAcceptanceReport: async () => emptyReport(root),
       });
       expect(findings.join("\n")).toContain(
         "BHV-REC-001 App Map target unresolved:pattern does not resolve",
@@ -576,7 +612,7 @@ behaviors:
       repoRoot: root,
       sourceRoot: ".",
       readAcceptanceReport: async () =>
-        reportFor("tests/acceptance/records.spec.ts"),
+        reportFor("tests/acceptance/records.spec.ts", root),
     });
     git(["add", contractPath, schemaPath, generatedPath]);
     git(["commit", "-qm", "first contract"]);
@@ -589,7 +625,7 @@ behaviors:
         allowFirstContract: true,
         resolveAppMapNodeIds: async () => new Set(),
         readAcceptanceReport: async () =>
-          reportFor("tests/acceptance/records.spec.ts"),
+          reportFor("tests/acceptance/records.spec.ts", root),
       });
       expect(findings).not.toContain(
         "trusted contract is missing but existed in target history",
@@ -642,7 +678,7 @@ behaviors:
       repoRoot: root,
       sourceRoot: ".",
       readAcceptanceReport: async () =>
-        reportFor("tests/acceptance/records.spec.ts"),
+        reportFor("tests/acceptance/records.spec.ts", root),
     });
     git(["add", contractPath, schemaPath, generatedPath]);
     git(["commit", "-qm", "recreate contract"]);
@@ -655,7 +691,7 @@ behaviors:
         allowFirstContract: true,
         resolveAppMapNodeIds: async () => new Set(),
         readAcceptanceReport: async () =>
-          reportFor("tests/acceptance/records.spec.ts"),
+          reportFor("tests/acceptance/records.spec.ts", root),
       });
       expect(findings.join("\n")).toMatch(
         /trusted contract is missing.*target history/i,

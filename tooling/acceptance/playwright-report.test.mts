@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { parsePlaywrightJsonReport } from "./playwright-report.mts";
+import {
+  parsePlaywrightJsonReport,
+  validateAcceptanceReportBoundary,
+} from "./playwright-report.mts";
 
 const spec = {
   id: "spec-001",
@@ -12,7 +15,14 @@ const runtimeReport = {
   config: {
     workers: 1,
     forbidOnly: true,
-    projects: [{ name: "acceptance-chromium", retries: 0 }],
+    projects: [
+      {
+        name: "acceptance-chromium",
+        retries: 0,
+        testDir: "/fixture/tests/acceptance",
+        testMatch: "**/*.spec.ts",
+      },
+    ],
   },
   suites: [
     {
@@ -71,6 +81,49 @@ describe("parsePlaywrightJsonReport", () => {
         },
       ],
     });
+  });
+
+  it("preserves the resolved native project directory and selection", () => {
+    expect(
+      parsePlaywrightJsonReport(runtimeReport).config.projects[0],
+    ).toMatchObject({
+      testDir: "/fixture/tests/acceptance",
+      testMatch: "**/*.spec.ts",
+    });
+  });
+
+  it("normalizes the native singleton testMatch array", () => {
+    const report = parsePlaywrightJsonReport({
+      ...runtimeReport,
+      config: {
+        ...runtimeReport.config,
+        projects: [
+          {
+            ...runtimeReport.config.projects[0],
+            testMatch: ["**/*.spec.ts"],
+          },
+        ],
+      },
+    });
+    expect(report.config.projects[0]?.testMatch).toBe("**/*.spec.ts");
+  });
+
+  it("rejects reports redirected outside the resolved acceptance tree", () => {
+    const report = parsePlaywrightJsonReport({
+      ...runtimeReport,
+      config: {
+        ...runtimeReport.config,
+        projects: [
+          {
+            ...runtimeReport.config.projects[0],
+            testDir: "/fixture/tests/unit",
+          },
+        ],
+      },
+    });
+    expect(() =>
+      validateAcceptanceReportBoundary({ sourceRoot: "/fixture", report }),
+    ).toThrow(/testDir/i);
   });
 
   it("inherits the nearest enclosing file through nested suites", () => {

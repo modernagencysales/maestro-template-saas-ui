@@ -11,6 +11,7 @@ import {
 } from "../../packages/template-core/src/productContract";
 import {
   parsePlaywrightJsonReport,
+  validateAcceptanceReportBoundary,
   type ParsedPlaywrightJsonReport,
   type PlaywrightTestRecord,
 } from "./playwright-report.mts";
@@ -342,6 +343,7 @@ export const runAcceptance = async (
       failOnNonzero: true,
     });
     const discovered = discovery.report;
+    validateAcceptanceReportBoundary({ sourceRoot, report: discovered });
     const tags = options.scope === "required" ? requiredTags : [];
     const runtimePath = join(temporaryDirectory, "runtime.json");
     const runtimeArgs = [
@@ -361,6 +363,7 @@ export const runAcceptance = async (
       failureMessage: "Playwright acceptance runtime failed",
       failOnNonzero: false,
     });
+    validateAcceptanceReportBoundary({ sourceRoot, report: runtime.report });
     const findings = validateAcceptanceRuntime({
       requiredTags: tags,
       discovered: discovery.report,

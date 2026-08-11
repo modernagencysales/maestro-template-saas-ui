@@ -5,6 +5,7 @@ const ALLOWED_IMPORT = new Set(["@playwright/test"]);
 const ANNOTATIONS = new Set(["skip", "fixme", "fail", "only"]);
 const NETWORK_APIS = new Set(["route", "routeFromHAR"]);
 const BROWSER_APIS = new Set(["evaluate", "addInitScript", "setContent"]);
+const BEHAVIOR_TAG = /^@BHV-[A-Z0-9]+-[0-9]+-R[1-9][0-9]*$/u;
 
 const pathInfo = (filename) => {
   const normalized = filename.replace(/\\/gu, "/");
@@ -124,21 +125,138 @@ const isRuntimeRootedNavigation = (node) => {
 };
 
 const isTaggedScenarioRegistration = (node) => {
-  if (node.callee.type !== "Identifier" || node.arguments.length < 3)
-    return false;
-  const [title, details, callback] = node.arguments;
+  if (node.callee.type !== "Identifier") return false;
+  const title = node.arguments[0];
+  const callback = node.arguments.at(-1);
   return (
-    (title?.type === "Literal" || title?.type === "TemplateLiteral") &&
-    details?.type === "ObjectExpression" &&
-    details.properties.some(
-      (property) =>
-        property.type === "Property" &&
-        !property.computed &&
-        property.key.type === "Identifier" &&
-        property.key.name === "tag",
+    isFunction(callback) &&
+    (isBehaviorTitle(title) || node.arguments.some(isBehaviorTagOptions))
+  );
+};
+
+const isFunction = (node) =>
+  node?.type === "ArrowFunctionExpression" ||
+  node?.type === "FunctionExpression";
+
+const literalText = (node) =>
+  node?.type === "Literal" && typeof node.value === "string"
+    ? node.value
+    : node?.type === "TemplateLiteral" && node.expressions.length === 0
+      ? node.quasis[0]?.value.cooked
+      : undefined;
+
+const isBehaviorTitle = (node) =>
+  typeof literalText(node) === "string" && BEHAVIOR_TAG.test(literalText(node));
+
+const isBehaviorTagOptions = (node) =>
+  node?.type === "ObjectExpression" &&
+  node.properties.some(
+    (property) =>
+      property.type === "Property" &&
+      !property.computed &&
+      ((property.key.type === "Identifier" && property.key.name === "tag") ||
+        (property.key.type === "Literal" && property.key.value === "tag")) &&
+      typeof literalText(property.value) === "string" &&
+      BEHAVIOR_TAG.test(literalText(property.value)),
+  );
+
+const resolveVariable = (identifier, sourceCode) => {
+  for (
+    let scope = sourceCode.getScope(identifier);
+    scope;
+    scope = scope.upper
+  ) {
+    const variable = scope.set.get(identifier.name);
+    if (variable) return variable;
+  }
+  return null;
+};
+
+const isCanonicalFixtureBinding = (node, info, sourceCode) => {
+  if (node.type !== "Identifier" || node.name !== "test") return false;
+  const variable = resolveVariable(node, sourceCode);
+  const definition = variable?.defs?.[0];
+  return (
+    variable?.defs?.length === 1 &&
+    definition?.type === "ImportBinding" &&
+    definition.node.type === "ImportSpecifier" &&
+    definition.node.imported.type === "Identifier" &&
+    definition.node.imported.name === "test" &&
+    definition.node.local.name === "test" &&
+    isFixtureSource(info, definition.parent?.source?.value)
+  );
+};
+
+const isImportedBinding = (node, sourceCode, imported, source) => {
+  if (node?.type !== "Identifier") return false;
+  const definition = resolveVariable(node, sourceCode)?.defs?.[0];
+  return (
+    definition?.type === "ImportBinding" &&
+    definition.node.type === "ImportSpecifier" &&
+    definition.node.imported.type === "Identifier" &&
+    definition.node.imported.name === imported &&
+    definition.parent?.source?.value === source
+  );
+};
+
+const property = (object, name) =>
+  object?.properties?.find(
+    (entry) =>
+      entry.type === "Property" &&
+      !entry.computed &&
+      ((entry.key.type === "Identifier" && entry.key.name === name) ||
+        (entry.key.type === "Literal" && entry.key.value === name)),
+  );
+
+const isCanonicalRuntimeFixture = (declaration, sourceCode) => {
+  const runtime = property(declaration?.init?.arguments?.[0], "runtime");
+  if (runtime?.value?.type !== "ArrayExpression") return false;
+  const [factory, options] = runtime.value.elements;
+  if (!isFunction(factory) || options?.type !== "ObjectExpression")
+    return false;
+  const scope = property(options, "scope");
+  const auto = property(options, "auto");
+  if (scope?.value?.value !== "worker" || auto?.value?.value !== true)
+    return false;
+  const calls = [];
+  const visit = (node) => {
+    if (!node || typeof node !== "object") return;
+    if (node.type === "CallExpression") calls.push(node);
+    for (const [key, value] of Object.entries(node)) {
+      if (["parent", "tokens", "comments", "loc", "range"].includes(key))
+        continue;
+      if (Array.isArray(value)) value.forEach(visit);
+      else visit(value);
+    }
+  };
+  visit(factory.body);
+  return calls.some((call) =>
+    isImportedBinding(
+      call.callee,
+      sourceCode,
+      "createContractsRuntimeController",
+      "./runtime",
+    ),
+  );
+};
+
+const isCanonicalFixtureExport = (node, sourceCode) => {
+  const declaration = node?.declaration?.declarations?.find(
+    (item) => item.id?.type === "Identifier" && item.id.name === "test",
+  );
+  return (
+    declaration?.init?.type === "CallExpression" &&
+    declaration.init.callee.type === "MemberExpression" &&
+    !declaration.init.callee.computed &&
+    declaration.init.callee.property.type === "Identifier" &&
+    declaration.init.callee.property.name === "extend" &&
+    isImportedBinding(
+      declaration.init.callee.object,
+      sourceCode,
+      "test",
+      "@playwright/test",
     ) &&
-    (callback?.type === "ArrowFunctionExpression" ||
-      callback?.type === "FunctionExpression")
+    isCanonicalRuntimeFixture(declaration, sourceCode)
   );
 };
 
@@ -204,6 +322,8 @@ export default {
     const reportedRequireAliases = new Set();
     const createRequireAliases = new Set();
     const reportedCreateRequireAliases = new Set();
+    const invalidFixtureBindings = new Set();
+    let canonicalFixtureExport = false;
     const reportImport = (node, source) => {
       if (source === "@playwright/test" && isScenarioSpec(info))
         context.report({ node, messageId: "fixture" });
@@ -224,6 +344,8 @@ export default {
         context.report({ node, messageId: "network" });
       else if (names.some((name) => BROWSER_APIS.has(name)))
         context.report({ node, messageId: "browser" });
+      else if (names.includes("goto"))
+        context.report({ node, messageId: "browser" });
     };
     return {
       ImportDeclaration(node) {
@@ -236,14 +358,17 @@ export default {
             specifier.imported.name === "test"
           ) {
             testAliases.add(specifier.local.name);
+            if (isScenarioSpec(info) && source === "@playwright/test")
+              invalidFixtureBindings.add(specifier.local.name);
             if (
               isScenarioSpec(info) &&
               source !== "@playwright/test" &&
               (!isFixtureSource(info, source) ||
                 specifier.local.name !== "test")
-            )
+            ) {
+              invalidFixtureBindings.add(specifier.local.name);
               context.report({ node: specifier, messageId: "fixture" });
-            else if (
+            } else if (
               source === "@playwright/test" &&
               inside(info.supportRoot, info.filename) &&
               !isCanonicalFixturesModule(info) &&
@@ -263,6 +388,11 @@ export default {
         }
       },
       ExportNamedDeclaration(node) {
+        if (
+          isCanonicalFixturesModule(info) &&
+          isCanonicalFixtureExport(node, context.sourceCode)
+        )
+          canonicalFixtureExport = true;
         if (node.source) {
           const source = String(node.source.value);
           reportImport(node.source, source);
@@ -364,6 +494,8 @@ export default {
               context.report({ node: property, messageId: "network" });
             else if (BROWSER_APIS.has(name))
               context.report({ node: property, messageId: "browser" });
+            else if (name === "goto")
+              context.report({ node: property, messageId: "browser" });
           }
         }
       },
@@ -387,6 +519,14 @@ export default {
         }
       },
       Identifier(node) {
+        if (node.name === "Reflect" || node.name === "Proxy") {
+          if (
+            node.parent?.type !== "MemberExpression" ||
+            node.parent.property !== node
+          )
+            context.report({ node, messageId: "network" });
+          return;
+        }
         if (node.name !== "require") return;
         const parent = node.parent;
         if (
@@ -403,8 +543,8 @@ export default {
         if (
           isScenarioSpec(info) &&
           isTaggedScenarioRegistration(node) &&
-          node.callee.type === "Identifier" &&
-          node.callee.name !== "test"
+          !invalidFixtureBindings.has(node.callee.name) &&
+          !isCanonicalFixtureBinding(node.callee, info, context.sourceCode)
         ) {
           context.report({ node: node.callee, messageId: "fixture" });
           return;
@@ -464,6 +604,14 @@ export default {
           return;
         }
         if (
+          names.some((name) => ["call", "apply", "bind"].includes(name)) ||
+          names.includes("Reflect") ||
+          names.includes("Proxy")
+        ) {
+          context.report({ node: node.callee, messageId: "browser" });
+          return;
+        }
+        if (
           names.some((name) => BROWSER_APIS.has(name)) ||
           (names.includes("goto") && !isRuntimeRootedNavigation(node))
         )
@@ -482,6 +630,10 @@ export default {
             messageId: testAliases.has(root) ? "annotation" : "network",
           });
         }
+      },
+      "Program:exit"(node) {
+        if (isCanonicalFixturesModule(info) && !canonicalFixtureExport)
+          context.report({ node, messageId: "fixture" });
       },
     };
   },

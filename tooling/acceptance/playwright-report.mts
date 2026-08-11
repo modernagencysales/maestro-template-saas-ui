@@ -29,6 +29,8 @@ export type ParsedPlaywrightJsonReport = {
     readonly projects: readonly {
       readonly name: string;
       readonly retries: number;
+      readonly testDir: string;
+      readonly testMatch: string;
     }[];
   };
   readonly tests: readonly PlaywrightTestRecord[];
@@ -56,6 +58,16 @@ const integer = (value: unknown, label: string): number => {
 const array = (value: unknown, label: string): readonly unknown[] => {
   if (!Array.isArray(value)) throw new Error(`${label} must be an array`);
   return value;
+};
+
+const testMatch = (value: unknown): string => {
+  if (typeof value === "string") return value;
+  const matches = array(value, "config project.testMatch");
+  if (matches.length !== 1)
+    throw new Error(
+      "config project.testMatch must contain exactly one pattern",
+    );
+  return text(matches[0], "config project.testMatch[0]");
 };
 
 const parseAnnotations = (
@@ -101,6 +113,8 @@ const parseConfig = (value: unknown): ParsedPlaywrightJsonReport["config"] => {
     return {
       name: text(project.name, "config project.name"),
       retries: integer(project.retries, "config project.retries"),
+      testDir: text(project.testDir, "config project.testDir"),
+      testMatch: testMatch(project.testMatch),
     };
   });
   if (projects.length !== 1)
@@ -192,4 +206,44 @@ export const parsePlaywrightJsonReport = (
     config,
     tests: suites.flatMap((suite) => parseSuite(suite, "acceptance-chromium")),
   };
+};
+
+const canonicalTestMatch = "**/*.spec.ts";
+
+const isAbsolutePath = (path: string): boolean =>
+  path.startsWith("/") || /^[A-Za-z]:[\\/]/u.test(path);
+
+const isRelativeAcceptanceSpec = (file: string): boolean => {
+  const normalized = file.replace(/\\/gu, "/");
+  const isTestDirRelative = !normalized.startsWith("tests/");
+  const isSourceRelative = normalized.startsWith("tests/acceptance/");
+  return (
+    !isAbsolutePath(file) &&
+    !normalized.split("/").includes("..") &&
+    (isTestDirRelative || isSourceRelative) &&
+    normalized.endsWith(".spec.ts")
+  );
+};
+
+export const validateAcceptanceReportBoundary = (input: {
+  readonly sourceRoot: string;
+  readonly report: ParsedPlaywrightJsonReport;
+}): void => {
+  const sourceRoot = input.sourceRoot.replace(/[\\/]+$/u, "");
+  const expectedTestDir = `${sourceRoot}/tests/acceptance`;
+  const project = input.report.config.projects[0];
+  if (project?.testDir !== expectedTestDir)
+    throw new Error(
+      `Playwright project testDir must be ${expectedTestDir}; received ${project?.testDir ?? "missing"}`,
+    );
+  if (project.testMatch !== canonicalTestMatch)
+    throw new Error(
+      `Playwright project testMatch must be ${canonicalTestMatch}; received ${project.testMatch}`,
+    );
+  for (const test of input.report.tests) {
+    if (!isRelativeAcceptanceSpec(test.file))
+      throw new Error(
+        `Playwright test file must be a relative acceptance spec path: ${test.file}`,
+      );
+  }
 };

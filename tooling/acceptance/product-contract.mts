@@ -23,6 +23,7 @@ import {
 } from "../app-map/src/composition";
 import {
   parsePlaywrightJsonReport,
+  validateAcceptanceReportBoundary,
   type ParsedPlaywrightJsonReport,
 } from "./playwright-report.mts";
 
@@ -478,6 +479,7 @@ export const generateProductContract = async (options: {
     options.sourceRoot,
     options,
   );
+  validateAcceptanceReportBoundary({ sourceRoot, report });
   const discoveryFindings = validateAcceptanceDiscovery({
     contract,
     tests: report.tests,
@@ -706,6 +708,7 @@ export const checkProductContract = async (
       options.sourceRoot,
       options,
     );
+    validateAcceptanceReportBoundary({ sourceRoot, report });
     discoveredTests = report.tests;
     findings.push(
       ...validateAcceptanceDiscovery({

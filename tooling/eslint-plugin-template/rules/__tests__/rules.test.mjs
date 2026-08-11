@@ -831,6 +831,11 @@ test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ accep
 test("record appears in the CLI", { tag: "@BHV-REC-002-R1" }, async ({ runtime, scenario }) => { await runtime.runCli(scenario, ["capability", "run", "records.list"]); });`,
     },
     {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test("@BHV-REC-001-R1", async () => {});`,
+    },
+    {
       filename: SEED_ACCEPTANCE,
       code: `import { test } from "./support/fixtures";
 import { proxy } from "./support/proxy";
@@ -872,6 +877,17 @@ test("record appears", async ({ acceptancePage: page }) => { await proxy(page); 
       filename: SEED_SUPPORT,
       code: `import { runtime } from "./runtime"; export { runtime };`,
     },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({}, use) => {
+    const controller = createContractsRuntimeController();
+    await use(await controller.start());
+  }, { scope: "worker", auto: true }],
+});`,
+    },
   ],
   invalid: [
     {
@@ -898,6 +914,29 @@ test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
         { messageId: "browser" },
         { messageId: "browser" },
       ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import * as fixtures from "./support/fixtures";
+const test = fixtures.test.extend({
+  runtime: [async ({}, use) => use(undefined), { scope: "worker", auto: true }],
+});
+test("no runtime", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { raw as test } from "./support/fixtures";
+test("no runtime", { "tag": "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+function nested(test) {
+  test("no runtime", { tag: "@BHV-REC-001-R1" }, async () => {});
+}`,
+      errors: [{ messageId: "fixture" }],
     },
     {
       // A tagged scenario must use the generated-customer fixture; bare
@@ -1004,6 +1043,42 @@ await context.addInitScript(() => sessionStorage.setItem("auth", "fake"));`,
       filename: ACCEPTANCE_SUPPORT,
       code: `await page.route("**/api/**", (route) => route.fulfill({ json: { ok: true } }));`,
       errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const goto = page.goto;
+await goto.call(page, "data:text/html,<h1>Record</h1>");
+Reflect.apply(context.route, context, ["**/*", handler]);
+const proxy = new Proxy(route, {});
+await proxy.fulfill({ body: "<h1>canned</h1>" });`,
+      errors: [
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+export const test = base;`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+export const raw = base;`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({ runtime: [async ({}, use) => { await use(undefined); }, { scope: "worker" }] });`,
+      errors: [{ messageId: "fixture" }],
     },
     {
       filename: ACCEPTANCE_SUPPORT,

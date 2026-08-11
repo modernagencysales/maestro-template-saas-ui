@@ -20,11 +20,19 @@ afterEach(async () => {
   for (const root of roots.splice(0)) await rm(root, { recursive: true });
 });
 
-const config = {
-  workers: 1,
-  forbidOnly: true,
-  projects: [{ name: "acceptance-chromium", retries: 0 }],
-} as const;
+const configFor = (sourceRoot = "/fixture") =>
+  ({
+    workers: 1,
+    forbidOnly: true,
+    projects: [
+      {
+        name: "acceptance-chromium",
+        retries: 0,
+        testDir: `${sourceRoot}/tests/acceptance`,
+        testMatch: "**/*.spec.ts",
+      },
+    ],
+  }) as const;
 
 type Fixture = {
   readonly id: string;
@@ -38,8 +46,11 @@ type Fixture = {
   readonly annotations?: readonly { readonly type: string }[];
 };
 
-const rawNativeReport = (fixtures: readonly Fixture[]) => ({
-  config,
+const rawNativeReport = (
+  fixtures: readonly Fixture[],
+  sourceRoot?: string,
+) => ({
+  config: configFor(sourceRoot),
   suites: [
     {
       file: "tests/acceptance/records.spec.ts",
@@ -312,10 +323,13 @@ behaviors:
         environment: Readonly<Record<string, string>>,
       ): Promise<PlaywrightProcessResult> => {
         const report = args.includes("--list")
-          ? rawNativeReport([
-              { id: "required", tag: "@BHV-REC-001-R1" },
-              { id: "draft", tag: "@BHV-REC-002-R1" },
-            ])
+          ? rawNativeReport(
+              [
+                { id: "required", tag: "@BHV-REC-001-R1" },
+                { id: "draft", tag: "@BHV-REC-002-R1" },
+              ],
+              join(root, "source"),
+            )
           : rawNativeReport(
               args.includes("--grep")
                 ? [
@@ -337,6 +351,7 @@ behaviors:
                       status: "passed",
                     },
                   ],
+              join(root, "source"),
             );
         await writeFile(
           environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
@@ -366,6 +381,33 @@ behaviors:
       processRunner,
     });
     expect(allOutput).toHaveBeenCalledWith("2 selected, 2 runtime");
+
+    await expect(
+      runAcceptance({
+        repoRoot: root,
+        sourceRoot: "source",
+        scope: "required",
+        processRunner: async (args, environment) => {
+          const report = rawNativeReport(
+            [
+              {
+                id: "required",
+                tag: "@BHV-REC-001-R1",
+                ...(args.includes("--list") ? {} : { status: "passed" }),
+              },
+            ],
+            args.includes("--list")
+              ? join(root, "source")
+              : join(root, "source", "tests", "unit"),
+          );
+          await writeFile(
+            environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
+            JSON.stringify(report),
+          );
+          return { exitCode: 0, stdout: "", stderr: "" };
+        },
+      }),
+    ).rejects.toThrow(/testDir/i);
   });
 
   it("reports the selected behavior, title, and bounded native failure", async () => {
@@ -415,6 +457,7 @@ behaviors:
                   error: nativeFailure,
                 },
               ],
+          join(root, "source"),
         );
         await writeFile(
           environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
@@ -470,7 +513,7 @@ behaviors:
 `,
     );
     const reportPaths: string[] = [];
-    const validJson = JSON.stringify(rawNativeReport([]));
+    const validJson = JSON.stringify(rawNativeReport([], join(root, "source")));
     const rejection = expect(
       runAcceptance({
         repoRoot: root,
