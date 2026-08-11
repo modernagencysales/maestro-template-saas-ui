@@ -86,6 +86,19 @@ const emptyReport = (sourceRoot = "/fixture"): ParsedPlaywrightJsonReport => ({
   tests: [],
 });
 
+const discoveredTest = (
+  overrides: Partial<ParsedPlaywrightJsonReport["tests"][number]> = {},
+): ParsedPlaywrightJsonReport["tests"][number] => ({
+  id: "spec-001",
+  file: "records.spec.ts",
+  title: "record appears",
+  behaviorTag: "@BHV-REC-001-R1",
+  expectedStatus: "passed",
+  annotations: [],
+  results: [],
+  ...overrides,
+});
+
 const contractYaml = (status: string): string => `schemaVersion: 1
 product:
   id: records
@@ -313,26 +326,19 @@ proofs:
     expect(
       validateAcceptanceDiscovery({
         contract: current,
-        tests: [
-          {
-            id: "one",
-            file: "one.ts",
-            title: "one",
-            behaviorTag: "@BHV-REC-001-R1",
-          },
-        ],
+        tests: [discoveredTest({ id: "one", file: "one.ts", title: "one" })],
       }),
     ).toEqual([]);
     expect(
       validateAcceptanceDiscovery({
         contract: current,
         tests: [
-          {
+          discoveredTest({
             id: "one",
             file: "one.ts",
             title: "one",
             behaviorTag: "@BHV-REC-001-R2",
-          },
+          }),
         ],
       }).join("\n"),
     ).toMatch(/stale revision/i);
@@ -340,18 +346,8 @@ proofs:
       validateAcceptanceDiscovery({
         contract: current,
         tests: [
-          {
-            id: "one",
-            file: "one.ts",
-            title: "one",
-            behaviorTag: "@BHV-REC-001-R1",
-          },
-          {
-            id: "two",
-            file: "two.ts",
-            title: "two",
-            behaviorTag: "@BHV-REC-001-R1",
-          },
+          discoveredTest({ id: "one", file: "one.ts", title: "one" }),
+          discoveredTest({ id: "two", file: "two.ts", title: "two" }),
         ],
       }),
     ).toEqual([]);
@@ -359,7 +355,12 @@ proofs:
       validateAcceptanceDiscovery({
         contract: current,
         tests: [
-          { id: "one", file: "one.ts", title: "one", behaviorTag: "not-a-tag" },
+          discoveredTest({
+            id: "one",
+            file: "one.ts",
+            title: "one",
+            behaviorTag: "not-a-tag",
+          }),
         ],
       }).join("\n"),
     ).toMatch(/invalid behavior tag/i);
@@ -378,12 +379,11 @@ proofs:
           behavior({ status: "retired", retirementReason: "replaced" }),
         ),
         tests: [
-          {
+          discoveredTest({
             id: "retired",
             file: "retired.ts",
             title: "retired",
-            behaviorTag: "@BHV-REC-001-R1",
-          },
+          }),
         ],
       }).join("\n"),
     ).toMatch(/retired/i);
@@ -391,15 +391,34 @@ proofs:
       validateAcceptanceDiscovery({
         contract: current,
         tests: [
-          {
+          discoveredTest({
             id: "unknown",
             file: "unknown.ts",
             title: "unknown",
             behaviorTag: "@BHV-NOPE-001-R1",
-          },
+          }),
         ],
       }).join("\n"),
     ).toMatch(/unknown/i);
+  });
+
+  it("rejects discovery metadata that suppresses acceptance execution", () => {
+    const current = contract(behavior({ status: "required" }));
+    for (const test of [
+      discoveredTest({ expectedStatus: "failed" }),
+      discoveredTest({ annotations: [{ type: "skip" }] }),
+      discoveredTest({ annotations: [{ type: "fixme" }] }),
+      discoveredTest({ annotations: [{ type: "fail" }] }),
+    ])
+      expect(
+        validateAcceptanceDiscovery({ contract: current, tests: [test] }),
+      ).not.toEqual([]);
+    expect(
+      validateAcceptanceDiscovery({
+        contract: current,
+        tests: [discoveredTest({ annotations: [{ type: "slow" }] })],
+      }),
+    ).toEqual([]);
   });
 
   it("rejects every CLI form outside the documented grammar", () => {
@@ -432,7 +451,7 @@ proofs:
       expect(() => parseProductContractArguments(argv)).toThrow();
   });
 
-  it("derives a safe canonical merge base without HEAD~1", () => {
+  it("retains the canonical target commit and safe merge base without HEAD~1", () => {
     const calls: string[][] = [];
     expect(
       deriveTrustedMergeBase(
@@ -443,7 +462,10 @@ proofs:
         },
         { CI_COMMIT_TARGET_BRANCH: "release/2026" },
       ),
-    ).toBe("b".repeat(40));
+    ).toEqual({
+      targetCommit: "a".repeat(40),
+      mergeBase: "b".repeat(40),
+    });
     expect(calls).not.toContainEqual(expect.arrayContaining(["HEAD~1"]));
   });
 
@@ -655,7 +677,7 @@ behaviors:
     }
   });
 
-  it("rejects bootstrap after a contract was added and deleted on the trusted branch", async () => {
+  it("rejects stale bootstrap after the target adds and deletes a contract", async () => {
     const root = await mkdtemp(join(tmpdir(), "product-contract-history-"));
     const git = (args: readonly string[]) =>
       execFileSync("git", [...args], {
@@ -669,6 +691,8 @@ behaviors:
     writeFileSync(join(root, "README.md"), "root\n");
     git(["add", "README.md"]);
     git(["commit", "-qm", "root"]);
+    git(["switch", "-q", "-c", "feature"]);
+    git(["switch", "-q", "main"]);
     const contractYaml = `schemaVersion: 1
 product:
   id: records
@@ -690,7 +714,7 @@ behaviors:
     git(["commit", "-qm", "add contract"]);
     git(["rm", "-q", contractPath]);
     git(["commit", "-qm", "delete contract"]);
-    git(["switch", "-q", "-c", "feature"]);
+    git(["switch", "-q", "feature"]);
     writeFileSync(join(root, contractPath), contractYaml);
     await generateProductContract({
       repoRoot: root,

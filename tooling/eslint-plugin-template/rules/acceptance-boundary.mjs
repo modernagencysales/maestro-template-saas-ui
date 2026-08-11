@@ -617,6 +617,8 @@ export default {
       const names = propertyNames(node);
       if (names.some((name) => ANNOTATIONS.has(name)))
         context.report({ node, messageId: "annotation" });
+      else if (names.includes("configure") && testAliases.has(memberRoot(node)))
+        context.report({ node, messageId: "annotation" });
       else if (names.includes("mock"))
         context.report({ node, messageId: "mock" });
       else if (names.includes("fulfill")) {
@@ -677,7 +679,7 @@ export default {
         else if (name === "mock")
           context.report({ node: property, messageId: "mock" });
         else if (
-          (NETWORK_APIS.has(name) && name !== "route") ||
+          NETWORK_APIS.has(name) ||
           name === "fulfill" ||
           name === "fetch"
         )
@@ -833,7 +835,6 @@ export default {
           }
         }
         if (node.init?.type === "MemberExpression") {
-          reportMemberBypass(node.init);
           if (
             propertyNames(node.init).some(
               (name) => name === "require" || name === "createRequire",
@@ -843,12 +844,8 @@ export default {
           )
             context.report({ node: node.init, messageId: "import" });
         }
-        reportObjectPattern(node.id);
       },
       AssignmentExpression(node) {
-        if (node.right.type === "MemberExpression")
-          reportMemberBypass(node.right);
-        reportObjectPattern(node.left);
         if (node.right.type === "Identifier") {
           if (node.right.name === "require") {
             if (node.left.type === "Identifier") {
@@ -865,14 +862,8 @@ export default {
           }
         }
       },
-      ArrowFunctionExpression(node) {
-        for (const parameter of node.params) reportObjectPattern(parameter);
-      },
-      FunctionDeclaration(node) {
-        for (const parameter of node.params) reportObjectPattern(parameter);
-      },
-      FunctionExpression(node) {
-        for (const parameter of node.params) reportObjectPattern(parameter);
+      ObjectPattern(node) {
+        reportObjectPattern(node);
       },
       Identifier(node) {
         if (!configFile && DYNAMIC_CODE_NAMES.has(node.name)) {
@@ -915,6 +906,18 @@ export default {
           !isCanonicalFixtureExtend(node, info, context.sourceCode)
         )
           context.report({ node, messageId: "fixture" });
+        if (configFile) return;
+        if (
+          node.parent?.type === "MemberExpression" &&
+          node.parent.object === node
+        )
+          return;
+        if (
+          node.parent?.type === "CallExpression" &&
+          node.parent.callee === node
+        )
+          return;
+        reportMemberBypass(node);
       },
       CallExpression(node) {
         if (configFile) return;
@@ -953,6 +956,10 @@ export default {
           context.report({ node: node.callee, messageId: "browser" });
           return;
         }
+        if (names.includes("configure") && testAliases.has(root)) {
+          context.report({ node: node.callee, messageId: "annotation" });
+          return;
+        }
         if (
           names.some((name) => PAGE_CREATION_APIS.has(name)) &&
           !isCanonicalPageCreation(node, info)
@@ -988,6 +995,15 @@ export default {
             !safeSupportFulfill(node, context.sourceCode)
           )
             context.report({ node: node.callee, messageId: "synthetic" });
+          return;
+        }
+        if (root === "route" && names.includes("fetch")) {
+          if (
+            !isCanonicalRuntimeModule(info) ||
+            !isDirectMemberCall(node, "route", "fetch") ||
+            !isCanonicalRouteFetch(node.parent)
+          )
+            context.report({ node: node.callee, messageId: "network" });
           return;
         }
         if (names.some((name) => NETWORK_APIS.has(name))) {

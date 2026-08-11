@@ -96,14 +96,14 @@ export type ContractsRuntimeDependencies = {
 };
 
 type ProxyInput = {
-  readonly route: Route;
+  readonly requestRoute: Route;
   readonly apiBaseUrl: string;
   readonly apiKey: string;
   readonly workspaceSlug: string;
 };
 
 export const proxyContractsRequest = async ({
-  route,
+  requestRoute: route,
   apiBaseUrl,
   apiKey,
   workspaceSlug,
@@ -599,7 +599,7 @@ async function bootContractsRuntime(
         const key = requireCredentials(scenario).primary;
         await context.route("**/__contracts/api/**", (route) =>
           proxyContractsRequest({
-            route,
+            requestRoute: route,
             apiBaseUrl,
             apiKey: key,
             workspaceSlug: scenario.workspaceSlug,

@@ -909,6 +909,59 @@ export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.sp
   ],
   invalid: [
     {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const identity = (value) => value;
+identity(route.continue);
+identity(route[method]);
+const controls = { redirect: route.continue };
+identity(context.route);
+identity(route.fulfill);
+identity(page.evaluate);`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "synthetic" },
+        { messageId: "browser" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const { nested: { continue: nestedContinue } } = route;
+try { throw route; } catch ({ continue: caughtContinue }) {}
+const { route: intercept } = context;`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `await route.fetch({ url: arbitraryUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `route.fetch({ url: arbitraryUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test.describe.configure({ retries: 1 });`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const suites = test;
+const configure = suites.describe.configure;
+configure({ retries: 1 });`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
       filename: ACCEPTANCE_SUPPORT,
       code: `/* global route, targetUrl */
 const redirect = route.continue;
@@ -1142,6 +1195,7 @@ await proxy.fulfill({ body: "<h1>canned</h1>" });`,
         { messageId: "network" },
         { messageId: "network" },
         { messageId: "network" },
+        { messageId: "network" },
       ],
     },
     {
@@ -1285,25 +1339,25 @@ await route.fulfill({ response });`,
       filename: ACCEPTANCE_RUNTIME,
       code: `const response = await route.fetch({ url: arbitraryUrl });
 await route.fulfill({ response });`,
-      errors: [{ messageId: "synthetic" }],
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
     },
     {
       filename: ACCEPTANCE_RUNTIME,
       code: `const response = await route.fetch({ url: targetUrl, url: arbitraryUrl });
 await route.fulfill({ response });`,
-      errors: [{ messageId: "synthetic" }],
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
     },
     {
       filename: ACCEPTANCE_RUNTIME,
       code: `const response = await route.fetch({ url: targetUrl, "url": arbitraryUrl });
 await route.fulfill({ response });`,
-      errors: [{ messageId: "synthetic" }],
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
     },
     {
       filename: ACCEPTANCE_RUNTIME,
       code: `const response = await route.fetch({ ["url"]: targetUrl, ...overrides });
 await route.fulfill({ response });`,
-      errors: [{ messageId: "synthetic" }],
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
     },
     {
       filename: ACCEPTANCE_RUNTIME,

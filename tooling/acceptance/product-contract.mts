@@ -33,12 +33,10 @@ export type LoadedProductPlan = {
   readonly frontmatter: ProductPlanFrontmatter;
 };
 
-export type AcceptanceTestIdentity = {
-  readonly id: string;
-  readonly file: string;
-  readonly title: string;
-  readonly behaviorTag: string;
-};
+export type AcceptanceTestIdentity = Pick<
+  ParsedPlaywrightJsonReport["tests"][number],
+  "id" | "file" | "title" | "behaviorTag" | "expectedStatus" | "annotations"
+>;
 
 const contractPath = "product.contract.yaml";
 const schemaPath = "product.contract.schema.json";
@@ -128,11 +126,12 @@ const safeBranch = (branch: string): boolean =>
 export const deriveTrustedMergeBase = (
   readGit: (args: readonly string[]) => string,
   environment: Readonly<Record<string, string | undefined>>,
-): string => {
+): { readonly targetCommit: string; readonly mergeBase: string } => {
   const branch = environment.CI_COMMIT_TARGET_BRANCH?.trim() || "main";
   if (!safeBranch(branch))
     throw new Error(`Invalid canonical CI comparison branch: ${branch}`);
   let trustedRef: string | undefined;
+  let targetCommit: string | undefined;
   for (const candidate of [
     `refs/remotes/origin/${branch}`,
     `refs/heads/${branch}`,
@@ -146,18 +145,19 @@ export const deriveTrustedMergeBase = (
       ]);
       if (/^[a-f0-9]{40,64}$/u.test(resolved)) {
         trustedRef = candidate;
+        targetCommit = resolved;
         break;
       }
     } catch {
       // Try the canonical local namespace after the CI remote namespace.
     }
   }
-  if (!trustedRef)
+  if (!trustedRef || !targetCommit)
     throw new Error(`Canonical CI comparison ref does not exist: ${branch}`);
-  const mergeBase = readGit(["merge-base", "HEAD", trustedRef]);
+  const mergeBase = readGit(["merge-base", "HEAD", targetCommit]);
   if (!/^[a-f0-9]{40,64}$/u.test(mergeBase))
     throw new Error("Git did not return a valid actual merge base");
-  return mergeBase;
+  return { targetCommit, mergeBase };
 };
 
 const behaviorSemantic = (behavior: ProductBehavior): unknown => ({
@@ -246,23 +246,37 @@ const inspectAcceptanceTest = (
   known: ReadonlyMap<string, ProductBehavior>,
   counts: Map<string, number>,
 ): readonly string[] => {
+  const findings: string[] = [];
+  if (test.expectedStatus !== "passed")
+    findings.push(
+      `${test.file}: acceptance test expected status must be passed`,
+    );
+  for (const annotation of test.annotations)
+    if (["skip", "fixme", "fail"].includes(annotation.type))
+      findings.push(
+        `${test.file}: acceptance test cannot use ${annotation.type} annotation`,
+      );
   const match = behaviorTag.exec(test.behaviorTag);
   if (!match?.groups)
-    return [`${test.file}: invalid behavior tag ${test.behaviorTag}`];
+    return [
+      ...findings,
+      `${test.file}: invalid behavior tag ${test.behaviorTag}`,
+    ];
   const id = match.groups.id as string;
   const revision = Number(match.groups.revision);
   const behavior = known.get(id);
-  if (!behavior) return [`${test.file}: unknown behavior ${id}`];
+  if (!behavior) return [...findings, `${test.file}: unknown behavior ${id}`];
   if (behavior.status === "retired")
     return [
+      ...findings,
       `${test.file}: retired behavior ${id} cannot have acceptance coverage`,
     ];
   counts.set(id, (counts.get(id) ?? 0) + 1);
-  return revision === behavior.revision
-    ? []
-    : [
-        `${id} has stale revision R${revision}; current revision is R${behavior.revision}`,
-      ];
+  if (revision !== behavior.revision)
+    findings.push(
+      `${id} has stale revision R${revision}; current revision is R${behavior.revision}`,
+    );
+  return findings;
 };
 
 export const validateAcceptanceDiscovery = (input: {
@@ -508,6 +522,7 @@ export const generateProductContract = async (options: {
 const readTrustedContract = (
   readGit: (args: readonly string[]) => string,
   mergeBase: string,
+  targetCommit: string,
   allowFirstContract: boolean,
   contractRelativePath: string,
 ): {
@@ -525,7 +540,7 @@ const readTrustedContract = (
     const history = readGit([
       "log",
       "--format=%H",
-      mergeBase,
+      targetCommit,
       "--",
       contractRelativePath,
     ]);
@@ -580,10 +595,14 @@ const loadTrustedHistory = (
 } => {
   const readGit = gitReader(options.repoRoot);
   try {
-    const mergeBase = deriveTrustedMergeBase(readGit, process.env);
+    const { mergeBase, targetCommit } = deriveTrustedMergeBase(
+      readGit,
+      process.env,
+    );
     const loaded = readTrustedContract(
       readGit,
       mergeBase,
+      targetCommit,
       options.allowFirstContract,
       contractRelativePath,
     );
