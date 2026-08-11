@@ -1190,6 +1190,31 @@ export const test = base.extend({ runtime: [async ({}, use) => { const controlle
       errors: [{ messageId: "config" }],
     },
     {
+      filename: "playwright.acceptance.config.ts",
+      code: `import "./side-effect";
+import { defineConfig } from "@playwright/test";
+export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.spec.ts", forbidOnly: true, retries: 0, workers: 1, fullyParallel: false, repeatEach: 1, testIgnore: [], projects: [{ name: "acceptance-chromium", use: { browserName: "chromium" } }] });`,
+      errors: [{ messageId: "config" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+const override = { auto: false };
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); const runtime = await controller.start(); try { await use(runtime); } finally { await controller.stop(); } }, { scope: "worker", auto: true, ...override }] });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures"; await browser.newContext({ storageState: "state.json" });`,
+      errors: [{ messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures"; const injected = { storageState: "state.json" }; test.use({ ...injected });`,
+      errors: [{ messageId: "browser" }],
+    },
+    {
       filename: ACCEPTANCE_SUPPORT,
       code: `await route.fulfill({ json: { ok: true } });`,
       errors: [{ messageId: "synthetic" }],

@@ -4,6 +4,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   parsePlaywrightJsonReport,
+  isRelativePathInside,
   validateAcceptanceReportBoundary,
   validateNativeAcceptanceReportBoundary,
 } from "./playwright-report.mts";
@@ -59,6 +60,10 @@ const runtimeReport = {
 };
 
 describe("parsePlaywrightJsonReport", () => {
+  it("does not treat a Windows parent path as contained", () => {
+    expect(isRelativePathInside("..\\outside")).toBe(false);
+  });
+
   it("normalizes native JSON reporter tags to canonical behavior tags", () => {
     expect(
       parsePlaywrightJsonReport({

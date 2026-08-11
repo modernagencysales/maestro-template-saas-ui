@@ -343,15 +343,18 @@ export const validateAcceptanceReportBoundary = (input: {
   }
 };
 
-const isInsideRealPath = (root: string, target: string): boolean => {
-  const relativePath = relative(root, target);
+export const isRelativePathInside = (relativePath: string): boolean => {
+  const normalized = relativePath.replace(/\\/gu, "/");
   return (
-    relativePath === "" ||
-    (!relativePath.startsWith(`..${posix.sep}`) &&
-      relativePath !== ".." &&
-      !isAbsolute(relativePath))
+    normalized === "" ||
+    (!normalized.startsWith(`..${posix.sep}`) &&
+      normalized !== ".." &&
+      !isAbsolute(normalized))
   );
 };
+
+const isInsideRealPath = (root: string, target: string): boolean =>
+  isRelativePathInside(relative(root, target));
 
 export const validateNativeAcceptanceReportBoundary = (input: {
   readonly sourceRoot: string;

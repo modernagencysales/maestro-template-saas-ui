@@ -244,6 +244,8 @@ const isCanonicalRuntimeFixture = (declaration, sourceCode) => {
   const [factory, options] = runtime.value.elements;
   if (!isFunction(factory) || options?.type !== "ObjectExpression")
     return false;
+  if (options.properties.some((entry) => entry.type === "SpreadElement"))
+    return false;
   const scope = property(options, "scope");
   const auto = property(options, "auto");
   if (scope?.value?.value !== "worker" || auto?.value?.value !== true)
@@ -364,6 +366,35 @@ const isCanonicalConfig = (node, sourceCode) => {
     property(use, "browserName")?.value?.value === "chromium"
   );
 };
+
+const isCanonicalConfigModule = (program, sourceCode) => {
+  if (program.body.length !== 2) return false;
+  const [importDeclaration, exportDeclaration] = program.body;
+  if (
+    importDeclaration?.type !== "ImportDeclaration" ||
+    importDeclaration.source.value !== "@playwright/test" ||
+    importDeclaration.specifiers.length !== 1
+  )
+    return false;
+  const specifier = importDeclaration.specifiers[0];
+  return (
+    specifier.type === "ImportSpecifier" &&
+    specifier.imported.type === "Identifier" &&
+    specifier.imported.name === "defineConfig" &&
+    specifier.local.name === "defineConfig" &&
+    exportDeclaration?.type === "ExportDefaultDeclaration" &&
+    isCanonicalConfig(exportDeclaration.declaration, sourceCode)
+  );
+};
+
+const hasUnsafeStorageOverride = (node) =>
+  node?.type === "ObjectExpression" &&
+  node.properties.some(
+    (entry) =>
+      entry.type === "SpreadElement" ||
+      (entry.type === "Property" &&
+        ["storageState", "runtime"].includes(propertyName(entry))),
+  );
 
 const isCanonicalFixtureExport = (node, sourceCode) => {
   const declaration = node?.declaration?.declarations?.find(
@@ -756,12 +787,14 @@ export default {
         if (
           names.includes("use") &&
           testAliases.has(root) &&
-          node.arguments[0]?.type === "ObjectExpression" &&
-          node.arguments[0].properties.some(
-            (entry) =>
-              entry.type === "Property" &&
-              ["storageState", "runtime"].includes(propertyName(entry)),
-          )
+          hasUnsafeStorageOverride(node.arguments[0])
+        ) {
+          context.report({ node: node.callee, messageId: "browser" });
+          return;
+        }
+        if (
+          names.includes("newContext") &&
+          hasUnsafeStorageOverride(node.arguments[0])
         ) {
           context.report({ node: node.callee, messageId: "browser" });
           return;
@@ -840,14 +873,7 @@ export default {
           context.report({ node: node.callee, messageId: "import" });
       },
       "Program:exit"(node) {
-        if (
-          configFile &&
-          !isCanonicalConfig(
-            node.body.find((item) => item.type === "ExportDefaultDeclaration")
-              ?.declaration,
-            context.sourceCode,
-          )
-        )
+        if (configFile && !isCanonicalConfigModule(node, context.sourceCode))
           context.report({ node, messageId: "config" });
         if (info && isCanonicalFixturesModule(info) && !canonicalFixtureExport)
           context.report({ node, messageId: "fixture" });
