@@ -158,7 +158,7 @@ export const renderProductContractMarkdown = (input: {
   readonly links: readonly ProductBehaviorDocumentation[];
 }): string => {
   const links = new Map(input.links.map((link) => [link.behaviorId, link]));
-  const rows = [...input.contract.behaviors]
+  const sections = [...input.contract.behaviors]
     .sort((left, right) => bytewiseCompare(left.id, right.id))
     .map((behavior) => {
       const link = links.get(behavior.id);
@@ -169,27 +169,25 @@ export const renderProductContractMarkdown = (input: {
       return [
         `## ${behaviorRevisionTag(behavior)} ${behavior.title}`,
         "",
-        `- Status: ${behavior.status}`,
-        `- Actor: ${behavior.actor}`,
-        `- Surfaces: ${sorted(behavior.surfaces).join(", ")}`,
-        `- Preconditions: ${format(behavior.preconditions)}`,
-        `- Action: ${behavior.action}`,
-        `- Outcomes: ${format(behavior.outcomes)}`,
-        `- Plan paths: ${format(link?.planPaths)}`,
-        `- App Map targets: ${format(link?.appMapTargets)}`,
-        `- Acceptance paths: ${format(link?.acceptancePaths)}`,
-        "",
+        "| Field | Value |",
+        "| --- | --- |",
+        `| Revision | ${behavior.revision} |`,
+        `| Lifecycle | ${behavior.status} |`,
+        `| Surfaces | ${format(behavior.surfaces)} |`,
+        `| Typed plan paths | ${format(link?.planPaths)} |`,
+        `| App Map targets | ${format(link?.appMapTargets)} |`,
+        `| Acceptance file paths | ${format(link?.acceptancePaths)} |`,
       ].join("\n");
     });
-  return [
+  return `${[
     "# Product Contract",
     "",
     `Product: ${input.contract.product.name} (${input.contract.product.id})`,
     "",
     input.contract.product.summary,
     "",
-    ...rows,
-  ].join("\n");
+    ...sections,
+  ].join("\n")}\n`;
 };
 
 export const renderProductContractJsonSchema = (): string => {

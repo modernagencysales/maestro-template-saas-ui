@@ -5,8 +5,10 @@ import { dirname, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import {
+  renderProductContractMarkdown,
   type ProductBehavior,
   type ProductContract,
+  type ProductBehaviorDocumentation,
   renderProductContractJsonSchema,
   validateProductContract,
 } from "../../packages/template-core/src/productContract";
@@ -19,6 +21,10 @@ import {
   composeAppMap,
   resolveRepositoryRevision,
 } from "../app-map/src/composition";
+import {
+  parsePlaywrightJsonReport,
+  type ParsedPlaywrightJsonReport,
+} from "./playwright-report.mts";
 
 export type LoadedProductPlan = {
   readonly path: string;
@@ -88,6 +94,9 @@ export const parsePlanFrontmatter = (
     /^(?:\uFEFF)?---[ \t]*\r?\n([\s\S]*?)\r?\n---[ \t]*(?:\r?\n|$)/u.exec(
       markdown,
     );
+  const hasLeadingOpener = /^(?:\uFEFF)?---[ \t]*(?:\r?\n|$)/u.test(markdown);
+  if (!match && hasLeadingOpener)
+    throw new Error(`${sourcePath}: frontmatter has no closing delimiter`);
   if (!match) return undefined;
   let value: unknown;
   try {
@@ -242,6 +251,10 @@ const inspectAcceptanceTest = (
   const revision = Number(match.groups.revision);
   const behavior = known.get(id);
   if (!behavior) return [`${test.file}: unknown behavior ${id}`];
+  if (behavior.status === "retired")
+    return [
+      `${test.file}: retired behavior ${id} cannot have acceptance coverage`,
+    ];
   counts.set(id, (counts.get(id) ?? 0) + 1);
   return revision === behavior.revision
     ? []
@@ -262,7 +275,7 @@ export const validateAcceptanceDiscovery = (input: {
   for (const test of input.tests)
     findings.push(...inspectAcceptanceTest(test, known, counts));
   for (const behavior of input.contract.behaviors) {
-    if (behavior.status === "retired") continue;
+    if (behavior.status !== "required") continue;
     const count = counts.get(behavior.id) ?? 0;
     if (count === 0)
       findings.push(
@@ -352,57 +365,32 @@ const schemaProjection = (): string => {
   return renderProductContractJsonSchema();
 };
 
-type DocumentationLink = {
-  readonly planPaths: readonly string[];
-  readonly appMapTargets: readonly string[];
-  readonly acceptancePaths: readonly string[];
+type MutableDocumentationLink = {
+  readonly planPaths: Set<string>;
+  readonly appMapTargets: Set<string>;
+  readonly acceptancePaths: Set<string>;
 };
 
-const renderProjection = (
+const initialLinks = (
   contract: ProductContract,
-  links: ReadonlyMap<string, DocumentationLink>,
-): string => {
-  const format = (values: readonly string[]): string =>
-    sorted(values)
-      .map((value) => `\`${value}\``)
-      .join(", ") || "—";
-  const sections = [...contract.behaviors]
-    .sort((left, right) => bytewise(left.id, right.id))
-    .map((behavior) => {
-      const link = links.get(behavior.id) ?? {
-        planPaths: [],
-        appMapTargets: [],
-        acceptancePaths: [],
-      };
-      return [
-        `## ${behavior.id} — ${behavior.title}`,
-        "",
-        "| Field | Value |",
-        "| --- | --- |",
-        `| Revision | ${behavior.revision} |`,
-        `| Lifecycle | ${behavior.status} |`,
-        `| Surfaces | ${format(behavior.surfaces)} |`,
-        `| Typed plan paths | ${format(link.planPaths)} |`,
-        `| App Map targets | ${format(link.appMapTargets)} |`,
-        `| Acceptance file paths | ${format(link.acceptancePaths)} |`,
-        "",
-      ].join("\n");
-    });
-  return ["# Product Contract", "", ...sections].join("\n");
-};
+): Map<string, MutableDocumentationLink> =>
+  new Map(
+    contract.behaviors.map((behavior) => [
+      behavior.id,
+      {
+        planPaths: new Set<string>(),
+        appMapTargets: new Set<string>(),
+        acceptancePaths: new Set<string>(),
+      },
+    ]),
+  );
 
-const projectionLinks = (
-  contract: ProductContract,
+const addPlanLinks = (
+  links: Map<string, MutableDocumentationLink>,
   plans: readonly LoadedProductPlan[],
-): ReadonlyMap<string, DocumentationLink> => {
-  const links = new Map<
-    string,
-    { planPaths: Set<string>; appMapTargets: Set<string> }
-  >();
-  for (const behavior of contract.behaviors)
-    links.set(behavior.id, { planPaths: new Set(), appMapTargets: new Set() });
-  for (const plan of plans) {
-    for (const workPackage of plan.frontmatter.workPackages) {
+): void => {
+  for (const plan of plans)
+    for (const workPackage of plan.frontmatter.workPackages)
       for (const id of workPackage.behaviorIds) {
         const link = links.get(id);
         if (!link) continue;
@@ -410,40 +398,105 @@ const projectionLinks = (
         for (const target of workPackage.appMapTargets)
           link.appMapTargets.add(target);
       }
-    }
-  }
-  return new Map(
-    [...links.entries()].map(([id, link]) => [
-      id,
-      {
-        planPaths: sorted([...link.planPaths]),
-        appMapTargets: sorted([...link.appMapTargets]),
-        acceptancePaths: [],
-      },
-    ]),
-  );
 };
+
+const addAcceptanceLinks = (
+  links: Map<string, MutableDocumentationLink>,
+  tests: readonly AcceptanceTestIdentity[],
+): void => {
+  for (const test of tests) {
+    const id = behaviorTag.exec(test.behaviorTag)?.groups?.id;
+    const link = id === undefined ? undefined : links.get(id);
+    if (link) link.acceptancePaths.add(test.file);
+  }
+};
+
+const projectionLinks = (
+  contract: ProductContract,
+  plans: readonly LoadedProductPlan[],
+  tests: readonly AcceptanceTestIdentity[],
+): readonly ProductBehaviorDocumentation[] => {
+  const links = initialLinks(contract);
+  addPlanLinks(links, plans);
+  addAcceptanceLinks(links, tests);
+  return [...links.entries()].map(([behaviorId, link]) => ({
+    behaviorId,
+    planPaths: sorted([...link.planPaths]),
+    appMapTargets: sorted([...link.appMapTargets]),
+    acceptancePaths: sorted([...link.acceptancePaths]),
+  }));
+};
+
+const readNativePlaywrightListing = (
+  repoRoot: string,
+  sourceRoot: string,
+): ParsedPlaywrightJsonReport => {
+  const configPath = repoPath(
+    repoRoot,
+    sourceRoot,
+    "playwright.acceptance.config.ts",
+  );
+  const output = execFileSync(
+    "pnpm",
+    [
+      "exec",
+      "playwright",
+      "test",
+      "--config",
+      configPath,
+      "--list",
+      "--reporter=json",
+    ],
+    { cwd: repoRoot, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
+  );
+  return parsePlaywrightJsonReport(JSON.parse(output) as unknown);
+};
+
+type DiscoveryOptions = {
+  readonly readAcceptanceReport?: () => Promise<ParsedPlaywrightJsonReport>;
+};
+
+const loadAcceptanceDiscovery = async (
+  repoRoot: string,
+  sourceRoot: string,
+  options: DiscoveryOptions,
+): Promise<ParsedPlaywrightJsonReport> =>
+  options.readAcceptanceReport
+    ? options.readAcceptanceReport()
+    : readNativePlaywrightListing(repoRoot, sourceRoot);
 
 export const generateProductContract = async (options: {
   readonly repoRoot: string;
   readonly sourceRoot: string;
+  readonly readAcceptanceReport?: () => Promise<ParsedPlaywrightJsonReport>;
 }): Promise<void> => {
   const sourceRoot = boundedSourceRoot(options.repoRoot, options.sourceRoot);
   const contract = loadContract(sourceRoot);
   const plans = await loadPlans(options.repoRoot, options.sourceRoot);
+  const report = await loadAcceptanceDiscovery(
+    options.repoRoot,
+    options.sourceRoot,
+    options,
+  );
+  const discoveryFindings = validateAcceptanceDiscovery({
+    contract,
+    tests: report.tests,
+  });
+  if (discoveryFindings.length > 0)
+    throw new Error(discoveryFindings.join("\n"));
   const findings = validateProductPlanBindings({
     contract,
     plans: plans.map(({ frontmatter }) => frontmatter),
   });
   if (findings.length > 0) throw new Error(findings.join("\n"));
-  const links = projectionLinks(contract, plans);
+  const links = projectionLinks(contract, plans, report.tests);
   await mkdir(dirname(repoPath(sourceRoot, ".", generatedPath)), {
     recursive: true,
   });
   await writeFile(repoPath(sourceRoot, ".", schemaPath), schemaProjection());
   await writeFile(
     repoPath(sourceRoot, ".", generatedPath),
-    renderProjection(contract, links),
+    renderProductContractMarkdown({ contract, links }),
   );
 };
 
@@ -451,6 +504,7 @@ const readTrustedContract = (
   readGit: (args: readonly string[]) => string,
   mergeBase: string,
   allowFirstContract: boolean,
+  contractRelativePath: string,
 ): {
   readonly contract: ProductContract | null;
   readonly findings: readonly string[];
@@ -460,7 +514,7 @@ const readTrustedContract = (
     "--name-only",
     mergeBase,
     "--",
-    contractPath,
+    contractRelativePath,
   ]);
   if (listing === "") {
     const history = readGit([
@@ -468,7 +522,7 @@ const readTrustedContract = (
       "--format=%H",
       mergeBase,
       "--",
-      contractPath,
+      contractRelativePath,
     ]);
     if (history !== "")
       return {
@@ -482,7 +536,7 @@ const readTrustedContract = (
       };
     return { contract: null, findings: [] };
   }
-  if (listing !== contractPath)
+  if (listing !== contractRelativePath)
     return {
       contract: null,
       findings: ["trusted contract lookup returned an unexpected path"],
@@ -490,7 +544,7 @@ const readTrustedContract = (
   try {
     return {
       contract: validateProductContract(
-        parseYaml(readGit(["show", `${mergeBase}:${contractPath}`])),
+        parseYaml(readGit(["show", `${mergeBase}:${contractRelativePath}`])),
       ),
       findings: [],
     };
@@ -509,10 +563,12 @@ type ContractCheckOptions = {
   readonly sourceRoot: string;
   readonly allowFirstContract: boolean;
   readonly resolveAppMapNodeIds?: () => Promise<ReadonlySet<string>>;
+  readonly readAcceptanceReport?: () => Promise<ParsedPlaywrightJsonReport>;
 };
 
 const loadTrustedHistory = (
   options: ContractCheckOptions,
+  contractRelativePath: string,
 ): {
   readonly trusted: ProductContract | null;
   readonly findings: readonly string[];
@@ -524,6 +580,7 @@ const loadTrustedHistory = (
       readGit,
       mergeBase,
       options.allowFirstContract,
+      contractRelativePath,
     );
     return { trusted: loaded.contract, findings: loaded.findings };
   } catch (error) {
@@ -578,17 +635,17 @@ const validatePlanTargets = (
       findings.push(
         `required behavior ${behavior.id} has no typed plan mapping`,
       );
-    const targets = owning.flatMap(({ appMapTargets }) => appMapTargets);
-    for (const target of sorted([...new Set(targets)])) {
-      if (nodeIds.has(target)) continue;
-      const templateGap = owning.some(
-        ({ behaviorIds, work }) =>
-          behaviorIds.includes(behavior.id) && work.kind === "template-gap",
-      );
-      if (behavior.status !== "draft" || !templateGap)
-        findings.push(
-          `${behavior.id} App Map target ${target} does not resolve`,
-        );
+    for (const workPackage of owning) {
+      for (const target of sorted(workPackage.appMapTargets)) {
+        if (nodeIds.has(target)) continue;
+        if (
+          behavior.status !== "draft" ||
+          workPackage.work.kind !== "template-gap"
+        )
+          findings.push(
+            `${behavior.id} App Map target ${target} does not resolve`,
+          );
+      }
     }
   }
   return findings;
@@ -598,12 +655,13 @@ const generatedProjectionFindings = async (
   sourceRoot: string,
   contract: ProductContract,
   plans: readonly LoadedProductPlan[],
+  tests: readonly AcceptanceTestIdentity[],
 ): Promise<readonly string[]> => {
-  const links = projectionLinks(contract, plans);
+  const links = projectionLinks(contract, plans, tests);
   const findings: string[] = [];
   for (const [path, expected] of [
     [schemaPath, schemaProjection()],
-    [generatedPath, renderProjection(contract, links)],
+    [generatedPath, renderProductContractMarkdown({ contract, links })],
   ] as const) {
     const absolute = repoPath(sourceRoot, ".", path);
     if (!existsSync(absolute)) findings.push(`${path} is missing`);
@@ -616,9 +674,13 @@ const generatedProjectionFindings = async (
 export const checkProductContract = async (
   options: ContractCheckOptions,
 ): Promise<readonly string[]> => {
-  if (options.sourceRoot !== ".")
-    return ["direct product-contract checking requires --source-root ."];
   const sourceRoot = boundedSourceRoot(options.repoRoot, options.sourceRoot);
+  const contractRelativePath = relative(
+    resolve(options.repoRoot),
+    repoPath(sourceRoot, ".", contractPath),
+  )
+    .split(sep)
+    .join("/");
   const findings: string[] = [];
   let current: ProductContract;
   try {
@@ -626,7 +688,7 @@ export const checkProductContract = async (
   } catch (error) {
     return [error instanceof Error ? error.message : String(error)];
   }
-  const history = loadTrustedHistory(options);
+  const history = loadTrustedHistory(options, contractRelativePath);
   findings.push(
     ...history.findings,
     ...compareProductContractHistory(history.trusted, current),
@@ -636,6 +698,25 @@ export const checkProductContract = async (
     plans = await loadPlans(options.repoRoot, options.sourceRoot);
   } catch (error) {
     findings.push(error instanceof Error ? error.message : String(error));
+  }
+  let discoveredTests: readonly AcceptanceTestIdentity[] = [];
+  try {
+    const report = await loadAcceptanceDiscovery(
+      options.repoRoot,
+      options.sourceRoot,
+      options,
+    );
+    discoveredTests = report.tests;
+    findings.push(
+      ...validateAcceptanceDiscovery({
+        contract: current,
+        tests: report.tests,
+      }),
+    );
+  } catch (error) {
+    findings.push(
+      `Playwright discovery failed: ${error instanceof Error ? error.message : String(error)}`,
+    );
   }
   try {
     findings.push(
@@ -653,28 +734,75 @@ export const checkProductContract = async (
     ...validatePlanTargets(current, plans, appMap.nodeIds),
   );
   findings.push(
-    ...(await generatedProjectionFindings(sourceRoot, current, plans)),
+    ...(await generatedProjectionFindings(
+      sourceRoot,
+      current,
+      plans,
+      discoveredTests,
+    )),
   );
   return findings;
 };
 
-const argument = (name: string): string | undefined => {
-  const index = process.argv.indexOf(name);
-  return index >= 0 ? process.argv[index + 1] : undefined;
+export type ProductContractArguments = {
+  readonly mode: "generate" | "check";
+  readonly sourceRoot: string;
+  readonly allowFirstContract: boolean;
+};
+
+type MutableCliState = {
+  sourceRoot?: string;
+  allowFirstContract: boolean;
+};
+
+const consumeCliArgument = (
+  argv: readonly string[],
+  index: number,
+  mode: "generate" | "check",
+  state: MutableCliState,
+): number => {
+  const argument = argv[index];
+  if (argument === "--source-root") {
+    if (state.sourceRoot !== undefined || argv[index + 1] === undefined)
+      throw new Error("--source-root must appear once with a value");
+    const value = argv[index + 1] as string;
+    if (value.startsWith("--"))
+      throw new Error("--source-root requires a value");
+    state.sourceRoot = value;
+    return index + 2;
+  }
+  if (argument === "--allow-first-contract") {
+    if (state.allowFirstContract || mode === "generate")
+      throw new Error("--allow-first-contract is valid once for check only");
+    state.allowFirstContract = true;
+    return index + 1;
+  }
+  throw new Error(`Unknown or misplaced argument: ${argument}`);
+};
+
+export const parseProductContractArguments = (
+  argv: readonly string[],
+): ProductContractArguments => {
+  const mode = argv[0];
+  if (mode !== "generate" && mode !== "check")
+    throw new Error("Mode must be generate or check");
+  const state: MutableCliState = { allowFirstContract: false };
+  for (let index = 1; index < argv.length;)
+    index = consumeCliArgument(argv, index, mode, state);
+  if (state.sourceRoot === undefined)
+    throw new Error("--source-root is required");
+  if (mode === "check" && state.sourceRoot !== ".")
+    throw new Error("check requires --source-root .");
+  return {
+    mode,
+    sourceRoot: state.sourceRoot,
+    allowFirstContract: state.allowFirstContract,
+  };
 };
 
 const main = async (): Promise<void> => {
-  const mode = process.argv[2];
-  const sourceRoot = argument("--source-root");
-  if (
-    (mode !== "generate" && mode !== "check") ||
-    sourceRoot === undefined ||
-    (mode === "check" && sourceRoot !== ".")
-  ) {
-    throw new Error(
-      "Usage: product-contract generate --source-root <relative-path> | check --source-root . [--allow-first-contract]",
-    );
-  }
+  const { mode, sourceRoot, allowFirstContract } =
+    parseProductContractArguments(process.argv.slice(2));
   const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
   if (mode === "generate") {
     await generateProductContract({ repoRoot, sourceRoot });
@@ -683,7 +811,7 @@ const main = async (): Promise<void> => {
   const findings = await checkProductContract({
     repoRoot,
     sourceRoot,
-    allowFirstContract: process.argv.includes("--allow-first-contract"),
+    allowFirstContract,
   });
   if (findings.length > 0) throw new Error(findings.join("\n"));
 };

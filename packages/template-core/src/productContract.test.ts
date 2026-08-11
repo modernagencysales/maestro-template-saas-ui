@@ -99,7 +99,23 @@ describe("ProductContract", () => {
           },
         ],
       }),
-    ).toContain("@BHV-CORE-1-R2");
+    ).toMatch(/\| Revision \| 2 \|/);
+    expect(
+      renderProductContractMarkdown({
+        contract,
+        links: [
+          {
+            behaviorId: "BHV-CORE-1",
+            planPaths: [],
+            appMapTargets: [],
+            acceptancePaths: ["z.spec.ts", "a.spec.ts"],
+          },
+        ],
+      }),
+    ).toMatch(/Acceptance file paths.*a\.spec\.ts.*z\.spec\.ts/s);
+    expect(renderProductContractMarkdown({ contract, links: [] })).toMatch(
+      /\| Acceptance file paths \| — \|/,
+    );
     expect(renderProductContractMarkdown({ contract, links: [] })).toMatch(
       /\n$/,
     );
