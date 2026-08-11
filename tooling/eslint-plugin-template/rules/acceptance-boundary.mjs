@@ -777,6 +777,7 @@ export default {
     const configFile = isAcceptanceConfig(filename);
     if (!info && !configFile) return {};
     const testAliases = new Set(["test"]);
+    const globalAliases = new Set();
     const requireAliases = new Set();
     const reportedRequireAliases = new Set();
     const createRequireAliases = new Set();
@@ -1020,6 +1021,11 @@ export default {
       },
       VariableDeclarator(node) {
         if (node.init?.type === "Identifier") {
+          if (
+            node.id.type === "Identifier" &&
+            (isGlobalRoot(node.init) || globalAliases.has(node.init.name))
+          )
+            globalAliases.add(node.id.name);
           if (node.init.name === "require") {
             if (node.id.type === "Identifier") {
               requireAliases.add(node.id.name);
@@ -1071,6 +1077,11 @@ export default {
       },
       AssignmentExpression(node) {
         if (node.right.type === "Identifier") {
+          if (
+            node.left.type === "Identifier" &&
+            (isGlobalRoot(node.right) || globalAliases.has(node.right.name))
+          )
+            globalAliases.add(node.left.name);
           if (node.right.name === "require") {
             if (node.left.type === "Identifier") {
               requireAliases.add(node.left.name);
@@ -1121,7 +1132,9 @@ export default {
           ((node.property.type === "Literal" &&
             typeof node.property.value === "string" &&
             DYNAMIC_CODE_NAMES.has(node.property.value)) ||
-            (isGlobalRoot(node.object) && node.property.type !== "Literal"))
+            ((isGlobalRoot(node.object) ||
+              globalAliases.has(memberRoot(node))) &&
+              node.property.type !== "Literal"))
         ) {
           context.report({ node, messageId: "import" });
           return;

@@ -677,6 +677,142 @@ behaviors:
     }
   });
 
+  it("rejects a same-revision semantic rewrite in first-contract feature history", async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), "product-contract-feature-history-"),
+    );
+    const git = (args: readonly string[]) =>
+      execFileSync("git", [...args], {
+        cwd: root,
+        encoding: "utf8",
+        env: { ...process.env, LEFTHOOK: "0" },
+      });
+    git(["init", "-q", "-b", "main"]);
+    git(["config", "user.email", "test@example.com"]);
+    git(["config", "user.name", "Test"]);
+    writeFileSync(join(root, "README.md"), "root\n");
+    git(["add", "README.md"]);
+    git(["commit", "-qm", "root"]);
+    git(["switch", "-q", "-c", "feature"]);
+    writeFileSync(join(root, contractPath), contractYaml("draft"));
+    await generateProductContract({
+      repoRoot: root,
+      sourceRoot: ".",
+      readAcceptanceReport: async () =>
+        reportFor("tests/acceptance/records.spec.ts", root),
+    });
+    git(["add", contractPath, schemaPath, generatedPath]);
+    git(["commit", "-qm", "introduce contract"]);
+    writeFileSync(
+      join(root, contractPath),
+      contractYaml("draft").replace(
+        "The member saves a record.",
+        "The member deletes a record.",
+      ),
+    );
+    await generateProductContract({
+      repoRoot: root,
+      sourceRoot: ".",
+      readAcceptanceReport: async () =>
+        reportFor("tests/acceptance/records.spec.ts", root),
+    });
+    git(["add", contractPath, schemaPath, generatedPath]);
+    git(["commit", "-qm", "rewrite contract"]);
+    const previousBranch = process.env.CI_COMMIT_TARGET_BRANCH;
+    process.env.CI_COMMIT_TARGET_BRANCH = "main";
+    try {
+      const findings = await checkProductContract({
+        repoRoot: root,
+        sourceRoot: ".",
+        allowFirstContract: true,
+        resolveAppMapNodeIds: async () => new Set(),
+        readAcceptanceReport: async () =>
+          reportFor("tests/acceptance/records.spec.ts", root),
+      });
+      expect(findings.join("\n")).toMatch(/semantic edit requires.*revision/i);
+    } finally {
+      if (previousBranch === undefined)
+        delete process.env.CI_COMMIT_TARGET_BRANCH;
+      else process.env.CI_COMMIT_TARGET_BRANCH = previousBranch;
+    }
+  });
+
+  it("rejects an intermediate behavior deletion in first-contract feature history", async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), "product-contract-intermediate-history-"),
+    );
+    const git = (args: readonly string[]) =>
+      execFileSync("git", [...args], {
+        cwd: root,
+        encoding: "utf8",
+        env: { ...process.env, LEFTHOOK: "0" },
+      });
+    const firstContract = `${contractYaml("draft")}  - id: BHV-REC-002
+    revision: 1
+    status: draft
+    title: A record appears
+    actor: workspace member
+    surfaces: [web-ui]
+    preconditions: []
+    action: The member saves a record.
+    outcomes: [The record is listed.]
+`;
+    const secondContract = contractYaml("draft").replace(
+      "BHV-REC-001",
+      "BHV-REC-002",
+    );
+    git(["init", "-q", "-b", "main"]);
+    git(["config", "user.email", "test@example.com"]);
+    git(["config", "user.name", "Test"]);
+    writeFileSync(join(root, "README.md"), "root\n");
+    git(["add", "README.md"]);
+    git(["commit", "-qm", "root"]);
+    git(["switch", "-q", "-c", "feature"]);
+    writeFileSync(join(root, contractPath), firstContract);
+    await generateProductContract({
+      repoRoot: root,
+      sourceRoot: ".",
+      readAcceptanceReport: async () =>
+        reportFor("tests/acceptance/records.spec.ts", root),
+    });
+    git(["add", contractPath, schemaPath, generatedPath]);
+    git(["commit", "-qm", "introduce behaviors"]);
+    writeFileSync(join(root, contractPath), secondContract);
+    await generateProductContract({
+      repoRoot: root,
+      sourceRoot: ".",
+      readAcceptanceReport: async () => emptyReport(root),
+    });
+    git(["add", contractPath, schemaPath, generatedPath]);
+    git(["commit", "-qm", "delete behavior"]);
+    writeFileSync(join(root, contractPath), firstContract);
+    await generateProductContract({
+      repoRoot: root,
+      sourceRoot: ".",
+      readAcceptanceReport: async () =>
+        reportFor("tests/acceptance/records.spec.ts", root),
+    });
+    git(["add", contractPath, schemaPath, generatedPath]);
+    git(["commit", "-qm", "restore behavior"]);
+    const previousBranch = process.env.CI_COMMIT_TARGET_BRANCH;
+    process.env.CI_COMMIT_TARGET_BRANCH = "main";
+    try {
+      const findings = await checkProductContract({
+        repoRoot: root,
+        sourceRoot: ".",
+        allowFirstContract: true,
+        resolveAppMapNodeIds: async () => new Set(),
+        readAcceptanceReport: async () =>
+          reportFor("tests/acceptance/records.spec.ts", root),
+      });
+      expect(findings.join("\n")).toMatch(/BHV-REC-001.*deleted|missing/i);
+    } finally {
+      if (previousBranch === undefined)
+        delete process.env.CI_COMMIT_TARGET_BRANCH;
+      else process.env.CI_COMMIT_TARGET_BRANCH = previousBranch;
+    }
+  });
+
   it("rejects bootstrap from a shallow clone", async () => {
     const source = await mkdtemp(join(tmpdir(), "product-contract-source-"));
     const shallow = await mkdtemp(join(tmpdir(), "product-contract-shallow-"));

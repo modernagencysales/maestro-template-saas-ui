@@ -520,6 +520,56 @@ export const generateProductContract = async (options: {
   );
 };
 
+const readFirstContractFeatureHistory = (
+  readGit: (args: readonly string[]) => string,
+  mergeBase: string,
+  contractRelativePath: string,
+): {
+  readonly contracts: readonly ProductContract[];
+  readonly findings: readonly string[];
+} => {
+  const featureHistory = readGit([
+    "log",
+    "--format=%H",
+    "--reverse",
+    `${mergeBase}..HEAD`,
+    "--",
+    contractRelativePath,
+  ]);
+  try {
+    const contracts = featureHistory
+      .split("\n")
+      .filter(Boolean)
+      .map((commit) =>
+        validateProductContract(
+          parseYaml(readGit(["show", `${commit}:${contractRelativePath}`])),
+        ),
+      );
+    const deleted = readGit([
+      "log",
+      "--format=%H",
+      "--diff-filter=D",
+      `${mergeBase}..HEAD`,
+      "--",
+      contractRelativePath,
+    ]);
+    return {
+      contracts,
+      findings:
+        deleted === ""
+          ? []
+          : ["product contract was deleted in first-contract feature history"],
+    };
+  } catch (error) {
+    return {
+      contracts: [],
+      findings: [
+        `first-contract feature history is invalid: ${error instanceof Error ? error.message : String(error)}`,
+      ],
+    };
+  }
+};
+
 const readTrustedContract = (
   readGit: (args: readonly string[]) => string,
   mergeBase: string,
@@ -527,7 +577,7 @@ const readTrustedContract = (
   allowFirstContract: boolean,
   contractRelativePath: string,
 ): {
-  readonly contract: ProductContract | null;
+  readonly contracts: readonly ProductContract[];
   readonly findings: readonly string[];
 } => {
   const listing = readGit([
@@ -543,45 +593,51 @@ const readTrustedContract = (
       readGit(["rev-parse", "--is-shallow-repository"]) === "true"
     )
       return {
-        contract: null,
+        contracts: [],
         findings: [
           "shallow Git history cannot bootstrap the first product contract",
         ],
       };
-    const history = readGit([
+    const targetHistory = readGit([
       "log",
       "--format=%H",
       targetCommit,
       "--",
       contractRelativePath,
     ]);
-    if (history !== "")
+    if (targetHistory !== "")
       return {
-        contract: null,
+        contracts: [],
         findings: ["trusted contract is missing but existed in target history"],
       };
     if (!allowFirstContract)
       return {
-        contract: null,
+        contracts: [],
         findings: ["trusted base has no product contract"],
       };
-    return { contract: null, findings: [] };
+    return readFirstContractFeatureHistory(
+      readGit,
+      mergeBase,
+      contractRelativePath,
+    );
   }
   if (listing !== contractRelativePath)
     return {
-      contract: null,
+      contracts: [],
       findings: ["trusted contract lookup returned an unexpected path"],
     };
   try {
     return {
-      contract: validateProductContract(
-        parseYaml(readGit(["show", `${mergeBase}:${contractRelativePath}`])),
-      ),
+      contracts: [
+        validateProductContract(
+          parseYaml(readGit(["show", `${mergeBase}:${contractRelativePath}`])),
+        ),
+      ],
       findings: [],
     };
   } catch (error) {
     return {
-      contract: null,
+      contracts: [],
       findings: [
         `trusted product contract is invalid: ${error instanceof Error ? error.message : String(error)}`,
       ],
@@ -601,7 +657,7 @@ const loadTrustedHistory = (
   options: ContractCheckOptions,
   contractRelativePath: string,
 ): {
-  readonly trusted: ProductContract | null;
+  readonly trusted: readonly ProductContract[];
   readonly findings: readonly string[];
 } => {
   const readGit = gitReader(options.repoRoot);
@@ -617,10 +673,10 @@ const loadTrustedHistory = (
       options.allowFirstContract,
       contractRelativePath,
     );
-    return { trusted: loaded.contract, findings: loaded.findings };
+    return { trusted: loaded.contracts, findings: loaded.findings };
   } catch (error) {
     return {
-      trusted: null,
+      trusted: [],
       findings: [error instanceof Error ? error.message : String(error)],
     };
   }
@@ -726,7 +782,12 @@ export const checkProductContract = async (
   const history = loadTrustedHistory(options, contractRelativePath);
   findings.push(
     ...history.findings,
-    ...compareProductContractHistory(history.trusted, current),
+    ...history.trusted.flatMap((trusted, index) =>
+      compareProductContractHistory(
+        trusted,
+        history.trusted[index + 1] ?? current,
+      ),
+    ),
   );
   let plans: readonly LoadedProductPlan[] = [];
   try {

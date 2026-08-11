@@ -1635,6 +1635,16 @@ constructor("return import('x')")();`,
     },
     {
       filename: ACCEPTANCE,
+      code: `const root = globalThis;
+const chained = root;
+let assigned;
+assigned = chained;
+const make = assigned["Fun" + "ction"];
+make("return 1")();`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
       code: `import vm from "node:vm";`,
       errors: [{ messageId: "import" }],
     },
