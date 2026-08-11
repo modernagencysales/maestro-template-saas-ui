@@ -12,6 +12,7 @@ import {
 import {
   parsePlaywrightJsonReport,
   validateAcceptanceReportBoundary,
+  validateNativeAcceptanceReportBoundary,
   type ParsedPlaywrightJsonReport,
   type PlaywrightTestRecord,
 } from "./playwright-report.mts";
@@ -306,6 +307,15 @@ const executeReport = async (options: {
   }
 };
 
+const validateReport = (
+  sourceRoot: string,
+  report: ParsedPlaywrightJsonReport,
+  native: boolean,
+): void => {
+  validateAcceptanceReportBoundary({ sourceRoot, report });
+  if (native) validateNativeAcceptanceReportBoundary({ sourceRoot, report });
+};
+
 export const runAcceptance = async (
   options: AcceptanceOptions,
 ): Promise<void> => {
@@ -343,7 +353,7 @@ export const runAcceptance = async (
       failOnNonzero: true,
     });
     const discovered = discovery.report;
-    validateAcceptanceReportBoundary({ sourceRoot, report: discovered });
+    validateReport(sourceRoot, discovered, options.processRunner === undefined);
     const tags = options.scope === "required" ? requiredTags : [];
     const runtimePath = join(temporaryDirectory, "runtime.json");
     const runtimeArgs = [
@@ -363,7 +373,11 @@ export const runAcceptance = async (
       failureMessage: "Playwright acceptance runtime failed",
       failOnNonzero: false,
     });
-    validateAcceptanceReportBoundary({ sourceRoot, report: runtime.report });
+    validateReport(
+      sourceRoot,
+      runtime.report,
+      options.processRunner === undefined,
+    );
     const findings = validateAcceptanceRuntime({
       requiredTags: tags,
       discovered: discovery.report,

@@ -4,8 +4,16 @@ const ACCEPTANCE_MARKER = "tests/acceptance/";
 const ALLOWED_IMPORT = new Set(["@playwright/test"]);
 const ANNOTATIONS = new Set(["skip", "fixme", "fail", "only"]);
 const NETWORK_APIS = new Set(["route", "routeFromHAR"]);
-const BROWSER_APIS = new Set(["evaluate", "addInitScript", "setContent"]);
-const BEHAVIOR_TAG = /^@BHV-[A-Z0-9]+-[0-9]+-R[1-9][0-9]*$/u;
+const BROWSER_APIS = new Set([
+  "evaluate",
+  "addInitScript",
+  "setContent",
+  "addCookies",
+]);
+const BEHAVIOR_TAG_TOKEN = /@BHV-[A-Z0-9]+-[0-9]+-R[1-9][0-9]*/u;
+
+const isAcceptanceConfig = (filename) =>
+  /(?:^|\/)playwright\.acceptance\.config\.ts$/u.test(filename);
 
 const pathInfo = (filename) => {
   const normalized = filename.replace(/\\/gu, "/");
@@ -125,7 +133,7 @@ const isRuntimeRootedNavigation = (node) => {
 };
 
 const isTaggedScenarioRegistration = (node) => {
-  if (node.callee.type !== "Identifier") return false;
+  if (node.callee.type === "CallExpression") return false;
   const title = node.arguments[0];
   const callback = node.arguments.at(-1);
   return (
@@ -146,18 +154,22 @@ const literalText = (node) =>
       : undefined;
 
 const isBehaviorTitle = (node) =>
-  typeof literalText(node) === "string" && BEHAVIOR_TAG.test(literalText(node));
+  typeof literalText(node) === "string" &&
+  BEHAVIOR_TAG_TOKEN.test(literalText(node));
+
+const propertyName = (property) => {
+  if (property?.type !== "Property") return undefined;
+  const key = property.key;
+  if (key.type === "Identifier" && !property.computed) return key.name;
+  if (key.type === "Literal" && typeof key.value === "string") return key.value;
+  return undefined;
+};
 
 const isBehaviorTagOptions = (node) =>
   node?.type === "ObjectExpression" &&
   node.properties.some(
     (property) =>
-      property.type === "Property" &&
-      !property.computed &&
-      ((property.key.type === "Identifier" && property.key.name === "tag") ||
-        (property.key.type === "Literal" && property.key.value === "tag")) &&
-      typeof literalText(property.value) === "string" &&
-      BEHAVIOR_TAG.test(literalText(property.value)),
+      property.type === "Property" && propertyName(property) === "tag",
   );
 
 const resolveVariable = (identifier, sourceCode) => {
@@ -208,8 +220,26 @@ const property = (object, name) =>
         (entry.key.type === "Literal" && entry.key.value === name)),
   );
 
+const directCall = (node, object, method) =>
+  node?.type === "CallExpression" &&
+  node.callee.type === "MemberExpression" &&
+  !node.callee.computed &&
+  node.callee.object.type === "Identifier" &&
+  node.callee.object.name === object &&
+  node.callee.property.type === "Identifier" &&
+  node.callee.property.name === method;
+
+const awaitedDirectCall = (node, object, method) =>
+  node?.type === "AwaitExpression" && directCall(node.argument, object, method);
+
 const isCanonicalRuntimeFixture = (declaration, sourceCode) => {
-  const runtime = property(declaration?.init?.arguments?.[0], "runtime");
+  const fixtureObject = declaration?.init?.arguments?.[0];
+  if (
+    fixtureObject?.type !== "ObjectExpression" ||
+    fixtureObject.properties.some((entry) => entry.type === "SpreadElement")
+  )
+    return false;
+  const runtime = property(fixtureObject, "runtime");
   if (runtime?.value?.type !== "ArrayExpression") return false;
   const [factory, options] = runtime.value.elements;
   if (!isFunction(factory) || options?.type !== "ObjectExpression")
@@ -218,25 +248,120 @@ const isCanonicalRuntimeFixture = (declaration, sourceCode) => {
   const auto = property(options, "auto");
   if (scope?.value?.value !== "worker" || auto?.value?.value !== true)
     return false;
-  const calls = [];
-  const visit = (node) => {
-    if (!node || typeof node !== "object") return;
-    if (node.type === "CallExpression") calls.push(node);
-    for (const [key, value] of Object.entries(node)) {
-      if (["parent", "tokens", "comments", "loc", "range"].includes(key))
-        continue;
-      if (Array.isArray(value)) value.forEach(visit);
-      else visit(value);
-    }
-  };
-  visit(factory.body);
-  return calls.some((call) =>
-    isImportedBinding(
-      call.callee,
+  if (factory.body.type !== "BlockStatement") return false;
+  const controller = factory.body.body
+    .find(
+      (statement) =>
+        statement.type === "VariableDeclaration" &&
+        statement.declarations.some(
+          (item) =>
+            item.id.type === "Identifier" &&
+            item.init?.type === "CallExpression" &&
+            isImportedBinding(
+              item.init.callee,
+              sourceCode,
+              "createContractsRuntimeController",
+              "./runtime",
+            ),
+        ),
+    )
+    ?.declarations.find(
+      (item) =>
+        item.id.type === "Identifier" &&
+        item.init?.type === "CallExpression" &&
+        isImportedBinding(
+          item.init.callee,
+          sourceCode,
+          "createContractsRuntimeController",
+          "./runtime",
+        ),
+    )?.id;
+  if (controller?.type !== "Identifier") return false;
+  const started = factory.body.body
+    .find(
+      (statement) =>
+        statement.type === "VariableDeclaration" &&
+        statement.declarations.some(
+          (item) =>
+            item.id.type === "Identifier" &&
+            awaitedDirectCall(item.init, controller.name, "start"),
+        ),
+    )
+    ?.declarations.find(
+      (item) =>
+        item.id.type === "Identifier" &&
+        awaitedDirectCall(item.init, controller.name, "start"),
+    )?.id;
+  if (started?.type !== "Identifier") return false;
+  const use = factory.params[1];
+  const lifecycle = factory.body.body.find(
+    (statement) => statement.type === "TryStatement",
+  );
+  const useCall = lifecycle?.block.body.find(
+    (statement) =>
+      statement.type === "ExpressionStatement" &&
+      statement.expression.type === "AwaitExpression" &&
+      statement.expression.argument.type === "CallExpression" &&
+      statement.expression.argument.callee.type === "Identifier" &&
+      statement.expression.argument.callee.name === use?.name &&
+      statement.expression.argument.arguments.length === 1 &&
+      statement.expression.argument.arguments[0]?.type === "Identifier" &&
+      statement.expression.argument.arguments[0].name === started.name,
+  );
+  const stop = lifecycle?.finalizer?.body.find(
+    (statement) =>
+      statement.type === "ExpressionStatement" &&
+      awaitedDirectCall(statement.expression, controller.name, "stop"),
+  );
+  return (
+    use?.type === "Identifier" && useCall !== undefined && stop !== undefined
+  );
+};
+
+const isCanonicalConfig = (node, sourceCode) => {
+  if (
+    node?.type !== "CallExpression" ||
+    !isImportedBinding(
+      node.callee,
       sourceCode,
-      "createContractsRuntimeController",
-      "./runtime",
-    ),
+      "defineConfig",
+      "@playwright/test",
+    ) ||
+    node.arguments.length !== 1 ||
+    node.arguments[0]?.type !== "ObjectExpression"
+  )
+    return false;
+  const config = node.arguments[0];
+  if (config.properties.some((entry) => entry.type === "SpreadElement"))
+    return false;
+  const value = (name) => property(config, name)?.value;
+  const literal = (name, expected) => value(name)?.value === expected;
+  const projects = value("projects");
+  const project =
+    projects?.type === "ArrayExpression" ? projects.elements[0] : undefined;
+  const use =
+    project?.type === "ObjectExpression"
+      ? property(project, "use")?.value
+      : undefined;
+  return (
+    config.properties.length === 9 &&
+    literal("testDir", "./tests/acceptance") &&
+    literal("testMatch", "**/*.spec.ts") &&
+    literal("forbidOnly", true) &&
+    literal("retries", 0) &&
+    literal("workers", 1) &&
+    literal("fullyParallel", false) &&
+    literal("repeatEach", 1) &&
+    value("testIgnore")?.type === "ArrayExpression" &&
+    value("testIgnore").elements.length === 0 &&
+    projects?.type === "ArrayExpression" &&
+    projects.elements.length === 1 &&
+    project?.type === "ObjectExpression" &&
+    project.properties.length === 2 &&
+    property(project, "name")?.value?.value === "acceptance-chromium" &&
+    use?.type === "ObjectExpression" &&
+    use.properties.length === 1 &&
+    property(use, "browserName")?.value?.value === "chromium"
   );
 };
 
@@ -310,19 +435,25 @@ export default {
       mock: "Acceptance tests must not mock product modules or providers.",
       synthetic:
         "The audited support proxy may forward backend bytes or return an explicit failure; synthetic success responses are forbidden.",
+      config:
+        "The acceptance Playwright config must remain the canonical one-project Chromium configuration without execution hooks.",
     },
   },
   create(context) {
-    const info = pathInfo(
-      (context.filename ?? context.getFilename()).replace(/\\/gu, "/"),
+    const filename = (context.filename ?? context.getFilename()).replace(
+      /\\/gu,
+      "/",
     );
-    if (!info) return {};
+    const info = pathInfo(filename);
+    const configFile = isAcceptanceConfig(filename);
+    if (!info && !configFile) return {};
     const testAliases = new Set(["test"]);
     const requireAliases = new Set();
     const reportedRequireAliases = new Set();
     const createRequireAliases = new Set();
     const reportedCreateRequireAliases = new Set();
     const invalidFixtureBindings = new Set();
+    const moduleAliases = new Set();
     let canonicalFixtureExport = false;
     const reportImport = (node, source) => {
       if (source === "@playwright/test" && isScenarioSpec(info))
@@ -350,8 +481,30 @@ export default {
     return {
       ImportDeclaration(node) {
         const source = String(node.source.value);
+        if (configFile) return;
         reportImport(node.source, source);
+        if (source === "node:vm")
+          context.report({ node: node.source, messageId: "import" });
+        if (source === "node:module") {
+          if (
+            node.specifiers.some(
+              (specifier) =>
+                specifier.type === "ImportDefaultSpecifier" ||
+                specifier.type === "ImportNamespaceSpecifier",
+            )
+          )
+            context.report({ node: node.source, messageId: "import" });
+          for (const specifier of node.specifiers)
+            moduleAliases.add(specifier.local.name);
+        }
         for (const specifier of node.specifiers) {
+          if (
+            source === "@playwright/test" &&
+            inside(info.supportRoot, info.filename) &&
+            (specifier.type === "ImportDefaultSpecifier" ||
+              specifier.type === "ImportNamespaceSpecifier")
+          )
+            context.report({ node: specifier, messageId: "fixture" });
           if (
             specifier.type === "ImportSpecifier" &&
             specifier.imported.type === "Identifier" &&
@@ -396,6 +549,11 @@ export default {
         if (node.source) {
           const source = String(node.source.value);
           reportImport(node.source, source);
+          if (
+            source === "@playwright/test" &&
+            inside(info.supportRoot, info.filename)
+          )
+            context.report({ node: node.source, messageId: "fixture" });
           if (
             source === "@playwright/test" &&
             inside(info.supportRoot, info.filename) &&
@@ -541,9 +699,19 @@ export default {
       },
       CallExpression(node) {
         if (
+          configFile ||
+          (node.callee.type === "Identifier" &&
+            ["eval", "Function", "AsyncFunction"].includes(node.callee.name))
+        ) {
+          if (!configFile)
+            context.report({ node: node.callee, messageId: "import" });
+          return;
+        }
+        if (
           isScenarioSpec(info) &&
           isTaggedScenarioRegistration(node) &&
-          !invalidFixtureBindings.has(node.callee.name) &&
+          (node.callee.type !== "Identifier" ||
+            !invalidFixtureBindings.has(node.callee.name)) &&
           !isCanonicalFixtureBinding(node.callee, info, context.sourceCode)
         ) {
           context.report({ node: node.callee, messageId: "fixture" });
@@ -566,6 +734,38 @@ export default {
         if (node.callee.type !== "MemberExpression") return;
         const names = propertyNames(node.callee);
         const root = memberRoot(node.callee);
+        if (moduleAliases.has(root)) {
+          context.report({ node: node.callee, messageId: "import" });
+          return;
+        }
+        if (
+          node.callee.property.type === "Identifier" &&
+          node.callee.property.name === "extend" &&
+          !(
+            isCanonicalFixturesModule(info) &&
+            node.parent?.type === "VariableDeclarator" &&
+            node.parent.parent?.type === "VariableDeclaration" &&
+            node.parent.parent.parent?.type === "ExportNamedDeclaration" &&
+            node.parent.id.type === "Identifier" &&
+            node.parent.id.name === "test"
+          )
+        ) {
+          context.report({ node: node.callee, messageId: "fixture" });
+          return;
+        }
+        if (
+          names.includes("use") &&
+          testAliases.has(root) &&
+          node.arguments[0]?.type === "ObjectExpression" &&
+          node.arguments[0].properties.some(
+            (entry) =>
+              entry.type === "Property" &&
+              ["storageState", "runtime"].includes(propertyName(entry)),
+          )
+        ) {
+          context.report({ node: node.callee, messageId: "browser" });
+          return;
+        }
         if (
           names.some(
             (name) => name === "require" || name === "createRequire",
@@ -631,8 +831,25 @@ export default {
           });
         }
       },
+      NewExpression(node) {
+        if (
+          !configFile &&
+          node.callee.type === "Identifier" &&
+          ["Function", "AsyncFunction"].includes(node.callee.name)
+        )
+          context.report({ node: node.callee, messageId: "import" });
+      },
       "Program:exit"(node) {
-        if (isCanonicalFixturesModule(info) && !canonicalFixtureExport)
+        if (
+          configFile &&
+          !isCanonicalConfig(
+            node.body.find((item) => item.type === "ExportDefaultDeclaration")
+              ?.declaration,
+            context.sourceCode,
+          )
+        )
+          context.report({ node, messageId: "config" });
+        if (info && isCanonicalFixturesModule(info) && !canonicalFixtureExport)
           context.report({ node, messageId: "fixture" });
       },
     };

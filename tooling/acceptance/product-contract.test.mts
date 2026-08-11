@@ -28,12 +28,21 @@ const reportFor = (
   sourceRoot = "/fixture",
 ): ParsedPlaywrightJsonReport => ({
   config: {
+    rootDir: `${sourceRoot}/tests/acceptance`,
     workers: 1,
     forbidOnly: true,
+    fullyParallel: false,
+    globalSetup: null,
+    globalTeardown: null,
+    webServer: null,
+    repeatEach: null,
+    testIgnore: null,
     projects: [
       {
         name: "acceptance-chromium",
         retries: 0,
+        repeatEach: 1,
+        testIgnore: [],
         testDir: `${sourceRoot}/tests/acceptance`,
         testMatch: "**/*.spec.ts",
       },
@@ -54,12 +63,21 @@ const reportFor = (
 
 const emptyReport = (sourceRoot = "/fixture"): ParsedPlaywrightJsonReport => ({
   config: {
+    rootDir: `${sourceRoot}/tests/acceptance`,
     workers: 1,
     forbidOnly: true,
+    fullyParallel: false,
+    globalSetup: null,
+    globalTeardown: null,
+    webServer: null,
+    repeatEach: null,
+    testIgnore: null,
     projects: [
       {
         name: "acceptance-chromium",
         retries: 0,
+        repeatEach: 1,
+        testIgnore: [],
         testDir: `${sourceRoot}/tests/acceptance`,
         testMatch: "**/*.spec.ts",
       },

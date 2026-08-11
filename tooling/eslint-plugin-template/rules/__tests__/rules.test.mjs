@@ -884,9 +884,15 @@ import { createContractsRuntimeController } from "./runtime";
 export const test = base.extend({
   runtime: [async ({}, use) => {
     const controller = createContractsRuntimeController();
-    await use(await controller.start());
+    const runtime = await controller.start();
+    try { await use(runtime); } finally { await controller.stop(); }
   }, { scope: "worker", auto: true }],
 });`,
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test";
+export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.spec.ts", forbidOnly: true, retries: 0, workers: 1, fullyParallel: false, repeatEach: 1, testIgnore: [], projects: [{ name: "acceptance-chromium", use: { browserName: "chromium" } }] });`,
     },
   ],
   invalid: [
@@ -922,7 +928,7 @@ const test = fixtures.test.extend({
   runtime: [async ({}, use) => use(undefined), { scope: "worker", auto: true }],
 });
 test("no runtime", { tag: "@BHV-REC-001-R1" }, async () => {});`,
-      errors: [{ messageId: "fixture" }],
+      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
     },
     {
       filename: ACCEPTANCE,
@@ -1079,6 +1085,109 @@ export const raw = base;`,
 import { createContractsRuntimeController } from "./runtime";
 export const test = base.extend({ runtime: [async ({}, use) => { await use(undefined); }, { scope: "worker" }] });`,
       errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); await use(undefined); }, { scope: "worker", auto: true }] });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); const other = createContractsRuntimeController(); await use(other.start()); }, { scope: "worker", auto: true }] });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); await use(await controller.start()); await controller.stop(); }, { scope: "worker", auto: true }] });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+const override = {};
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); const runtime = await controller.start(); try { await use(runtime); } finally { await controller.stop(); } }, { scope: "worker", auto: true }], ...override });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/raw.ts",
+      code: `import * as raw from "@playwright/test"; export { raw };`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures"; test.extend({})("@BHV-REC-001-R1", async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "@playwright/test"; test("title", { tag: ["@BHV-REC-001-R1"] }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "@playwright/test"; test("title", { ["tag"]: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "@playwright/test"; test("record @BHV-REC-001-R1 appears", async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures"; test.use({ storageState: "state.json" });`,
+      errors: [{ messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `await page.context().addCookies([]);`,
+      errors: [{ messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `Function("return import('x')")(); new Function("return 1"); eval("1");`,
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import vm from "node:vm";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import * as nodeModule from "node:module"; nodeModule["create" + "Require"](import.meta.url);`,
+      errors: [{ messageId: "import" }, { messageId: "import" }],
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test"; export default defineConfig({ globalSetup: "./setup" });`,
+      errors: [{ messageId: "config" }],
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test"; export default defineConfig({ webServer: {}, testDir: "./tests/acceptance" });`,
+      errors: [{ messageId: "config" }],
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test"; const hidden = { globalTeardown: "./teardown" }; export default defineConfig({ ...hidden });`,
+      errors: [{ messageId: "config" }],
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test"; export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.spec.ts", forbidOnly: true, retries: 0, workers: 1, fullyParallel: false, repeatEach: 1, testIgnore: [], projects: [{ name: "acceptance-chromium", dependencies: ["other"], teardown: "cleanup", use: { browserName: "chromium", storageState: "state.json" } }] });`,
+      errors: [{ messageId: "config" }],
     },
     {
       filename: ACCEPTANCE_SUPPORT,

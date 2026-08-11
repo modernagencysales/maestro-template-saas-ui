@@ -1,7 +1,11 @@
 import { describe, expect, it } from "vitest";
+import { mkdtemp, mkdir, rm, symlink, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import {
   parsePlaywrightJsonReport,
   validateAcceptanceReportBoundary,
+  validateNativeAcceptanceReportBoundary,
 } from "./playwright-report.mts";
 
 const spec = {
@@ -13,12 +17,21 @@ const spec = {
 
 const runtimeReport = {
   config: {
+    rootDir: "/fixture/tests/acceptance",
     workers: 1,
     forbidOnly: true,
+    fullyParallel: false,
+    globalSetup: null,
+    globalTeardown: null,
+    webServer: null,
+    repeatEach: null,
+    testIgnore: null,
     projects: [
       {
         name: "acceptance-chromium",
         retries: 0,
+        repeatEach: 1,
+        testIgnore: [],
         testDir: "/fixture/tests/acceptance",
         testMatch: "**/*.spec.ts",
       },
@@ -168,6 +181,40 @@ describe("parsePlaywrightJsonReport", () => {
     ],
     ["project name", { projects: [{ name: "chromium", retries: 0 }] }],
     ["retries", { projects: [{ name: "acceptance-chromium", retries: 1 }] }],
+    ["fully parallel", { fullyParallel: true }],
+    ["global setup", { globalSetup: "./setup" }],
+    ["global teardown", { globalTeardown: "./teardown" }],
+    ["web server", { webServer: { command: "node server" } }],
+    ["repeat each", { repeatEach: 2 }],
+    ["test ignore", { testIgnore: ["**/*.spec.ts"] }],
+    [
+      "project dependency",
+      {
+        projects: [
+          { name: "acceptance-chromium", retries: 0, dependencies: ["other"] },
+        ],
+      },
+    ],
+    [
+      "project teardown",
+      {
+        projects: [
+          { name: "acceptance-chromium", retries: 0, teardown: "cleanup" },
+        ],
+      },
+    ],
+    [
+      "storage state",
+      {
+        projects: [
+          {
+            name: "acceptance-chromium",
+            retries: 0,
+            use: { storageState: "state.json" },
+          },
+        ],
+      },
+    ],
   ])("rejects invalid native config: %s", (_name, override) => {
     expect(() =>
       parsePlaywrightJsonReport({
@@ -189,5 +236,97 @@ describe("parsePlaywrightJsonReport", () => {
         ],
       }),
     ).toThrow(/tag/i);
+  });
+
+  it("accepts normalized Windows roots and nested relative specs", () => {
+    const report = parsePlaywrightJsonReport({
+      ...runtimeReport,
+      config: {
+        ...runtimeReport.config,
+        rootDir: "C:\\fixture\\tests\\acceptance",
+        projects: [
+          {
+            ...runtimeReport.config.projects[0],
+            testDir: "C:\\fixture\\tests\\acceptance",
+          },
+        ],
+      },
+      suites: [
+        {
+          ...runtimeReport.suites[0],
+          specs: [
+            {
+              ...spec,
+              file: "outside/evil.spec.ts",
+              tests: runtimeReport.suites[0]?.specs[0]?.tests,
+            },
+          ],
+        },
+      ],
+    });
+    expect(() =>
+      validateAcceptanceReportBoundary({ sourceRoot: "C:\\fixture", report }),
+    ).not.toThrow();
+  });
+
+  it.each([
+    "/tmp/escape.spec.ts",
+    "C:\\tmp\\escape.spec.ts",
+    "\\escape.spec.ts",
+    "\\\\server\\share\\escape.spec.ts",
+  ])("rejects absolute test paths: %s", (file) => {
+    const report = parsePlaywrightJsonReport({
+      ...runtimeReport,
+      suites: [
+        {
+          ...runtimeReport.suites[0],
+          specs: [
+            { ...spec, file, tests: runtimeReport.suites[0]?.specs[0]?.tests },
+          ],
+        },
+      ],
+    });
+    expect(() =>
+      validateAcceptanceReportBoundary({ sourceRoot: "/fixture", report }),
+    ).toThrow(/relative/i);
+  });
+
+  it("rejects symlinked acceptance roots and specs that escape them", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-report-"));
+    try {
+      const outside = join(root, "outside");
+      await mkdir(outside);
+      await writeFile(join(outside, "evil.spec.ts"), "");
+      await mkdir(join(root, "tests"));
+      await symlink(outside, join(root, "tests", "acceptance"));
+      const report = parsePlaywrightJsonReport({
+        ...runtimeReport,
+        config: {
+          ...runtimeReport.config,
+          rootDir: join(root, "tests", "acceptance"),
+          projects: [
+            {
+              ...runtimeReport.config.projects[0],
+              testDir: join(root, "tests", "acceptance"),
+            },
+          ],
+        },
+      });
+      expect(() =>
+        validateNativeAcceptanceReportBoundary({ sourceRoot: root, report }),
+      ).toThrow(/symlink|escape/i);
+
+      await rm(join(root, "tests", "acceptance"));
+      await mkdir(join(root, "tests", "acceptance"));
+      await symlink(
+        join(outside, "evil.spec.ts"),
+        join(root, "tests", "acceptance", "records.spec.ts"),
+      );
+      expect(() =>
+        validateNativeAcceptanceReportBoundary({ sourceRoot: root, report }),
+      ).toThrow(/escape/i);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 });

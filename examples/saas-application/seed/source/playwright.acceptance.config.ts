@@ -6,6 +6,9 @@ export default defineConfig({
   forbidOnly: true,
   retries: 0,
   workers: 1,
+  fullyParallel: false,
+  repeatEach: 1,
+  testIgnore: [],
   projects: [
     {
       name: "acceptance-chromium",

@@ -1,3 +1,6 @@
+import { realpathSync } from "node:fs";
+import { isAbsolute, posix, relative, resolve, win32 } from "node:path";
+
 export type AcceptanceTestIdentity = {
   readonly id: string;
   readonly file: string;
@@ -24,11 +27,20 @@ export type PlaywrightTestRecord = AcceptanceTestIdentity & {
 
 export type ParsedPlaywrightJsonReport = {
   readonly config: {
+    readonly rootDir: string;
     readonly workers: number;
     readonly forbidOnly: boolean;
+    readonly fullyParallel: boolean;
+    readonly globalSetup: null;
+    readonly globalTeardown: null;
+    readonly webServer: null;
+    readonly repeatEach: 1 | null;
+    readonly testIgnore: readonly string[] | null;
     readonly projects: readonly {
       readonly name: string;
       readonly retries: number;
+      readonly repeatEach: number;
+      readonly testIgnore: readonly string[];
       readonly testDir: string;
       readonly testMatch: string;
     }[];
@@ -102,21 +114,58 @@ const behaviorTagPattern = /^@BHV-[A-Z0-9]+-[0-9]+-R[1-9][0-9]*$/u;
 const canonicalBehaviorTag = (tag: string): string =>
   tag.startsWith("@") ? tag : `@${tag}`;
 
-const parseConfig = (value: unknown): ParsedPlaywrightJsonReport["config"] => {
-  const config = record(value, "config");
-  const workers = integer(config.workers, "config.workers");
-  if (workers !== 1) throw new Error("Playwright config workers must be 1");
-  if (config.forbidOnly !== true)
-    throw new Error("Playwright config forbidOnly must be true");
-  const projects = array(config.projects, "config.projects").map((item) => {
-    const project = record(item, "config project");
-    return {
-      name: text(project.name, "config project.name"),
-      retries: integer(project.retries, "config project.retries"),
-      testDir: text(project.testDir, "config project.testDir"),
-      testMatch: testMatch(project.testMatch),
-    };
-  });
+const parseProject = (value: unknown) => {
+  const project = record(value, "config project");
+  const dependencies = project.dependencies;
+  if (
+    dependencies !== undefined &&
+    array(dependencies, "config project.dependencies").length !== 0
+  )
+    throw new Error("Playwright project dependencies are forbidden");
+  if (project.teardown !== undefined && project.teardown !== null)
+    throw new Error("Playwright project teardown is forbidden");
+  if (
+    project.use !== undefined &&
+    record(project.use, "config project.use").storageState !== undefined
+  )
+    throw new Error("Playwright project storageState is forbidden");
+  return {
+    name: text(project.name, "config project.name"),
+    retries: integer(project.retries, "config project.retries"),
+    repeatEach: integer(project.repeatEach, "config project.repeatEach"),
+    testIgnore: array(project.testIgnore, "config project.testIgnore").map(
+      (entry) => text(entry, "config project.testIgnore entry"),
+    ),
+    testDir: text(project.testDir, "config project.testDir"),
+    testMatch: testMatch(project.testMatch),
+  };
+};
+
+const isAbsent = (value: unknown): boolean =>
+  value === undefined || value === null;
+
+const hasCanonicalRepeatEach = (value: unknown): boolean =>
+  isAbsent(value) || value === 1;
+
+const hasEmptyIgnore = (value: unknown): boolean =>
+  isAbsent(value) || array(value, "config.testIgnore").length === 0;
+
+const validateConfigExecution = (config: RecordValue): void => {
+  if (config.fullyParallel !== false)
+    throw new Error("Playwright config fullyParallel must be false");
+  if (!isAbsent(config.globalSetup) || !isAbsent(config.globalTeardown))
+    throw new Error("Playwright config global setup and teardown must be null");
+  if (!isAbsent(config.webServer))
+    throw new Error("Playwright config webServer must be null");
+  if (!hasCanonicalRepeatEach(config.repeatEach))
+    throw new Error("Playwright config repeatEach must be 1 when reported");
+  if (!hasEmptyIgnore(config.testIgnore))
+    throw new Error("Playwright config testIgnore must be empty when reported");
+};
+
+const validateProjectSelection = (
+  projects: readonly ParsedPlaywrightJsonReport["config"]["projects"][number][],
+): void => {
   if (projects.length !== 1)
     throw new Error("Playwright config must have exactly one project");
   const project = projects[0];
@@ -124,7 +173,39 @@ const parseConfig = (value: unknown): ParsedPlaywrightJsonReport["config"] => {
     throw new Error("Playwright config project must be acceptance-chromium");
   if (project.retries !== 0)
     throw new Error("Playwright config retries must be 0");
-  return { workers, forbidOnly: true, projects };
+  if (project.repeatEach !== 1 || project.testIgnore.length !== 0)
+    throw new Error(
+      "Playwright project repeatEach and testIgnore must be canonical",
+    );
+};
+
+const parseConfig = (value: unknown): ParsedPlaywrightJsonReport["config"] => {
+  const config = record(value, "config");
+  const rootDir = text(config.rootDir, "config.rootDir");
+  const workers = integer(config.workers, "config.workers");
+  if (workers !== 1) throw new Error("Playwright config workers must be 1");
+  if (config.forbidOnly !== true)
+    throw new Error("Playwright config forbidOnly must be true");
+  validateConfigExecution(config);
+  const testIgnore = isAbsent(config.testIgnore)
+    ? null
+    : array(config.testIgnore, "config.testIgnore").map((entry) =>
+        text(entry, "config.testIgnore entry"),
+      );
+  const projects = array(config.projects, "config.projects").map(parseProject);
+  validateProjectSelection(projects);
+  return {
+    rootDir,
+    workers,
+    forbidOnly: true,
+    fullyParallel: false,
+    globalSetup: null,
+    globalTeardown: null,
+    webServer: null,
+    repeatEach: config.repeatEach === 1 ? 1 : null,
+    testIgnore,
+    projects,
+  };
 };
 
 type Suite = {
@@ -210,11 +291,21 @@ export const parsePlaywrightJsonReport = (
 
 const canonicalTestMatch = "**/*.spec.ts";
 
+const normalizedPath = (path: string): string =>
+  path.replace(/\\/gu, "/").replace(/[\\/]+$/u, "");
+
+const normalizedSourceRoot = (path: string): string => {
+  const normalized = normalizedPath(path);
+  return win32.isAbsolute(normalized)
+    ? normalized
+    : normalizedPath(resolve(normalized));
+};
+
 const isAbsolutePath = (path: string): boolean =>
-  path.startsWith("/") || /^[A-Za-z]:[\\/]/u.test(path);
+  posix.isAbsolute(path) || win32.isAbsolute(path) || path.startsWith("\\");
 
 const isRelativeAcceptanceSpec = (file: string): boolean => {
-  const normalized = file.replace(/\\/gu, "/");
+  const normalized = normalizedPath(file);
   const isTestDirRelative = !normalized.startsWith("tests/");
   const isSourceRelative = normalized.startsWith("tests/acceptance/");
   return (
@@ -229,10 +320,14 @@ export const validateAcceptanceReportBoundary = (input: {
   readonly sourceRoot: string;
   readonly report: ParsedPlaywrightJsonReport;
 }): void => {
-  const sourceRoot = input.sourceRoot.replace(/[\\/]+$/u, "");
+  const sourceRoot = normalizedSourceRoot(input.sourceRoot);
   const expectedTestDir = `${sourceRoot}/tests/acceptance`;
   const project = input.report.config.projects[0];
-  if (project?.testDir !== expectedTestDir)
+  if (normalizedPath(input.report.config.rootDir) !== expectedTestDir)
+    throw new Error(
+      `Playwright config rootDir must be ${expectedTestDir}; received ${input.report.config.rootDir}`,
+    );
+  if (normalizedPath(project?.testDir ?? "") !== expectedTestDir)
     throw new Error(
       `Playwright project testDir must be ${expectedTestDir}; received ${project?.testDir ?? "missing"}`,
     );
@@ -245,5 +340,43 @@ export const validateAcceptanceReportBoundary = (input: {
       throw new Error(
         `Playwright test file must be a relative acceptance spec path: ${test.file}`,
       );
+  }
+};
+
+const isInsideRealPath = (root: string, target: string): boolean => {
+  const relativePath = relative(root, target);
+  return (
+    relativePath === "" ||
+    (!relativePath.startsWith(`..${posix.sep}`) &&
+      relativePath !== ".." &&
+      !isAbsolute(relativePath))
+  );
+};
+
+export const validateNativeAcceptanceReportBoundary = (input: {
+  readonly sourceRoot: string;
+  readonly report: ParsedPlaywrightJsonReport;
+}): void => {
+  validateAcceptanceReportBoundary(input);
+  const sourceRoot = realpathSync(input.sourceRoot);
+  const acceptancePath = resolve(input.sourceRoot, "tests/acceptance");
+  const acceptanceRoot = realpathSync(acceptancePath);
+  if (
+    acceptanceRoot !== acceptancePath ||
+    !isInsideRealPath(sourceRoot, acceptanceRoot)
+  )
+    throw new Error(
+      "acceptance root must not be a symlink or escape source root",
+    );
+  for (const test of input.report.tests) {
+    const candidate = resolve(
+      test.file.replace(/\\/gu, "/").startsWith("tests/acceptance/")
+        ? input.sourceRoot
+        : acceptancePath,
+      test.file,
+    );
+    const discovered = realpathSync(candidate);
+    if (!isInsideRealPath(acceptanceRoot, discovered))
+      throw new Error(`acceptance spec escapes acceptance root: ${test.file}`);
   }
 };

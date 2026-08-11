@@ -24,6 +24,7 @@ import {
 import {
   parsePlaywrightJsonReport,
   validateAcceptanceReportBoundary,
+  validateNativeAcceptanceReportBoundary,
   type ParsedPlaywrightJsonReport,
 } from "./playwright-report.mts";
 
@@ -450,7 +451,9 @@ const readNativePlaywrightListing = (
     ],
     { cwd: repoRoot, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
   );
-  return parsePlaywrightJsonReport(JSON.parse(output) as unknown);
+  const report = parsePlaywrightJsonReport(JSON.parse(output) as unknown);
+  validateNativeAcceptanceReportBoundary({ sourceRoot, report });
+  return report;
 };
 
 type DiscoveryOptions = {
