@@ -53,6 +53,33 @@ describe("parsePlaywrightJsonReport", () => {
     });
   });
 
+  it("inherits the nearest enclosing file through nested suites", () => {
+    const nestedReport = {
+      ...runtimeReport,
+      suites: [
+        {
+          file: "tests/acceptance/records.spec.ts",
+          suites: [
+            {
+              specs: [
+                {
+                  id: "nested-spec-001",
+                  title: "nested record appears",
+                  tags: ["@BHV-REC-001-R1"],
+                  tests: runtimeReport.suites[0]?.specs[0]?.tests,
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    };
+    expect(parsePlaywrightJsonReport(nestedReport).tests[0]).toMatchObject({
+      id: "nested-spec-001",
+      file: "tests/acceptance/records.spec.ts",
+    });
+  });
+
   it.each([
     ["workers", { workers: 2 }],
     ["forbidOnly", { forbidOnly: false }],

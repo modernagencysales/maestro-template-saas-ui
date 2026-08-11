@@ -152,15 +152,16 @@ const parseSpec = (
 const parseSuite = (
   value: unknown,
   projectName: string,
+  inheritedFile?: string,
 ): readonly PlaywrightTestRecord[] => {
   const suite = record(value, "suite") as Suite;
-  const file = suite.file;
+  const file = suite.file ?? inheritedFile;
   return [
     ...array(suite.specs ?? [], "suite.specs").map((spec) =>
       parseSpec(spec, file, projectName),
     ),
     ...array(suite.suites ?? [], "suite.suites").flatMap((child) =>
-      parseSuite(child, projectName),
+      parseSuite(child, projectName, file),
     ),
   ];
 };
