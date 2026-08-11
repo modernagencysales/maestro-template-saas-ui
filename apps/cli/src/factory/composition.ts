@@ -130,6 +130,25 @@ const readBoundedFile = async (
     await handle.close();
   }
 };
+const isFactoryVerificationRoot = (root: string): boolean =>
+  existsSync(resolve(root, "releases")) &&
+  existsSync(resolve(root, "apps/cli/src/factory/createComposition.ts"));
+const readFactoryVerificationInstance = async (
+  repo: AgentPackExecutionContext["repo"],
+) => {
+  const path = resolve(repo.targetRoot, "template-instance.json");
+  if (!existsSync(path) && isFactoryVerificationRoot(repo.targetRoot)) {
+    return buildTemplateInstance({
+      providerMode: "fake",
+      generatedAt: "1970-01-01T00:00:00.000Z",
+    });
+  }
+  return parseTemplateInstance(
+    await readBoundedFile(path, {
+      maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
+    }),
+  );
+};
 const workflowRules = WORKFLOW_SEMANTICS.map(({ id, subject, status }) => ({
   id,
   subject,
@@ -235,14 +254,7 @@ export function createFactoryCliComposition(
     providerPosture: async (repo) =>
       projectCompositionProviderFingerprintMaterial({
         repo,
-        instance: parseTemplateInstance(
-          await readBoundedFile(
-            resolve(repo.targetRoot, "template-instance.json"),
-            {
-              maxBytes: FACTORY_EXECUTION_POLICY.packageJsonMaxBytes,
-            },
-          ),
-        ),
+        instance: await readFactoryVerificationInstance(repo),
         readEnvironment,
         requiredEnvironmentNames: requiredEnvNamesForProvider,
       }),
