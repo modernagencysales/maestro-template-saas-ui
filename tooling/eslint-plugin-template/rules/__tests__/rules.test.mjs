@@ -811,6 +811,7 @@ tester.run("frontend-route-server-boundary", frontendRouteServerBoundary, {
 
 const ACCEPTANCE = "tests/acceptance/records.spec.ts";
 const ACCEPTANCE_SUPPORT = "tests/acceptance/support/proxy.ts";
+const ACCEPTANCE_RUNTIME = "tests/acceptance/support/runtime.ts";
 const SEED_ACCEPTANCE =
   "examples/saas-application/seed/source/tests/acceptance/records.spec.ts";
 const SEED_SUPPORT =
@@ -842,28 +843,30 @@ import { proxy } from "./support/proxy";
 test("record appears", async ({ acceptancePage: page }) => { await proxy(page); });`,
     },
     {
-      filename: ACCEPTANCE_SUPPORT,
+      filename: ACCEPTANCE_RUNTIME,
       code: `export async function proxy(context, route) {
   await context.route("**/api/**", (request) => request.continue());
   await route.fulfill({ status: 502 });
 }`,
     },
     {
-      filename: SEED_SUPPORT,
+      filename:
+        "examples/saas-application/seed/source/tests/acceptance/support/runtime.ts",
       code: `export async function proxy(context, route) {
   await context.route("**/api/**", (request) => request.continue());
   await route.fulfill({ status: 502 });
 }`,
     },
     {
-      filename: ACCEPTANCE_SUPPORT,
+      filename: ACCEPTANCE_RUNTIME,
       code: `export async function proxy(context, route, response) {
   await context.route("**/api/**", (request) => request.continue());
   await route.fulfill({ response });
 }`,
     },
     {
-      filename: SEED_SUPPORT,
+      filename:
+        "examples/saas-application/seed/source/tests/acceptance/support/runtime.ts",
       code: `export async function proxy(context, route, response) {
   await context.route("**/api/**", (request) => request.continue());
   await route.fulfill({ response });
@@ -887,6 +890,11 @@ export const test = base.extend({
     const runtime = await controller.start();
     try { await use(runtime); } finally { await controller.stop(); }
   }, { scope: "worker", auto: true }],
+  scenario: async ({ runtime }, use) => use(await runtime.provisionScenario()),
+  acceptancePage: async ({ runtime }, use) => {
+    const context = await runtime.browser.newContext();
+    await use(await context.newPage());
+  },
 });`,
     },
     {
@@ -1121,9 +1129,34 @@ export const test = base.extend({ runtime: [async ({}, use) => { const controlle
       errors: [{ messageId: "fixture" }],
     },
     {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+const key = "runtime";
+export const test = base.extend({
+  runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); const runtime = await controller.start(); try { await use(runtime); } finally { await controller.stop(); } }, { scope: "worker", auto: true }],
+  [key]: [async ({}, use) => use(undefined), { scope: "worker", auto: true }],
+});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
       filename: ACCEPTANCE,
       code: `import { test } from "./support/fixtures"; test.extend({})("@BHV-REC-001-R1", async () => {});`,
       errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const extend = test.extend;
+const { extend: destructured } = test;
+const computed = test["extend"];
+test.extend({});`,
+      errors: [
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+      ],
     },
     {
       filename: ACCEPTANCE,
@@ -1147,12 +1180,47 @@ export const test = base.extend({ runtime: [async ({}, use) => { const controlle
     },
     {
       filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const options = { contextOptions: { storageState: "state.json" } };
+test.use({ contextOptions: { storageState: "state.json" } });
+test.use(options);`,
+      errors: [{ messageId: "browser" }, { messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const options = { storageState: "state.json" };
+await browser.newContext(options);
+await browser.newPage({ storageState: "state.json" });`,
+      errors: [{ messageId: "browser" }, { messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const createContext = runtime.browser.newContext;
+const createPage = context["newPage"];
+await createContext();
+await createPage();`,
+      errors: [{ messageId: "browser" }, { messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
       code: `await page.context().addCookies([]);`,
       errors: [{ messageId: "browser" }],
     },
     {
       filename: ACCEPTANCE,
       code: `Function("return import('x')")(); new Function("return 1"); eval("1");`,
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const direct = eval;
+const constructor = globalThis.Function;
+const asyncConstructor = global["AsyncFunction"];
+constructor("return import('x')")();`,
       errors: [
         { messageId: "import" },
         { messageId: "import" },
@@ -1221,6 +1289,11 @@ export const test = base.extend({ runtime: [async ({}, use) => { const controlle
     },
     {
       filename: ACCEPTANCE_SUPPORT,
+      code: `await route.fulfill({ status: 502 });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
       code: `await route.fulfill({ status: 200, body: "ok" });`,
       errors: [{ messageId: "synthetic" }],
     },
@@ -1279,6 +1352,11 @@ pageAlias.route("**/api/**", handler);`,
     {
       filename: SEED_SUPPORT,
       code: `context.routeFromHAR("fixture.har");`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `await page.routeWebSocket("**/socket", (route) => route.connectToServer());`,
       errors: [{ messageId: "network" }],
     },
     {

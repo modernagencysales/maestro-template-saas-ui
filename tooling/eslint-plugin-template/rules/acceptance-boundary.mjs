@@ -3,13 +3,15 @@ import { posix } from "node:path";
 const ACCEPTANCE_MARKER = "tests/acceptance/";
 const ALLOWED_IMPORT = new Set(["@playwright/test"]);
 const ANNOTATIONS = new Set(["skip", "fixme", "fail", "only"]);
-const NETWORK_APIS = new Set(["route", "routeFromHAR"]);
+const NETWORK_APIS = new Set(["route", "routeFromHAR", "routeWebSocket"]);
 const BROWSER_APIS = new Set([
   "evaluate",
   "addInitScript",
   "setContent",
   "addCookies",
 ]);
+const PAGE_CREATION_APIS = new Set(["newContext", "newPage"]);
+const DYNAMIC_CODE_NAMES = new Set(["eval", "Function", "AsyncFunction"]);
 const BEHAVIOR_TAG_TOKEN = /@BHV-[A-Z0-9]+-[0-9]+-R[1-9][0-9]*/u;
 
 const isAcceptanceConfig = (filename) =>
@@ -39,6 +41,11 @@ const isScenarioSpec = (info) => /\.spec\.[cm]?[jt]sx?$/u.test(info.filename);
 
 const isCanonicalFixturesModule = (info) =>
   new RegExp(`${info.supportRoot}/fixtures\\.[cm]?[jt]sx?$`, "u").test(
+    info.filename,
+  );
+
+const isCanonicalRuntimeModule = (info) =>
+  new RegExp(`${info.supportRoot}/runtime\\.[cm]?[jt]sx?$`, "u").test(
     info.filename,
   );
 
@@ -236,10 +243,16 @@ const isCanonicalRuntimeFixture = (declaration, sourceCode) => {
   const fixtureObject = declaration?.init?.arguments?.[0];
   if (
     fixtureObject?.type !== "ObjectExpression" ||
-    fixtureObject.properties.some((entry) => entry.type === "SpreadElement")
+    fixtureObject.properties.some(
+      (entry) => entry.type !== "Property" || entry.computed,
+    )
   )
     return false;
-  const runtime = property(fixtureObject, "runtime");
+  const runtimeFixtures = fixtureObject.properties.filter(
+    (entry) => propertyName(entry) === "runtime",
+  );
+  if (runtimeFixtures.length !== 1) return false;
+  const runtime = runtimeFixtures[0];
   if (runtime?.value?.type !== "ArrayExpression") return false;
   const [factory, options] = runtime.value.elements;
   if (!isFunction(factory) || options?.type !== "ObjectExpression")
@@ -387,15 +400,6 @@ const isCanonicalConfigModule = (program, sourceCode) => {
   );
 };
 
-const hasUnsafeStorageOverride = (node) =>
-  node?.type === "ObjectExpression" &&
-  node.properties.some(
-    (entry) =>
-      entry.type === "SpreadElement" ||
-      (entry.type === "Property" &&
-        ["storageState", "runtime"].includes(propertyName(entry))),
-  );
-
 const isCanonicalFixtureExport = (node, sourceCode) => {
   const declaration = node?.declaration?.declarations?.find(
     (item) => item.id?.type === "Identifier" && item.id.name === "test",
@@ -413,6 +417,57 @@ const isCanonicalFixtureExport = (node, sourceCode) => {
       "@playwright/test",
     ) &&
     isCanonicalRuntimeFixture(declaration, sourceCode)
+  );
+};
+
+const isCanonicalFixtureExtend = (node, info, sourceCode) => {
+  const call = node.parent;
+  const declaration = call?.parent;
+  const statement = declaration?.parent;
+  return (
+    isCanonicalFixturesModule(info) &&
+    !node.computed &&
+    node.property.type === "Identifier" &&
+    node.property.name === "extend" &&
+    call?.type === "CallExpression" &&
+    call.callee === node &&
+    declaration?.type === "VariableDeclarator" &&
+    declaration.init === call &&
+    declaration.id.type === "Identifier" &&
+    declaration.id.name === "test" &&
+    statement?.type === "VariableDeclaration" &&
+    statement.parent?.type === "ExportNamedDeclaration" &&
+    isImportedBinding(node.object, sourceCode, "test", "@playwright/test")
+  );
+};
+
+const isCanonicalPageCreation = (node, info) => {
+  const callee = node.callee;
+  if (
+    !isCanonicalFixturesModule(info) ||
+    node.arguments.length !== 0 ||
+    node.optional ||
+    callee?.type !== "MemberExpression" ||
+    callee.computed ||
+    callee.optional ||
+    callee.property.type !== "Identifier"
+  )
+    return false;
+  if (
+    callee.property.name === "newPage" &&
+    callee.object.type === "Identifier" &&
+    callee.object.name === "context"
+  )
+    return true;
+  return (
+    callee.property.name === "newContext" &&
+    callee.object.type === "MemberExpression" &&
+    !callee.object.computed &&
+    !callee.object.optional &&
+    callee.object.property.type === "Identifier" &&
+    callee.object.property.name === "browser" &&
+    callee.object.object.type === "Identifier" &&
+    callee.object.object.name === "runtime"
   );
 };
 
@@ -504,6 +559,10 @@ export default {
         else context.report({ node, messageId: "synthetic" });
       } else if (names.some((name) => NETWORK_APIS.has(name)))
         context.report({ node, messageId: "network" });
+      else if (names.some((name) => PAGE_CREATION_APIS.has(name)))
+        context.report({ node, messageId: "browser" });
+      else if (names.includes("use") && testAliases.has(memberRoot(node)))
+        context.report({ node, messageId: "browser" });
       else if (names.some((name) => BROWSER_APIS.has(name)))
         context.report({ node, messageId: "browser" });
       else if (names.includes("goto"))
@@ -675,7 +734,22 @@ export default {
                   ? key.value
                   : undefined;
             if (name === undefined) continue;
-            if (ANNOTATIONS.has(name))
+            if (name === "extend")
+              context.report({ node: property, messageId: "fixture" });
+            else if (PAGE_CREATION_APIS.has(name))
+              context.report({ node: property, messageId: "browser" });
+            else if (
+              name === "use" &&
+              node.init?.type === "Identifier" &&
+              testAliases.has(node.init.name)
+            )
+              context.report({ node: property, messageId: "browser" });
+            else if (
+              DYNAMIC_CODE_NAMES.has(name) &&
+              property.key.type !== "Identifier"
+            )
+              context.report({ node: property, messageId: "import" });
+            else if (ANNOTATIONS.has(name))
               context.report({ node: property, messageId: "annotation" });
             else if (name === "mock")
               context.report({ node: property, messageId: "mock" });
@@ -708,6 +782,10 @@ export default {
         }
       },
       Identifier(node) {
+        if (!configFile && DYNAMIC_CODE_NAMES.has(node.name)) {
+          context.report({ node, messageId: "import" });
+          return;
+        }
         if (node.name === "Reflect" || node.name === "Proxy") {
           if (
             node.parent?.type !== "MemberExpression" ||
@@ -728,16 +806,25 @@ export default {
           return;
         context.report({ node, messageId: "import" });
       },
-      CallExpression(node) {
+      MemberExpression(node) {
         if (
-          configFile ||
-          (node.callee.type === "Identifier" &&
-            ["eval", "Function", "AsyncFunction"].includes(node.callee.name))
+          !configFile &&
+          node.computed &&
+          node.property.type === "Literal" &&
+          typeof node.property.value === "string" &&
+          DYNAMIC_CODE_NAMES.has(node.property.value)
         ) {
-          if (!configFile)
-            context.report({ node: node.callee, messageId: "import" });
+          context.report({ node, messageId: "import" });
           return;
         }
+        if (
+          propertyNames(node).at(-1) === "extend" &&
+          !isCanonicalFixtureExtend(node, info, context.sourceCode)
+        )
+          context.report({ node, messageId: "fixture" });
+      },
+      CallExpression(node) {
+        if (configFile) return;
         if (
           isScenarioSpec(info) &&
           isTaggedScenarioRegistration(node) &&
@@ -769,32 +856,13 @@ export default {
           context.report({ node: node.callee, messageId: "import" });
           return;
         }
-        if (
-          node.callee.property.type === "Identifier" &&
-          node.callee.property.name === "extend" &&
-          !(
-            isCanonicalFixturesModule(info) &&
-            node.parent?.type === "VariableDeclarator" &&
-            node.parent.parent?.type === "VariableDeclaration" &&
-            node.parent.parent.parent?.type === "ExportNamedDeclaration" &&
-            node.parent.id.type === "Identifier" &&
-            node.parent.id.name === "test"
-          )
-        ) {
-          context.report({ node: node.callee, messageId: "fixture" });
-          return;
-        }
-        if (
-          names.includes("use") &&
-          testAliases.has(root) &&
-          hasUnsafeStorageOverride(node.arguments[0])
-        ) {
+        if (names.includes("use") && testAliases.has(root)) {
           context.report({ node: node.callee, messageId: "browser" });
           return;
         }
         if (
-          names.includes("newContext") &&
-          hasUnsafeStorageOverride(node.arguments[0])
+          names.some((name) => PAGE_CREATION_APIS.has(name)) &&
+          !isCanonicalPageCreation(node, info)
         ) {
           context.report({ node: node.callee, messageId: "browser" });
           return;
@@ -822,6 +890,7 @@ export default {
           if (!support)
             context.report({ node: node.callee, messageId: "network" });
           else if (
+            !isCanonicalRuntimeModule(info) ||
             !isDirectMemberCall(node, "route", "fulfill") ||
             !safeSupportFulfill(node)
           )
@@ -863,14 +932,6 @@ export default {
             messageId: testAliases.has(root) ? "annotation" : "network",
           });
         }
-      },
-      NewExpression(node) {
-        if (
-          !configFile &&
-          node.callee.type === "Identifier" &&
-          ["Function", "AsyncFunction"].includes(node.callee.name)
-        )
-          context.report({ node: node.callee, messageId: "import" });
       },
       "Program:exit"(node) {
         if (configFile && !isCanonicalConfigModule(node, context.sourceCode))
