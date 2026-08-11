@@ -233,7 +233,9 @@ const governanceFiles = (
         .filter(
           ({ id, system }) =>
             retainedTopologyIds.has(id) &&
-            (workflowSelected || system !== "workflow-runtime"),
+            (workflowSelected || system !== "workflow-runtime") &&
+            (workflowSelected || !id.startsWith("workflow:")) &&
+            (id === "route:health" || !id.startsWith("route:")),
         )
         .map((resource) =>
           workflowSelected
@@ -256,9 +258,19 @@ const governanceFiles = (
               kind: "route",
               system: "record-management",
               path: "apps/web/src/routes/_workspace.records.tsx",
-              responsibility:
-                "present workspace record create, list, and detail states",
+              responsibility: "present workspace record creation and review",
               surfaces: ["web"],
+              uses: ["access-and-tenancy"],
+              lifecycle: "active",
+            },
+            {
+              id: "headless:records-api",
+              kind: "headless",
+              system: "record-management",
+              path: "apps/web/src/adapters/records/http.ts",
+              responsibility:
+                "serve the generated Records HTTP/API boundary to headless callers",
+              surfaces: ["api"],
               uses: ["access-and-tenancy"],
               lifecycle: "active",
             },
@@ -724,6 +736,21 @@ function buildTargetPlan(
           ["tooling/app-map/src/composition.test.ts", "copy"],
           ["tooling/app-map/src/composition.ts", "copy"],
           ["tooling/app-map/src/schema.ts", "copy"],
+          ["tooling/app-map/src/build.ts", "copy"],
+          ["tooling/app-map/src/gitDiff.ts", "copy"],
+          ["tooling/app-map/src/validate.ts", "copy"],
+          ["tooling/app-map/package.json", "copy"],
+          ["packages/template-core/src/dataResourceCatalog.ts", "copy"],
+          ["packages/template-core/src/productTopology.ts", "copy"],
+          ["packages/template-core/src/systemCatalog.ts", "copy"],
+          ["packages/template-core/src/templateInstance/index.ts", "copy"],
+          ["docs/template/generated/workflow-semantics.md", "copy"],
+          ["eslint.config.mjs", "copy"],
+          ["tooling/eslint-plugin-template/index.mjs", "copy"],
+          [
+            "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+            "copy",
+          ],
           ["tooling/generators/src/crud-proof.test.ts", "copy"],
           ["tooling/quality/package.json", "copy"],
           ["tooling/quality/src/env-manifest.test.mts", "copy"],
@@ -921,6 +948,21 @@ function buildTargetPlan(
           "tooling/app-map/src/composition.test.ts",
           "tooling/app-map/src/composition.ts",
           "tooling/app-map/src/schema.ts",
+          "tooling/app-map/src/build.ts",
+          "tooling/app-map/src/gitDiff.ts",
+          "tooling/app-map/src/validate.ts",
+          "packages/template-core/src/dataResourceCatalog.ts",
+          "packages/template-core/src/productTopology.ts",
+          "packages/template-core/src/systemCatalog.ts",
+          "packages/template-core/src/productContract.ts",
+          "packages/template-core/src/workPackage.ts",
+          "packages/template-core/src/productPlan.ts",
+          "packages/template-core/src/templateInstance/index.ts",
+          "docs/template/generated/workflow-semantics.md",
+          "eslint.config.mjs",
+          "tooling/eslint-plugin-template/index.mjs",
+          "tooling/eslint-plugin-template/rules/acceptance-boundary.mjs",
+          "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
           "tooling/generators/src/crud-proof.test.ts",
           "tooling/quality/src/env-manifest.test.mts",
           "docs/template/generated/provenance/add-feature/records.json",

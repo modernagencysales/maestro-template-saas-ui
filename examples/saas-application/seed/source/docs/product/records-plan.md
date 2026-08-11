@@ -10,7 +10,7 @@ workPackages:
       - BHV-REC-004
     appMapTargets:
       - route:records
-      - headless:executor
+      - headless:records-api
     work:
       kind: fixture-to-real
       target: examples/saas-application/seed/source/tests/acceptance

@@ -85,6 +85,19 @@ const annotationType = (test: PlaywrightTestRecord): string | undefined =>
     .map(({ type }) => type.toLowerCase())
     .find((type) => ["skip", "fixme", "fail"].includes(type));
 
+const boundedNativeFailure = (message: string): string => {
+  const normalized = message.replace(/\s+/gu, " ").trim();
+  const redacted = normalized
+    .replace(/\bBearer\s+\S+/giu, "Bearer [REDACTED]")
+    .replace(
+      /\b([A-Z_][A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_]*)=\S+/giu,
+      "$1=[REDACTED]",
+    );
+  if (redacted.length <= 500) return redacted;
+  const headLength = Math.floor((500 - 1) / 2);
+  return `${redacted.slice(0, headLength)}…${redacted.slice(-(500 - headLength - 1))}`;
+};
+
 const identityFindings = (
   discovery: PlaywrightTestRecord,
   runtime: PlaywrightTestRecord,
@@ -114,7 +127,7 @@ const resultFindings = (
     );
   if (result.status !== "passed")
     findings.push(
-      `selected test ${test.id} has result status ${result.status}; expected passed`,
+      `selected test ${test.id} (${test.behaviorTag} ${test.title}) has result status ${result.status}; expected passed${result.error === undefined ? "" : `; native error: ${boundedNativeFailure(result.error)}`}`,
     );
   if (result.retry !== 0)
     findings.push(

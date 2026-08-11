@@ -34,6 +34,7 @@ type Fixture = {
   readonly status?: string;
   readonly expectedStatus?: string;
   readonly retry?: number;
+  readonly error?: string;
   readonly annotations?: readonly { readonly type: string }[];
 };
 
@@ -61,6 +62,9 @@ const rawNativeReport = (fixtures: readonly Fixture[]) => ({
                     {
                       status: fixture.status,
                       retry: fixture.retry ?? 0,
+                      ...(fixture.error === undefined
+                        ? {}
+                        : { errors: [{ message: fixture.error }] }),
                     },
                   ],
           },
@@ -362,6 +366,84 @@ behaviors:
       processRunner,
     });
     expect(allOutput).toHaveBeenCalledWith("2 selected, 2 runtime");
+  });
+
+  it("reports the selected behavior, title, and bounded native failure", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-failure-"));
+    roots.push(root);
+    await mkdir(join(root, "source"));
+    await writeFile(
+      join(root, "source", "product.contract.yaml"),
+      `schemaVersion: 1
+product:
+  id: records
+  name: Records
+  summary: Records
+behaviors:
+  - id: BHV-REC-001
+    revision: 1
+    status: required
+    title: Required record is saved
+    actor: member
+    surfaces: [web-ui]
+    preconditions: []
+    action: save
+    outcomes: [listed]
+`,
+    );
+    const nativeFailure = `generated CLI title is missing Bearer bearer-canary API_TOKEN=token-canary ${"x".repeat(600)} final preflight witness SERVICE_PASSWORD=password-canary`;
+    const failure = runAcceptance({
+      repoRoot: root,
+      sourceRoot: "source",
+      scope: "required",
+      processRunner: async (args, environment) => {
+        const report = rawNativeReport(
+          args.includes("--list")
+            ? [
+                {
+                  id: "required",
+                  tag: "@BHV-REC-001-R1",
+                  title: "Required record is saved",
+                },
+              ]
+            : [
+                {
+                  id: "required",
+                  tag: "@BHV-REC-001-R1",
+                  title: "Required record is saved",
+                  status: "failed",
+                  error: nativeFailure,
+                },
+              ],
+        );
+        await writeFile(
+          environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
+          JSON.stringify(report),
+        );
+        return {
+          exitCode: args.includes("--list") ? 0 : 1,
+          stdout: "",
+          stderr: "",
+        };
+      },
+    });
+    let message = "";
+    try {
+      await failure;
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toContain("@BHV-REC-001-R1");
+    expect(message).toContain("Required record is saved");
+    expect(message).toContain("generated CLI title is missing");
+    expect(message).toContain("final preflight witness");
+    expect(message).not.toContain("bearer-canary");
+    expect(message).not.toContain("token-canary");
+    expect(message).not.toContain("password-canary");
+    const native = message.match(/native error: (.+)$/u)?.[1];
+    expect(native).toBeDefined();
+    expect(native?.length).toBeLessThanOrEqual(500);
+    expect(native?.split("…")).toHaveLength(2);
   });
 
   it("fails closed when stdout has JSON but the isolated report file is absent", async () => {

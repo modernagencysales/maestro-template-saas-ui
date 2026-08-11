@@ -34,6 +34,7 @@ import {
 } from "./saasApplication";
 import { buildSaasApplicationAlpha2TargetPlan } from "./alpha2SaasApplicationPlan";
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
+import { isWorkflowAutomationPath } from "./saasApplicationPatterns";
 import {
   CUSTOMER_ROOT_SCRIPTS,
   CURRENT_EMAIL_CLOSURE,
@@ -59,6 +60,29 @@ const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
   "tooling/quality/check-recipes.test.mts",
   "tooling/quality/mutation-script.test.mts",
 ] as const;
+
+describe("workflow automation customer closure", () => {
+  it("omits workflow-owned release files without omitting sparse App Map inputs", () => {
+    expect(
+      [
+        "packages/convex/confect/capabilities/_versions/publicationEcho/v1.spec.ts",
+        "packages/convex/confect/_generated/registeredFunctions/capabilities/_versions/publicationEcho/v1.ts",
+        "packages/convex/convex/capabilities/_versions/publicationEcho/v1.ts",
+        "packages/convex/test/fixtures/workflow-release.ts",
+        "packages/convex/test/helpers/workflowHarness.ts",
+        "packages/convex/test/publicationFixture.workflow.test.ts",
+        "packages/convex/test/trust-receipt.test.ts",
+        "packages/convex/test/workflow-closure.test.ts",
+      ].every(isWorkflowAutomationPath),
+    ).toBe(true);
+    expect(
+      [
+        "docs/template/generated/workflow-semantics.md",
+        "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+      ].some(isWorkflowAutomationPath),
+    ).toBe(false);
+  });
+});
 
 type ReviewedReleasePath = {
   readonly path: string;
@@ -184,6 +208,70 @@ describe("saas application blueprint", () => {
     expect(
       workflow.has("packages/convex/confect/workflows/graphCurrent.ts"),
     ).toBe(true);
+  });
+
+  it("projects the typed product contract and native acceptance boundary", () => {
+    const neutral = new Map(
+      buildSaasApplicationTargetPlan({
+        name: "North Star App",
+        firstOutcome: "Ship the first customer result",
+      }).entries.map(({ path, content }) => [path, content]),
+    );
+    for (const path of [
+      "product.contract.yaml",
+      "product.contract.schema.json",
+      "docs/template/generated/product-contract.md",
+      "playwright.acceptance.config.ts",
+      "tooling/acceptance/product-contract.mts",
+      "tooling/acceptance/run-acceptance.mts",
+    ])
+      expect(neutral.has(path), path).toBe(true);
+    expect(neutral.get("product.contract.yaml")).toContain(
+      "id: north-star-app",
+    );
+    expect(neutral.get("product.contract.yaml")).toContain("status: draft");
+    expect(neutral.get("product.contract.yaml")).toContain(
+      "Ship the first customer result",
+    );
+    expect(neutral.has("tests/acceptance/records.spec.ts")).toBe(false);
+
+    const records = new Map(
+      buildSaasApplicationTargetPlan({
+        name: "Records App",
+        patterns: ["records-example"],
+      }).entries.map(({ path, content }) => [path, content]),
+    );
+    for (const path of [
+      "docs/product/records-plan.md",
+      "tests/acceptance/records.spec.ts",
+      "tests/acceptance/support/fixtures.ts",
+      "tests/acceptance/support/runtime.ts",
+    ])
+      expect(records.has(path), path).toBe(true);
+    expect(records.get("product.contract.yaml")).toContain("BHV-REC-004");
+    expect(
+      buildSaasApplicationTargetPlan({
+        name: "Records App",
+        patterns: ["records-example"],
+      }).entries.find(
+        ({ path }) =>
+          path ===
+          "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+      )?.replaces,
+    ).toBe("copy");
+    const recordsTopology = JSON.parse(
+      records.get("docs/template/product-topology.json") ?? "{}",
+    ) as {
+      readonly resources?: readonly {
+        readonly id: string;
+        readonly kind: string;
+      }[];
+    };
+    expect(
+      recordsTopology.resources
+        ?.filter(({ kind }) => kind === "route")
+        .map(({ id }) => id),
+    ).toEqual(["route:health", "route:records"]);
   });
 
   it("projects workflow data resources only when workflow is selected", () => {
@@ -609,7 +697,7 @@ describe("saas application blueprint", () => {
       generator: "add-feature",
       commandFamily: "template:add-feature",
       name: "records",
-      ownership: { system: "knowledge-brain", disposition: "extend" },
+      ownership: { system: "record-management", disposition: "extend" },
       generatedPaths: expect.arrayContaining([
         "apps/web/src/routes/_workspace.records.tsx",
       ]),
@@ -1792,6 +1880,17 @@ Feature: Reconcile disputed invoices
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
       "apps/web/src/routes/_workspace.records.tsx",
+      "product.contract.yaml",
+      "product.contract.schema.json",
+      "docs/template/generated/product-contract.md",
+      "playwright.acceptance.config.ts",
+      "tooling/acceptance/product-contract.mts",
+      "tooling/acceptance/run-acceptance.mts",
+      "tooling/acceptance/playwright-report.mts",
+      "docs/product/records-plan.md",
+      "tests/acceptance/records.spec.ts",
+      "tests/acceptance/support/fixtures.ts",
+      "tests/acceptance/support/runtime.ts",
       "apps/web/src/adapters/records/http.ts",
       "features/records.feature",
       "features/step_definitions/records.journeys.ts",
@@ -1800,6 +1899,36 @@ Feature: Reconcile disputed invoices
       "features/support/contracts-runtime.ts",
       "features/support/contracts-world.ts",
       "features/first-outcome.feature",
+      "apps/web/src/adapters/confect-generated-refs.test.ts",
+      "docs/template/env-manifest.json",
+      "docs/template/env-manifest.md",
+      "docs/template/operations-runbook.md",
+      "packages/template-core/src/templateInstance/templateInstance.test.ts",
+      "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+      "packages/template-core/src/generated/confectManifest.ts",
+      "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+      "packages/convex/test/shared-env.test.ts",
+      "tooling/generators/src/crud-proof.test.ts",
+      "tooling/app-map/src/composition.test.ts",
+      "tooling/app-map/src/composition.ts",
+      "tooling/app-map/src/schema.ts",
+      "tooling/app-map/src/build.ts",
+      "tooling/app-map/src/gitDiff.ts",
+      "tooling/app-map/src/validate.ts",
+      "tooling/app-map/package.json",
+      "packages/template-core/src/dataResourceCatalog.ts",
+      "packages/template-core/src/productTopology.ts",
+      "packages/template-core/src/systemCatalog.ts",
+      "packages/template-core/src/productContract.ts",
+      "packages/template-core/src/workPackage.ts",
+      "packages/template-core/src/productPlan.ts",
+      "packages/template-core/src/templateInstance/index.ts",
+      "docs/template/generated/workflow-semantics.md",
+      "eslint.config.mjs",
+      "tooling/eslint-plugin-template/index.mjs",
+      "tooling/eslint-plugin-template/rules/acceptance-boundary.mjs",
+      "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+      "tooling/quality/src/env-manifest.test.mts",
       "README.md",
       "docs/template/agent-pack-privacy.md",
       "docs/template/preflight.md",
@@ -1955,22 +2084,11 @@ Feature: Reconcile disputed invoices
       "packages/convex/convex/records/records.ts",
       "apps/web/src/routeTree.gen.ts",
       "apps/web/src/routeRegistry.generated.ts",
-      "apps/web/src/adapters/confect-generated-refs.test.ts",
-      "docs/template/env-manifest.json",
-      "docs/template/env-manifest.md",
-      "docs/template/operations-runbook.md",
-      "packages/template-core/src/templateInstance/templateInstance.test.ts",
-      "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
-      "packages/template-core/src/generated/confectManifest.ts",
-      "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
-      "packages/convex/test/shared-env.test.ts",
-      "tooling/generators/src/crud-proof.test.ts",
-      "tooling/app-map/src/composition.test.ts",
-      "tooling/app-map/src/composition.ts",
-      "tooling/app-map/src/schema.ts",
-      "tooling/quality/src/env-manifest.test.mts",
       "docs/template/generated/provenance/add-feature/records.json",
     ]);
+    expect(first.map(({ path }) => path)).not.toContain(
+      "apps/cli/src/factory/customerCandidateFixture.ts",
+    );
     expect(
       first.some(({ path }) =>
         path.startsWith("examples/generic-ai-ops/seed/"),
@@ -2218,8 +2336,9 @@ Feature: Reconcile disputed invoices
     expect(posthog).not.toContain("app-idea-evaluator");
     expect(posthog).not.toContain("public-funnel");
     const routeTree = files.get("apps/web/src/routeTree.gen.ts") ?? "";
-    expect(routeTree).toContain("DashboardRouteImport");
     expect(routeTree).toContain("WorkspaceRecordsRouteImport");
+    expect(routeTree).toContain("WorkspaceHealthRouteImport");
+    expect(routeTree).not.toContain("DashboardRouteImport");
     expect(routeTree).not.toContain("EvaluateRouteImport");
     expect(routeTree).not.toContain("CheckoutReturnRouteImport");
     expect(routeTree).not.toContain("BuildPackPackIdRouteImport");
@@ -2371,6 +2490,10 @@ Feature: Reconcile disputed invoices
       "acceptance:required-selection",
       "acceptance:cucumber",
       "acceptance:features",
+      "product-contract:generate",
+      "check:product-contract",
+      "acceptance:all",
+      "acceptance:required",
       "test",
       "test:tooling",
       "check:coverage-ratchet",

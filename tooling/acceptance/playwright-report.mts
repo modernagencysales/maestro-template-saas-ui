@@ -13,6 +13,7 @@ export type AcceptanceTestAnnotation = {
 export type AcceptanceTestResult = {
   readonly status: string;
   readonly retry: number;
+  readonly error?: string;
 };
 
 export type PlaywrightTestRecord = AcceptanceTestIdentity & {
@@ -74,6 +75,16 @@ const parseAnnotations = (
         };
   });
 
+const parseResultError = (value: unknown): string | undefined => {
+  if (value === undefined) return undefined;
+  const errors = array(value, "result.errors");
+  if (errors.length === 0) return undefined;
+  return text(
+    record(errors[0], "result error").message,
+    "result error.message",
+  );
+};
+
 const behaviorTagPattern = /^@BHV-[A-Z0-9]+-[0-9]+-R[1-9][0-9]*$/u;
 
 const canonicalBehaviorTag = (tag: string): string =>
@@ -133,9 +144,11 @@ const parseSpec = (
   const test = record(matchingTests[0], "spec test");
   const results = array(test.results, "test.results").map((value) => {
     const result = record(value, "test result");
+    const error = parseResultError(result.errors);
     return {
       status: text(result.status, "result.status"),
       retry: integer(result.retry, "result.retry"),
+      ...(error === undefined ? {} : { error }),
     };
   });
   return {

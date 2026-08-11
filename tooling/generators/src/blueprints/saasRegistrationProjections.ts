@@ -355,6 +355,10 @@ const currentCustomerRootTestExclusions = (): string =>
 
 export const CUSTOMER_ROOT_SCRIPTS = [
   "maestro",
+  "product-contract:generate",
+  "check:product-contract",
+  "acceptance:all",
+  "acceptance:required",
   "acceptance:syntax",
   "acceptance:check",
   "acceptance:required-selection",
@@ -487,6 +491,14 @@ const customerPackage = (
   };
   const sourceScripts = value.scripts;
   const generatedAcceptanceScripts: Readonly<Record<string, string>> = {
+    "product-contract:generate":
+      "tsx tooling/acceptance/product-contract.mts generate --source-root .",
+    "check:product-contract":
+      "tsx tooling/acceptance/product-contract.mts check --source-root . --allow-first-contract",
+    "acceptance:all":
+      "tsx tooling/acceptance/run-acceptance.mts all --source-root .",
+    "acceptance:required":
+      "tsx tooling/acceptance/run-acceptance.mts required --source-root .",
     "acceptance:syntax": "tsx tooling/acceptance/source-check.mts",
     "acceptance:check":
       "pnpm acceptance:syntax && cucumber-js --config cucumber.cjs --dry-run --tags @required",
@@ -1095,7 +1107,8 @@ const withoutWorkflowConfectGroups = (value: string): string => {
           line.startsWith("import ") &&
           (line.includes('from "../workflowContracts/') ||
             line.includes('from "../workflowRunners/') ||
-            line.includes('from "../workflows/'))
+            line.includes('from "../workflows/') ||
+            line.includes('from "../capabilities/_versions/publicationEcho/'))
         ) &&
         !(
           line.startsWith("  | GroupSpec.NamedAt") &&
@@ -1105,7 +1118,12 @@ const withoutWorkflowConfectGroups = (value: string): string => {
         ),
     )
     .join("\n");
+  projected = projected.replace(
+    'GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "_versions", never, GroupSpec.NamedAt<GroupSpec.GroupSpec<"Convex", "publicationEcho", never, GroupSpec.NamedAt<typeof capabilities__versions_publicationEcho_v1, "v1">>, "publicationEcho">>, "_versions"> | ',
+    "",
+  );
   for (const marker of [
+    '.addGroupAt("_versions",',
     '.addAt("workflowContracts",',
     '.addAt("workflowRunners",',
     '.addAt("workflows",',
@@ -1247,7 +1265,100 @@ const confectDocs = (
   );
 };
 
-const routeTree = (current: boolean, recordsSelected: boolean): string => {
+const routeTree = (
+  current: boolean,
+  recordsSelected: boolean,
+  workflowSelected: boolean,
+): string => {
+  if (current && recordsSelected && !workflowSelected)
+    return `/* eslint-disable */
+// @ts-nocheck
+import { Route as rootRouteImport } from './routes/__root'
+import { Route as IndexRouteImport } from './routes/index'
+import { Route as WorkspaceHealthRouteImport } from './routes/_workspace.health'
+import { Route as WorkspaceRecordsRouteImport } from './routes/_workspace.records'
+
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceHealthRoute = WorkspaceHealthRouteImport.update({
+  id: '/_workspace/health',
+  path: '/health',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceRecordsRoute = WorkspaceRecordsRouteImport.update({
+  id: '/_workspace/records',
+  path: '/records',
+  getParentRoute: () => rootRouteImport,
+} as any)
+
+export interface FileRoutesByFullPath {
+  '/': typeof IndexRoute
+  '/health': typeof WorkspaceHealthRoute
+  '/records': typeof WorkspaceRecordsRoute
+}
+export interface FileRoutesByTo {
+  '/': typeof IndexRoute
+  '/health': typeof WorkspaceHealthRoute
+  '/records': typeof WorkspaceRecordsRoute
+}
+export interface FileRoutesById {
+  __root__: typeof rootRouteImport
+  '/': typeof IndexRoute
+  '/_workspace/health': typeof WorkspaceHealthRoute
+  '/_workspace/records': typeof WorkspaceRecordsRoute
+}
+export interface FileRouteTypes {
+  fileRoutesByFullPath: FileRoutesByFullPath
+  fullPaths: '/' | '/health' | '/records'
+  fileRoutesByTo: FileRoutesByTo
+  to: '/' | '/health' | '/records'
+  id: '__root__' | '/' | '/_workspace/health' | '/_workspace/records'
+  fileRoutesById: FileRoutesById
+}
+export interface RootRouteChildren {
+  IndexRoute: typeof IndexRoute
+  WorkspaceHealthRoute: typeof WorkspaceHealthRoute
+  WorkspaceRecordsRoute: typeof WorkspaceRecordsRoute
+}
+
+declare module '@tanstack/react-router' {
+  interface FileRoutesByPath {
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_workspace/health': {
+      id: '/_workspace/health'
+      path: '/health'
+      fullPath: '/health'
+      preLoaderRoute: typeof WorkspaceHealthRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_workspace/records': {
+      id: '/_workspace/records'
+      path: '/records'
+      fullPath: '/records'
+      preLoaderRoute: typeof WorkspaceRecordsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+  }
+}
+
+const rootRouteChildren: RootRouteChildren = {
+  IndexRoute,
+  WorkspaceHealthRoute,
+  WorkspaceRecordsRoute,
+}
+export const routeTree = rootRouteImport
+  ._addFileChildren(rootRouteChildren)
+  ._addFileTypes<FileRouteTypes>()
+`;
   let value = current
     ? currentGeneratorSource("blueprints/customer/routeTree.gen.ts.txt")
     : source("apps/web/src/routeTree.gen.ts");
@@ -1847,7 +1958,7 @@ export const buildSaasRegistrationProjections = (
       : []),
     {
       path: "apps/web/src/routeTree.gen.ts",
-      content: routeTree(current, recordsSelected),
+      content: routeTree(current, recordsSelected, workflowSelected),
     },
     ...(recordsSelected
       ? [

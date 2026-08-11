@@ -17,6 +17,10 @@ import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
+import {
+  isRecordsOnlyWorkflowProvenancePath,
+  isWorkflowAutomationPath,
+} from "../../../../tooling/generators/src/blueprints/saasApplicationPatterns";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
@@ -36,22 +40,6 @@ const installedStoreDir = readFileSync(
 ).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
-const isWorkflowPatternPath = (path: string): boolean =>
-  [
-    "tooling/workflow/",
-    "packages/convex/confect/workflows/",
-    "packages/convex/confect/workflowContracts/",
-    "packages/convex/confect/workflowRunners/",
-    "packages/convex/confect/_generated/registeredFunctions/workflow",
-    "packages/convex/confect/_generated/tables/workflow",
-    "packages/convex/confect/tables/workflow",
-    "packages/convex/confect/demo/showcase.",
-    "packages/convex/convex/components/workflow",
-    "packages/convex/convex/workflows/",
-    "packages/convex/convex/workflowContracts/",
-    "packages/convex/convex/workflowRunners/",
-  ].some((prefix) => path.startsWith(prefix));
-
 const runGeneratedPnpm = (
   cwd: string,
   args: readonly string[],
@@ -95,7 +83,9 @@ const shouldOmitCurrentProjectionPath = (input: {
   input.action === "omit" ||
   (input.optionalPatternPaths.has(input.path) &&
     !input.projectedPaths.has(input.path)) ||
-  (!input.workflowSelected && isWorkflowPatternPath(input.path));
+  (!input.workflowSelected &&
+    (isWorkflowAutomationPath(input.path) ||
+      isRecordsOnlyWorkflowProvenancePath(input.path)));
 
 const applyCurrentSaasProjection = (
   root: string,

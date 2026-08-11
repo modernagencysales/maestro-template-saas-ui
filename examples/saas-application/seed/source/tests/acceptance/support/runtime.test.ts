@@ -83,10 +83,17 @@ describe("Playwright acceptance runtime support", () => {
 
   it("uses one disposable API base for the browser proxy and CLI child process", async () => {
     const environments: NodeJS.ProcessEnv[] = [];
+    const appEnvironments: NodeJS.ProcessEnv[] = [];
+    const commands: (readonly string[])[] = [];
+    const startupSteps: string[] = [];
     let port = 4100;
     const dependencies = {
       cwd: process.cwd(),
-      environment: () => ({ PATH: process.env.PATH }),
+      environment: () => ({
+        PATH: process.env.PATH,
+        FORCE_COLOR: "1",
+        NO_COLOR: "1",
+      }),
       freePort: async () => port++,
       launchBrowser: async () => ({
         close: async () => undefined,
@@ -98,6 +105,14 @@ describe("Playwright acceptance runtime support", () => {
         environment: NodeJS.ProcessEnv,
       ) => {
         environments.push(environment);
+        commands.push(args);
+        startupSteps.push(
+          args.includes("env")
+            ? `env:${args.at(-2)}`
+            : args.includes("convex")
+              ? "init"
+              : "other",
+        );
         const isSeed = args.includes("headless/apiKeys:seedLocalContracts");
         const isCli = args.includes("maestro");
         return {
@@ -126,9 +141,13 @@ describe("Playwright acceptance runtime support", () => {
         };
       },
       spawnApp: async (
-        _spec: unknown,
+        spec: unknown,
         output: (stream: "stdout" | "stderr", line: string) => void,
       ) => {
+        appEnvironments.push(
+          (spec as { readonly environment: NodeJS.ProcessEnv }).environment,
+        );
+        startupSteps.push("start");
         queueMicrotask(() =>
           output("stdout", "[maestro] URL: http://127.0.0.1:4100"),
         );
@@ -140,6 +159,37 @@ describe("Playwright acceptance runtime support", () => {
     } as unknown as ContractsRuntimeDependencies;
     const controller = createContractsRuntimeController(dependencies);
     const activeRuntime = await controller.start();
+    expect(startupSteps.slice(0, 4)).toEqual([
+      "init",
+      "env:MAESTRO_CONTRACT_TEST",
+      "env:POSTHOG_PROJECT_TOKEN",
+      "start",
+    ]);
+    expect(commands.slice(0, 3)).toEqual([
+      ["--silent", "exec", "convex", "init"],
+      [
+        "--silent",
+        "exec",
+        "convex",
+        "env",
+        "set",
+        "MAESTRO_CONTRACT_TEST",
+        "1",
+      ],
+      [
+        "--silent",
+        "exec",
+        "convex",
+        "env",
+        "set",
+        "POSTHOG_PROJECT_TOKEN",
+        "phc_test_placeholder",
+      ],
+    ]);
+    for (const environment of [...environments, ...appEnvironments]) {
+      expect(environment.FORCE_COLOR).toBeUndefined();
+      expect(environment.NO_COLOR).toBe("1");
+    }
     const activeScenario = await activeRuntime.provisionScenario();
     let routeHandler: ((route: never) => Promise<void>) | undefined;
     await activeRuntime.authorizeBrowserContext(activeScenario, {
@@ -169,6 +219,26 @@ describe("Playwright acceptance runtime support", () => {
     assert.equal(new URL(browserProxyUrl).origin, activeRuntime.apiBaseUrl);
     assert.deepEqual(fulfilled, { response: {} });
     await activeRuntime.runCli(activeScenario, [
+      "capability",
+      "run",
+      "records.list",
+    ]);
+    expect(
+      commands.find((args) =>
+        args.includes("headless/apiKeys:seedLocalContracts"),
+      ),
+    ).toEqual([
+      "--silent",
+      "exec",
+      "convex",
+      "run",
+      "headless/apiKeys:seedLocalContracts",
+      expect.any(String),
+    ]);
+    expect(commands.at(-1)).toEqual([
+      "--silent",
+      "maestro",
+      "--",
       "capability",
       "run",
       "records.list",

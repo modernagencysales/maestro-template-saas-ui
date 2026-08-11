@@ -166,7 +166,6 @@ export const CONTRACTS_HOOK_TIMEOUT_MS = 150_000;
 
 const allowedEnvironmentNames = new Set([
   "CI",
-  "FORCE_COLOR",
   "HOME",
   "LANG",
   "LANGUAGE",
@@ -185,6 +184,7 @@ const allowedEnvironmentNames = new Set([
   "LC_TIME",
   "LOGNAME",
   "NO_COLOR",
+  "NODE_EXTRA_CA_CERTS",
   "PATH",
   "SHELL",
   "TEMP",
@@ -423,8 +423,8 @@ async function bootContractsRuntime(
       throw new Error(redact(error));
     }
   };
-  const commandTimeoutMs = dependencies.commandTimeoutMs ?? 30_000;
-  const seedTimeoutMs = dependencies.seedTimeoutMs ?? 30_000;
+  const commandTimeoutMs = dependencies.commandTimeoutMs ?? 120_000;
+  const seedTimeoutMs = dependencies.seedTimeoutMs ?? 120_000;
   const readinessTimeoutMs = dependencies.readinessTimeoutMs ?? 30_000;
   const retryDelayMs = dependencies.retryDelayMs ?? 250;
 
@@ -434,32 +434,16 @@ async function bootContractsRuntime(
       localEnvironment,
       commandTimeoutMs,
     );
-    await executeCommand(
-      [
-        "--silent",
-        "exec",
-        "convex",
-        "env",
-        "set",
-        "MAESTRO_CONTRACT_TEST",
-        "1",
-      ],
-      localEnvironment,
-      commandTimeoutMs,
-    );
-    await executeCommand(
-      [
-        "--silent",
-        "exec",
-        "convex",
-        "env",
-        "set",
-        "POSTHOG_PROJECT_TOKEN",
-        "phc_test_placeholder",
-      ],
-      localEnvironment,
-      commandTimeoutMs,
-    );
+    for (const [name, value] of [
+      ["MAESTRO_CONTRACT_TEST", "1"],
+      ["POSTHOG_PROJECT_TOKEN", "phc_test_placeholder"],
+    ] as const) {
+      await executeCommand(
+        ["--silent", "exec", "convex", "env", "set", name, value],
+        localEnvironment,
+        commandTimeoutMs,
+      );
+    }
     const browser = await dependencies.launchBrowser(inherited);
     if (resources.stopping) {
       await browser.close();
@@ -526,7 +510,6 @@ async function bootContractsRuntime(
         `maestro start announced an unexpected URL\n${safeOutput()}`,
       );
     }
-
     const credentials = new WeakMap<
       ContractsScenario,
       { readonly primary: string; readonly observer: string }

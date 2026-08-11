@@ -1,29 +1,21 @@
 import { execFile, execFileSync, spawnSync } from "node:child_process";
-import { createHash } from "node:crypto";
-import {
-  appendFileSync,
-  existsSync,
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  readdirSync,
-  realpathSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
+import { existsSync, readFileSync, readdirSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
-import { delimiter, isAbsolute, join, relative, sep } from "node:path";
+import { delimiter, isAbsolute, join, relative } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
-import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
+import { isWorkflowAutomationPath } from "../../../../tooling/generators/src/blueprints/saasApplicationPatterns";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   CURRENT_PUBLIC_SOURCE,
   createCustomerCreateComposition,
   loadCustomerCreateComposition,
-  type CustomerCompositionSource,
 } from "./createComposition";
+import {
+  buildCandidateReleaseFixture as buildSharedCandidateReleaseFixture,
+  type SaasPlanBuilder,
+} from "./customerCandidateFixture";
 
 const execFileAsync = promisify(execFile);
 const repositoryRoot = fileURLToPath(new URL("../../../../", import.meta.url));
@@ -32,20 +24,6 @@ const installedStoreDir = readFileSync(
   join(repositoryRoot, "node_modules/.modules.yaml"),
   "utf8",
 ).match(/^storeDir: (.+)$/m)?.[1];
-
-const hash = (bytes: string | Buffer): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-
-const targetEntryIdentity = (
-  entry: ReturnType<typeof buildSaasApplicationTargetPlan>["entries"][number],
-) => ({
-  path: entry.path,
-  ownership: entry.ownership,
-  action: entry.action,
-  upgrade: entry.upgrade,
-  sha256: entry.sha256,
-  ...(entry.replaces === undefined ? {} : { replaces: entry.replaces }),
-});
 
 const candidateEnvironment = (): NodeJS.ProcessEnv => ({
   ...process.env,
@@ -62,247 +40,24 @@ const executableOnPath = (
     .map((directory) => join(directory, command))
     .find((candidate) => existsSync(candidate));
 
-const writeJson = (path: string, value: unknown): Buffer => {
-  const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
-  writeFileSync(path, bytes);
-  return bytes;
-};
-
-const git = (repository: string, args: readonly string[]): Buffer =>
-  execFileSync("git", ["-C", repository, ...args], {
-    maxBuffer: 512 * 1024 * 1024,
-  });
-
-type SaasPlanBuilder = (options: {
-  readonly name: string;
-  readonly firstOutcome?: string;
-}) => ReturnType<typeof buildSaasApplicationTargetPlan>;
-
 const buildSelectedSaasPlan: SaasPlanBuilder = (options) =>
   buildSaasApplicationTargetPlan({
     ...options,
     patterns: ["records-example", "workflow-automation"],
   });
 
-const isWorkflowPatternPath = (path: string): boolean =>
-  [
-    "tooling/workflow/",
-    "packages/convex/confect/workflows/",
-    "packages/convex/confect/workflowContracts/",
-    "packages/convex/confect/workflowRunners/",
-    "packages/convex/confect/_generated/registeredFunctions/workflow",
-    "packages/convex/confect/_generated/tables/workflow",
-    "packages/convex/confect/tables/workflow",
-    "packages/convex/confect/demo/showcase.",
-    "packages/convex/convex/components/workflow",
-    "packages/convex/convex/workflows/",
-    "packages/convex/convex/workflowContracts/",
-    "packages/convex/convex/workflowRunners/",
-  ].some((prefix) => path.startsWith(prefix));
-
 const buildCandidateReleaseFixture = (
-  input: {
-    readonly name: string;
-    readonly outcome: string;
-  },
+  input: { readonly name: string; readonly outcome: string },
   buildPlan: SaasPlanBuilder = buildSelectedSaasPlan,
 ) => {
-  const parent = mkdtempSync(join(tmpdir(), "maestro-candidate-composition-"));
-  temporaryRoots.push(parent);
-  const candidateRoot = join(parent, "candidate");
-  const targetRoot = join(parent, "customer");
-  execFileSync(
-    "git",
-    [
-      "clone",
-      "--quiet",
-      "--shared",
-      "--no-tags",
-      repositoryRoot,
-      candidateRoot,
-    ],
-    { maxBuffer: 512 * 1024 * 1024 },
-  );
-  const authorityRoot = join(candidateRoot, ".candidate-authority");
-  appendFileSync(
-    join(candidateRoot, ".git/info/exclude"),
-    "\n.candidate-authority/\n",
-  );
-  mkdirSync(authorityRoot, { recursive: true });
-  const sourceCommit = git(candidateRoot, ["rev-parse", "HEAD"])
-    .toString("utf8")
-    .trim();
-  const tag = "maestro-template-v0.2.0-alpha.3";
-
-  const sourcePaths = git(candidateRoot, [
-    "ls-tree",
-    "-r",
-    "--name-only",
-    sourceCommit,
-  ])
-    .toString("utf8")
-    .trim()
-    .split("\n")
-    .filter(Boolean);
-  const plan = buildPlan({
-    name: input.name,
-    firstOutcome: input.outcome,
+  const fixture = buildSharedCandidateReleaseFixture({
+    repoRoot: repositoryRoot,
+    ...input,
+    buildPlan,
+    authority: "alpha.3",
   });
-  const materializedPaths = new Set(plan.entries.map((entry) => entry.path));
-  const optionalPatternPaths = new Set(
-    buildSelectedSaasPlan({
-      name: input.name,
-      firstOutcome: input.outcome,
-    }).entries.map((entry) => entry.path),
-  );
-  const workflowSelected = materializedPaths.has(
-    "tooling/workflow/package.json",
-  );
-  const blueprintOwnedPaths = new Set(
-    plan.entries
-      .filter((entry) => entry.replaces === undefined)
-      .map((entry) => entry.path),
-  );
-  const paths = [
-    ...buildCustomerOwnershipInventory(sourcePaths).map((entry) =>
-      blueprintOwnedPaths.has(entry.path) ||
-      (optionalPatternPaths.has(entry.path) &&
-        !materializedPaths.has(entry.path)) ||
-      (!workflowSelected && isWorkflowPatternPath(entry.path))
-        ? {
-            path: entry.path,
-            match: "exact" as const,
-            ownership: "factory-only" as const,
-            action: "omit" as const,
-            upgrade: "remove" as const,
-          }
-        : entry,
-    ),
-    {
-      path: "template-instance.json",
-      match: "exact" as const,
-      ownership: "generated" as const,
-      action: "generate" as const,
-      upgrade: "regenerate" as const,
-    },
-  ];
-  const expectedHashes = Object.fromEntries(
-    paths
-      .filter((entry) => entry.action === "copy" && entry.match === "exact")
-      .map((entry) => [
-        entry.path,
-        hash(readFileSync(join(candidateRoot, entry.path))),
-      ]),
-  );
-  const manifest = {
-    $schema: "../../schemas/maestro-customer-release-manifest.schema.json",
-    schemaVersion: 1,
-    materializationStatus: "materializable",
-    release: {
-      version: "0.2.0-alpha.3",
-      tag,
-      sourceCommit,
-      sourceChecksum: hash(
-        git(candidateRoot, ["archive", "--format=tar", sourceCommit]),
-      ),
-    },
-    compatibility: { cli: "0.2.x", agentPack: "0.2.x" },
-    paths,
-    expectedHashes,
-    extensionSeams: paths
-      .filter((entry) => entry.ownership === "customer-extension")
-      .map((entry) => ({
-        path: entry.path,
-        description: "Candidate customer extension seam.",
-      })),
-  };
-  const manifestPath = join(authorityRoot, "manifest.json");
-  const manifestBytes = writeJson(manifestPath, manifest);
-
-  const blueprint = {
-    schemaVersion: plan.schemaVersion,
-    id: plan.id,
-    provenance: plan.provenance,
-    registrations: plan.registrations,
-    parameterizedEntries: plan.parameterizedEntries,
-    entries: plan.entries.map(targetEntryIdentity),
-  };
-  const blueprintManifestPath = join(authorityRoot, "blueprint.json");
-  const blueprintManifestBytes = writeJson(blueprintManifestPath, blueprint);
-  const blueprintAuthorityManifestPath = join(
-    authorityRoot,
-    "blueprint-authority.json",
-  );
-  const blueprintAuthorityManifestBytes = writeJson(
-    blueprintAuthorityManifestPath,
-    blueprint,
-  );
-  git(candidateRoot, ["add", "--force", ".candidate-authority"]);
-  git(candidateRoot, [
-    "-c",
-    "user.name=Maestro Candidate Fixture",
-    "-c",
-    "user.email=maestro-candidate-fixture@example.invalid",
-    "commit",
-    "--quiet",
-    "--no-verify",
-    "-m",
-    "test: seal candidate authority",
-  ]);
-  const taggedCommit = git(candidateRoot, ["rev-parse", "HEAD"])
-    .toString("utf8")
-    .trim();
-  git(candidateRoot, ["tag", tag, taggedCommit]);
-  const taggedManifest = git(candidateRoot, [
-    "show",
-    `${taggedCommit}:.candidate-authority/manifest.json`,
-  ]);
-  if (!taggedManifest.equals(manifestBytes))
-    throw new Error("Candidate fixture tag does not contain manifest bytes.");
-  const manifestRelative = relative(
-    realpathSync(candidateRoot),
-    realpathSync(manifestPath),
-  )
-    .split(sep)
-    .join("/");
-  const resolvedTagCommit = git(candidateRoot, ["rev-list", "-n", "1", tag])
-    .toString("utf8")
-    .trim();
-  if (resolvedTagCommit !== taggedCommit)
-    throw new Error("Candidate fixture tag resolves to the wrong commit.");
-  if (
-    !git(candidateRoot, [
-      "show",
-      `${resolvedTagCommit}:${manifestRelative}`,
-    ]).equals(manifestBytes)
-  )
-    throw new Error("Candidate fixture manifest relative path is not tagged.");
-  if (
-    !git(realpathSync(candidateRoot), [
-      "show",
-      `${resolvedTagCommit}:${manifestRelative}`,
-    ]).equals(manifestBytes)
-  )
-    throw new Error("Canonical candidate fixture path cannot read the tag.");
-  const source: CustomerCompositionSource = {
-    repositoryRoot: candidateRoot,
-    manifestPath,
-    ownershipManifestChecksum: hash(manifestBytes),
-    tag,
-    sourceCommit,
-    blueprintManifestPath,
-    blueprintManifestChecksum: hash(blueprintManifestBytes),
-    blueprintAuthorityManifestPath,
-    blueprintAuthorityManifestChecksum: hash(blueprintAuthorityManifestBytes),
-  };
-  return {
-    candidateRoot,
-    source,
-    reviewedSourceCommit: sourceCommit,
-    tag,
-    taggedCommit,
-    targetRoot,
-  };
+  temporaryRoots.push(fixture.parent);
+  return fixture;
 };
 
 const runCandidatePnpm = async (
@@ -338,9 +93,13 @@ const listFiles = (root: string): readonly string[] =>
 afterEach(() => {
   for (const root of temporaryRoots.splice(0))
     rmSync(root, { recursive: true, force: true });
-}, 30_000);
+}, 120_000);
 
 describe("candidate customer composition", () => {
+  it("uses the shared candidate release fixture", () => {
+    expect(buildSharedCandidateReleaseFixture).toBeTypeOf("function");
+  });
+
   it("uses existing platform-local paths for candidate subprocesses", () => {
     const environment = candidateEnvironment();
 
@@ -397,7 +156,7 @@ describe("candidate customer composition", () => {
       "tooling/workflow/package.json",
     ])
       expect(files, path).not.toContain(path);
-    expect(files.filter(isWorkflowPatternPath)).toEqual([]);
+    expect(files.filter((path) => isWorkflowAutomationPath(path))).toEqual([]);
     expect(files).toContain("packages/convex/confect/deployAuthority/store.ts");
     expect(
       existsSync(

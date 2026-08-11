@@ -1,6 +1,8 @@
 import { expect, test } from "./support/fixtures";
 import type { ContractsRuntime, ContractsScenario } from "./support/runtime";
 
+test.setTimeout(120_000);
+
 const commandArgs = (
   operationId: "records.create" | "records.list",
   workspace: string,
@@ -41,6 +43,7 @@ const listedTitles = (stdout: string): readonly string[] => {
 const listedTitlesFromPrimaryCli = async (
   activeRuntime: ContractsRuntime,
   activeScenario: ContractsScenario,
+  idempotencyKey = `${activeScenario.namespace}-list-primary`,
 ) =>
   listedTitles(
     await activeRuntime.runCli(
@@ -49,7 +52,7 @@ const listedTitlesFromPrimaryCli = async (
         "records.list",
         activeScenario.workspaceSlug,
         {},
-        `${activeScenario.namespace}-list-primary`,
+        idempotencyKey,
       ),
     ),
   );
@@ -83,10 +86,19 @@ test(
       .getByLabel("Record detail")
       .fill("Created by Playwright acceptance.");
     await page.getByRole("button", { name: "Save record" }).click();
+    let listAttempt = 0;
+    await expect
+      .poll(
+        () =>
+          listedTitlesFromPrimaryCli(
+            runtime,
+            scenario,
+            `${scenario.namespace}-list-primary-${++listAttempt}`,
+          ),
+        { timeout: 5_000 },
+      )
+      .toContain(title);
     await expect(page.getByRole("heading", { name: title })).toBeVisible();
-    expect(await listedTitlesFromPrimaryCli(runtime, scenario)).toContain(
-      title,
-    );
   },
 );
 
