@@ -910,6 +910,25 @@ export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.sp
   invalid: [
     {
       filename: ACCEPTANCE_SUPPORT,
+      code: `/* global route, targetUrl */
+const redirect = route.continue;
+await redirect({ url: targetUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `const { continue: redirect, fallback, abort } = route;
+await redirect({ url: targetUrl });
+await fallback();
+await abort();`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
       code: `export async function proxy(context) {
   await context.route("**/__contracts/api/**", (route) =>
     route.continue({ url: targetUrl }));

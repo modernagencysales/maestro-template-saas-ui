@@ -69,3 +69,57 @@ Exit 0 with no whitespace errors.
   `tooling/generators/src/blueprints/saasApplication.ts` (line 267). It is the
   current App Map target, so historical plan/design artifacts were not
   rewritten. This is evidence for no change.
+
+## Batch Fix 7 alias follow-up
+
+Controller probe on the prior committed head `90d9bcf4`:
+
+```ts
+/* global route, targetUrl */
+const redirect = route.continue;
+await redirect({ url: targetUrl });
+```
+
+Observed exit 0 with no `template/acceptance-boundary` diagnostic.
+
+RED command:
+
+```sh
+rtk host-test-slot --class focused pnpm --dir tooling/eslint-plugin-template test
+```
+
+Observed RED: exit 1; 223 tests ran, with 221 passed and 2 failed. The new
+extracted `route.continue` and destructured `continue`/`fallback`/`abort`
+regressions each received zero diagnostics on the pre-follow-up rule.
+
+GREEN command:
+
+```sh
+rtk host-test-slot --class focused pnpm --dir tooling/eslint-plugin-template test
+```
+
+Observed GREEN: exit 0; 1 test file passed and all `223/223` tests passed.
+
+The follow-up folds `continue`, `fallback`, and `abort` into `NETWORK_APIS`, so
+direct calls and the existing member-extraction/object-pattern paths share the
+same network-boundary enforcement.
+
+Alias follow-up changed-file checks:
+
+```sh
+rtk pnpm exec eslint tooling/eslint-plugin-template/rules/acceptance-boundary.mjs tooling/eslint-plugin-template/rules/__tests__/rules.test.mjs
+```
+
+Exit 0 with no output.
+
+```sh
+rtk pnpm exec prettier --check tooling/eslint-plugin-template/rules/acceptance-boundary.mjs tooling/eslint-plugin-template/rules/__tests__/rules.test.mjs .superpowers/sdd/batch-fix-7-report.md
+```
+
+Exit 0: all matched files use Prettier code style.
+
+```sh
+rtk git diff --check
+```
+
+Exit 0 with no whitespace errors.
