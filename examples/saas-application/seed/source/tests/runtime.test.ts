@@ -5,8 +5,8 @@ import {
   createContractsRuntimeController,
   proxyContractsRequest,
   redactContractsDiagnostic,
-} from "./runtime";
-import type { ContractsRuntimeDependencies } from "./runtime";
+} from "./acceptance/support/runtime";
+import type { ContractsRuntimeDependencies } from "./acceptance/support/runtime";
 
 describe("Playwright acceptance runtime support", () => {
   it("forwards native backend responses without changing status, content type, or bytes", async () => {

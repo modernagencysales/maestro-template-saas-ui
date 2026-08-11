@@ -823,7 +823,7 @@ tester.run("acceptance-boundary", acceptanceBoundary, {
       code: `import { test, expect } from "./support/fixtures";
 import { readFixture } from "./support/fixture";
 import { join } from "node:path";
-test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page }) => { await page.goto("/"); expect(await readFixture(join("a", "b"))).toBeTruthy(); });`,
+test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page, runtime }) => { await page.goto(\`\${runtime.webUrl}/records\`); expect(await readFixture(join("a", "b"))).toBeTruthy(); });`,
     },
     {
       filename: ACCEPTANCE,
@@ -872,11 +872,6 @@ test("record appears", async ({ acceptancePage: page }) => { await proxy(page); 
       filename: SEED_SUPPORT,
       code: `import { runtime } from "./runtime"; export { runtime };`,
     },
-    {
-      filename:
-        "examples/saas-application/seed/source/tests/acceptance/support/runtime.test.ts",
-      code: `import { describe, it } from "vitest"; describe("support", () => it("works", () => undefined));`,
-    },
   ],
   invalid: [
     {
@@ -887,9 +882,18 @@ test("record appears", async ({ acceptancePage: page }) => { await proxy(page); 
 test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
   await page.setContent("<h1>Record</h1>");
   await page.goto("data:text/html,<h1>Record</h1>");
+  await page.goto(\`data:text/html,<h1>Record</h1>\`);
+  await page.goto("data:text/html," + "<h1>Record</h1>");
+  const canned = "data:text/html,<h1>Record</h1>";
+  await page.goto(canned);
   await page.goto("file:///tmp/record.html");
+  await page.goto("https://example.com/records");
 });`,
       errors: [
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
         { messageId: "browser" },
         { messageId: "browser" },
         { messageId: "browser" },
@@ -911,6 +915,29 @@ test("uses bare Playwright", { tag: "@BHV-REC-001-R1" }, async () => {
       filename: SEED_ACCEPTANCE,
       code: `import { test } from "./support/playwright";
 test("uses a re-export", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // Support may import bare Playwright only for the canonical extended
+      // fixture, never to expose an alias that bypasses runtime startup.
+      filename: "tests/acceptance/support/raw.ts",
+      code: `import { test as base } from "@playwright/test";
+const raw = base;
+export { raw };`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { raw } from "./support/raw";
+raw("uses a raw fixture alias", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // Specs nested under support are scenarios too and cannot register bare
+      // Playwright under the support-directory exception.
+      filename: "tests/acceptance/support/runtime.spec.ts",
+      code: `import { test } from "@playwright/test";
+test("uses bare Playwright", { tag: "@BHV-REC-001-R1" }, async () => {});`,
       errors: [{ messageId: "fixture" }],
     },
     {
@@ -1087,7 +1114,8 @@ pageAlias.route("**/api/**", handler);`,
     },
     {
       filename: ACCEPTANCE,
-      code: `import { test as scenario } from "./support/fixtures";
+      code: `import { test } from "./support/fixtures";
+const scenario = test;
 const journey = scenario;
 scenario["skip"]("hidden", async () => {});
 journey.describe.skip("hidden", async () => {});
@@ -1100,7 +1128,8 @@ journey["only"]("exclusive", async () => {});`,
     },
     {
       filename: SEED_ACCEPTANCE,
-      code: `import { test as scenario } from "./support/fixtures";
+      code: `import { test } from "./support/fixtures";
+const scenario = test;
 const browser = scenario;
 await browser["route"]("**/api/**", handler);
 await browser["evaluate"](fn);

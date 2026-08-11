@@ -297,7 +297,7 @@ const currentContractFiles = (
             surfaces: ["web-ui"],
             preconditions: [],
             action: `The member completes ${firstOutcome.toLowerCase()}.`,
-            outcomes: [`${firstOutcome} is observable in the app and CLI.`],
+            outcomes: [`${firstOutcome} is observable in the app.`],
           },
         ],
       };

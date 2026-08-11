@@ -121,8 +121,16 @@ describe("agent-pack verification command", () => {
     );
 
     expect(result.data?.receipt.gates).toMatchObject([
-      { gateId: "product-contract", status: "pass" },
-      { gateId: "acceptance-required", status: "pass" },
+      {
+        gateId: "product-contract",
+        status: "pass",
+        argv: ["pnpm", "check:product-contract"],
+      },
+      {
+        gateId: "acceptance-required",
+        status: "pass",
+        argv: ["pnpm", "acceptance:required"],
+      },
     ]);
     expect(
       execute.mock.calls

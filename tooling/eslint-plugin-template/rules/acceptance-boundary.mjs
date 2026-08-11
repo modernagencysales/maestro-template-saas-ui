@@ -26,9 +26,12 @@ const inside = (root, target) =>
 const relativeTarget = (filename, source) =>
   posix.normalize(posix.join(posix.dirname(filename), source));
 
-const isScenarioSpec = (info) =>
-  !inside(info.supportRoot, info.filename) &&
-  /\.spec\.[cm]?[jt]sx?$/u.test(info.filename);
+const isScenarioSpec = (info) => /\.spec\.[cm]?[jt]sx?$/u.test(info.filename);
+
+const isCanonicalFixturesModule = (info) =>
+  new RegExp(`${info.supportRoot}/fixtures\\.[cm]?[jt]sx?$`, "u").test(
+    info.filename,
+  );
 
 const isFixtureSource = (info, source) =>
   source.startsWith(".") &&
@@ -37,12 +40,6 @@ const isFixtureSource = (info, source) =>
 const sourceAllowed = (info, source) => {
   if (source.startsWith("."))
     return inside(info.supportRoot, relativeTarget(info.filename, source));
-  if (
-    source === "vitest" &&
-    inside(info.supportRoot, info.filename) &&
-    /\.test\.[cm]?[jt]sx?$/u.test(info.filename)
-  )
-    return true;
   return (
     source.startsWith("node:") ||
     (ALLOWED_IMPORT.has(source) && inside(info.supportRoot, info.filename))
@@ -103,13 +100,45 @@ const isDirectMemberCall = (node, objectName, propertyName) => {
   );
 };
 
-const isLiteralCannedNavigation = (node) => {
+const isRuntimeWebUrl = (node) =>
+  node?.type === "MemberExpression" &&
+  !node.computed &&
+  !node.optional &&
+  node.object.type === "Identifier" &&
+  node.object.name === "runtime" &&
+  node.property.type === "Identifier" &&
+  node.property.name === "webUrl";
+
+const isRuntimeRootedNavigation = (node) => {
   const target = node.arguments[0];
   return (
     propertyNames(node.callee).includes("goto") &&
-    target?.type === "Literal" &&
-    typeof target.value === "string" &&
-    /^(?:data|file):/iu.test(target.value)
+    target?.type === "TemplateLiteral" &&
+    target.expressions.length === 1 &&
+    target.quasis.length === 2 &&
+    target.quasis[0]?.value.cooked === "" &&
+    isRuntimeWebUrl(target.expressions[0]) &&
+    (target.quasis[1]?.value.cooked === "" ||
+      target.quasis[1]?.value.cooked?.startsWith("/"))
+  );
+};
+
+const isTaggedScenarioRegistration = (node) => {
+  if (node.callee.type !== "Identifier" || node.arguments.length < 3)
+    return false;
+  const [title, details, callback] = node.arguments;
+  return (
+    (title?.type === "Literal" || title?.type === "TemplateLiteral") &&
+    details?.type === "ObjectExpression" &&
+    details.properties.some(
+      (property) =>
+        property.type === "Property" &&
+        !property.computed &&
+        property.key.type === "Identifier" &&
+        property.key.name === "tag",
+    ) &&
+    (callback?.type === "ArrowFunctionExpression" ||
+      callback?.type === "FunctionExpression")
   );
 };
 
@@ -176,10 +205,7 @@ export default {
     const createRequireAliases = new Set();
     const reportedCreateRequireAliases = new Set();
     const reportImport = (node, source) => {
-      if (
-        source === "@playwright/test" &&
-        !inside(info.supportRoot, info.filename)
-      )
+      if (source === "@playwright/test" && isScenarioSpec(info))
         context.report({ node, messageId: "fixture" });
       else if (!sourceAllowed(info, source))
         context.report({ node, messageId: "import" });
@@ -211,9 +237,17 @@ export default {
           ) {
             testAliases.add(specifier.local.name);
             if (
-              source !== "@playwright/test" &&
               isScenarioSpec(info) &&
-              !isFixtureSource(info, source)
+              source !== "@playwright/test" &&
+              (!isFixtureSource(info, source) ||
+                specifier.local.name !== "test")
+            )
+              context.report({ node: specifier, messageId: "fixture" });
+            else if (
+              source === "@playwright/test" &&
+              inside(info.supportRoot, info.filename) &&
+              !isCanonicalFixturesModule(info) &&
+              !isScenarioSpec(info)
             )
               context.report({ node: specifier, messageId: "fixture" });
           }
@@ -229,10 +263,30 @@ export default {
         }
       },
       ExportNamedDeclaration(node) {
-        if (node.source) reportImport(node.source, String(node.source.value));
+        if (node.source) {
+          const source = String(node.source.value);
+          reportImport(node.source, source);
+          if (
+            source === "@playwright/test" &&
+            inside(info.supportRoot, info.filename) &&
+            !isScenarioSpec(info) &&
+            node.specifiers.some(
+              (specifier) =>
+                specifier.local.type === "Identifier" &&
+                specifier.local.name === "test",
+            )
+          )
+            context.report({ node: node.source, messageId: "fixture" });
+        }
       },
       ExportAllDeclaration(node) {
-        reportImport(node.source, String(node.source.value));
+        const source = String(node.source.value);
+        reportImport(node.source, source);
+        if (
+          source === "@playwright/test" &&
+          inside(info.supportRoot, info.filename)
+        )
+          context.report({ node: node.source, messageId: "fixture" });
       },
       ImportExpression(node) {
         context.report({ node, messageId: "import" });
@@ -347,6 +401,15 @@ export default {
       },
       CallExpression(node) {
         if (
+          isScenarioSpec(info) &&
+          isTaggedScenarioRegistration(node) &&
+          node.callee.type === "Identifier" &&
+          node.callee.name !== "test"
+        ) {
+          context.report({ node: node.callee, messageId: "fixture" });
+          return;
+        }
+        if (
           node.callee.type === "Identifier" &&
           (node.callee.name === "require" ||
             (requireAliases.has(node.callee.name) &&
@@ -402,7 +465,7 @@ export default {
         }
         if (
           names.some((name) => BROWSER_APIS.has(name)) ||
-          isLiteralCannedNavigation(node)
+          (names.includes("goto") && !isRuntimeRootedNavigation(node))
         )
           context.report({ node: node.callee, messageId: "browser" });
         else if (

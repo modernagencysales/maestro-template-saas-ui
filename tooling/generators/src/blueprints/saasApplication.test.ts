@@ -1006,9 +1006,7 @@ describe("saas application blueprint", () => {
           status: "draft",
           title: "Reconcile disputed invoices",
           action: "The member completes reconcile disputed invoices.",
-          outcomes: [
-            "Reconcile disputed invoices is observable in the app and CLI.",
-          ],
+          outcomes: ["Reconcile disputed invoices is observable in the app."],
         },
       ],
     });

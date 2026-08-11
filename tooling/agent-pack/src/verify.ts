@@ -122,6 +122,7 @@ export function createVerifyCommand(input: {
           posture: descriptor.posture,
           evidenceClass: descriptor.evidenceClass,
           status: observation.status,
+          argv: [...descriptor.argv],
           semanticRuleIds: [...(observation.semanticRuleIds ?? [])],
         })),
       });
