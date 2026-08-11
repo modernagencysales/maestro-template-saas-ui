@@ -845,7 +845,7 @@ test("record appears", async ({ acceptancePage: page }) => { await proxy(page); 
     {
       filename: ACCEPTANCE_RUNTIME,
       code: `export async function proxy(context, route) {
-  await context.route("**/api/**", (request) => request.continue());
+  await context.route("**/api/**", handler);
   await route.fulfill({ status: 502 });
 }`,
     },
@@ -853,23 +853,27 @@ test("record appears", async ({ acceptancePage: page }) => { await proxy(page); 
       filename:
         "examples/saas-application/seed/source/tests/acceptance/support/runtime.ts",
       code: `export async function proxy(context, route) {
-  await context.route("**/api/**", (request) => request.continue());
+  await context.route("**/api/**", handler);
   await route.fulfill({ status: 502 });
 }`,
     },
     {
       filename: ACCEPTANCE_RUNTIME,
-      code: `export async function proxy(context, route, response) {
-  await context.route("**/api/**", (request) => request.continue());
-  await route.fulfill({ response });
+      code: `export async function proxy(context, targetUrl) {
+  await context.route("**/api/**", async (route) => {
+    const response = await route.fetch({ url: targetUrl });
+    await route.fulfill({ response });
+  });
 }`,
     },
     {
       filename:
         "examples/saas-application/seed/source/tests/acceptance/support/runtime.ts",
-      code: `export async function proxy(context, route, response) {
-  await context.route("**/api/**", (request) => request.continue());
-  await route.fulfill({ response });
+      code: `export async function proxy(context, targetUrl) {
+  await context.route("**/api/**", async (route) => {
+    const response = await route.fetch({ url: targetUrl });
+    await route.fulfill({ response });
+  });
 }`,
     },
     {
@@ -904,6 +908,51 @@ export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.sp
     },
   ],
   invalid: [
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `export async function proxy(context) {
+  await context.route("**/__contracts/api/**", (route) =>
+    route.continue({ url: targetUrl }));
+}`,
+      errors: [{ messageId: "network" }, { messageId: "network" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `export async function proxy(context) {
+  await context.route("**/__contracts/api/**", (route) =>
+    route.continue({ url: targetUrl }));
+}`,
+      errors: [{ messageId: "network" }, { messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `export async function proxy(context) {
+  await context.route("**/__contracts/api/**", (route) =>
+    route.continue({ url: targetUrl }));
+  await route.fallback();
+  await route.abort();
+}`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename:
+        "examples/saas-application/seed/source/tests/acceptance/support/runtime.ts",
+      code: `export async function proxy(context) {
+  await context.route("**/__contracts/api/**", (route) =>
+    route.continue({ url: targetUrl }));
+  await route.fallback();
+  await route.abort();
+}`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
     {
       // A canonical fixture import is insufficient when a scenario can still
       // use the built-in page fixture to assert canned markup.
@@ -1023,6 +1072,7 @@ await context.route("**/api/**", (route) => route.continue());
 await route.fulfill({ json: { ok: true } });
 await page.routeFromHAR("fixture.har");`,
       errors: [
+        { messageId: "network" },
         { messageId: "network" },
         { messageId: "network" },
         { messageId: "network" },

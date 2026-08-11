@@ -4,6 +4,7 @@ const ACCEPTANCE_MARKER = "tests/acceptance/";
 const ALLOWED_IMPORT = new Set(["@playwright/test"]);
 const ANNOTATIONS = new Set(["skip", "fixme", "fail", "only"]);
 const NETWORK_APIS = new Set(["route", "routeFromHAR", "routeWebSocket"]);
+const ROUTE_CONTROL_APIS = new Set(["continue", "fallback", "abort"]);
 const BROWSER_APIS = new Set([
   "evaluate",
   "addInitScript",
@@ -897,9 +898,14 @@ export default {
             context.report({ node: node.callee, messageId: "synthetic" });
           return;
         }
+        if (names.some((name) => ROUTE_CONTROL_APIS.has(name))) {
+          context.report({ node: node.callee, messageId: "network" });
+          return;
+        }
         if (names.some((name) => NETWORK_APIS.has(name))) {
           if (
             !inside(info.supportRoot, info.filename) ||
+            !isCanonicalRuntimeModule(info) ||
             !isDirectMemberCall(node, "context", "route")
           )
             context.report({ node: node.callee, messageId: "network" });
