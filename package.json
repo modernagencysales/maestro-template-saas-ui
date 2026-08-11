@@ -3,6 +3,8 @@
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {
+    "product-contract:generate": "tsx tooling/acceptance/product-contract.mts generate --source-root examples/saas-application/seed/source",
+    "check:product-contract": "tsx tooling/acceptance/product-contract.mts check --source-root .",
     "maestro": "tsx apps/cli/src/index.ts",
     "format": "prettier --write .",
     "check:format": "prettier --check .",
@@ -153,6 +155,7 @@
     "type-coverage": "^2.29.7",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.0.0",
-    "vitest": "^3.0.0"
+    "vitest": "^3.0.0",
+    "yaml": "2.9.0"
   }
 }
