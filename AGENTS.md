@@ -33,18 +33,21 @@ preflight -> recipes/system lookup -> preview -> reviewed write
 
 ## Product Contracts
 
-The natural-language contract under `features/` is the acceptance authority.
-For each promised journey:
+`product.contract.yaml` is the product-contract authority. For each promised
+outcome:
 
-1. Run `pnpm maestro -- contracts add <journey>` or edit its Feature first.
-2. Run `pnpm maestro -- contracts check` while defining its step bindings.
-3. Implement the observable behavior through the real UI and CLI surfaces.
-4. Run `pnpm maestro -- contracts test <journey>` until the Feature passes.
-5. Change `@wip` to `@required` only when the promise is accepted, then run
-   `pnpm maestro -- contracts test --required` before delivery.
+1. Create or select behavior IDs in `product.contract.yaml`.
+2. Write typed plan frontmatter with existing `WorkPackageSchema` classification
+   and current App Map targets.
+3. Design the black-box proof and failure witness before implementation.
+4. Add focused unit/integration tests only for named implementation risks.
+5. Generate docs, check the contract, and run required acceptance.
+6. Promote draft to required only with its revision-bound passing example.
+7. Run full verification once on the immutable delivery head and inspect the
+   exact-head receipt.
 
-Do not replace a Feature with a parallel journey manifest, evidence store, or
-source-code wording checker. Cucumber execution is the completion evidence.
+Use `pnpm check:product-contract` for structural contract admission and
+`pnpm acceptance:required` for required runtime acceptance.
 
 After the focused gates pass, review `git status --short` and commit the recipe
 transaction, including its receipt and generated provenance.

@@ -25,7 +25,6 @@ describe("maestro-template CLI", () => {
       "preflight -> inspect -> preview -> write -> verify -> run",
     );
     expect(help).toContain("maestro recipes list|show <recipe-id>");
-    expect(help).toContain("maestro contracts add <journey>");
     expect(help).toContain("maestro add <outcome-or-recipe>");
     expect(help).toContain("maestro support-bundle");
     expect(help).not.toContain("plan-check");

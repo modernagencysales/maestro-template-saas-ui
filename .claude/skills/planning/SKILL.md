@@ -5,8 +5,20 @@ description:
   repository.
 ---
 
-Read `AGENTS.md`, especially the Working Loop planning bullets. Then draft each
-plan or subplan as work-packages:
+Read `AGENTS.md`, especially the Working Loop planning bullets. Plan in this
+order:
+
+1. Create or select behavior IDs in `product.contract.yaml`.
+2. Write typed plan frontmatter with existing `WorkPackageSchema` classification
+   and current App Map targets.
+3. Design the black-box proof and failure witness before implementation.
+4. Add focused unit/integration tests only for named implementation risks.
+5. Generate docs, check the contract, and run required acceptance.
+6. Promote draft to required only with its revision-bound passing example.
+7. Run full verification once on the immutable delivery head and inspect the
+   exact-head receipt.
+
+Then draft each plan or subplan as work-packages:
 
 - `fixture-to-real`: name the existing fixture module, the real
   persistence/provider boundary, and focused gates.

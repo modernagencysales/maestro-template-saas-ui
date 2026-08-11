@@ -32,8 +32,16 @@ describe("customer chassis Woodpecker admission", () => {
     const project = read(".factory/project.yaml");
     expect(project).toContain("required: []");
     expect(project).not.toContain("required: [qlty]");
-    expect(project).not.toContain("acceptance:cucumber");
     expect(project).toContain("required_contexts: [ci/woodpecker/pr/verify]");
+  });
+
+  it("includes typed product contract and runtime acceptance in root verification", () => {
+    const packageJson = JSON.parse(read("package.json")) as {
+      readonly scripts: Readonly<Record<string, string>>;
+    };
+
+    expect(packageJson.scripts.verify).toContain("pnpm check:product-contract");
+    expect(packageJson.scripts.verify).toContain("pnpm acceptance:required");
   });
 
   it("reaches root verification once and keeps only extra chassis proof", () => {
@@ -73,12 +81,12 @@ describe("customer chassis Woodpecker admission", () => {
     }
   });
 
-  it("binds admission to the selected four-journey records example", () => {
+  it("binds admission to the required records runtime example", () => {
     const packageJson = JSON.parse(read("apps/cli/package.json")) as {
       readonly scripts: Readonly<Record<string, string>>;
     };
     expect(packageJson.scripts["test:create-root-admission"]).toBe(
-      "vitest run src/factory/createRootIntegration.test.ts -t 'executes the selected records example by journey name' --maxWorkers=1 --no-file-parallelism",
+      "vitest run src/factory/productContractAcceptance.test.ts -t 'executes required Records product behaviors' --maxWorkers=1 --no-file-parallelism",
     );
   });
 });

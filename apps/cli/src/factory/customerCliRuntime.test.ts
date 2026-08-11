@@ -809,7 +809,7 @@ describe("materialized customer CLI runtime closure", () => {
         "check:auth-demo-bypass",
       ]
         .map((name) => `pnpm ${name}`)
-        .concat("pnpm maestro -- contracts test --required")
+        .concat("pnpm check:product-contract", "pnpm acceptance:required")
         .join(" && "),
     );
     const settingsPath = join(target, ".claude/settings.json");

@@ -149,7 +149,6 @@ describe("candidate customer composition", () => {
 
     const files = listFiles(fixture.targetRoot);
     for (const path of [
-      "features/records.feature",
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
       "apps/web/src/routes/_workspace.records.tsx",
@@ -158,14 +157,6 @@ describe("candidate customer composition", () => {
       expect(files, path).not.toContain(path);
     expect(files.filter((path) => isWorkflowAutomationPath(path))).toEqual([]);
     expect(files).toContain("packages/convex/confect/deployAuthority/store.ts");
-    expect(
-      existsSync(
-        join(
-          repositoryRoot,
-          "examples/saas-application/seed/source/features/records.feature",
-        ),
-      ),
-    ).toBe(true);
   }, 30_000);
 
   it("materializes and verifies an untouched Confect 10 and Effect 4 candidate", async () => {

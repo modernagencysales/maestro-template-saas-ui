@@ -2,8 +2,6 @@
 # other than the PR author for trust paths and ordinary product roots.
 /.github/CODEOWNERS          @timkeeeeeen
 /.woodpecker/                @timkeeeeeen
-/features/                   @timkeeeeeen
-/cucumber.cjs                @timkeeeeeen
 /tooling/acceptance/         @timkeeeeeen
 /tooling/ci/                 @timkeeeeeen
 /tooling/confect-manifest/   @timkeeeeeen

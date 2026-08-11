@@ -69,8 +69,8 @@ execution.
 
 The four examples remain revision-bound to the product contract, use only public
 web and CLI surfaces, and share one disposable backend through the runtime
-support. Cucumber remains a compatibility parity adapter and reuses the same
-Records runtime mechanics.
+support. The revision-bound Playwright proof reuses the same Records runtime
+mechanics.
 
 # Test Plan
 

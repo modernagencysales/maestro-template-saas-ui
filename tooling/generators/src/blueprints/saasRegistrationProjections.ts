@@ -359,10 +359,6 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:product-contract",
   "acceptance:all",
   "acceptance:required",
-  "acceptance:syntax",
-  "acceptance:check",
-  "acceptance:required-selection",
-  "acceptance:cucumber",
   "format",
   "check:format",
   "lint",
@@ -499,12 +495,6 @@ const customerPackage = (
       "tsx tooling/acceptance/run-acceptance.mts all --source-root .",
     "acceptance:required":
       "tsx tooling/acceptance/run-acceptance.mts required --source-root .",
-    "acceptance:syntax": "tsx tooling/acceptance/source-check.mts",
-    "acceptance:check":
-      "pnpm acceptance:syntax && cucumber-js --config cucumber.cjs --dry-run --tags @required",
-    "acceptance:required-selection":
-      "tsx tooling/acceptance/required-selection.mts",
-    "acceptance:cucumber": "cucumber-js --config cucumber.cjs",
   };
   value.scripts = Object.fromEntries(
     CUSTOMER_ROOT_SCRIPTS.filter(
@@ -569,7 +559,8 @@ const customerPackage = (
     .filter((name) => workflowSelected || !WORKFLOW_CUSTOMER_SCRIPTS.has(name))
     .map((name) => `pnpm ${name}`)
     .join(" && ");
-  value.scripts.verify += " && pnpm maestro -- contracts test --required";
+  value.scripts.verify +=
+    " && pnpm check:product-contract && pnpm acceptance:required";
   for (const name of REMOVED_CUSTOMER_TEMPLATE_SCRIPTS) {
     if (
       !current ||
@@ -700,25 +691,6 @@ const customerAgentPackPackage = (): string => {
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
-const removeLockfileImporterDependency = (
-  value: string,
-  importerPath: string,
-  nextImporterPath: string,
-  dependency: string,
-): string => {
-  const startMarker = `  ${importerPath}:`;
-  const endMarker = `  ${nextImporterPath}:`;
-  const start = value.indexOf(startMarker);
-  const end = value.indexOf(endMarker);
-  if (start < 0 || end <= start)
-    throw new Error(
-      `Customer lockfile importer boundary is missing: ${importerPath} -> ${nextImporterPath}`,
-    );
-  const importer = value.slice(start, end);
-  const projected = replace(importer, dependency, "");
-  return `${value.slice(0, start)}${projected}${value.slice(end)}`;
-};
-
 const removeLockfileImporter = (
   value: string,
   importerPath: string,
@@ -743,6 +715,16 @@ const removeLockfileImporter = (
   return `${value.slice(0, start)}${value.slice(end)}`;
 };
 
+const lockfileDependencyStart = (
+  value: string,
+  importerStart: number,
+  importerEnd: number,
+  dependency: string,
+) =>
+  [`      "${dependency}":`, `      '${dependency}':`]
+    .map((marker) => value.indexOf(marker, importerStart))
+    .find((start) => start >= importerStart && start < importerEnd);
+
 const removeLockfileImporterDependencyByName = (
   value: string,
   importerPath: string,
@@ -755,15 +737,13 @@ const removeLockfileImporterDependencyByName = (
   const packages = value.indexOf("\npackages:", importerStart);
   const importerEnd =
     nextImporter === null ? packages : importerBodyStart + nextImporter.index;
-  const dependencyStart = value.indexOf(
-    `      "${dependency}":`,
-    importerStart,
-  );
+  const dependencyStart = [`      "${dependency}":`, `      '${dependency}':`]
+    .map((marker) => value.indexOf(marker, importerStart))
+    .find((start) => start >= importerStart && start < importerEnd);
   if (
     importerStart < 0 ||
     importerEnd <= importerStart ||
-    dependencyStart < importerStart ||
-    dependencyStart >= importerEnd
+    dependencyStart === undefined
   )
     throw new Error(
       `Customer lockfile dependency is missing: ${importerPath} -> ${dependency}`,
@@ -778,58 +758,83 @@ const removeLockfileImporterDependencyByName = (
   return `${value.slice(0, dependencyStart)}${value.slice(dependencyEnd)}`;
 };
 
+const hasLockfileImporterDependency = (
+  value: string,
+  importerPath: string,
+  dependency: string,
+): boolean => {
+  const importerMarker = `  ${importerPath}:`;
+  const importerStart = value.indexOf(importerMarker);
+  if (importerStart < 0) return false;
+  const importerBodyStart = importerStart + importerMarker.length;
+  const nextImporter = /^ {2}\S.*$/gmu.exec(value.slice(importerBodyStart));
+  const packages = value.indexOf("\npackages:", importerStart);
+  const importerEnd =
+    nextImporter === null ? packages : importerBodyStart + nextImporter.index;
+  if (importerEnd <= importerStart) return false;
+  return (
+    lockfileDependencyStart(value, importerStart, importerEnd, dependency) !==
+    undefined
+  );
+};
+
+const removeLockfileImporterDependencyIfPresent = (
+  value: string,
+  importerPath: string,
+  dependency: string,
+): string =>
+  hasLockfileImporterDependency(value, importerPath, dependency)
+    ? removeLockfileImporterDependencyByName(value, importerPath, dependency)
+    : value;
+
+const removeUnselectedWorkflowLockfile = (
+  value: string,
+  selection: SaasApplicationPatternSelection,
+): string => {
+  if (selectsSaasApplicationPattern(selection, "workflow-automation"))
+    return value;
+  const withoutImporter = removeLockfileImporter(value, "tooling/workflow");
+  return ["apps/cli", "apps/web", "packages/convex"].reduce(
+    (projected, importer) =>
+      removeLockfileImporterDependencyIfPresent(
+        projected,
+        importer,
+        "@maestro-template/workflow-tooling",
+      ),
+    removeLockfileImporterDependencyIfPresent(
+      withoutImporter,
+      "packages/convex",
+      "@convex-dev/workflow",
+    ),
+  );
+};
+
 const customerLockfile = (
   selection: SaasApplicationPatternSelection,
 ): string => {
-  let value = source("pnpm-lock.yaml");
-  const appIdeaEvaluatorFromRoot =
-    '      "@maestro-template/app-idea-evaluator":\n        specifier: workspace:*\n        version: link:../../packages/app-idea-evaluator\n';
-  const appIdeaEvaluatorFromPackage =
-    '      "@maestro-template/app-idea-evaluator":\n        specifier: workspace:*\n        version: link:../app-idea-evaluator\n';
-  value = removeLockfileImporterDependency(
-    value,
+  let value = removeLockfileImporterDependencyIfPresent(
+    source("pnpm-lock.yaml"),
     "apps/web",
-    "packages/app-idea-evaluator",
-    appIdeaEvaluatorFromRoot,
+    "@maestro-template/app-idea-evaluator",
   );
-  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
-    value = removeLockfileImporter(value, "tooling/workflow");
-  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
-    value = removeLockfileImporterDependencyByName(
-      value,
-      "packages/convex",
-      "@convex-dev/workflow",
-    );
-  if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
-    for (const importer of ["apps/cli", "apps/web", "packages/convex"])
-      value = removeLockfileImporterDependencyByName(
-        value,
+  value = removeUnselectedWorkflowLockfile(value, selection);
+  value = ["packages/convex", "tooling/generators"].reduce(
+    (projected, importer) =>
+      removeLockfileImporterDependencyIfPresent(
+        projected,
         importer,
-        "@maestro-template/workflow-tooling",
-      );
-  value = removeLockfileImporterDependency(
+        "@maestro-template/app-idea-evaluator",
+      ),
     value,
-    "packages/convex",
-    "packages/editor-core",
-    appIdeaEvaluatorFromPackage,
   );
-  value = removeLockfileImporterDependency(
+  value = ["apps/cli", "tooling/generators"].reduce(
+    (projected, importer) =>
+      removeLockfileImporterDependencyIfPresent(
+        projected,
+        importer,
+        "@maestro-template/release-tooling",
+      ),
     value,
-    "tooling/generators",
-    "tooling/quality",
-    appIdeaEvaluatorFromRoot,
-  );
-  value = removeLockfileImporterDependency(
-    value,
-    "apps/cli",
-    "apps/web",
-    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/release\n',
-  );
-  value = removeLockfileImporterDependency(
-    value,
-    "tooling/generators",
-    "tooling/quality",
-    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../release\n',
   );
   if (
     value.includes("'@maestro-template/app-idea-evaluator':") ||
@@ -1482,14 +1487,6 @@ export const buildSaasRegistrationProjections = (
               ]
             : []),
           {
-            path: "cucumber.cjs",
-            content: currentSource("cucumber.cjs"),
-          },
-          ...[
-            "tooling/acceptance/required-selection.mts",
-            "tooling/acceptance/source-check.mts",
-          ].map((path) => ({ path, content: currentSource(path) })),
-          {
             path: "AGENTS.md",
             content: currentSource("AGENTS.md"),
           },
@@ -1577,10 +1574,6 @@ export const buildSaasRegistrationProjections = (
     },
     ...(current
       ? [
-          {
-            path: "apps/cli/src/factory/contracts.ts",
-            content: currentSource("apps/cli/src/factory/contracts.ts"),
-          },
           {
             path: "apps/cli/src/factory/mcp.ts",
             content: currentSource("apps/cli/src/factory/mcp.ts"),

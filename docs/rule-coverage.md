@@ -55,7 +55,7 @@ strongest first:
 | Contract-shape review of the diff        | advisory ai-judge: `contract-review` (rubric: `tooling/quality/contract-review-rubric.md`)                                                                                                                                                                  |
 | Generated modules are born tested        | mechanical: generator emits fast-check property tests; `check:generators` pins docs                                                                                                                                                                         |
 | Function complexity, nesting, parameters | mechanical changed-file ratchet: pre-commit sets `ESLINT_SHIFT_LEFT=1` and enforces ESLint `complexity` ≤ 10, `max-depth` ≤ 4, and `max-params` ≤ 5; Qlty advisory reporting covers thresholds 12, 15, 10, 50, 5, 4, 5, and 4 while excluding `tooling/**`. |
-| Observable journey contracts             | mechanical: Cucumber parses every draft source; `acceptance:check` dry-runs only `@required` bindings                                                                                                                                                       |
+| Observable product contracts             | mechanical: `pnpm check:product-contract` validates structural behavior IDs; `pnpm acceptance:required` proves required runtime behavior                                                                                                                    |
 
 ## Security and tenancy
 

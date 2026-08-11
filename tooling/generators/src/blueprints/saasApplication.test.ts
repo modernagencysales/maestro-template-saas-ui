@@ -17,7 +17,6 @@ import {
 } from "@maestro-template/template-core/dataResourceCatalog";
 import { parseSystemCatalog } from "@maestro-template/template-core/systemCatalog";
 import { parseProductTopology } from "@maestro-template/template-core/productTopology";
-import { loadConfiguration, loadSources } from "@cucumber/cucumber/api";
 import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { parse as parseYaml } from "yaml";
@@ -171,7 +170,7 @@ describe("saas application blueprint", () => {
       );
 
     const neutral = paths();
-    expect(neutral.has("features/records.feature")).toBe(false);
+    expect(neutral.has("tests/acceptance/records.spec.ts")).toBe(false);
     expect(neutral.has("apps/web/src/routes/_workspace.records.tsx")).toBe(
       false,
     );
@@ -184,26 +183,17 @@ describe("saas application blueprint", () => {
     ).toBe(true);
 
     const records = paths(["records-example"]);
-    expect(records.has("features/records.feature")).toBe(true);
+    expect(records.has("tests/acceptance/records.spec.ts")).toBe(true);
     expect(records.has("apps/web/src/routes/_workspace.records.tsx")).toBe(
       true,
     );
     expect(records.has("tooling/workflow/package.json")).toBe(false);
-    for (const path of [
-      "features/step_definitions/records.journeys.ts",
-      "features/support/contracts-scenario.ts",
-      "features/support/contracts-world.ts",
-      "features/support/contracts-runtime.ts",
-    ])
-      expect(records.has(path), path).toBe(true);
-    for (const path of [
-      "features/support/contracts-runtime.test.ts",
-      "features/support/contracts-world.test.ts",
-    ])
-      expect(records.has(path), path).toBe(false);
+    expect([...records].some((path) => path.startsWith("features/"))).toBe(
+      false,
+    );
 
     const workflow = paths(["workflow-automation"]);
-    expect(workflow.has("features/records.feature")).toBe(false);
+    expect(workflow.has("tests/acceptance/records.spec.ts")).toBe(false);
     expect(workflow.has("tooling/workflow/package.json")).toBe(true);
     expect(
       workflow.has("packages/convex/confect/workflows/graphCurrent.ts"),
@@ -955,10 +945,8 @@ describe("saas application blueprint", () => {
     const agentInstructions = plan.entries.find(
       ({ path }) => path === "AGENTS.md",
     )?.content;
-    expect(agentInstructions).toContain("pnpm maestro -- contracts check");
-    expect(agentInstructions).toContain(
-      "pnpm maestro -- contracts test --required",
-    );
+    expect(agentInstructions).toContain("pnpm check:product-contract");
+    expect(agentInstructions).toContain("pnpm acceptance:required");
     const prettierIgnore = plan.entries.find(
       (entry) => entry.path === ".prettierignore",
     );
@@ -992,7 +980,8 @@ describe("saas application blueprint", () => {
 
   it("limits current personalization to reviewed app identity files", () => {
     expect(buildSaasApplicationTargetPlan().parameterizedEntries).toEqual([
-      "features/first-outcome.feature",
+      "product.contract.yaml",
+      "docs/template/generated/product-contract.md",
       "generated/blueprints/saas-application/application-contract.json",
     ]);
     expect(buildSaasApplicationAlpha1TargetPlan().parameterizedEntries).toEqual(
@@ -1001,65 +990,63 @@ describe("saas application blueprint", () => {
   });
 
   it("turns the requested first outcome into a draft product contract", () => {
-    const feature = buildSaasApplicationTargetPlan({
+    const contract = buildSaasApplicationTargetPlan({
       name: "Collections Desk",
       firstOutcome: "Reconcile disputed invoices",
-    }).entries.find(({ path }) => path === "features/first-outcome.feature");
+    }).entries.find(({ path }) => path === "product.contract.yaml");
 
-    expect(feature?.content).toBe(`@wip
-Feature: Reconcile disputed invoices
-  This is the first product promise for Collections Desk.
-
-  Scenario: Deliver reconcile disputed invoices
-    Given the product is ready
-    When the first outcome is completed
-    Then reconcile disputed invoices is observable in the app and CLI
-`);
+    expect(parseYaml(contract?.content ?? "")).toMatchObject({
+      product: { id: "collections-desk", name: "Collections Desk" },
+      behaviors: [
+        {
+          id: "BHV-OUTCOME-001",
+          status: "draft",
+          title: "Reconcile disputed invoices",
+          action: "The member completes reconcile disputed invoices.",
+          outcomes: [
+            "Reconcile disputed invoices is observable in the app and CLI.",
+          ],
+        },
+      ],
+    });
   });
 
-  it("parses draft records without admitting required scenarios", async () => {
-    const targetRoot = mkdtempSync(join(tmpdir(), "maestro-records-gherkin-"));
-    try {
-      const entries = buildSaasApplicationTargetPlan({
-        name: "Records Example",
-        patterns: ["records-example"],
-      }).entries;
-      for (const path of [
-        "cucumber.cjs",
-        "features/first-outcome.feature",
-        "features/records.feature",
-      ]) {
-        const entry = entries.find((candidate) => candidate.path === path);
-        if (!entry)
-          throw new Error(`missing generated Gherkin source: ${path}`);
-        const target = join(targetRoot, path);
-        mkdirSync(dirname(target), { recursive: true });
-        writeFileSync(target, entry.content);
-      }
+  it("projects typed product-contract and runtime acceptance without the retired runner", () => {
+    const rootPackage = JSON.parse(
+      readFileSync(join(repoRoot, "package.json"), "utf8"),
+    ) as {
+      readonly devDependencies?: Readonly<Record<string, string>>;
+      readonly scripts: Readonly<Record<string, string>>;
+    };
+    const entries = buildSaasApplicationTargetPlan({
+      name: "Records Example",
+      patterns: ["records-example"],
+    }).entries;
+    const projectedPaths = entries.map(({ path }) => path);
+    const projectedPackage = JSON.parse(
+      entries.find(({ path }) => path === "package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
 
-      const allConfiguration = await loadConfiguration(
-        { file: "cucumber.cjs" },
-        { cwd: targetRoot },
-      );
-      const all = await loadSources(allConfiguration.runConfiguration.sources, {
-        cwd: targetRoot,
-      });
-      expect(all.errors).toEqual([]);
-      expect(all.plan.length).toBeGreaterThan(0);
-
-      const requiredConfiguration = await loadConfiguration(
-        { file: "cucumber.cjs", provided: ["--tags", "@required"] },
-        { cwd: targetRoot },
-      );
-      const required = await loadSources(
-        requiredConfiguration.runConfiguration.sources,
-        { cwd: targetRoot },
-      );
-      expect(required.errors).toEqual([]);
-      expect(required.plan).toEqual([]);
-    } finally {
-      rmSync(targetRoot, { recursive: true, force: true });
-    }
+    const retiredRunner = ["cu", "cumber"].join("");
+    expect(rootPackage.devDependencies).not.toHaveProperty(
+      `@${retiredRunner}/${retiredRunner}`,
+    );
+    expect(rootPackage.devDependencies?.["@playwright/test"]).toBe("1.61.1");
+    expect(rootPackage.scripts.verify).toContain("pnpm check:product-contract");
+    expect(rootPackage.scripts.verify).toContain("pnpm acceptance:required");
+    expect(projectedPackage.scripts?.verify).toContain(
+      "pnpm check:product-contract",
+    );
+    expect(projectedPackage.scripts?.verify).toContain(
+      "pnpm acceptance:required",
+    );
+    expect(projectedPackage.scripts?.verify).not.toMatch(
+      new RegExp(`${retiredRunner}|contracts\\s+test`, "iu"),
+    );
+    expect(projectedPaths).not.toContain(`${retiredRunner}.cjs`);
+    expect(projectedPaths.some((path) => path.startsWith("features/"))).toBe(
+      false,
+    );
   });
 
   it("projects each pre-existing workflow artifact schema binding once", () => {
@@ -1381,16 +1368,13 @@ Feature: Reconcile disputed invoices
     const currentOnlyPaths = [
       ".npmrc",
       "apps/cli/src/commands.ts",
-      "apps/cli/src/factory/contracts.ts",
       "apps/web/src/adapters/records/http.ts",
-      "cucumber.cjs",
-      "features/first-outcome.feature",
-      "features/records.feature",
-      "features/step_definitions/records.steps.ts",
       "packages/convex/confect/_generated/registeredFunctions/headless/apiKeys.ts",
       "packages/convex/convex/headless/apiKeys.ts",
-      "tooling/acceptance/required-selection.mts",
-      "tooling/acceptance/source-check.mts",
+      "product.contract.yaml",
+      "docs/template/generated/product-contract.md",
+      "playwright.acceptance.config.ts",
+      "tests/acceptance/records.spec.ts",
     ];
 
     for (const path of currentOnlyPaths) {
@@ -1408,22 +1392,18 @@ Feature: Reconcile disputed invoices
     expect(
       historicalEntries.has("tooling/agent-pack/src/privacy/supportBundle.ts"),
     ).toBe(false);
-    const historicalPackage = JSON.parse(
-      historicalEntries.get("package.json") ?? "{}",
-    ) as { readonly scripts?: Readonly<Record<string, string>> };
     const currentPackage = JSON.parse(
       currentEntries.get("package.json") ?? "{}",
     ) as { readonly scripts?: Readonly<Record<string, string>> };
-    expect(historicalPackage.scripts?.verify).not.toContain(
-      "contracts test --required",
-    );
-    expect(historicalPackage.scripts?.["acceptance:check"]).toBeUndefined();
     expect(currentPackage.scripts?.verify).toContain(
-      "contracts test --required",
+      "pnpm check:product-contract",
+    );
+    expect(currentPackage.scripts?.verify).toContain(
+      "pnpm acceptance:required",
     );
   });
 
-  it("projects the complete Cucumber contract runtime and current rules", () => {
+  it("projects the typed product-contract and runtime acceptance rules", () => {
     const entries = new Map(
       buildSaasApplicationTargetPlan().entries.map((entry) => [
         entry.path,
@@ -1431,27 +1411,26 @@ Feature: Reconcile disputed invoices
       ]),
     );
 
-    expect(entries.has("cucumber.cjs")).toBe(true);
-    expect(entries.has("tooling/acceptance/required-selection.mts")).toBe(true);
-    expect(entries.has("tooling/acceptance/source-check.mts")).toBe(true);
-    expect(entries.has("tooling/acceptance/check-features.mts")).toBe(false);
+    const retiredRunner = ["cu", "cumber"].join("");
+    expect(entries.has(`${retiredRunner}.cjs`)).toBe(false);
     const rootPackage = JSON.parse(entries.get("package.json") ?? "{}") as {
       readonly scripts?: Readonly<Record<string, string>>;
     };
-    expect(rootPackage.scripts).toMatchObject({
-      "acceptance:syntax": "tsx tooling/acceptance/source-check.mts",
-      "acceptance:check":
-        "pnpm acceptance:syntax && cucumber-js --config cucumber.cjs --dry-run --tags @required",
-      "acceptance:required-selection":
-        "tsx tooling/acceptance/required-selection.mts",
-      "acceptance:cucumber": "cucumber-js --config cucumber.cjs",
-    });
+    expect(rootPackage.scripts?.verify).toContain(
+      "pnpm check:product-contract",
+    );
+    expect(rootPackage.scripts?.verify).toContain("pnpm acceptance:required");
+    expect(
+      Object.keys(rootPackage.scripts ?? {}).some((script) =>
+        script.includes(retiredRunner),
+      ),
+    ).toBe(false);
     expect(entries.get("docs/template/coding-standards.md")).not.toContain(
       "@journey_",
     );
     expect(
       entries.get("docs/template/enforced-engineering-rules.md"),
-    ).toContain("`pnpm acceptance:syntax` parses every draft Feature");
+    ).toContain("`pnpm check:product-contract`");
     expect(
       entries.get("docs/template/enforced-engineering-rules.md"),
     ).toContain(
@@ -1515,7 +1494,7 @@ Feature: Reconcile disputed invoices
     }
   });
 
-  it("runs required contracts from generated-customer verification", () => {
+  it("runs typed product-contract and required acceptance from generated-customer verification", () => {
     const projectedPackage = JSON.parse(
       buildSaasApplicationTargetPlan().entries.find(
         ({ path }) => path === "package.json",
@@ -1523,7 +1502,10 @@ Feature: Reconcile disputed invoices
     ) as { readonly scripts?: Readonly<Record<string, string>> };
 
     expect(projectedPackage.scripts?.verify).toContain(
-      "pnpm maestro -- contracts test --required",
+      "pnpm check:product-contract",
+    );
+    expect(projectedPackage.scripts?.verify).toContain(
+      "pnpm acceptance:required",
     );
   });
 
@@ -1892,13 +1874,6 @@ Feature: Reconcile disputed invoices
       "tests/acceptance/support/fixtures.ts",
       "tests/acceptance/support/runtime.ts",
       "apps/web/src/adapters/records/http.ts",
-      "features/records.feature",
-      "features/step_definitions/records.journeys.ts",
-      "features/step_definitions/records.steps.ts",
-      "features/support/contracts-scenario.ts",
-      "features/support/contracts-runtime.ts",
-      "features/support/contracts-world.ts",
-      "features/first-outcome.feature",
       "apps/web/src/adapters/confect-generated-refs.test.ts",
       "docs/template/env-manifest.json",
       "docs/template/env-manifest.md",
@@ -1935,9 +1910,6 @@ Feature: Reconcile disputed invoices
       "docs/template/coding-standards.md",
       "docs/template/enforced-engineering-rules.md",
       "tooling/workflow/package.json",
-      "cucumber.cjs",
-      "tooling/acceptance/required-selection.mts",
-      "tooling/acceptance/source-check.mts",
       "AGENTS.md",
       "docs/template/agent-worker-playbook.md",
       "docs/template/how-this-relates-to-maestro.md",
@@ -1957,7 +1929,6 @@ Feature: Reconcile disputed invoices
       "packages/convex/package.json",
       "tooling/quality/check-convex-generation.mts",
       "apps/cli/src/factory/customerComposition.ts",
-      "apps/cli/src/factory/contracts.ts",
       "apps/cli/src/factory/mcp.ts",
       "apps/cli/src/commands.ts",
       "apps/cli/src/index.ts",
@@ -2485,10 +2456,6 @@ Feature: Reconcile disputed invoices
       "template:smoke",
     ]);
     const rewritten = new Set([
-      "acceptance:syntax",
-      "acceptance:check",
-      "acceptance:required-selection",
-      "acceptance:cucumber",
       "acceptance:features",
       "product-contract:generate",
       "check:product-contract",
@@ -2594,7 +2561,8 @@ Feature: Reconcile disputed invoices
         "check:headless-surface-contract",
         "check:posthog-readiness",
         "check:auth-demo-bypass",
-        "maestro -- contracts test --required",
+        "check:product-contract",
+        "acceptance:required",
       ]
         .map((name) => `pnpm ${name}`)
         .join(" && "),

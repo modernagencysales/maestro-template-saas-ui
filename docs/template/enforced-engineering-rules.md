@@ -48,7 +48,7 @@ pnpm check:qlty -- --staged
 | Changed area                                       | Deterministic blocker / conditional proof                                                                                                                      | Local authoring or advisory review                                                         |
 | -------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
 | TypeScript                                         | `pnpm typecheck`; `pnpm check:types-coverage`                                                                                                                  | ESLint ratchet and Qlty commands above                                                     |
-| Feature or customer journey                        | `pnpm acceptance:syntax`; `pnpm acceptance:check` for `@required` bindings; `pnpm maestro -- contracts test <journey>`                                         | Exercise the promised UI and CLI behavior with real step bindings                          |
+| Product contract or runtime acceptance             | `pnpm check:product-contract`; `pnpm acceptance:required`                                                                                                      | Exercise the promised UI and CLI behavior through the revision-bound public proof          |
 | Confect spec or implementation                     | `pnpm confect:codegen`; `pnpm confect:manifest`; `pnpm check:confect-contracts`; `pnpm check:effect-diagnostics`                                               | Check typed errors, auth denial, invalid input, and idempotency behavior                   |
 | Exposed API, CLI, or MCP operation                 | `pnpm check:confect-manifest`; `pnpm check:headless-surface-contract`; focused CLI/MCP tests                                                                   | Verify generated-ref parity and denial paths                                               |
 | Table, index, or lifecycle resource                | `pnpm data-resources:generate`; `pnpm check:data-resources`; `pnpm check:append-only-tables`; `pnpm check:schema-migration-notes`; `pnpm check:system-catalog` | Test export, retention, suppression, deletion, and cross-workspace denial where applicable |
@@ -61,18 +61,15 @@ pnpm check:qlty -- --staged
 Run the narrowest commands that cover the work. `pnpm verify` is a
 full-batch/frozen-delivery check, not the default proof for every small task.
 
-## Customer journeys
+## Product contracts
 
-- `features/**/*.feature` is the customer-journey authority. Do not add a
-  parallel journey manifest, evidence store, or acceptance controller.
-- `pnpm acceptance:syntax` parses every draft Feature. `pnpm acceptance:check`
-  dry-runs only `@required` bindings; Cucumber execution proves a named journey.
-  Fix flakes rather than masking them with retries or parallelism.
-- Promote an accepted journey only after
-  `pnpm maestro -- contracts test <journey>` passes. For a batch containing
-  accepted journeys, run `pnpm maestro -- contracts test --required` once on the
-  delivery candidate.
-- Journey and capability tests include authentication, role and cross-workspace
+- `product.contract.yaml` is the customer-outcome authority. Do not add a
+  parallel manifest, evidence store, or acceptance controller.
+- `pnpm check:product-contract` validates the structural contract and
+  `pnpm acceptance:required` proves required black-box behavior. Fix flakes
+  rather than masking them with retries or parallelism.
+- Promote a draft behavior only with its revision-bound passing example.
+- Product and capability tests include authentication, role and cross-workspace
   denial, invalid input, typed errors, idempotency, and side-effect ordering
   when those behaviors apply.
 

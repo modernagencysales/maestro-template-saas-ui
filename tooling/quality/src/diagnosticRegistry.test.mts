@@ -106,12 +106,17 @@ describe("quality diagnostic registry", () => {
       "app-map",
       "workflow-semantics",
       "recipes",
+      "product-contract",
     ]);
+    const required = diagnosticRegistryDescriptors.filter(
+      ({ posture }) => posture === "required",
+    );
     expect(
-      diagnosticRegistryDescriptors
-        .filter(({ posture }) => posture === "required")
-        .every(({ evidenceClass }) => evidenceClass === "static"),
-    ).toBe(true);
+      required.find(({ gateId }) => gateId === "product-contract"),
+    ).toMatchObject({ evidenceClass: "static" });
+    expect(
+      required.find(({ gateId }) => gateId === "acceptance-required"),
+    ).toMatchObject({ evidenceClass: "runtime" });
   });
 
   it("publishes a canonical non-empty default focused gate set", () => {

@@ -86,8 +86,6 @@ describe("customer ownership inventory", () => {
 
   it.each([
     [".factory/project.yaml", "template-owned", "copy"],
-    ["cucumber.cjs", "template-owned", "copy"],
-    ["features/customer-onboarding.feature", "template-owned", "copy"],
     ["tooling/acceptance/check-contracts.mts", "template-owned", "copy"],
     [".claude/settings.json", "generated", "generate"],
     ["maestro-template.mjs", "template-owned", "copy"],

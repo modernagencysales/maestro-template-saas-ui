@@ -57,7 +57,7 @@ For an SSR fork, that command should:
 6. Deploy once, record the Worker version and immutable preview URL, and smoke
    that URL before promoting the production route.
 7. Run a fresh-browser WorkOS login, authenticated Convex read, safe mutation,
-   and the required Cucumber journeys after promotion.
+   and `pnpm acceptance:required` against the promoted environment.
 
 Keep this as a short sequence of platform commands. Do not add a second release
 ledger, SHA state machine, or automation that guesses provider configuration.
@@ -73,7 +73,8 @@ A successful upload or HTTP `200` is not deployment proof. Hosted smoke must:
 - prove one real Convex read and one safe mutation;
 - confirm that the active browser entry targets the selected Convex deployment;
 - test the immutable deployment before the production route or alias; and
-- rerun required CLI and UI Cucumber journeys against real providers.
+- rerun required CLI and UI acceptance through `pnpm acceptance:required`
+  against real providers.
 
 ## Provider notes
 

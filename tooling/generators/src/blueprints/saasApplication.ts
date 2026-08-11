@@ -657,7 +657,8 @@ export const SAAS_APPLICATION_PARAMETERIZED_ENTRIES = [
   "examples/saas-application/seed/crud-scenario.json",
   "examples/saas-application/seed/records.json",
   "examples/saas-application/seed/workspace.json",
-  "features/first-outcome.feature",
+  "product.contract.yaml",
+  "docs/template/generated/product-contract.md",
   "generated/blueprints/saas-application/application-contract.json",
 ] as const;
 

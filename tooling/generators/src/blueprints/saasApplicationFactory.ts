@@ -392,15 +392,7 @@ const currentContractFiles = (
     },
     ...recordsFiles,
     ...(selectsSaasApplicationPattern(options, "records-example")
-      ? [
-          "apps/web/src/adapters/records/http.ts",
-          "features/records.feature",
-          "features/step_definitions/records.journeys.ts",
-          "features/step_definitions/records.steps.ts",
-          "features/support/contracts-scenario.ts",
-          "features/support/contracts-runtime.ts",
-          "features/support/contracts-world.ts",
-        ].map((path) => ({
+      ? ["apps/web/src/adapters/records/http.ts"].map((path) => ({
           path,
           content: readFileSync(
             new URL(
@@ -411,18 +403,6 @@ const currentContractFiles = (
           ),
         }))
       : []),
-    {
-      path: "features/first-outcome.feature",
-      content: `@wip
-Feature: ${firstOutcome}
-  This is the first product promise for ${name}.
-
-  Scenario: Deliver ${firstOutcome.toLowerCase()}
-    Given the product is ready
-    When the first outcome is completed
-    Then ${firstOutcome.toLowerCase()} is observable in the app and CLI
-`,
-    },
   ];
 };
 
@@ -445,12 +425,6 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
         "apps/web/src/features/records/records-surface.tsx",
         "apps/web/src/screens/records-screen.tsx",
         "apps/web/src/routes/_workspace.records.tsx",
-        "features/records.feature",
-        "features/step_definitions/records.journeys.ts",
-        "features/step_definitions/records.steps.ts",
-        "features/support/contracts-scenario.ts",
-        "features/support/contracts-runtime.ts",
-        "features/support/contracts-world.ts",
         "product.contract.yaml",
         "product.contract.schema.json",
         "docs/template/generated/product-contract.md",
