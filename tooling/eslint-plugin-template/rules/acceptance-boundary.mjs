@@ -26,6 +26,14 @@ const inside = (root, target) =>
 const relativeTarget = (filename, source) =>
   posix.normalize(posix.join(posix.dirname(filename), source));
 
+const isScenarioSpec = (info) =>
+  !inside(info.supportRoot, info.filename) &&
+  /\.spec\.[cm]?[jt]sx?$/u.test(info.filename);
+
+const isFixtureSource = (info, source) =>
+  source.startsWith(".") &&
+  relativeTarget(info.filename, source) === `${info.supportRoot}/fixtures`;
+
 const sourceAllowed = (info, source) => {
   if (source.startsWith("."))
     return inside(info.supportRoot, relativeTarget(info.filename, source));
@@ -35,7 +43,10 @@ const sourceAllowed = (info, source) => {
     /\.test\.[cm]?[jt]sx?$/u.test(info.filename)
   )
     return true;
-  return source.startsWith("node:") || ALLOWED_IMPORT.has(source);
+  return (
+    source.startsWith("node:") ||
+    (ALLOWED_IMPORT.has(source) && inside(info.supportRoot, info.filename))
+  );
 };
 
 const propertyNames = (node) => {
@@ -131,6 +142,8 @@ export default {
     messages: {
       import:
         "Acceptance tests may import only @playwright/test, node:* modules, or support helpers that resolve below tests/acceptance/support.",
+      fixture:
+        "Acceptance scenarios must import test from ./support/fixtures so the generated-customer runtime starts.",
       annotation:
         "Acceptance tests must not use test.skip, test.fixme, test.fail, or test.only; required journeys must execute normally.",
       network:
@@ -153,7 +166,12 @@ export default {
     const createRequireAliases = new Set();
     const reportedCreateRequireAliases = new Set();
     const reportImport = (node, source) => {
-      if (!sourceAllowed(info, source))
+      if (
+        source === "@playwright/test" &&
+        !inside(info.supportRoot, info.filename)
+      )
+        context.report({ node, messageId: "fixture" });
+      else if (!sourceAllowed(info, source))
         context.report({ node, messageId: "import" });
     };
     const reportMemberBypass = (node) => {
@@ -173,14 +191,22 @@ export default {
     };
     return {
       ImportDeclaration(node) {
-        reportImport(node.source, String(node.source.value));
+        const source = String(node.source.value);
+        reportImport(node.source, source);
         for (const specifier of node.specifiers) {
           if (
             specifier.type === "ImportSpecifier" &&
             specifier.imported.type === "Identifier" &&
             specifier.imported.name === "test"
-          )
+          ) {
             testAliases.add(specifier.local.name);
+            if (
+              source !== "@playwright/test" &&
+              isScenarioSpec(info) &&
+              !isFixtureSource(info, source)
+            )
+              context.report({ node: specifier, messageId: "fixture" });
+          }
           if (
             specifier.type === "ImportSpecifier" &&
             specifier.imported.type === "Identifier" &&

@@ -18,6 +18,13 @@ const identity = [
 ];
 const execFile = promisify(execFileCallback);
 
+export const validateRequiredAcceptanceSummary = (stdout: string): void => {
+  if (!/(?:^|\n)4 required, [4-9]\d* runtime(?:\r?\n|$)/u.test(stdout))
+    throw new Error(
+      "Generated customer required acceptance must report 4 required behaviors and at least 4 runtime records.",
+    );
+};
+
 const prepareMaterializedCustomer = (targetRoot: string): void => {
   execFileSync("pnpm", ["install", "--offline", "--ignore-scripts"], {
     cwd: targetRoot,
@@ -82,10 +89,7 @@ export const runRequiredAcceptanceAdmission = async (): Promise<void> => {
     });
     process.stdout.write(stdout);
     process.stderr.write(stderr);
-    if (!stdout.includes("4 required, 4 runtime"))
-      throw new Error(
-        "Generated customer required acceptance did not report 4 required, 4 runtime.",
-      );
+    validateRequiredAcceptanceSummary(stdout);
   });
 };
 

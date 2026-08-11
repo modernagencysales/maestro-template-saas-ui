@@ -820,16 +820,21 @@ tester.run("acceptance-boundary", acceptanceBoundary, {
   valid: [
     {
       filename: ACCEPTANCE,
-      code: `import { test, expect } from "@playwright/test";
+      code: `import { test, expect } from "./support/fixtures";
 import { readFixture } from "./support/fixture";
 import { join } from "node:path";
-test("record appears", async ({ page }) => { await page.goto("/"); expect(await readFixture(join("a", "b"))).toBeTruthy(); });`,
+test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page }) => { await page.goto("/"); expect(await readFixture(join("a", "b"))).toBeTruthy(); });`,
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test("record appears in the CLI", { tag: "@BHV-REC-002-R1" }, async ({ runtime, scenario }) => { await runtime.runCli(scenario, ["capability", "run", "records.list"]); });`,
     },
     {
       filename: SEED_ACCEPTANCE,
-      code: `import { test } from "@playwright/test";
+      code: `import { test } from "./support/fixtures";
 import { proxy } from "./support/proxy";
-test("record appears", async ({ page }) => { await proxy(page); });`,
+test("record appears", async ({ acceptancePage: page }) => { await proxy(page); });`,
     },
     {
       filename: ACCEPTANCE_SUPPORT,
@@ -874,6 +879,27 @@ test("record appears", async ({ page }) => { await proxy(page); });`,
     },
   ],
   invalid: [
+    {
+      // A tagged scenario must use the generated-customer fixture; bare
+      // Playwright can pass admission against canned markup without startup.
+      filename: ACCEPTANCE,
+      code: `import { expect, test } from "@playwright/test";
+test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
+  await page.setContent("<h1>Record</h1>");
+  await expect(page.getByRole("heading", { name: "Record" })).toBeVisible();
+});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // The fixture import is direct so support cannot re-export a bare
+      // Playwright test object around the generated-customer runtime.
+      filename: SEED_ACCEPTANCE,
+      code: `import { test } from "./support/playwright";
+test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
+  await page.setContent("<h1>Record</h1>");
+});`,
+      errors: [{ messageId: "fixture" }],
+    },
     {
       filename: ACCEPTANCE,
       code: `import { db } from "../../../packages/convex/confect/db";`,
@@ -1048,7 +1074,7 @@ pageAlias.route("**/api/**", handler);`,
     },
     {
       filename: ACCEPTANCE,
-      code: `import { test as scenario } from "@playwright/test";
+      code: `import { test as scenario } from "./support/fixtures";
 const journey = scenario;
 scenario["skip"]("hidden", async () => {});
 journey.describe.skip("hidden", async () => {});
@@ -1061,7 +1087,7 @@ journey["only"]("exclusive", async () => {});`,
     },
     {
       filename: SEED_ACCEPTANCE,
-      code: `import { test as scenario } from "@playwright/test";
+      code: `import { test as scenario } from "./support/fixtures";
 const browser = scenario;
 await browser["route"]("**/api/**", handler);
 await browser["evaluate"](fn);
@@ -1074,7 +1100,7 @@ browser["mock"]("product");`,
     },
     {
       filename: ACCEPTANCE,
-      code: `import { test } from "@playwright/test";
+      code: `import { test } from "./support/fixtures";
 const { skip } = test;
 skip("hidden", async () => {});`,
       errors: [{ messageId: "annotation" }],
@@ -1104,7 +1130,7 @@ await route["fulfill"]({ response });`,
     },
     {
       filename: SEED_ACCEPTANCE,
-      code: `import { test } from "@playwright/test";
+      code: `import { test } from "./support/fixtures";
 test[method]("hidden", async () => {});`,
       errors: [{ messageId: "annotation" }],
     },
