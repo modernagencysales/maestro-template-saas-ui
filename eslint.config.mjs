@@ -112,8 +112,8 @@ export default [
   },
   {
     files: [
-      "tests/acceptance/**/*.{ts,tsx,mts,cts}",
-      "examples/*/seed/source/tests/acceptance/**/*.{ts,tsx,mts,cts}",
+      "tests/acceptance/**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}",
+      "examples/*/seed/source/tests/acceptance/**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}",
     ],
     plugins: { template: templatePlugin },
     rules: {

@@ -835,15 +835,37 @@ test("record appears", async ({ page }) => { await proxy(page); });`,
       filename: ACCEPTANCE_SUPPORT,
       code: `export async function proxy(context, route) {
   await context.route("**/api/**", (request) => request.continue());
-  await route.fulfill({ json: { ok: true } });
+  await route.fulfill({ status: 502 });
 }`,
     },
     {
       filename: SEED_SUPPORT,
       code: `export async function proxy(context, route) {
   await context.route("**/api/**", (request) => request.continue());
-  await route.fulfill({ json: { ok: true } });
+  await route.fulfill({ status: 502 });
 }`,
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `export async function proxy(context, route, response) {
+  await context.route("**/api/**", (request) => request.continue());
+  await route.fulfill({ status: response.status(), contentType: response.headers()["content-type"], body: await response.text() });
+}`,
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `export async function proxy(context, route, response) {
+  await context.route("**/api/**", (request) => request.continue());
+  await route.fulfill({ status: response.status(), contentType: response.headers()["content-type"], body: await response.text() });
+}`,
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `import { runtime } from "./runtime"; export { runtime };`,
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `const runtime = require("./runtime"); export { runtime };`,
     },
   ],
   invalid: [
@@ -910,7 +932,83 @@ await context.addInitScript(() => sessionStorage.setItem("auth", "fake"));`,
     {
       filename: ACCEPTANCE_SUPPORT,
       code: `await page.route("**/api/**", (route) => route.fulfill({ json: { ok: true } }));`,
-      errors: [{ messageId: "network" }],
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await route.fulfill({ json: { ok: true } });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await route.fulfill({ status: 200, body: "ok" });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await route.fulfill({ body: "ok" });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { runtime } from "./support/../../apps/web/src/runtime";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `export { runtime } from "./support/../../apps/web/src/runtime";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `export * from "./../../apps/web/src/runtime";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const runtime = require("./support/../../apps/web/src/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `const runtime = require(moduleName);`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const runtime = await import(moduleName);`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import runtime = require("./support/../../apps/web/src/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test as scenario } from "@playwright/test";
+const journey = scenario;
+scenario["skip"]("hidden", async () => {});
+journey.describe.skip("hidden", async () => {});
+journey["only"]("exclusive", async () => {});`,
+      errors: [
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+      ],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { test as scenario } from "@playwright/test";
+const browser = scenario;
+await browser["route"]("**/api/**", handler);
+await browser["evaluate"](fn);
+browser["mock"]("product");`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "browser" },
+        { messageId: "mock" },
+      ],
     },
   ],
 });

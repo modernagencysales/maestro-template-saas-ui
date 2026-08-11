@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve, sep } from "node:path";
+import { fileURLToPath } from "node:url";
 import { parse as parseYaml } from "yaml";
 import {
   behaviorRevisionTag,
@@ -31,6 +32,27 @@ type AcceptanceOptions = {
   readonly scope: "required" | "all";
   readonly processRunner?: PlaywrightProcessRunner;
   readonly writeOutput?: (output: string) => void;
+};
+
+export type AcceptanceArguments = {
+  readonly scope: "required" | "all";
+  readonly sourceRoot: ".";
+};
+
+export const parseAcceptanceArguments = (
+  argv: readonly string[],
+): AcceptanceArguments => {
+  if (
+    argv.length !== 3 ||
+    (argv[0] !== "required" && argv[0] !== "all") ||
+    argv[1] !== "--source-root" ||
+    argv[2] !== "."
+  )
+    throw new Error("usage: run-acceptance.mts <required|all> --source-root .");
+  return {
+    scope: argv[0] as "required" | "all",
+    sourceRoot: ".",
+  };
 };
 
 const configName = "playwright.acceptance.config.ts";
@@ -63,28 +85,27 @@ const annotationType = (test: PlaywrightTestRecord): string | undefined =>
     .map(({ type }) => type.toLowerCase())
     .find((type) => ["skip", "fixme", "fail"].includes(type));
 
-const validateSelectedTest = (
-  test: PlaywrightTestRecord,
-  results: readonly PlaywrightTestRecord[],
-): readonly string[] => {
-  if (results.length === 0)
-    return [`missing runtime result for selected test ${test.id}`];
-  if (results.length > 1)
-    return [
-      `selected test ${test.id} has ${results.length} runtime records; expected exactly one`,
-    ];
-  const runtime = results[0] as PlaywrightTestRecord;
-  const findings: string[] = [];
-  const annotation = annotationType(runtime);
-  if (annotation !== undefined)
-    findings.push(`selected test ${test.id} was ${annotation}`);
-  const result = runtime.results[0];
-  if (runtime.results.length !== 1 || result === undefined) {
-    findings.push(
-      `selected test ${test.id} has no single runtime result and was unexecuted`,
+const identityFindings = (
+  discovery: PlaywrightTestRecord,
+  runtime: PlaywrightTestRecord,
+): readonly string[] =>
+  (["file", "title", "behaviorTag"] as const)
+    .filter((field) => runtime[field] !== discovery[field])
+    .map(
+      (field) =>
+        `selected test ${discovery.id} identity mismatch for ${field}: discovery=${discovery[field]} runtime=${runtime[field]}`,
     );
-    return findings;
-  }
+
+const resultFindings = (
+  test: PlaywrightTestRecord,
+  runtime: PlaywrightTestRecord,
+): readonly string[] => {
+  const result = runtime.results[0];
+  const findings: string[] = [];
+  if (runtime.results.length !== 1 || result === undefined)
+    return [
+      `selected test ${test.id} has no single runtime result and was unexecuted`,
+    ];
   if (result.status === "skipped")
     findings.push(`selected test ${test.id} was skipped`);
   if (runtime.expectedStatus !== "passed")
@@ -102,6 +123,25 @@ const validateSelectedTest = (
   return findings;
 };
 
+const validateSelectedTest = (
+  test: PlaywrightTestRecord,
+  results: readonly PlaywrightTestRecord[],
+): readonly string[] => {
+  if (results.length === 0)
+    return [`missing runtime result for selected test ${test.id}`];
+  if (results.length > 1)
+    return [
+      `selected test ${test.id} has ${results.length} runtime records; expected exactly one`,
+    ];
+  const runtime = results[0] as PlaywrightTestRecord;
+  const findings = [...identityFindings(test, runtime)];
+  const annotation = annotationType(runtime);
+  if (annotation !== undefined)
+    findings.push(`selected test ${test.id} was ${annotation}`);
+  findings.push(...resultFindings(test, runtime));
+  return findings;
+};
+
 export const validateAcceptanceRuntime = (input: {
   readonly requiredTags: readonly string[];
   readonly discovered: ParsedPlaywrightJsonReport;
@@ -113,6 +153,12 @@ export const validateAcceptanceRuntime = (input: {
   const findings = input.requiredTags
     .filter((tag) => !selected.some((test) => test.behaviorTag === tag))
     .map((tag) => `acceptance selection is missing required tag ${tag}`);
+  const discoveredIds = new Set<string>();
+  for (const test of input.discovered.tests) {
+    if (discoveredIds.has(test.id))
+      findings.push(`duplicate discovered acceptance test id ${test.id}`);
+    discoveredIds.add(test.id);
+  }
   if (input.processExitCode !== 0)
     findings.push(
       `Playwright exited with code ${input.processExitCode}; required acceptance execution failed`,
@@ -168,15 +214,10 @@ const defaultProcessRunner =
 
 const readReport = async (
   reportPath: string,
-  stdout: string,
 ): Promise<ParsedPlaywrightJsonReport> => {
-  let source = stdout;
-  try {
-    const file = await readFile(reportPath, "utf8");
-    if (file.trim() !== "") source = file;
-  } catch {
-    // The process seam and older Playwright reporters may emit JSON on stdout.
-  }
+  const source = await readFile(reportPath, "utf8");
+  if (source.trim() === "")
+    throw new Error(`Playwright JSON report file ${reportPath} is empty`);
   try {
     return parsePlaywrightJsonReport(JSON.parse(source) as unknown);
   } catch (error) {
@@ -239,7 +280,7 @@ const executeReport = async (options: {
   try {
     return {
       result,
-      report: await readReport(options.reportPath, result.stdout),
+      report: await readReport(options.reportPath),
     };
   } catch (error) {
     throw failureWithStderr(
@@ -317,9 +358,36 @@ export const runAcceptance = async (
         runtime.result,
       );
     writeOutput(
-      `${selectedTests(discovered, tags).length} required, ${runtime.report.tests.length} runtime`,
+      options.scope === "required"
+        ? `${tags.length} required, ${runtime.report.tests.length} runtime`
+        : `${selectedTests(discovered, tags).length} selected, ${runtime.report.tests.length} runtime`,
     );
   } finally {
     await rm(temporaryDirectory, { recursive: true, force: true });
   }
 };
+
+const isDirectEntryPoint = (): boolean => {
+  const entry = process.argv[1];
+  return (
+    entry !== undefined && resolve(entry) === fileURLToPath(import.meta.url)
+  );
+};
+
+if (isDirectEntryPoint()) {
+  try {
+    const arguments_ = parseAcceptanceArguments(process.argv.slice(2));
+    const fileRoot = resolve(
+      fileURLToPath(new URL(".", import.meta.url)),
+      "../..",
+    );
+    await runAcceptance({
+      repoRoot: fileRoot,
+      sourceRoot: arguments_.sourceRoot,
+      scope: arguments_.scope,
+    });
+  } catch (error) {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exitCode = 1;
+  }
+}

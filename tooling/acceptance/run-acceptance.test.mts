@@ -1,9 +1,11 @@
-import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   escapedTagPattern,
+  parseAcceptanceArguments,
   requiredBehaviorTags,
   runAcceptance,
   validateAcceptanceRuntime,
@@ -26,6 +28,8 @@ const config = {
 
 type Fixture = {
   readonly id: string;
+  readonly file?: string;
+  readonly title?: string;
   readonly tag: string;
   readonly status?: string;
   readonly expectedStatus?: string;
@@ -40,8 +44,8 @@ const rawNativeReport = (fixtures: readonly Fixture[]) => ({
       file: "tests/acceptance/records.spec.ts",
       specs: fixtures.map((fixture) => ({
         id: fixture.id,
-        file: "tests/acceptance/records.spec.ts",
-        title: fixture.id,
+        file: fixture.file ?? "tests/acceptance/records.spec.ts",
+        title: fixture.title ?? fixture.id,
         tags: [fixture.tag],
         tests: [
           {
@@ -81,6 +85,46 @@ const passInput = {
 };
 
 describe("acceptance runtime validation", () => {
+  it("accepts only the strict projected CLI grammar", () => {
+    expect(
+      parseAcceptanceArguments(["required", "--source-root", "."]),
+    ).toEqual({
+      scope: "required",
+      sourceRoot: ".",
+    });
+    expect(parseAcceptanceArguments(["all", "--source-root", "."])).toEqual({
+      scope: "all",
+      sourceRoot: ".",
+    });
+    for (const argv of [
+      [],
+      ["required"],
+      ["--source-root", ".", "required"],
+      ["required", "--source-root", ".", "--source-root", "."],
+      ["required", "--unknown", "."],
+      ["required", "--source-root", "seed/source"],
+    ]) {
+      expect(() => parseAcceptanceArguments(argv)).toThrow();
+    }
+  });
+
+  it("rejects invalid CLI input through the real tsx entrypoint", () => {
+    expect(() =>
+      execFileSync(
+        "pnpm",
+        [
+          "exec",
+          "tsx",
+          "tooling/acceptance/run-acceptance.mts",
+          "invalid",
+          "--source-root",
+          ".",
+        ],
+        { cwd: process.cwd(), stdio: "pipe" },
+      ),
+    ).toThrow();
+  });
+
   it("derives only current required revision tags and escapes one grep", () => {
     expect(
       requiredBehaviorTags({
@@ -119,6 +163,38 @@ describe("acceptance runtime validation", () => {
 
   it("accepts exactly one passed first-attempt result", () => {
     expect(validateAcceptanceRuntime(passInput)).toEqual([]);
+  });
+
+  it.each([
+    ["file", { file: "tests/acceptance/other.spec.ts" }],
+    ["title", { title: "different title" }],
+    ["behavior tag", { tag: "@BHV-REC-999-R1" }],
+  ] as const)("rejects a runtime %s identity mismatch", (_field, change) => {
+    expect(
+      validateAcceptanceRuntime({
+        ...passInput,
+        runtime: nativeReport([
+          {
+            id: "required",
+            tag: "@BHV-REC-001-R1",
+            status: "passed",
+            ...change,
+          },
+        ]),
+      }).join("\n"),
+    ).toMatch(/identity|file|title|tag/i);
+  });
+
+  it("rejects duplicate discovery IDs", () => {
+    expect(
+      validateAcceptanceRuntime({
+        ...passInput,
+        discovered: nativeReport([
+          { id: "required", tag: "@BHV-REC-001-R1" },
+          { id: "required", tag: "@BHV-REC-001-R1" },
+        ]),
+      }).join("\n"),
+    ).toMatch(/duplicate|identity/i);
   });
 
   it.each([
@@ -234,13 +310,28 @@ behaviors:
               { id: "required", tag: "@BHV-REC-001-R1" },
               { id: "draft", tag: "@BHV-REC-002-R1" },
             ])
-          : rawNativeReport([
-              {
-                id: "required",
-                tag: "@BHV-REC-001-R1",
-                status: "passed",
-              },
-            ]);
+          : rawNativeReport(
+              args.includes("--grep")
+                ? [
+                    {
+                      id: "required",
+                      tag: "@BHV-REC-001-R1",
+                      status: "passed",
+                    },
+                  ]
+                : [
+                    {
+                      id: "required",
+                      tag: "@BHV-REC-001-R1",
+                      status: "passed",
+                    },
+                    {
+                      id: "draft",
+                      tag: "@BHV-REC-002-R1",
+                      status: "passed",
+                    },
+                  ],
+            );
         await writeFile(
           environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
           JSON.stringify(report),
@@ -259,6 +350,59 @@ behaviors:
     expect(processRunner).toHaveBeenCalledTimes(2);
     expect(processRunner.mock.calls[1]?.[0]).toContain("--grep");
     expect(writeOutput).toHaveBeenCalledWith("1 required, 1 runtime");
+
+    const allOutput = vi.fn<(output: string) => void>();
+    await runAcceptance({
+      repoRoot: root,
+      sourceRoot: "source",
+      scope: "all",
+      writeOutput: allOutput,
+      processRunner,
+    });
+    expect(allOutput).toHaveBeenCalledWith("2 selected, 2 runtime");
+  });
+
+  it("fails closed when stdout has JSON but the isolated report file is absent", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-no-report-"));
+    roots.push(root);
+    await mkdir(join(root, "source"));
+    await writeFile(
+      join(root, "source", "product.contract.yaml"),
+      `schemaVersion: 1
+product:
+  id: records
+  name: Records
+  summary: Records
+behaviors:
+  - id: BHV-REC-001
+    revision: 1
+    status: required
+    title: Required
+    actor: member
+    surfaces: [web-ui]
+    preconditions: []
+    action: save
+    outcomes: [listed]
+`,
+    );
+    const reportPaths: string[] = [];
+    const validJson = JSON.stringify(rawNativeReport([]));
+    await expect(
+      runAcceptance({
+        repoRoot: root,
+        sourceRoot: "source",
+        scope: "required",
+        processRunner: vi.fn(async (_args, environment) => {
+          reportPaths.push(environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string);
+          return {
+            exitCode: 0,
+            stdout: validJson,
+            stderr: "native stderr",
+          };
+        }),
+      }),
+    ).rejects.toThrow(/native stderr|report/i);
+    await expect(access(reportPaths[0] as string)).rejects.toThrow();
   });
 
   it("reports draft-only required scope without spawning Playwright", async () => {
