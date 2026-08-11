@@ -31,7 +31,7 @@
 
 ## Commit
 
-Pending commit.
+Implementation: `d5a002b` (`fix: harden acceptance admissions`).
 
 ## Concerns and deferred limits
 
