@@ -436,8 +436,23 @@ describe("contracts runtime", () => {
     const handler = route.mock.calls[0]?.[1] as
       ((route: Route) => Promise<void>) | undefined;
     const fulfill = vi.fn(async () => undefined);
+    const response = { status: () => 200 };
     expect(handler).toBeDefined();
     await handler?.({
+      fetch: vi.fn(
+        async (options: {
+          readonly headers: Record<string, string>;
+          readonly postData: string;
+        }) => {
+          expect(JSON.parse(options.postData)).toMatchObject({
+            workspaceSlug: scenario.workspaceSlug,
+          });
+          expect(
+            options.headers.authorization?.startsWith("Bearer mtk_live_"),
+          ).toBe(true);
+          return response;
+        },
+      ),
       request: () => ({
         method: () => "POST",
         postData: () =>
@@ -446,16 +461,7 @@ describe("contracts runtime", () => {
       }),
       fulfill,
     } as unknown as Route);
-    const requestInit = test.fetchRequest.mock.calls[0]?.[1];
-    expect(JSON.parse(String(requestInit?.body))).toMatchObject({
-      workspaceSlug: scenario.workspaceSlug,
-    });
-    const authorization = (requestInit?.headers as Record<string, string>)
-      .authorization;
-    expect(authorization?.startsWith("Bearer mtk_live_")).toBe(true);
-    expect(fulfill).toHaveBeenCalledWith(
-      expect.objectContaining({ status: 200 }),
-    );
+    expect(fulfill).toHaveBeenCalledWith({ response });
     await controller.stop();
   });
 });
