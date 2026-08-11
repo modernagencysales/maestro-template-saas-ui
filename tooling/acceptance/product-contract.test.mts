@@ -97,7 +97,7 @@ ${packages
 # Plan
 `;
 
-const initGit = async (root: string): Promise<void> => {
+const initGit = async (root: string, sourceRoot = "."): Promise<void> => {
   writeFileSync(join(root, "README.md"), "root\n");
   execFileSync("git", ["init", "-q", "-b", "main"], { cwd: root });
   execFileSync("git", ["config", "user.email", "test@example.com"], {
@@ -106,6 +106,16 @@ const initGit = async (root: string): Promise<void> => {
   execFileSync("git", ["config", "user.name", "Test"], { cwd: root });
   execFileSync("git", ["add", "README.md"], { cwd: root });
   execFileSync("git", ["commit", "-qm", "root"], {
+    cwd: root,
+    env: { ...process.env, LEFTHOOK: "0" },
+  });
+  const prefix = sourceRoot === "." ? "" : `${sourceRoot}/`;
+  execFileSync(
+    "git",
+    ["add", "--", `${prefix}product.contract.yaml`, `${prefix}docs/records.md`],
+    { cwd: root },
+  );
+  execFileSync("git", ["commit", "-qm", "trusted contract"], {
     cwd: root,
     env: { ...process.env, LEFTHOOK: "0" },
   });
@@ -449,7 +459,7 @@ proofs:
         ["unresolved:required", "template-gap", "gap"],
       ]),
     );
-    await initGit(root, ["seed", "source"]);
+    await initGit(root, "seed/source");
     await generateProductContract({
       repoRoot: root,
       sourceRoot: "seed/source",
@@ -477,6 +487,9 @@ proofs:
           reportFor("tests/acceptance/records.spec.ts"),
       });
       expect(findings.join("\n")).toMatch(/unresolved:required|stale/i);
+      expect(findings.join("\n")).not.toMatch(
+        /trusted (?:base has no product contract|product contract is invalid|contract is missing)/i,
+      );
       expect(await readFile(generatedPath, "utf8")).toBe("stale\n");
     } finally {
       if (previousBranch === undefined)
