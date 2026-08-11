@@ -8,6 +8,7 @@ import {
   checkTemplateProductContract,
   withMaterializedRecordsCustomer,
 } from "./template-product-contract.mts";
+import { renderBoundedPlaywrightProcessOutput } from "./run-acceptance.mts";
 
 const repoRoot = new URL("../..", import.meta.url).pathname;
 const identity = [
@@ -26,30 +27,80 @@ export const validateRequiredAcceptanceSummary = (stdout: string): void => {
     );
 };
 
-const prepareMaterializedCustomer = (targetRoot: string): void => {
-  execFileSync("pnpm", ["install", "--offline", "--ignore-scripts"], {
-    cwd: targetRoot,
-    stdio: "inherit",
-  });
-  execFileSync("pnpm", ["--dir", "packages/convex", "confect:codegen"], {
-    cwd: targetRoot,
-    stdio: "inherit",
-  });
-  execFileSync("git", ["add", "-A"], { cwd: targetRoot });
-  if (
-    spawnSync("git", ["diff", "--cached", "--quiet"], {
+export const canonicalRequiredAcceptanceSummary = (stdout: string): string => {
+  validateRequiredAcceptanceSummary(stdout);
+  const summary = /(?:^|\n)(4 required, \d+ runtime)(?:\r?\n|$)/u.exec(stdout);
+  return summary?.[1] ?? "";
+};
+
+type ProcessFailure = {
+  readonly stdout?: string | Buffer;
+  readonly stderr?: string | Buffer;
+};
+
+const capturedProcessFailure = (label: string, error: unknown): Error => {
+  const failure = error as ProcessFailure;
+  const output = [failure.stdout, failure.stderr]
+    .filter((value): value is string | Buffer => value !== undefined)
+    .map(String)
+    .join("\n")
+    .slice(-20_000);
+  return new Error(
+    `${label} failed${output === "" ? "" : `\n${renderBoundedPlaywrightProcessOutput(output)}`}`,
+  );
+};
+
+const runPreparedCustomerCommand = (
+  targetRoot: string,
+  args: readonly string[],
+  label: string,
+): string => {
+  try {
+    return execFileSync("pnpm", args, {
       cwd: targetRoot,
-    }).status !== 0
-  )
+      encoding: "utf8",
+      maxBuffer: 512 * 1024,
+    });
+  } catch (error) {
+    throw capturedProcessFailure(label, error);
+  }
+};
+
+const commitGeneratedCustomerArtifacts = (targetRoot: string): void => {
+  try {
     execFileSync(
       "git",
       [...identity, "commit", "-m", "accept generated customer artifacts"],
       {
         cwd: targetRoot,
         env: { ...process.env, LEFTHOOK: "0" },
-        stdio: "inherit",
+        encoding: "utf8",
+        maxBuffer: 512 * 1024,
       },
     );
+  } catch (error) {
+    throw capturedProcessFailure("Generated customer artifact commit", error);
+  }
+};
+
+const prepareMaterializedCustomer = (targetRoot: string): void => {
+  runPreparedCustomerCommand(
+    targetRoot,
+    ["install", "--offline", "--ignore-scripts"],
+    "Generated customer preparation",
+  );
+  runPreparedCustomerCommand(
+    targetRoot,
+    ["--dir", "packages/convex", "confect:codegen"],
+    "Generated customer codegen",
+  );
+  execFileSync("git", ["add", "-A"], { cwd: targetRoot });
+  if (
+    spawnSync("git", ["diff", "--cached", "--quiet"], {
+      cwd: targetRoot,
+    }).status !== 0
+  )
+    commitGeneratedCustomerArtifacts(targetRoot);
   if (
     execFileSync("git", ["status", "--short"], {
       cwd: targetRoot,
@@ -70,26 +121,33 @@ export const runStructuralProductContractAdmission =
       });
       if (findings.length > 0) throw new Error(findings.join("\n"));
       prepareMaterializedCustomer(targetRoot);
-      execFileSync("pnpm", ["--dir", "packages/convex", "typecheck"], {
-        cwd: targetRoot,
-        stdio: "inherit",
-      });
-      execFileSync("pnpm", ["check:product-contract"], {
-        cwd: targetRoot,
-        stdio: "inherit",
-      });
+      runPreparedCustomerCommand(
+        targetRoot,
+        ["--dir", "packages/convex", "typecheck"],
+        "Generated customer typecheck",
+      );
+      runPreparedCustomerCommand(
+        targetRoot,
+        ["check:product-contract"],
+        "Generated customer product contract check",
+      );
     });
   };
 
 export const runRequiredAcceptanceAdmission = async (): Promise<void> => {
   await withMaterializedRecordsCustomer(repoRoot, async (targetRoot) => {
     prepareMaterializedCustomer(targetRoot);
-    const { stdout } = await execFile("pnpm", ["acceptance:required"], {
-      cwd: targetRoot,
-      maxBuffer: 512 * 1024,
-    });
-    process.stdout.write(stdout);
-    validateRequiredAcceptanceSummary(stdout);
+    let stdout: string;
+    try {
+      ({ stdout } = await execFile("pnpm", ["acceptance:required"], {
+        cwd: targetRoot,
+        encoding: "utf8",
+        maxBuffer: 512 * 1024,
+      }));
+    } catch (error) {
+      throw capturedProcessFailure("Generated customer acceptance", error);
+    }
+    process.stdout.write(`${canonicalRequiredAcceptanceSummary(stdout)}\n`);
   });
 };
 

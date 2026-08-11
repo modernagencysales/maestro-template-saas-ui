@@ -461,6 +461,7 @@ const readNativePlaywrightListing = (
       "--config",
       configPath,
       "--list",
+      "--pass-with-no-tests",
       "--reporter=json",
     ],
     { cwd: repoRoot, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
@@ -753,11 +754,23 @@ export const checkProductContract = async (
   } catch (error) {
     findings.push(error instanceof Error ? error.message : String(error));
   }
-  const appMap = await resolveCurrentAppMapNodes(options);
-  findings.push(
-    ...appMap.findings,
-    ...validatePlanTargets(current, plans, appMap.nodeIds),
+  const hasAppMapBoundBehavior = current.behaviors.some(
+    (behavior) =>
+      behavior.status === "required" ||
+      plans.some(({ frontmatter }) =>
+        frontmatter.workPackages.some(
+          ({ behaviorIds, work }) =>
+            behaviorIds.includes(behavior.id) && work.kind !== "template-gap",
+        ),
+      ),
   );
+  if (hasAppMapBoundBehavior) {
+    const appMap = await resolveCurrentAppMapNodes(options);
+    findings.push(
+      ...appMap.findings,
+      ...validatePlanTargets(current, plans, appMap.nodeIds),
+    );
+  }
   findings.push(
     ...(await generatedProjectionFindings(
       sourceRoot,

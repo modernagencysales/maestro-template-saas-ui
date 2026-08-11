@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { validateRequiredAcceptanceSummary } from "./template-product-contract-admission.mts";
+import {
+  canonicalRequiredAcceptanceSummary,
+  validateRequiredAcceptanceSummary,
+} from "./template-product-contract-admission.mts";
 
 describe("required acceptance admission summary", () => {
   it.each([
@@ -8,6 +11,14 @@ describe("required acceptance admission summary", () => {
     "4 required, 10 runtime",
   ])("accepts %s", (stdout) => {
     expect(() => validateRequiredAcceptanceSummary(stdout)).not.toThrow();
+  });
+
+  it("returns only the canonical successful acceptance summary", () => {
+    expect(
+      canonicalRequiredAcceptanceSummary(
+        "noisy generated customer output\n4 required, 6 runtime\nmore output",
+      ),
+    ).toBe("4 required, 6 runtime");
   });
 
   it.each([

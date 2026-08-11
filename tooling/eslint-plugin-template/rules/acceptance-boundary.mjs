@@ -934,6 +934,20 @@ export default {
           node.parent.callee === node
         )
           return;
+        if (memberHasDynamicComputedProperty(node)) {
+          const root = memberRoot(node);
+          if (testAliases.has(root)) {
+            context.report({ node, messageId: "annotation" });
+            return;
+          }
+          if (["page", "context", "route", "runtime"].includes(root)) {
+            context.report({
+              node,
+              messageId: root === "page" ? "browser" : "network",
+            });
+            return;
+          }
+        }
         reportMemberBypass(node);
       },
       CallExpression(node) {

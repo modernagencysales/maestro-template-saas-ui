@@ -6,8 +6,11 @@ import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
 import {
   buildSaasApplicationTargetPlan,
+  createTemplateInstanceMigration,
   isWorkflowAutomationPath,
 } from "@maestro-template/generators";
+import { createReleaseTemplateInstanceConsumer } from "@maestro-template/release-tooling/customer-create";
+import { templateInstanceSchemaProvider } from "@maestro-template/template-core/templateInstance";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   CURRENT_PUBLIC_SOURCE,
@@ -125,13 +128,21 @@ describe("candidate customer composition", () => {
   it("materializes a neutral chassis without optional product patterns", async () => {
     const name = "Neutral Candidate";
     const outcome = "Deliver the first customer outcome";
-    const fixture = buildCandidateReleaseFixture(
-      { name, outcome },
-      buildSaasApplicationTargetPlan,
-    );
+    const fixture = buildSharedCandidateReleaseFixture({
+      repoRoot: repositoryRoot,
+      name,
+      outcome,
+      buildPlan: buildSaasApplicationTargetPlan,
+      authority: "alpha.1",
+    });
+    temporaryRoots.push(fixture.parent);
     const create = loadCustomerCreateComposition(
       fixture.source,
       buildSaasApplicationTargetPlan,
+      createReleaseTemplateInstanceConsumer(
+        templateInstanceSchemaProvider,
+        createTemplateInstanceMigration(templateInstanceSchemaProvider),
+      ),
     );
     const result = await create.run(
       [
@@ -159,7 +170,40 @@ describe("candidate customer composition", () => {
       expect(files, path).not.toContain(path);
     expect(files.filter((path) => isWorkflowAutomationPath(path))).toEqual([]);
     expect(files).toContain("packages/convex/confect/deployAuthority/store.ts");
-  }, 30_000);
+
+    await runCandidatePnpm(fixture.targetRoot, [
+      "install",
+      "--offline",
+      "--frozen-lockfile",
+      "--ignore-scripts",
+    ]);
+    execFileSync("git", ["init", "-q", "-b", "main"], {
+      cwd: fixture.targetRoot,
+    });
+    execFileSync("git", ["add", "-A"], { cwd: fixture.targetRoot });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=Maestro Acceptance",
+        "-c",
+        "user.email=acceptance@maestro.local",
+        "commit",
+        "--quiet",
+        "--no-verify",
+        "-m",
+        "materialize neutral customer",
+      ],
+      { cwd: fixture.targetRoot, env: { ...process.env, LEFTHOOK: "0" } },
+    );
+    await runCandidatePnpm(fixture.targetRoot, ["check:product-contract"]);
+    const acceptance = await execFileAsync("pnpm", ["acceptance:required"], {
+      cwd: fixture.targetRoot,
+      env: candidateEnvironment(),
+    });
+    expect(acceptance.stdout).toContain("0 required, 0 runtime");
+    expect(acceptance.stderr).toBe("");
+  }, 180_000);
 
   it("materializes and verifies an untouched Confect 10 and Effect 4 candidate", async () => {
     expect(installedStoreDir).toBeTruthy();

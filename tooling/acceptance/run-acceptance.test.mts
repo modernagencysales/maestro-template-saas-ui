@@ -521,10 +521,15 @@ behaviors:
     outcomes: [listed]
 `,
     );
+    const jsonHeaders = JSON.stringify({
+      Authorization: "Basic auth-json-canary",
+      Cookie: 'session="json-cookie-canary"',
+    });
     const stderr = `initial runner context
 Authorization: Basic authorization-canary
 Cookie: session=cookie-canary
 apiKey=key-canary "client_secret":"secret-canary" "X-API-KEY":"hyphen-canary"
+${jsonHeaders}
 ${"x".repeat(700)} final native witness`;
     const failure = runAcceptance({
       repoRoot: root,
@@ -571,6 +576,8 @@ ${"x".repeat(700)} final native witness`;
     expect(message).not.toContain("key-canary");
     expect(message).not.toContain("secret-canary");
     expect(message).not.toContain("hyphen-canary");
+    expect(message).not.toContain("auth-json-canary");
+    expect(message).not.toContain("json-cookie-canary");
     const native = message.match(/native stderr: (.+)$/u)?.[1];
     expect(native).toBeDefined();
     expect(native?.length).toBeLessThanOrEqual(500);

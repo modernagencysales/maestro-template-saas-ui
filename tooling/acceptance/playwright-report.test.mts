@@ -126,6 +126,42 @@ describe("parsePlaywrightJsonReport", () => {
     expect(report.config.projects[0]?.testMatch).toBe("**/*.spec.ts");
   });
 
+  it("rejects a spec that contains a foreign project result", () => {
+    expect(() =>
+      parsePlaywrightJsonReport({
+        ...runtimeReport,
+        suites: [
+          {
+            ...runtimeReport.suites[0],
+            specs: [
+              {
+                ...spec,
+                tests: [
+                  ...(runtimeReport.suites[0]?.specs[0]?.tests ?? []),
+                  {
+                    projectName: "foreign-project",
+                    expectedStatus: "passed",
+                    annotations: [],
+                    results: [],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      }),
+    ).toThrow(/exactly one|acceptance-chromium/i);
+  });
+
+  it("rejects nonempty top-level native reporter errors", () => {
+    expect(() =>
+      parsePlaywrightJsonReport({
+        ...runtimeReport,
+        errors: [{ message: "foreign native failure" }],
+      }),
+    ).toThrow(/errors/i);
+  });
+
   it("rejects reports redirected outside the resolved acceptance tree", () => {
     const report = parsePlaywrightJsonReport({
       ...runtimeReport,
@@ -330,6 +366,31 @@ describe("parsePlaywrightJsonReport", () => {
       expect(() =>
         validateNativeAcceptanceReportBoundary({ sourceRoot: root, report }),
       ).toThrow(/escape/i);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("permits a native zero-test listing without an acceptance directory", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-empty-"));
+    try {
+      const report = parsePlaywrightJsonReport({
+        ...runtimeReport,
+        config: {
+          ...runtimeReport.config,
+          rootDir: join(root, "tests", "acceptance"),
+          projects: [
+            {
+              ...runtimeReport.config.projects[0],
+              testDir: join(root, "tests", "acceptance"),
+            },
+          ],
+        },
+        suites: [],
+      });
+      expect(() =>
+        validateNativeAcceptanceReportBoundary({ sourceRoot: root, report }),
+      ).not.toThrow();
     } finally {
       await rm(root, { recursive: true, force: true });
     }

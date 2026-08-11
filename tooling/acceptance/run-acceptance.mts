@@ -87,11 +87,18 @@ const annotationType = (test: PlaywrightTestRecord): string | undefined =>
     .map(({ type }) => type.toLowerCase())
     .find((type) => ["skip", "fixme", "fail"].includes(type));
 
-const boundedNativeFailure = (message: string): string => {
+export const renderBoundedPlaywrightProcessOutput = (
+  message: string,
+): string => {
   const redacted = message
     .replace(
       /\b(authorization|cookie|set-cookie)\s*:\s*[^\r\n]*/giu,
       "$1: [REDACTED]",
+    )
+    .replace(
+      /(["'](?:authorization|cookie|set-cookie)["']\s*:\s*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/giu,
+      (_match, prefix: string, value: string) =>
+        `${prefix}${value[0]}[REDACTED]${value[0]}`,
     )
     .replace(/\bBearer\s+\S+/giu, "Bearer [REDACTED]")
     .replace(
@@ -133,7 +140,7 @@ const resultFindings = (
     );
   if (result.status !== "passed")
     findings.push(
-      `selected test ${test.id} (${test.behaviorTag} ${test.title}) has result status ${result.status}; expected passed${result.error === undefined ? "" : `; native error: ${boundedNativeFailure(result.error)}`}`,
+      `selected test ${test.id} (${test.behaviorTag} ${test.title}) has result status ${result.status}; expected passed${result.error === undefined ? "" : `; native error: ${renderBoundedPlaywrightProcessOutput(result.error)}`}`,
     );
   if (result.retry !== 0)
     findings.push(
@@ -285,7 +292,7 @@ const failureWithStderr = (
   result: PlaywrightProcessResult,
 ): Error =>
   new Error(
-    `${message}${result.stderr.trim() === "" ? "" : `\nnative stderr: ${boundedNativeFailure(result.stderr)}`}`,
+    `${message}${result.stderr.trim() === "" ? "" : `\nnative stderr: ${renderBoundedPlaywrightProcessOutput(result.stderr)}`}`,
   );
 
 const executeReport = async (options: {
@@ -355,6 +362,7 @@ export const runAcceptance = async (
         "--config",
         configPath,
         "--list",
+        "--pass-with-no-tests",
         "--reporter=json",
       ],
       environment: { PLAYWRIGHT_JSON_OUTPUT_NAME: discoveryPath },

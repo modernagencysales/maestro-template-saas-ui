@@ -1353,6 +1353,28 @@ await redirect({ url: targetUrl });`,
       errors: [{ messageId: "network" }],
     },
     {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const pageMethod = "evaluate";
+const evaluate = page[pageMethod];
+await evaluate(() => undefined);
+const contextMethod = "route";
+const intercept = context[contextMethod];
+await intercept("**/*", handler);
+const routeMethod = "fulfill";
+const fulfill = route[routeMethod];
+await fulfill({ status: 200 });
+const testMethod = "describe";
+const suite = test[testMethod];
+suite.configure({ retries: 1 });`,
+      errors: [
+        { messageId: "browser" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "annotation" },
+      ],
+    },
+    {
       filename: ACCEPTANCE_RUNTIME,
       code: `const method = "continue";
 ({ [method]: redirect } = route);

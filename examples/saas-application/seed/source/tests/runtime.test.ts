@@ -39,7 +39,7 @@ describe("Playwright acceptance runtime support", () => {
       }),
     };
     await proxyContractsRequest({
-      route: route as never,
+      requestRoute: route as never,
       apiBaseUrl: "http://127.0.0.1:4101",
       apiKey: "mtk_live_test",
       workspaceSlug: "primary",
@@ -50,7 +50,7 @@ describe("Playwright acceptance runtime support", () => {
   it("returns only a safe failure response when proxy forwarding fails", async () => {
     let fulfilled: unknown;
     await proxyContractsRequest({
-      route: {
+      requestRoute: {
         fetch: async () => {
           throw new Error("secret-api-key");
         },
@@ -71,12 +71,18 @@ describe("Playwright acceptance runtime support", () => {
   });
 
   it("redacts API keys and authorization headers from bounded diagnostics", () => {
+    const jsonHeaders = JSON.stringify({
+      Authorization: "Basic auth-json-canary",
+      Cookie: 'session="json-cookie-canary"',
+    });
     const diagnostic = redactContractsDiagnostic(
-      `${"x".repeat(20_000)}\nAPI_KEY=key-canary\nAuthorization: Bearer bearer-canary`,
+      `${"x".repeat(20_000)}\nAPI_KEY=key-canary\nAuthorization: Bearer bearer-canary\n${jsonHeaders}`,
       ["key-canary"],
     );
     expect(diagnostic).not.toContain("key-canary");
     expect(diagnostic).not.toContain("bearer-canary");
+    expect(diagnostic).not.toContain("auth-json-canary");
+    expect(diagnostic).not.toContain("json-cookie-canary");
     expect(diagnostic).toContain("[REDACTED]");
     expect(diagnostic.length).toBeLessThanOrEqual(19_900);
   });

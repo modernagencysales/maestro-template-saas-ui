@@ -230,13 +230,11 @@ const parseSpec = (
   if (behaviorTags.length !== 1)
     throw new Error(`spec ${id} must have exactly one behavior tag`);
   const tests = array(spec.tests, "spec.tests");
-  const matchingTests = tests.filter((value) => {
-    const test = record(value, "spec test");
-    return test.projectName === projectName;
-  });
-  if (matchingTests.length !== 1)
+  if (tests.length !== 1)
     throw new Error(`spec ${id} must have exactly one ${projectName} test`);
-  const test = record(matchingTests[0], "spec test");
+  const test = record(tests[0], "spec test");
+  if (test.projectName !== projectName)
+    throw new Error(`spec ${id} must have exactly one ${projectName} test`);
   const results = array(test.results, "test.results").map((value) => {
     const result = record(value, "test result");
     const error = parseResultError(result.errors);
@@ -281,6 +279,11 @@ export const parsePlaywrightJsonReport = (
   value: unknown,
 ): ParsedPlaywrightJsonReport => {
   const root = record(value, "Playwright JSON report");
+  if (
+    root.errors !== undefined &&
+    array(root.errors, "Playwright JSON report errors").length !== 0
+  )
+    throw new Error("Playwright JSON report errors must be empty");
   const config = parseConfig(root.config);
   const suites = array(root.suites, "suites");
   return {
@@ -362,6 +365,7 @@ export const validateNativeAcceptanceReportBoundary = (input: {
 }): void => {
   validateAcceptanceReportBoundary(input);
   const sourceRoot = realpathSync(input.sourceRoot);
+  if (input.report.tests.length === 0) return;
   const acceptancePath = resolve(input.sourceRoot, "tests/acceptance");
   const acceptanceRoot = realpathSync(acceptancePath);
   if (

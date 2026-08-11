@@ -77,12 +77,13 @@ A successful upload or HTTP `200` is not deployment proof. Hosted smoke must:
 
 ## Local generated-customer contract acceptance
 
-`pnpm acceptance:required` materializes and starts a disposable local generated
-customer. It checks required revision-bound examples locally; it does not accept
-a promoted URL or validate real providers. Use it for local generated-customer
-contract acceptance, use the hosted smoke commands above for a deployed URL, and
-add separately reviewed real-provider validation when a deployment needs that
-evidence.
+At the template root, `pnpm acceptance:required` materializes and starts a
+disposable local generated customer. In a generated customer, the same command
+runs its current checkout. It checks required revision-bound examples locally;
+it does not accept a promoted URL or validate real providers. Use it for local
+generated-customer contract acceptance, use the hosted smoke commands above for
+a deployed URL, and add separately reviewed real-provider validation when a
+deployment needs that evidence.
 
 ## Provider notes
 

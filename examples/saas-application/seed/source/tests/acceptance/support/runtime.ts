@@ -146,6 +146,11 @@ export const redactContractsDiagnostic = (
       /(\b(?:authorization|set-cookie|cookie)\s*:\s*)[^\r\n]+/giu,
       "$1[REDACTED]",
     )
+    .replace(
+      /(["'](?:authorization|cookie|set-cookie)["']\s*:\s*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/giu,
+      (_match, prefix: string, value: string) =>
+        `${prefix}${value[0]}[REDACTED]${value[0]}`,
+    )
     .replace(/(Bearer\s+)[^\s]+/giu, "$1[REDACTED]")
     .replace(
       /((?:["']?[A-Z0-9_-]{0,64}(?:TOKEN|API[_-]?KEY|DEPLOY[_-]?KEY|SECRET|PASSWORD|COOKIE|CREDENTIAL)[A-Z0-9_-]{0,64}["']?)\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;]+)/giu,
