@@ -50,7 +50,7 @@ describe("customer chassis Woodpecker admission", () => {
     };
 
     expect(packageJson.scripts["test:acceptance-tooling"]).toBe(
-      "vitest run tooling/acceptance/*.test.mts examples/saas-application/seed/source/tests/runtime.test.ts --maxWorkers=1 --no-file-parallelism",
+      "vitest run tooling/acceptance/product-contract.test.mts tooling/acceptance/playwright-report.test.mts tooling/acceptance/run-acceptance.test.mts tooling/acceptance/template-product-contract-admission.test.mts examples/saas-application/seed/source/tests/runtime.test.ts --maxWorkers=1 --no-file-parallelism && vitest run tooling/acceptance/template-product-contract.test.mts --testNamePattern='template product contract adapter' --maxWorkers=1 --no-file-parallelism",
     );
     expect(
       packageJson.scripts.test.match(/pnpm test:acceptance-tooling/gmu),
