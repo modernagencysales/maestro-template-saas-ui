@@ -4,7 +4,9 @@
   "properties": {
     "schemaVersion": {
       "type": "number",
-      "enum": [1]
+      "enum": [
+        1
+      ]
     },
     "product": {
       "type": "object",
@@ -43,7 +45,11 @@
           ]
         }
       },
-      "required": ["id", "name", "summary"],
+      "required": [
+        "id",
+        "name",
+        "summary"
+      ],
       "additionalProperties": false
     },
     "behaviors": {
@@ -59,7 +65,11 @@
       }
     }
   },
-  "required": ["schemaVersion", "product", "behaviors"],
+  "required": [
+    "schemaVersion",
+    "product",
+    "behaviors"
+  ],
   "additionalProperties": false,
   "$defs": {
     "Arrays_": {
@@ -67,13 +77,21 @@
       "prefixItems": [
         {
           "type": "string",
-          "enum": ["web-ui", "cli-process", "public-http"]
+          "enum": [
+            "web-ui",
+            "cli-process",
+            "public-http"
+          ]
         }
       ],
       "minItems": 1,
       "items": {
         "type": "string",
-        "enum": ["web-ui", "cli-process", "public-http"]
+        "enum": [
+          "web-ui",
+          "cli-process",
+          "public-http"
+        ]
       },
       "allOf": [
         {
@@ -199,7 +217,10 @@
             },
             "status": {
               "type": "string",
-              "enum": ["draft", "required"]
+              "enum": [
+                "draft",
+                "required"
+              ]
             }
           },
           "required": [
@@ -284,7 +305,9 @@
             },
             "status": {
               "type": "string",
-              "enum": ["retired"]
+              "enum": [
+                "retired"
+              ]
             },
             "retirementReason": {
               "type": "string",
