@@ -46,4 +46,25 @@ GREEN (final formatted head):
 6. Test-rooted `describe.configure` is rejected for direct calls and tracked
    aliases.
 
+## Bounded suite-retry follow-up
+
+RED:
+
+- `rtk host-test-slot --class focused pnpm --dir tooling/eslint-plugin-template test`
+  - 242 tests: 2 failed, 240 passed. Both specified `test.describe` laundering
+    cases received zero diagnostics.
+
+GREEN:
+
+- `rtk host-test-slot --class focused pnpm --dir tooling/eslint-plugin-template test`
+  - 242 passed.
+- `rtk pnpm exec eslint tooling/eslint-plugin-template/rules/acceptance-boundary.mjs tooling/eslint-plugin-template/rules/__tests__/rules.test.mjs`
+  passed.
+- `rtk pnpm exec prettier --check tooling/eslint-plugin-template/rules/acceptance-boundary.mjs tooling/eslint-plugin-template/rules/__tests__/rules.test.mjs`
+  passed.
+
+The rule now rejects test-rooted `describe` used as a value and direct member
+chains containing both `describe` and `configure`. It deliberately does not
+track identifiers or wrapper dataflow beyond those two syntactic forms.
+
 No broad or full verification gate ran.

@@ -962,6 +962,21 @@ configure({ retries: 1 });`,
       errors: [{ messageId: "annotation" }],
     },
     {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const describe = test.describe;
+describe.configure({ retries: 1 });
+test("@BHV-REC-001-R1", async () => {});`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+identity(test).describe.configure({ retries: 1 });
+test("@BHV-REC-001-R1", async () => {});`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
       filename: ACCEPTANCE_SUPPORT,
       code: `/* global route, targetUrl */
 const redirect = route.continue;

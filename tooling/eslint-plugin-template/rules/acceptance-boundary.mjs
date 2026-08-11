@@ -619,6 +619,8 @@ export default {
         context.report({ node, messageId: "annotation" });
       else if (names.includes("configure") && testAliases.has(memberRoot(node)))
         context.report({ node, messageId: "annotation" });
+      else if (names.includes("describe") && testAliases.has(memberRoot(node)))
+        context.report({ node, messageId: "annotation" });
       else if (names.includes("mock"))
         context.report({ node, messageId: "mock" });
       else if (names.includes("fulfill")) {
@@ -957,6 +959,10 @@ export default {
           return;
         }
         if (names.includes("configure") && testAliases.has(root)) {
+          context.report({ node: node.callee, messageId: "annotation" });
+          return;
+        }
+        if (names.includes("describe") && names.includes("configure")) {
           context.report({ node: node.callee, messageId: "annotation" });
           return;
         }
