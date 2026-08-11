@@ -137,6 +137,12 @@ revision. Review of the contract diff still owns whether an unclassified wording
 edit is semantic and who approved a reduction; deterministic comparison prevents
 history from being silently rewritten.
 
+The first contract introduction is an explicit bootstrap case. The checker may
+accept a missing contract at the trusted merge base only when the bootstrap flag
+is present **and** `git log <merge-base> -- <contract-path>` proves that the
+target-branch history has never contained that path. The flag therefore cannot
+be used to delete and later recreate contract history.
+
 Any delivery head containing a `required` behavior is inadmissible unless the
 behavior has a typed plan mapping, resolved App Map targets, a discovered
 black-box acceptance test, fresh generated docs, and passing acceptance evidence
@@ -247,7 +253,9 @@ Two scopes stay distinct:
 - `pnpm acceptance:required` reads the required behavior IDs and revisions from
   the contract, passes their escaped revision-tag pattern to the pinned
   Playwright config, writes a temporary JSON report, and is the blocking runtime
-  gate.
+  gate. A draft-only contract is valid: when there are no required behaviors,
+  the command reports zero required runtime observations and exits without
+  starting Playwright. This is not acceptance evidence for a draft.
 - `pnpm acceptance:all` is an explicit authoring command for draft and required
   examples. Drafts have no required coverage and cannot block delivery merely
   because they exist in the contract.
@@ -255,10 +263,11 @@ Two scopes stay distinct:
 The selector is a thin argv adapter around Playwright, not a runner. The
 structural checker and runtime command use the same config and revision-tag
 parser. The checker rejects `only`, `skip`, `fixme`, `fail`, retries, unknown or
-retired tags, stale revisions, an empty required selection, and any required
-revision absent from the selected test set. Static lint rejects `test.only`,
-`test.skip`, `test.fixme`, and `test.fail`, including conditional forms; runtime
-validation is the backstop for annotations created indirectly.
+retired tags, stale revisions, an empty required selection when required
+behaviors exist, and any required revision absent from the selected test set.
+Static lint rejects `test.only`, `test.skip`, `test.fixme`, and `test.fail`,
+including conditional forms; runtime validation is the backstop for annotations
+created indirectly.
 
 The gate does not equate Playwright's exit code with proof. It parses the JSON
 runtime report and joins executed test identities back to the discovery set. For
@@ -287,10 +296,13 @@ fixtures, create API keys, invoke the CLI process, and collect diagnostics. They
 remain test mechanics, not a business-step DSL. Scenario control flow stays
 visible in the Playwright test.
 
-The runtime always starts a fresh `maestro start --mode local` process from the
-current checkout on free ports, provisions a disposable backend namespace, and
-terminates it after the run. `cli-process` means a child `maestro` process, not
-an in-process function call. `web-ui` means role/label interaction with the
+The runtime always starts a fresh `maestro start --mode local` process from a
+generated-customer checkout on free ports, provisions a disposable backend
+namespace, and terminates it after the run. A generated customer runs directly
+from its own root. The template repository materializes the current Records
+customer projection first; it never runs the partial seed overlay against the
+template's generic reference app. `cli-process` means a child `maestro` process,
+not an in-process function call. `web-ui` means role/label interaction with the
 rendered app, not direct HTTP. Web and CLI receive the same runtime API base and
 workspace fixtures. Hosted URL overrides are not accepted by this suite.
 
@@ -307,10 +319,12 @@ forwarding failure and redaction.
 
 Two deterministic layers belong in the normal repository gates:
 
-1. `pnpm lint` uses the existing ESLint/dependency machinery to enforce local
-   acceptance boundaries, including the recursive import rules, scenario API
-   bans, `only`/`skip`/`fixme`/`fail`, and synthetic application responses. Each
-   rule has an adversarial failing fixture.
+1. `pnpm lint` uses the existing path-aware ESLint machinery to enforce local
+   acceptance boundaries on every scenario and support file, including recursive
+   import rules, scenario API bans, `only`/`skip`/`fixme`/`fail`, and synthetic
+   application responses. Each rule has an adversarial failing fixture. Because
+   every helper in the tree is linted, an additional dependency-cruiser rule
+   would duplicate the same import boundary.
 2. `pnpm check:product-contract` validates the YAML schema, lifecycle, typed
    plan links, current App Map targets, Playwright-discovered tags, and
    generated documentation freshness. It is included in `pnpm verify`, because
@@ -418,7 +432,10 @@ four stable behavior IDs:
 Reuse the current disposable backend/app startup, API-key setup, workspace
 isolation, CLI-process execution, cleanup, diagnostics, and denial fixtures.
 Replace Cucumber World/hooks with native Playwright worker/test fixtures and
-keep the four scenario flows visible in `records.spec.ts`.
+keep the four scenario flows visible in `records.spec.ts`. Template-side
+credibility runs materialize the current Records customer target and execute
+there; `examples/saas-application/seed/source` is projection input, not a
+runnable customer root.
 
 The candidate is credible only after this observed sequence:
 
