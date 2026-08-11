@@ -52,38 +52,31 @@ const memberRoot = (node) => {
   return current?.type === "Identifier" ? current.name : undefined;
 };
 
-const objectProperty = (object, name) =>
-  object.properties.find((property) => {
-    if (property.type !== "Property") return false;
-    const key = property.key;
-    return (
-      (key.type === "Identifier" && key.name === name) ||
-      (key.type === "Literal" && key.value === name)
-    );
-  });
-
-const literalValue = (property) => {
-  const value = property?.value;
-  return value?.type === "Literal" ? value.value : undefined;
-};
-
 const safeSupportFulfill = (node) => {
   const argument = node.arguments[0];
-  if (!argument || argument.type !== "ObjectExpression") return false;
-  if (objectProperty(argument, "json")) return false;
-  const status = objectProperty(argument, "status");
-  if (!status) return false;
-  const statusValue = literalValue(status);
-  if (typeof statusValue === "number") {
-    if (statusValue < 400 || statusValue >= 600) return false;
-    return !["body", "contentType"].some((name) => {
-      const property = objectProperty(argument, name);
-      return property !== undefined && literalValue(property) !== undefined;
-    });
-  }
+  if (
+    !argument ||
+    argument.type !== "ObjectExpression" ||
+    argument.properties.length !== 1
+  )
+    return false;
+  const property = argument.properties[0];
+  if (
+    property.type !== "Property" ||
+    property.computed ||
+    property.kind !== "init" ||
+    property.method
+  )
+    return false;
+  const key = property.key;
+  if (key.type === "Identifier" && key.name === "response")
+    return property.value.type === "Identifier";
+  if (key.type !== "Identifier" || key.name !== "status") return false;
   return (
-    objectProperty(argument, "body") !== undefined &&
-    objectProperty(argument, "contentType") !== undefined
+    property.value.type === "Literal" &&
+    typeof property.value.value === "number" &&
+    property.value.value >= 400 &&
+    property.value.value <= 599
   );
 };
 
@@ -114,15 +107,15 @@ export default {
       (context.filename ?? context.getFilename()).replace(/\\/gu, "/"),
     );
     if (!info) return {};
+    const testAliases = new Set(["test"]);
+    const requireAliases = new Set();
+    const reportedRequireAliases = new Set();
+    const createRequireAliases = new Set();
+    const reportedCreateRequireAliases = new Set();
+    const routeAliases = new Set();
     const reportImport = (node, source) => {
       if (!sourceAllowed(info, source))
         context.report({ node, messageId: "import" });
-    };
-    const reportDynamic = (node) => {
-      const source = node.source;
-      if (source?.type === "Literal" && typeof source.value === "string")
-        reportImport(source, source.value);
-      else context.report({ node, messageId: "import" });
     };
     const reportMemberBypass = (node) => {
       const names = propertyNames(node);
@@ -137,7 +130,8 @@ export default {
       } else if (NETWORK_APIS.has(property)) {
         if (
           !inside(info.supportRoot, info.filename) ||
-          (property === "route" && memberRoot(node) === "page")
+          (property === "route" && memberRoot(node) !== "context") ||
+          property === "routeFromHAR"
         )
           context.report({ node, messageId: "network" });
       } else if (BROWSER_APIS.has(property))
@@ -146,6 +140,23 @@ export default {
     return {
       ImportDeclaration(node) {
         reportImport(node.source, String(node.source.value));
+        for (const specifier of node.specifiers) {
+          if (
+            specifier.type === "ImportSpecifier" &&
+            specifier.imported.type === "Identifier" &&
+            specifier.imported.name === "test"
+          )
+            testAliases.add(specifier.local.name);
+          if (
+            specifier.type === "ImportSpecifier" &&
+            specifier.imported.type === "Identifier" &&
+            specifier.imported.name === "createRequire"
+          ) {
+            createRequireAliases.add(specifier.local.name);
+            reportedCreateRequireAliases.add(specifier.local.name);
+            context.report({ node: specifier, messageId: "import" });
+          }
+        }
       },
       ExportNamedDeclaration(node) {
         if (node.source) reportImport(node.source, String(node.source.value));
@@ -153,35 +164,174 @@ export default {
       ExportAllDeclaration(node) {
         reportImport(node.source, String(node.source.value));
       },
-      ImportExpression: reportDynamic,
+      ImportExpression(node) {
+        context.report({ node, messageId: "import" });
+      },
       TSImportEqualsDeclaration(node) {
-        const reference = node.moduleReference;
-        const source =
-          reference.type === "TSExternalModuleReference"
-            ? reference.expression
-            : undefined;
-        if (source?.type === "Literal" && typeof source.value === "string")
-          reportImport(source, source.value);
-        else context.report({ node, messageId: "import" });
+        context.report({ node, messageId: "import" });
       },
       VariableDeclarator(node) {
-        if (node.init?.type === "MemberExpression")
+        if (node.init?.type === "Identifier") {
+          if (node.init.name === "require") {
+            if (node.id.type === "Identifier") {
+              requireAliases.add(node.id.name);
+              reportedRequireAliases.add(node.id.name);
+            }
+            context.report({ node: node.init, messageId: "import" });
+          } else if (
+            node.init.name === "createRequire" &&
+            !createRequireAliases.has(node.init.name)
+          ) {
+            if (node.id.type === "Identifier")
+              createRequireAliases.add(node.id.name);
+            if (node.id.type === "Identifier")
+              reportedCreateRequireAliases.add(node.id.name);
+            context.report({ node: node.init, messageId: "import" });
+          } else if (
+            node.id.type === "Identifier" &&
+            requireAliases.has(node.init.name)
+          ) {
+            requireAliases.add(node.id.name);
+            reportedRequireAliases.add(node.id.name);
+            context.report({ node: node.init, messageId: "import" });
+          } else if (
+            node.id.type === "Identifier" &&
+            createRequireAliases.has(node.init.name)
+          ) {
+            createRequireAliases.add(node.id.name);
+            if (!reportedCreateRequireAliases.has(node.init.name)) {
+              reportedCreateRequireAliases.add(node.id.name);
+              context.report({ node: node.init, messageId: "import" });
+            } else reportedCreateRequireAliases.add(node.id.name);
+          } else if (
+            node.id.type === "Identifier" &&
+            testAliases.has(node.init.name)
+          ) {
+            testAliases.add(node.id.name);
+          }
+        }
+        if (node.init?.type === "MemberExpression") {
           reportMemberBypass(node.init);
+          const property = propertyNames(node.init).at(-1);
+          if (
+            node.id.type === "Identifier" &&
+            property === "route" &&
+            memberRoot(node.init) === "context" &&
+            inside(info.supportRoot, info.filename)
+          )
+            routeAliases.add(node.id.name);
+          if (memberRoot(node.init) === "require" || property === "require")
+            context.report({ node: node.init, messageId: "import" });
+        }
+        if (node.id.type === "ObjectPattern") {
+          for (const property of node.id.properties) {
+            if (property.type !== "Property") continue;
+            const key = property.key;
+            const name =
+              key.type === "Identifier"
+                ? key.name
+                : key.type === "Literal" && typeof key.value === "string"
+                  ? key.value
+                  : undefined;
+            if (name === undefined) continue;
+            if (ANNOTATIONS.has(name))
+              context.report({ node: property, messageId: "annotation" });
+            else if (name === "mock")
+              context.report({ node: property, messageId: "mock" });
+            else if (NETWORK_APIS.has(name) || name === "fulfill")
+              context.report({ node: property, messageId: "network" });
+            else if (BROWSER_APIS.has(name))
+              context.report({ node: property, messageId: "browser" });
+          }
+        }
+      },
+      AssignmentExpression(node) {
+        if (node.right.type === "MemberExpression") {
+          reportMemberBypass(node.right);
+          if (
+            node.left.type === "Identifier" &&
+            propertyNames(node.right).at(-1) === "route" &&
+            memberRoot(node.right) === "context" &&
+            inside(info.supportRoot, info.filename)
+          )
+            routeAliases.add(node.left.name);
+        }
+        if (node.right.type === "Identifier") {
+          if (node.right.name === "require") {
+            if (node.left.type === "Identifier") {
+              requireAliases.add(node.left.name);
+              reportedRequireAliases.add(node.left.name);
+            }
+            context.report({ node: node.right, messageId: "import" });
+          } else if (node.right.name === "createRequire") {
+            if (node.left.type === "Identifier") {
+              createRequireAliases.add(node.left.name);
+              reportedCreateRequireAliases.add(node.left.name);
+            }
+            context.report({ node: node.right, messageId: "import" });
+          }
+        }
+      },
+      Identifier(node) {
+        if (node.name !== "require") return;
+        const parent = node.parent;
+        if (
+          (parent.type === "CallExpression" && parent.callee === node) ||
+          (parent.type === "MemberExpression" &&
+            (parent.object === node || parent.property === node)) ||
+          (parent.type === "VariableDeclarator" && parent.init === node) ||
+          (parent.type === "AssignmentExpression" && parent.right === node)
+        )
+          return;
+        context.report({ node, messageId: "import" });
       },
       CallExpression(node) {
         if (
           node.callee.type === "Identifier" &&
-          node.callee.name === "require"
+          (node.callee.name === "require" ||
+            (requireAliases.has(node.callee.name) &&
+              !reportedRequireAliases.has(node.callee.name)) ||
+            (node.callee.name === "createRequire" &&
+              !createRequireAliases.has(node.callee.name)) ||
+            (createRequireAliases.has(node.callee.name) &&
+              node.callee.name !== "createRequire" &&
+              !reportedCreateRequireAliases.has(node.callee.name)) ||
+            routeAliases.has(node.callee.name))
         ) {
-          const source = node.arguments[0];
-          if (source?.type === "Literal" && typeof source.value === "string")
-            reportImport(source, source.value);
-          else context.report({ node, messageId: "import" });
+          context.report({
+            node,
+            messageId: routeAliases.has(node.callee.name)
+              ? "network"
+              : "import",
+          });
           return;
         }
         if (node.callee.type !== "MemberExpression") return;
         const names = propertyNames(node.callee);
         const property = names.at(-1);
+        const root = memberRoot(node.callee);
+        if (
+          root === "require" ||
+          root === "createRequire" ||
+          property === "require" ||
+          property === "createRequire"
+        ) {
+          context.report({ node: node.callee, messageId: "import" });
+          return;
+        }
+        if (
+          node.callee.computed &&
+          !(
+            node.callee.property.type === "Literal" &&
+            typeof node.callee.property.value === "string"
+          )
+        ) {
+          context.report({
+            node: node.callee,
+            messageId: testAliases.has(root) ? "annotation" : "network",
+          });
+          return;
+        }
         if (names.some((name) => ANNOTATIONS.has(name))) {
           context.report({ node: node.callee, messageId: "annotation" });
           return;
@@ -194,14 +344,18 @@ export default {
           const support = inside(info.supportRoot, info.filename);
           if (!support)
             context.report({ node: node.callee, messageId: "network" });
-          else if (!safeSupportFulfill(node))
+          else if (
+            memberRoot(node.callee) !== "route" ||
+            !safeSupportFulfill(node)
+          )
             context.report({ node: node.callee, messageId: "synthetic" });
           return;
         }
         if (NETWORK_APIS.has(property)) {
           if (
             !inside(info.supportRoot, info.filename) ||
-            (property === "route" && memberRoot(node.callee) === "page")
+            property === "routeFromHAR" ||
+            (property === "route" && memberRoot(node.callee) !== "context")
           )
             context.report({ node: node.callee, messageId: "network" });
           return;

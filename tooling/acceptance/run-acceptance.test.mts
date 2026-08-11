@@ -1,7 +1,7 @@
 import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   escapedTagPattern,
@@ -387,13 +387,18 @@ behaviors:
     );
     const reportPaths: string[] = [];
     const validJson = JSON.stringify(rawNativeReport([]));
-    await expect(
+    const rejection = expect(
       runAcceptance({
         repoRoot: root,
         sourceRoot: "source",
         scope: "required",
         processRunner: vi.fn(async (_args, environment) => {
           reportPaths.push(environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string);
+          if (_args.includes("--list"))
+            await writeFile(
+              environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
+              validJson,
+            );
           return {
             exitCode: 0,
             stdout: validJson,
@@ -401,8 +406,10 @@ behaviors:
           };
         }),
       }),
-    ).rejects.toThrow(/native stderr|report/i);
-    await expect(access(reportPaths[0] as string)).rejects.toThrow();
+    ).rejects;
+    await rejection.toThrow(/Playwright JSON report|report/i);
+    await rejection.toThrow(/native stderr/);
+    await expect(access(dirname(reportPaths[0] as string))).rejects.toThrow();
   });
 
   it("reports draft-only required scope without spawning Playwright", async () => {

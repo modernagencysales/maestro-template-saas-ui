@@ -284,7 +284,9 @@ const executeReport = async (options: {
     };
   } catch (error) {
     throw failureWithStderr(
-      error instanceof Error ? error.message : String(error),
+      `Playwright JSON report unavailable: ${
+        error instanceof Error ? error.message : String(error)
+      }`,
       result,
     );
   }

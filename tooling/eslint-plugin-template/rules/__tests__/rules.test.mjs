@@ -849,14 +849,14 @@ test("record appears", async ({ page }) => { await proxy(page); });`,
       filename: ACCEPTANCE_SUPPORT,
       code: `export async function proxy(context, route, response) {
   await context.route("**/api/**", (request) => request.continue());
-  await route.fulfill({ status: response.status(), contentType: response.headers()["content-type"], body: await response.text() });
+  await route.fulfill({ response });
 }`,
     },
     {
       filename: SEED_SUPPORT,
       code: `export async function proxy(context, route, response) {
   await context.route("**/api/**", (request) => request.continue());
-  await route.fulfill({ status: response.status(), contentType: response.headers()["content-type"], body: await response.text() });
+  await route.fulfill({ response });
 }`,
     },
     {
@@ -865,7 +865,7 @@ test("record appears", async ({ page }) => { await proxy(page); });`,
     },
     {
       filename: SEED_SUPPORT,
-      code: `const runtime = require("./runtime"); export { runtime };`,
+      code: `import { runtime } from "./runtime"; export { runtime };`,
     },
   ],
   invalid: [
@@ -950,6 +950,63 @@ await context.addInitScript(() => sessionStorage.setItem("auth", "fake"));`,
       errors: [{ messageId: "synthetic" }],
     },
     {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await import("./runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `const load = require; load("./support/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `module.require("./support/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `require["resolve"]("./runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { createRequire } from "node:module";
+const load = createRequire(import.meta.url);`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import load = require("./support/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `const pageAlias = page;
+pageAlias.route("**/api/**", handler);`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `browser.route("**/api/**", handler);`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `fixture.context.route("**/api/**", handler);`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `context.routeFromHAR("fixture.har");`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `page[method]("**/api/**", handler);`,
+      errors: [{ messageId: "network" }],
+    },
+    {
       filename: ACCEPTANCE,
       code: `import { runtime } from "./support/../../apps/web/src/runtime";`,
       errors: [{ messageId: "import" }],
@@ -1009,6 +1066,19 @@ browser["mock"]("product");`,
         { messageId: "browser" },
         { messageId: "mock" },
       ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "@playwright/test";
+const { skip } = test;
+skip("hidden", async () => {});`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { test } from "@playwright/test";
+test[method]("hidden", async () => {});`,
+      errors: [{ messageId: "annotation" }],
     },
   ],
 });
