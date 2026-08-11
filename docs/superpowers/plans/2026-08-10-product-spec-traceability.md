@@ -88,8 +88,12 @@ machinery.
 - **Whole-batch review:** Generate a review package from `b8ae957` to the frozen
   Task 6 head and review it against this plan and the design authority.
 - **Required verification:** On the frozen committed head, run
-  `rtk maestro-remote-test -- pnpm verify`. If the remote worker is unavailable,
-  run `rtk host-test-slot --class full pnpm verify` locally.
+  `rtk maestro-remote-test -- pnpm maestro -- verify --scope full --json`.
+  Retain stdout's `data.receipt` and confirm its `subject.commit` is the exact
+  frozen SHA; the remote worktree is deleted, so do not inspect a remote receipt
+  file. If the remote worker is unavailable, run
+  `rtk host-test-slot --class full pnpm maestro -- verify --scope full --json`
+  locally.
 - **Frozen head:** Record the immutable Task 6 SHA in
   `.superpowers/sdd/progress.md` before whole-batch review; any later edit
   invalidates review and verification evidence.
@@ -1391,9 +1395,10 @@ After Task 6 task review is clean:
 3. Resolve every Critical or Important finding and repeat whole-batch review if
    the head changes.
 4. Run required verification once on that immutable head with
-   `rtk maestro-remote-test -- pnpm verify` (or the local full semaphore
-   fallback).
-5. Confirm the exact-head product-contract and acceptance observations in
-   `.maestro/verification-receipt.json`; do not treat a dirty or prior-head
-   receipt as delivery evidence.
+   `rtk maestro-remote-test -- pnpm maestro -- verify --scope full --json` (or
+   the local full semaphore fallback), retain stdout's `data.receipt`, and
+   confirm its `subject.commit` is that exact SHA. The remote worktree is
+   deleted, so do not inspect a vanished remote receipt file.
+5. Confirm the exact-head product-contract and acceptance observations in that
+   receipt; do not treat a dirty or prior-head receipt as delivery evidence.
 6. Use Woodpecker `ci/woodpecker/pr/verify` as the sole merge verdict.

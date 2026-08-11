@@ -44,6 +44,25 @@ describe("customer chassis Woodpecker admission", () => {
     expect(packageJson.scripts.verify).toContain("pnpm acceptance:required");
   });
 
+  it("binds root product admissions directly to non-skippable TSX commands", () => {
+    const packageJson = JSON.parse(read("package.json")) as {
+      readonly scripts: Readonly<Record<string, string>>;
+    };
+
+    expect(packageJson.scripts["check:product-contract"]).toBe(
+      "tsx tooling/acceptance/template-product-contract-admission.mts structural",
+    );
+    expect(packageJson.scripts["acceptance:required"]).toBe(
+      "tsx tooling/acceptance/template-product-contract-admission.mts required",
+    );
+    for (const script of [
+      packageJson.scripts["check:product-contract"],
+      packageJson.scripts["acceptance:required"],
+    ]) {
+      expect(script).not.toMatch(/\bvitest\b|(?:^|\s)-t(?:\s|$)/u);
+    }
+  });
+
   it("reaches root verification once and keeps only extra chassis proof", () => {
     const script = read("tooling/ci/verify-chassis.sh");
     expect(script).toContain(
@@ -79,14 +98,5 @@ describe("customer chassis Woodpecker admission", () => {
     ]) {
       expect(script, duplicate).not.toContain(duplicate);
     }
-  });
-
-  it("binds admission to the required records runtime example", () => {
-    const packageJson = JSON.parse(read("apps/cli/package.json")) as {
-      readonly scripts: Readonly<Record<string, string>>;
-    };
-    expect(packageJson.scripts["test:create-root-admission"]).toBe(
-      "vitest run src/factory/productContractAcceptance.test.ts -t 'executes required Records product behaviors' --maxWorkers=1 --no-file-parallelism",
-    );
   });
 });

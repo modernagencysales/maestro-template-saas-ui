@@ -43,8 +43,8 @@ outcome:
 4. Add focused unit/integration tests only for named implementation risks.
 5. Generate docs, check the contract, and run required acceptance.
 6. Promote draft to required only with its revision-bound passing example.
-7. Run full verification once on the immutable delivery head and inspect the
-   exact-head receipt.
+7. Run `pnpm maestro -- verify --scope full` once on the immutable delivery
+   head and inspect its exact-head receipt.
 
 Use `pnpm check:product-contract` for structural contract admission and
 `pnpm acceptance:required` for required runtime acceptance.

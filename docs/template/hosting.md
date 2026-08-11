@@ -56,8 +56,8 @@ For an SSR fork, that command should:
    operations, and security headers locally.
 6. Deploy once, record the Worker version and immutable preview URL, and smoke
    that URL before promoting the production route.
-7. Run a fresh-browser WorkOS login, authenticated Convex read, safe mutation,
-   and `pnpm acceptance:required` against the promoted environment.
+7. Run a fresh-browser WorkOS login, authenticated Convex read, and safe
+   mutation against the promoted environment.
 
 Keep this as a short sequence of platform commands. Do not add a second release
 ledger, SHA state machine, or automation that guesses provider configuration.
@@ -73,8 +73,16 @@ A successful upload or HTTP `200` is not deployment proof. Hosted smoke must:
 - prove one real Convex read and one safe mutation;
 - confirm that the active browser entry targets the selected Convex deployment;
 - test the immutable deployment before the production route or alias; and
-- rerun required CLI and UI acceptance through `pnpm acceptance:required`
-  against real providers.
+- run the existing hosted smoke commands against the immutable deployed URL.
+
+## Local generated-customer contract acceptance
+
+`pnpm acceptance:required` materializes and starts a disposable local generated
+customer. It checks required revision-bound examples locally; it does not accept
+a promoted URL or validate real providers. Use it for local generated-customer
+contract acceptance, use the hosted smoke commands above for a deployed URL, and
+add separately reviewed real-provider validation when a deployment needs that
+evidence.
 
 ## Provider notes
 

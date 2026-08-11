@@ -4,8 +4,8 @@
   "packageManager": "pnpm@10.12.1",
   "scripts": {
     "product-contract:generate": "tsx tooling/acceptance/product-contract.mts generate --source-root examples/saas-application/seed/source",
-    "check:product-contract": "pnpm --dir apps/cli test:product-contract-admission",
-    "acceptance:required": "pnpm --dir apps/cli test:create-root-admission",
+    "check:product-contract": "tsx tooling/acceptance/template-product-contract-admission.mts structural",
+    "acceptance:required": "tsx tooling/acceptance/template-product-contract-admission.mts required",
     "maestro": "tsx apps/cli/src/index.ts",
     "format": "prettier --write .",
     "check:format": "prettier --check .",

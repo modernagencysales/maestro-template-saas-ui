@@ -11,6 +11,10 @@ import {
   type VerificationRunRequest,
   type VerificationRunner,
 } from "./verify.js";
+import {
+  createExecFileVerificationRunner,
+  type VerificationExecFile,
+} from "./verificationRunner.js";
 
 const context = {
   schemaVersion: 1 as const,
@@ -46,6 +50,20 @@ const advisoryDescriptor = descriptors[1];
 if (requiredDescriptor === undefined || advisoryDescriptor === undefined) {
   throw new Error("Expected required and advisory diagnostic fixtures.");
 }
+const productContractDescriptor: DiagnosticDescriptor = {
+  ...requiredDescriptor,
+  gateId: "product-contract",
+  evidenceClass: "static",
+  argv: ["pnpm", "check:product-contract"],
+  rerun: ["pnpm", "check:product-contract"],
+};
+const acceptanceRequiredDescriptor: DiagnosticDescriptor = {
+  ...requiredDescriptor,
+  gateId: "acceptance-required",
+  evidenceClass: "runtime",
+  argv: ["pnpm", "acceptance:required"],
+  rerun: ["pnpm", "acceptance:required"],
+};
 
 const runner = (
   observations: readonly VerificationRunObservation[],
@@ -65,6 +83,54 @@ const runner = (
 });
 
 describe("agent-pack verification command", () => {
+  it("projects successful planned product admissions into the full receipt", async () => {
+    const execute = vi.fn<VerificationExecFile>(async (file, args) => ({
+      exitCode: 0,
+      stdout: file === "git" && args[0] === "rev-parse" ? "abc123\n" : "",
+      stderr: "",
+    }));
+    const command = createVerifyCommand({
+      descriptors: [productContractDescriptor, acceptanceRequiredDescriptor],
+      runner: createExecFileVerificationRunner({
+        execFile: execute,
+        readFile: async () =>
+          JSON.stringify({
+            scripts: {
+              verify: "pnpm check:product-contract && pnpm acceptance:required",
+              "check:product-contract": "tsx admission structural",
+              "acceptance:required": "tsx admission required",
+            },
+          }),
+        now: () => "2026-08-11T12:00:00.000Z",
+        environment: async () => ({}),
+        providerPosture: async () => ({}),
+        limits: {
+          metadataTimeoutMs: 1_000,
+          focusedTimeoutMs: 5_000,
+          fullTimeoutMs: 10_000,
+          maxBufferBytes: 64_000,
+          packageJsonMaxBytes: 32_000,
+        },
+      }),
+    });
+
+    const result = await executeAgentPackCommand(
+      command,
+      { scope: "full", changed: [] },
+      context,
+    );
+
+    expect(result.data?.receipt.gates).toMatchObject([
+      { gateId: "product-contract", status: "pass" },
+      { gateId: "acceptance-required", status: "pass" },
+    ]);
+    expect(
+      execute.mock.calls
+        .filter(([file]) => file === "pnpm")
+        .map(([, args]) => args),
+    ).toEqual([["verify"]]);
+  });
+
   it.each([
     [
       "pass",
