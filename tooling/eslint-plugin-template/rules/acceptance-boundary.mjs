@@ -189,6 +189,17 @@ const literalText = (node) =>
       ? node.quasis[0]?.value.cooked
       : undefined;
 
+const staticString = (node, computed = false) => {
+  if (node?.type === "Identifier") return computed ? undefined : node.name;
+  const literal = literalText(node);
+  if (literal !== undefined) return literal;
+  if (node?.type !== "BinaryExpression" || node.operator !== "+")
+    return undefined;
+  const left = staticString(node.left, true);
+  const right = staticString(node.right, true);
+  return left !== undefined && right !== undefined ? left + right : undefined;
+};
+
 const isBehaviorTitle = (node) =>
   typeof literalText(node) === "string" &&
   BEHAVIOR_TAG_TOKEN.test(literalText(node));
@@ -778,6 +789,7 @@ export default {
     if (!info && !configFile) return {};
     const testAliases = new Set(["test"]);
     const globalAliases = new Set();
+    const processAliases = new Set(["process"]);
     const requireAliases = new Set();
     const reportedRequireAliases = new Set();
     const createRequireAliases = new Set();
@@ -791,6 +803,16 @@ export default {
         context.report({ node, messageId: "fixture" });
       else if (!sourceAllowed(info, source))
         context.report({ node, messageId: "import" });
+    };
+    const isProcessObject = (node) => {
+      if (node?.type === "Identifier") return processAliases.has(node.name);
+      return (
+        node?.type === "MemberExpression" &&
+        !node.optional &&
+        (isGlobalRoot(node.object) ||
+          globalAliases.has(memberRoot(node.object))) &&
+        staticString(node.property, node.computed) === "process"
+      );
     };
     const reportMemberBypass = (node) => {
       const names = propertyNames(node);
@@ -1026,6 +1048,8 @@ export default {
             (isGlobalRoot(node.init) || globalAliases.has(node.init.name))
           )
             globalAliases.add(node.id.name);
+          if (node.id.type === "Identifier" && isProcessObject(node.init))
+            processAliases.add(node.id.name);
           if (node.init.name === "require") {
             if (node.id.type === "Identifier") {
               requireAliases.add(node.id.name);
@@ -1065,6 +1089,8 @@ export default {
           }
         }
         if (node.init?.type === "MemberExpression") {
+          if (node.id.type === "Identifier" && isProcessObject(node.init))
+            processAliases.add(node.id.name);
           if (
             propertyNames(node.init).some(
               (name) => name === "require" || name === "createRequire",
@@ -1076,6 +1102,8 @@ export default {
         }
       },
       AssignmentExpression(node) {
+        if (node.left.type === "Identifier" && isProcessObject(node.right))
+          processAliases.add(node.left.name);
         if (node.right.type === "Identifier") {
           if (
             node.left.type === "Identifier" &&
@@ -1128,6 +1156,18 @@ export default {
       MemberExpression(node) {
         if (
           !configFile &&
+          !(
+            node.parent?.type === "CallExpression" &&
+            node.parent.callee === node
+          ) &&
+          isProcessObject(node.object) &&
+          staticString(node.property, node.computed) === "getBuiltinModule"
+        ) {
+          context.report({ node, messageId: "import" });
+          return;
+        }
+        if (
+          !configFile &&
           node.computed &&
           ((node.property.type === "Literal" &&
             typeof node.property.value === "string" &&
@@ -1173,6 +1213,15 @@ export default {
       },
       CallExpression(node) {
         if (configFile) return;
+        if (
+          node.callee.type === "MemberExpression" &&
+          isProcessObject(node.callee.object) &&
+          staticString(node.callee.property, node.callee.computed) ===
+            "getBuiltinModule"
+        ) {
+          context.report({ node: node.callee, messageId: "import" });
+          return;
+        }
         if (
           isScenarioSpec(info) &&
           isTaggedScenarioRegistration(node) &&

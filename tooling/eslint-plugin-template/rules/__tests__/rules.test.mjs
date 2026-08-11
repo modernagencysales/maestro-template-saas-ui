@@ -829,6 +829,15 @@ test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ accep
     {
       filename: ACCEPTANCE,
       code: `import { test } from "./support/fixtures";
+const getBuiltinModule = "env";
+const environment = process[getBuiltinModule];
+const key = "KEY";
+const value = process.env[key];
+test("@BHV-REC-001-R1", async () => { void environment; void value; });`,
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
 test("record appears in the CLI", { tag: "@BHV-REC-002-R1" }, async ({ runtime, scenario }) => { await runtime.runCli(scenario, ["capability", "run", "records.list"]); });`,
     },
     {
@@ -1652,6 +1661,33 @@ make("return 1")();`,
       filename: ACCEPTANCE,
       code: `import * as nodeModule from "node:module"; nodeModule["create" + "Require"](import.meta.url);`,
       errors: [{ messageId: "import" }, { messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+
+const builtin = globalThis.process.getBuiltinModule("node:module");
+const create = builtin["create" + "Require"];
+const load = create(import.meta.url);
+const product = load("../../apps/web/src/adapters/records/http");
+const root = globalThis;
+let proc;
+proc = root["pro" + "cess"];
+proc["getBuiltin" + "Module"]("node:module");
+
+test(
+  "bypass @BHV-REC-001-R1",
+  { tag: "@BHV-REC-001-R1" },
+  async ({ acceptancePage: page, runtime }) => {
+    void product;
+    await page.goto(\`\${runtime.webUrl}/records\`);
+  },
+);`,
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
     },
     {
       filename: "playwright.acceptance.config.ts",
