@@ -54,6 +54,24 @@ export type SaasPlanBuilder = (options: {
   readonly firstOutcome?: string;
 }) => ReturnType<typeof buildSaasApplicationTargetPlan>;
 
+export class RecordsCustomerMaterializationError extends Error {
+  readonly stdout: string;
+  readonly stderr: string;
+
+  constructor(result: {
+    readonly exitCode: number;
+    readonly stdout: string;
+    readonly stderr: string;
+  }) {
+    super(
+      `Records customer materialization failed with exit code ${result.exitCode}.`,
+    );
+    this.name = "RecordsCustomerMaterializationError";
+    this.stdout = result.stdout;
+    this.stderr = result.stderr;
+  }
+}
+
 type CandidateAuthority = "alpha.1" | "alpha.3";
 
 const buildRecordsPlan: SaasPlanBuilder = (options) =>
@@ -343,7 +361,7 @@ export const withMaterializedRecordsCustomer = async <Value>(
       fixture.candidateRoot,
     );
     if (result.exitCode !== 0)
-      throw new Error(`${result.stdout}\n${result.stderr}`);
+      throw new RecordsCustomerMaterializationError(result);
     const materialized = readFileSync(
       join(fixture.targetRoot, "template-instance.json"),
       "utf8",

@@ -1095,7 +1095,11 @@ const test = fixtures.test.extend({
   runtime: [async ({}, use) => use(undefined), { scope: "worker", auto: true }],
 });
 test("no runtime", { tag: "@BHV-REC-001-R1" }, async () => {});`,
-      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
+      errors: [
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+      ],
     },
     {
       filename: ACCEPTANCE,
@@ -1246,6 +1250,30 @@ export const test = base;`,
       filename: "tests/acceptance/support/fixtures.ts",
       code: `import { test as base } from "@playwright/test";
 export const raw = base;`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // A canonical extended fixture cannot also export bare Playwright.
+      // The paired scenario below uses this extra binding with dynamic options.
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { expect, test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({}, use) => {
+    const controller = createContractsRuntimeController();
+    const runtime = await controller.start();
+    try { await use(runtime); } finally { await controller.stop(); }
+  }, { scope: "worker", auto: true }],
+});
+export { expect };
+export const unsafeTest = base;`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { unsafeTest } from "./support/fixtures";
+const options = { tag: "@BHV-REC-001-R1" };
+unsafeTest("uses bare Playwright", options, async () => {});`,
       errors: [{ messageId: "fixture" }],
     },
     {

@@ -58,6 +58,7 @@ export const parseAcceptanceArguments = (
 };
 
 const configName = "playwright.acceptance.config.ts";
+const processOutputTailLength = 20_000;
 
 const escapeRegExp = (value: string): string =>
   value.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
@@ -87,24 +88,30 @@ const annotationType = (test: PlaywrightTestRecord): string | undefined =>
     .map(({ type }) => type.toLowerCase())
     .find((type) => ["skip", "fixme", "fail"].includes(type));
 
-export const renderBoundedPlaywrightProcessOutput = (
-  message: string,
-): string => {
-  const redacted = message
+export const redactPlaywrightProcessOutput = (message: string): string =>
+  message
     .replace(
-      /\b(authorization|cookie|set-cookie)\s*:\s*[^\r\n]*/giu,
+      /\b(authorization|cookie|set-cookie)\s*[:=]\s*[^\r\n]*/giu,
       "$1: [REDACTED]",
     )
     .replace(
-      /(["'](?:authorization|cookie|set-cookie)["']\s*:\s*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/giu,
+      /(["'](?:authorization|cookie|set-cookie)["']\s*[:=]\s*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/giu,
       (_match, prefix: string, value: string) =>
         `${prefix}${value[0]}[REDACTED]${value[0]}`,
     )
-    .replace(/\bBearer\s+\S+/giu, "Bearer [REDACTED]")
+    .replace(/\b(Basic|Bearer)\s+\S+/giu, "$1 [REDACTED]")
     .replace(
       /\b([A-Z_][A-Z0-9_-]*(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_-]*)["']?\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;}\]]+)/giu,
       "$1=[REDACTED]",
     );
+
+export const redactedProcessOutputTail = (message: string): string =>
+  redactPlaywrightProcessOutput(message).slice(-processOutputTailLength);
+
+export const renderBoundedPlaywrightProcessOutput = (
+  message: string,
+): string => {
+  const redacted = redactPlaywrightProcessOutput(message);
   const normalized = redacted.replace(/\s+/gu, " ").trim();
   if (normalized.length <= 500) return normalized;
   const headLength = Math.floor((500 - 1) / 2);
@@ -220,7 +227,7 @@ const defaultProcessRunner =
       let stdout = "";
       let stderr = "";
       const appendTail = (output: string, chunk: Buffer): string =>
-        `${output}${chunk.toString("utf8")}`.slice(-20_000);
+        redactedProcessOutputTail(`${output}${chunk.toString("utf8")}`);
       child.stdout?.on("data", (chunk: Buffer) => {
         stdout = appendTail(stdout, chunk);
       });

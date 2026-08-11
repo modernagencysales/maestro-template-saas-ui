@@ -6,9 +6,13 @@ import {
 import { promisify } from "node:util";
 import {
   checkTemplateProductContract,
+  RecordsCustomerMaterializationError,
   withMaterializedRecordsCustomer,
 } from "./template-product-contract.mts";
-import { renderBoundedPlaywrightProcessOutput } from "./run-acceptance.mts";
+import {
+  redactedProcessOutputTail,
+  renderBoundedPlaywrightProcessOutput,
+} from "./run-acceptance.mts";
 
 const repoRoot = new URL("../..", import.meta.url).pathname;
 const identity = [
@@ -38,16 +42,32 @@ type ProcessFailure = {
   readonly stderr?: string | Buffer;
 };
 
-const capturedProcessFailure = (label: string, error: unknown): Error => {
+export const capturedProcessFailure = (
+  label: string,
+  error: unknown,
+): Error => {
   const failure = error as ProcessFailure;
-  const output = [failure.stdout, failure.stderr]
-    .filter((value): value is string | Buffer => value !== undefined)
-    .map(String)
-    .join("\n")
-    .slice(-20_000);
+  const output = redactedProcessOutputTail(
+    [failure.stdout, failure.stderr]
+      .filter((value): value is string | Buffer => value !== undefined)
+      .map(String)
+      .join("\n"),
+  );
   return new Error(
     `${label} failed${output === "" ? "" : `\n${renderBoundedPlaywrightProcessOutput(output)}`}`,
   );
+};
+
+const withMaterializedAdmission = async <Value,>(
+  operation: (targetRoot: string) => Promise<Value>,
+): Promise<Value> => {
+  try {
+    return await withMaterializedRecordsCustomer(repoRoot, operation);
+  } catch (error) {
+    if (error instanceof RecordsCustomerMaterializationError)
+      throw capturedProcessFailure("Generated customer materialization", error);
+    throw error;
+  }
 };
 
 const runPreparedCustomerCommand = (
@@ -112,7 +132,7 @@ const prepareMaterializedCustomer = (targetRoot: string): void => {
 
 export const runStructuralProductContractAdmission =
   async (): Promise<void> => {
-    await withMaterializedRecordsCustomer(repoRoot, async (targetRoot) => {
+    await withMaterializedAdmission(async (targetRoot) => {
       const findings = await checkTemplateProductContract({
         repoRoot,
         sourceRoot: "examples/saas-application/seed/source",
@@ -135,7 +155,7 @@ export const runStructuralProductContractAdmission =
   };
 
 export const runRequiredAcceptanceAdmission = async (): Promise<void> => {
-  await withMaterializedRecordsCustomer(repoRoot, async (targetRoot) => {
+  await withMaterializedAdmission(async (targetRoot) => {
     prepareMaterializedCustomer(targetRoot);
     let stdout: string;
     try {

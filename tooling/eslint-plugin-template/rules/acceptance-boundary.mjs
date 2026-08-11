@@ -475,6 +475,7 @@ const isCanonicalFixtureExport = (node, sourceCode) => {
     (item) => item.id?.type === "Identifier" && item.id.name === "test",
   );
   return (
+    node?.declaration?.declarations?.length === 1 &&
     declaration?.init?.type === "CallExpression" &&
     declaration.init.callee.type === "MemberExpression" &&
     !declaration.init.callee.computed &&
@@ -489,6 +490,32 @@ const isCanonicalFixtureExport = (node, sourceCode) => {
     isCanonicalRuntimeFixture(declaration, sourceCode)
   );
 };
+
+const isCanonicalFixtureExpectExport = (node, sourceCode) => {
+  const specifier = node?.specifiers?.[0];
+  return (
+    node?.source === null &&
+    node.specifiers.length === 1 &&
+    specifier?.type === "ExportSpecifier" &&
+    specifier.local.type === "Identifier" &&
+    specifier.local.name === "expect" &&
+    specifier.exported.type === "Identifier" &&
+    specifier.exported.name === "expect" &&
+    isImportedBinding(specifier.local, sourceCode, "expect", "@playwright/test")
+  );
+};
+
+const isTypeOnlyExport = (node) =>
+  node?.exportKind === "type" ||
+  (node?.specifiers?.length > 0 &&
+    node.specifiers.every((specifier) => specifier.exportKind === "type"));
+
+const isCanonicalScenarioFixtureImport = (specifier) =>
+  specifier.type === "ImportSpecifier" &&
+  specifier.imported.type === "Identifier" &&
+  specifier.local.type === "Identifier" &&
+  ["test", "expect"].includes(specifier.imported.name) &&
+  specifier.local.name === specifier.imported.name;
 
 const isCanonicalFixtureExtend = (node, info, sourceCode) => {
   const call = node.parent;
@@ -619,6 +646,7 @@ export default {
     const invalidFixtureBindings = new Set();
     const moduleAliases = new Set();
     let canonicalFixtureExport = false;
+    let invalidCanonicalFixtureExport = false;
     const reportImport = (node, source) => {
       if (source === "@playwright/test" && isScenarioSpec(info))
         context.report({ node, messageId: "fixture" });
@@ -728,6 +756,16 @@ export default {
         }
         for (const specifier of node.specifiers) {
           if (
+            isScenarioSpec(info) &&
+            isFixtureSource(info, source) &&
+            !isCanonicalScenarioFixtureImport(specifier)
+          ) {
+            if (specifier.local.type === "Identifier")
+              invalidFixtureBindings.add(specifier.local.name);
+            context.report({ node: specifier, messageId: "fixture" });
+            continue;
+          }
+          if (
             source === "@playwright/test" &&
             inside(info.supportRoot, info.filename) &&
             (specifier.type === "ImportDefaultSpecifier" ||
@@ -770,11 +808,17 @@ export default {
         }
       },
       ExportNamedDeclaration(node) {
-        if (
-          isCanonicalFixturesModule(info) &&
-          isCanonicalFixtureExport(node, context.sourceCode)
-        )
-          canonicalFixtureExport = true;
+        if (isCanonicalFixturesModule(info)) {
+          if (isCanonicalFixtureExport(node, context.sourceCode))
+            canonicalFixtureExport = true;
+          else if (
+            !isCanonicalFixtureExpectExport(node, context.sourceCode) &&
+            !isTypeOnlyExport(node)
+          ) {
+            invalidCanonicalFixtureExport = true;
+            context.report({ node, messageId: "fixture" });
+          }
+        }
         if (node.source) {
           const source = String(node.source.value);
           reportImport(node.source, source);
@@ -1089,7 +1133,12 @@ export default {
       "Program:exit"(node) {
         if (configFile && !isCanonicalConfigModule(node, context.sourceCode))
           context.report({ node, messageId: "config" });
-        if (info && isCanonicalFixturesModule(info) && !canonicalFixtureExport)
+        if (
+          info &&
+          isCanonicalFixturesModule(info) &&
+          !canonicalFixtureExport &&
+          !invalidCanonicalFixtureExport
+        )
           context.report({ node, messageId: "fixture" });
       },
     };

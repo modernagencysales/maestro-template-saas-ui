@@ -1,10 +1,31 @@
 import { describe, expect, it } from "vitest";
+import { RecordsCustomerMaterializationError } from "../../apps/cli/src/factory/customerCandidateFixture";
 import {
   canonicalRequiredAcceptanceSummary,
+  capturedProcessFailure,
   validateRequiredAcceptanceSummary,
 } from "./template-product-contract-admission.mts";
 
 describe("required acceptance admission summary", () => {
+  it("renders failed materialization stdout and stderr as a bounded safe witness", () => {
+    const failure = new RecordsCustomerMaterializationError({
+      exitCode: 1,
+      stdout: `materialization stdout Authorization=Basic materialization-stdout-canary ${"x".repeat(700)}`,
+      stderr: `materialization stderr COOKIE=session=materialization-stderr-canary ${"y".repeat(700)}\nsafe materialization witness`,
+    });
+    expect(failure.message).toBe(
+      "Records customer materialization failed with exit code 1.",
+    );
+    const rendered = capturedProcessFailure(
+      "Generated customer materialization",
+      failure,
+    ).message;
+    expect(rendered).toContain("safe materialization witness");
+    expect(rendered).not.toContain("materialization-stdout-canary");
+    expect(rendered).not.toContain("materialization-stderr-canary");
+    expect(rendered.length).toBeLessThanOrEqual(550);
+  });
+
   it.each([
     "4 required, 4 runtime",
     "4 required, 5 runtime",

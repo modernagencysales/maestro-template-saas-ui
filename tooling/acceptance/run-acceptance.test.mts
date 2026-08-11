@@ -1,4 +1,12 @@
-import { access, mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
+import {
+  access,
+  chmod,
+  mkdir,
+  mkdtemp,
+  realpath,
+  rm,
+  writeFile,
+} from "node:fs/promises";
 import { execFileSync } from "node:child_process";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -6,6 +14,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import {
   escapedTagPattern,
   parseAcceptanceArguments,
+  renderBoundedPlaywrightProcessOutput,
   requiredBehaviorTags,
   runAcceptance,
   validateAcceptanceRuntime,
@@ -99,6 +108,99 @@ const nativeReport = (
 ): ParsedPlaywrightJsonReport =>
   parsePlaywrightJsonReport(rawNativeReport(fixtures));
 
+const shellQuoted = (value: string): string =>
+  `'${value.replaceAll("'", "'\"'\"'")}'`;
+
+const writeRequiredContract = async (root: string): Promise<void> => {
+  await mkdir(join(root, "source", "tests", "acceptance"), {
+    recursive: true,
+  });
+  await writeFile(
+    join(root, "source", "tests", "acceptance", "records.spec.ts"),
+    "",
+  );
+  await writeFile(
+    join(root, "source", "product.contract.yaml"),
+    `schemaVersion: 1
+product:
+  id: records
+  name: Records
+  summary: Records
+behaviors:
+  - id: BHV-REC-001
+    revision: 1
+    status: required
+    title: Required
+    actor: member
+    surfaces: [web-ui]
+    preconditions: []
+    action: save
+    outcomes: [listed]
+`,
+  );
+};
+
+const writeDefaultRunnerPnpm = async (input: {
+  readonly root: string;
+  readonly chunks: readonly string[];
+}): Promise<string> => {
+  const bin = join(input.root, "bin");
+  await mkdir(bin);
+  const sourceRoot = join(input.root, "source");
+  const discovery = JSON.stringify(
+    rawNativeReport([{ id: "required", tag: "@BHV-REC-001-R1" }], sourceRoot),
+  );
+  const runtime = JSON.stringify(
+    rawNativeReport(
+      [
+        {
+          id: "required",
+          tag: "@BHV-REC-001-R1",
+          status: "passed",
+        },
+      ],
+      sourceRoot,
+    ),
+  );
+  const script = [
+    "#!/bin/sh",
+    'case "$*" in',
+    `*--list*) printf %s ${shellQuoted(discovery)} > "$PLAYWRIGHT_JSON_OUTPUT_NAME"; exit 0 ;;`,
+    "esac",
+    `printf %s ${shellQuoted(runtime)} > "$PLAYWRIGHT_JSON_OUTPUT_NAME"`,
+    ...input.chunks.flatMap((chunk) => [
+      `printf %s ${shellQuoted(chunk)} >&2`,
+      "sleep 0.1",
+    ]),
+    "exit 1",
+  ].join("\n");
+  await writeFile(join(bin, "pnpm"), script);
+  await chmod(join(bin, "pnpm"), 0o755);
+  return bin;
+};
+
+const defaultRunnerFailure = async (input: {
+  readonly root: string;
+  readonly chunks: readonly string[];
+}): Promise<string> => {
+  const repoRoot = await realpath(input.root);
+  const bin = await writeDefaultRunnerPnpm({ ...input, root: repoRoot });
+  const previousPath = process.env.PATH;
+  process.env.PATH = `${bin}:${previousPath ?? ""}`;
+  try {
+    await runAcceptance({
+      repoRoot,
+      sourceRoot: "source",
+      scope: "required",
+    });
+    return "";
+  } catch (error) {
+    return error instanceof Error ? error.message : String(error);
+  } finally {
+    process.env.PATH = previousPath;
+  }
+};
+
 const passInput = {
   requiredTags: ["@BHV-REC-001-R1"],
   discovered: nativeReport([
@@ -111,6 +213,71 @@ const passInput = {
 };
 
 describe("acceptance runtime validation", () => {
+  it.each([
+    "Authorization: Basic authorization-colon-canary",
+    "AUTHORIZATION=Basic authorization-equals-canary",
+    "Cookie: session=cookie-colon-canary",
+    "COOKIE=session=cookie-equals-canary",
+    "Set-Cookie: session=set-cookie-colon-canary",
+    "set-cookie=session=set-cookie-equals-canary",
+    "Basic basic-canary",
+    "Bearer bearer-canary",
+    JSON.stringify({ Authorization: "Basic authorization-json-canary" }),
+    JSON.stringify({ Cookie: "cookie-json-canary" }),
+    JSON.stringify({ "Set-Cookie": "set-cookie-json-canary" }),
+  ])("redacts credential output %s", (input) => {
+    const output = renderBoundedPlaywrightProcessOutput(input);
+    expect(output).toContain("[REDACTED]");
+    expect(output).not.toContain("-canary");
+  });
+
+  it("redacts a header before the default runner tail discards its key", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-tail-"));
+    roots.push(root);
+    await writeRequiredContract(root);
+    const header = "Authorization: Basic header-tail-canary ";
+    const witness = "safe header witness";
+    const safeTail = `\n${witness}`;
+    const message = await defaultRunnerFailure({
+      root,
+      chunks: [
+        `${header}${"x".repeat(20_000 - safeTail.length - 20)}${safeTail}`,
+      ],
+    });
+    expect(message).toContain(witness);
+    expect(message).not.toContain("header-tail-canary");
+  });
+
+  it("redacts a JSON key before the default runner tail discards it", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-json-tail-"));
+    roots.push(root);
+    await writeRequiredContract(root);
+    const key = '"Authorization":"json-tail-canary"';
+    const witness = "safe JSON witness";
+    const message = await defaultRunnerFailure({
+      root,
+      chunks: [`${key}${"y".repeat(20_000 - witness.length - 20)}${witness}`],
+    });
+    expect(message).toContain(witness);
+    expect(message).not.toContain("json-tail-canary");
+  });
+
+  it("redacts a header split across default runner stream chunks", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-stream-"));
+    roots.push(root);
+    await writeRequiredContract(root);
+    const message = await defaultRunnerFailure({
+      root,
+      chunks: [
+        "x".repeat(20_000),
+        "Authorization",
+        "=Basic stream-split-canary\nsafe stream witness",
+      ],
+    });
+    expect(message).toContain("safe stream witness");
+    expect(message).not.toContain("stream-split-canary");
+  });
+
   it("accepts only the strict projected CLI grammar", () => {
     expect(
       parseAcceptanceArguments(["required", "--source-root", "."]),

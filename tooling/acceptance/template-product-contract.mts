@@ -4,10 +4,13 @@ import {
   composeAppMap,
   resolveRepositoryRevision,
 } from "../app-map/src/composition";
-import { withMaterializedRecordsCustomer } from "../../apps/cli/src/factory/customerCandidateFixture";
+import {
+  RecordsCustomerMaterializationError,
+  withMaterializedRecordsCustomer,
+} from "../../apps/cli/src/factory/customerCandidateFixture";
 import { checkProductContract } from "./product-contract.mts";
 
-export { withMaterializedRecordsCustomer };
+export { RecordsCustomerMaterializationError, withMaterializedRecordsCustomer };
 
 const checkMaterializedCustomerContract = async (
   targetRoot: string,
