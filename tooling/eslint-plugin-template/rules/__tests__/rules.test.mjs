@@ -837,6 +837,13 @@ test("record appears in the CLI", { tag: "@BHV-REC-002-R1" }, async ({ runtime, 
 test("@BHV-REC-001-R1", async () => {});`,
     },
     {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test.describe("records", () => {
+  test("@BHV-REC-001-R1", async () => {});
+});`,
+    },
+    {
       filename: SEED_ACCEPTANCE,
       code: `import { test } from "./support/fixtures";
 import { proxy } from "./support/proxy";
@@ -952,6 +959,22 @@ const { route: intercept } = context;`,
       code: `import { test } from "./support/fixtures";
 test.describe.configure({ retries: 1 });`,
       errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test.describe.parallel("parallel", () => {});
+const parallel = test.describe.parallel;
+parallel("laundered parallel", () => {});`,
+      errors: [{ messageId: "annotation" }, { messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const { describe, describe: groupedDescribe } = test;
+describe.configure({ retries: 1 });
+groupedDescribe.configure({ retries: 1 });`,
+      errors: [{ messageId: "annotation" }, { messageId: "annotation" }],
     },
     {
       filename: ACCEPTANCE,
@@ -1427,6 +1450,19 @@ await createPage();`,
       filename: ACCEPTANCE,
       code: `await page.context().addCookies([]);`,
       errors: [{ messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `await page.waitForFunction(() => true);
+await page.evaluateHandle(() => true);
+await page.addScriptTag({ content: "window.injected = true" });
+await context.newCDPSession(page);`,
+      errors: [
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+      ],
     },
     {
       filename: ACCEPTANCE,

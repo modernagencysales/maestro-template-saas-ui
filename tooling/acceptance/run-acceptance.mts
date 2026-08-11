@@ -88,16 +88,20 @@ const annotationType = (test: PlaywrightTestRecord): string | undefined =>
     .find((type) => ["skip", "fixme", "fail"].includes(type));
 
 const boundedNativeFailure = (message: string): string => {
-  const normalized = message.replace(/\s+/gu, " ").trim();
-  const redacted = normalized
+  const redacted = message
+    .replace(
+      /\b(authorization|cookie|set-cookie)\s*:\s*[^\r\n]*/giu,
+      "$1: [REDACTED]",
+    )
     .replace(/\bBearer\s+\S+/giu, "Bearer [REDACTED]")
     .replace(
-      /\b([A-Z_][A-Z0-9_]*(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_]*)=\S+/giu,
+      /\b([A-Z_][A-Z0-9_-]*(?:KEY|TOKEN|SECRET|PASSWORD)[A-Z0-9_-]*)["']?\s*[:=]\s*(?:"[^"]*"|'[^']*'|[^\s,;}\]]+)/giu,
       "$1=[REDACTED]",
     );
-  if (redacted.length <= 500) return redacted;
+  const normalized = redacted.replace(/\s+/gu, " ").trim();
+  if (normalized.length <= 500) return normalized;
   const headLength = Math.floor((500 - 1) / 2);
-  return `${redacted.slice(0, headLength)}…${redacted.slice(-(500 - headLength - 1))}`;
+  return `${normalized.slice(0, headLength)}…${normalized.slice(-(500 - headLength - 1))}`;
 };
 
 const identityFindings = (
@@ -206,23 +210,29 @@ const defaultProcessRunner =
         env: { ...process.env, ...environment },
         stdio: ["ignore", "pipe", "pipe"],
       });
-      const stdout: Buffer[] = [];
-      const stderr: Buffer[] = [];
-      child.stdout?.on("data", (chunk: Buffer) => stdout.push(chunk));
-      child.stderr?.on("data", (chunk: Buffer) => stderr.push(chunk));
+      let stdout = "";
+      let stderr = "";
+      const appendTail = (output: string, chunk: Buffer): string =>
+        `${output}${chunk.toString("utf8")}`.slice(-20_000);
+      child.stdout?.on("data", (chunk: Buffer) => {
+        stdout = appendTail(stdout, chunk);
+      });
+      child.stderr?.on("data", (chunk: Buffer) => {
+        stderr = appendTail(stderr, chunk);
+      });
       child.on("error", (error) => {
-        stderr.push(Buffer.from(error.message));
+        stderr = appendTail(stderr, Buffer.from(error.message));
         resolveProcess({
           exitCode: 1,
-          stdout: Buffer.concat(stdout).toString("utf8"),
-          stderr: Buffer.concat(stderr).toString("utf8"),
+          stdout,
+          stderr,
         });
       });
       child.on("close", (exitCode) =>
         resolveProcess({
           exitCode: exitCode ?? 1,
-          stdout: Buffer.concat(stdout).toString("utf8"),
-          stderr: Buffer.concat(stderr).toString("utf8"),
+          stdout,
+          stderr,
         }),
       );
     });
@@ -275,7 +285,7 @@ const failureWithStderr = (
   result: PlaywrightProcessResult,
 ): Error =>
   new Error(
-    `${message}${result.stderr.trim() === "" ? "" : `\n${result.stderr.trim()}`}`,
+    `${message}${result.stderr.trim() === "" ? "" : `\nnative stderr: ${boundedNativeFailure(result.stderr)}`}`,
   );
 
 const executeReport = async (options: {

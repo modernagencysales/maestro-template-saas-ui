@@ -84,12 +84,11 @@ export const runStructuralProductContractAdmission =
 export const runRequiredAcceptanceAdmission = async (): Promise<void> => {
   await withMaterializedRecordsCustomer(repoRoot, async (targetRoot) => {
     prepareMaterializedCustomer(targetRoot);
-    const { stdout, stderr } = await execFile("pnpm", ["acceptance:required"], {
+    const { stdout } = await execFile("pnpm", ["acceptance:required"], {
       cwd: targetRoot,
       maxBuffer: 512 * 1024,
     });
     process.stdout.write(stdout);
-    process.stderr.write(stderr);
     validateRequiredAcceptanceSummary(stdout);
   });
 };

@@ -498,6 +498,85 @@ behaviors:
     expect(native?.split("…")).toHaveLength(2);
   });
 
+  it("redacts and bounds injected Playwright stderr", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-stderr-"));
+    roots.push(root);
+    await mkdir(join(root, "source"));
+    await writeFile(
+      join(root, "source", "product.contract.yaml"),
+      `schemaVersion: 1
+product:
+  id: records
+  name: Records
+  summary: Records
+behaviors:
+  - id: BHV-REC-001
+    revision: 1
+    status: required
+    title: Required record is saved
+    actor: member
+    surfaces: [web-ui]
+    preconditions: []
+    action: save
+    outcomes: [listed]
+`,
+    );
+    const stderr = `initial runner context
+Authorization: Basic authorization-canary
+Cookie: session=cookie-canary
+apiKey=key-canary "client_secret":"secret-canary" "X-API-KEY":"hyphen-canary"
+${"x".repeat(700)} final native witness`;
+    const failure = runAcceptance({
+      repoRoot: root,
+      sourceRoot: "source",
+      scope: "required",
+      processRunner: async (args, environment) => {
+        const report = rawNativeReport(
+          [
+            {
+              id: "required",
+              tag: "@BHV-REC-001-R1",
+              title: "Required record is saved",
+            },
+          ],
+          join(root, "source"),
+        );
+        await writeFile(
+          environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
+          JSON.stringify(report),
+        );
+        return {
+          exitCode: args.includes("--list") ? 0 : 1,
+          stdout: "",
+          stderr: args.includes("--list") ? "" : stderr,
+        };
+      },
+    });
+    let message = "";
+    try {
+      await failure;
+    } catch (error) {
+      message = error instanceof Error ? error.message : String(error);
+    }
+    expect(message).toContain("native stderr:");
+    expect(message).toContain("Authorization: [REDACTED]");
+    expect(message).toContain("Cookie: [REDACTED]");
+    expect(message).toContain("apiKey=[REDACTED]");
+    expect(message).toContain("client_secret=[REDACTED]");
+    expect(message).toContain("X-API-KEY=[REDACTED]");
+    expect(message).toContain("initial runner context");
+    expect(message).toContain("final native witness");
+    expect(message).not.toContain("authorization-canary");
+    expect(message).not.toContain("cookie-canary");
+    expect(message).not.toContain("key-canary");
+    expect(message).not.toContain("secret-canary");
+    expect(message).not.toContain("hyphen-canary");
+    const native = message.match(/native stderr: (.+)$/u)?.[1];
+    expect(native).toBeDefined();
+    expect(native?.length).toBeLessThanOrEqual(500);
+    expect(native?.split("…")).toHaveLength(2);
+  });
+
   it("fails closed when stdout has JSON but the isolated report file is absent", async () => {
     const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-no-report-"));
     roots.push(root);

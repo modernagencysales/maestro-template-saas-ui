@@ -13,9 +13,13 @@ const NETWORK_APIS = new Set([
 ]);
 const BROWSER_APIS = new Set([
   "evaluate",
+  "evaluateHandle",
   "addInitScript",
+  "addScriptTag",
   "setContent",
   "addCookies",
+  "waitForFunction",
+  "newCDPSession",
 ]);
 const PAGE_CREATION_APIS = new Set(["newContext", "newPage"]);
 const DYNAMIC_CODE_NAMES = new Set(["eval", "Function", "AsyncFunction"]);
@@ -537,6 +541,14 @@ const isCanonicalPageCreation = (node, info) => {
   );
 };
 
+const objectPatternSource = (node) => {
+  if (node.parent?.type === "VariableDeclarator" && node.parent.id === node)
+    return node.parent.init;
+  if (node.parent?.type === "AssignmentExpression" && node.parent.left === node)
+    return node.parent.right;
+  return undefined;
+};
+
 const safeSupportFulfill = (node, sourceCode) => {
   const argument = node.arguments[0];
   if (
@@ -651,6 +663,7 @@ export default {
     const reportObjectPattern = (node) => {
       const pattern = node?.type === "AssignmentPattern" ? node.left : node;
       if (pattern?.type !== "ObjectPattern") return;
+      const sourceRoot = memberRoot(objectPatternSource(pattern));
       for (const property of pattern.properties) {
         if (property.type !== "Property") continue;
         if (property.computed) {
@@ -667,6 +680,8 @@ export default {
         if (name === undefined) continue;
         if (name === "extend")
           context.report({ node: property, messageId: "fixture" });
+        else if (name === "describe" && testAliases.has(sourceRoot))
+          context.report({ node: property, messageId: "annotation" });
         else if (PAGE_CREATION_APIS.has(name))
           context.report({ node: property, messageId: "browser" });
         else if (name === "use")
@@ -963,6 +978,14 @@ export default {
           return;
         }
         if (names.includes("describe") && names.includes("configure")) {
+          context.report({ node: node.callee, messageId: "annotation" });
+          return;
+        }
+        if (
+          names.includes("describe") &&
+          names.includes("parallel") &&
+          testAliases.has(root)
+        ) {
           context.report({ node: node.callee, messageId: "annotation" });
           return;
         }
