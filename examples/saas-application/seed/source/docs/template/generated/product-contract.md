@@ -4,6 +4,8 @@ Product: Records Demo (records-demo)
 
 Workspace members manage the same records through the web app and CLI.
 
+The links below are structural coverage only. Causal strength and declared-surface usefulness are `unproven` and review-owned. Current verification comes only from the exact-head `.maestro/verification-receipt.json`.
+
 ## @BHV-REC-001-R1 A web-created record appears in the CLI
 
 | Field | Value |

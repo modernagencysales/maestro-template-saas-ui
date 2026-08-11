@@ -100,6 +100,15 @@ const memberIsComputed = (node) => {
   return false;
 };
 
+const memberHasDynamicComputedProperty = (node) => {
+  let current = node;
+  while (current?.type === "MemberExpression") {
+    if (current.computed && current.property.type !== "Literal") return true;
+    current = current.object;
+  }
+  return false;
+};
+
 const memberIsOptional = (node) => {
   let current = node;
   while (current?.type === "MemberExpression") {
@@ -245,6 +254,56 @@ const directCall = (node, object, method) =>
 
 const awaitedDirectCall = (node, object, method) =>
   node?.type === "AwaitExpression" && directCall(node.argument, object, method);
+
+const isCanonicalRouteFetch = (node) => {
+  if (!awaitedDirectCall(node, "route", "fetch")) return false;
+  const call = node.argument;
+  if (call.arguments.length !== 1) return false;
+  const options = call.arguments[0];
+  if (
+    options?.type !== "ObjectExpression" ||
+    options.properties.some(
+      (entry) =>
+        entry.type !== "Property" ||
+        entry.computed ||
+        entry.kind !== "init" ||
+        entry.method,
+    )
+  )
+    return false;
+  const urlProperties = options.properties.filter(
+    (entry) =>
+      (entry.key.type === "Identifier" && entry.key.name === "url") ||
+      (entry.key.type === "Literal" && entry.key.value === "url"),
+  );
+  return (
+    urlProperties.length === 1 &&
+    urlProperties[0]?.key.type === "Identifier" &&
+    urlProperties[0]?.value.type === "Identifier" &&
+    urlProperties[0].value.name === "targetUrl"
+  );
+};
+
+const isCanonicalFetchedResponse = (node, fulfill, sourceCode) => {
+  if (node.type !== "Identifier") return false;
+  const variable = resolveVariable(node, sourceCode);
+  const definition = variable?.defs?.[0];
+  const declarationEnd = definition?.node?.range?.[1];
+  const fulfillStart = fulfill.range?.[0];
+  return (
+    variable?.defs?.length === 1 &&
+    definition?.type === "Variable" &&
+    definition.parent?.type === "VariableDeclaration" &&
+    definition.parent.kind === "const" &&
+    definition.node.type === "VariableDeclarator" &&
+    definition.node.id.type === "Identifier" &&
+    definition.node.id.name === node.name &&
+    typeof declarationEnd === "number" &&
+    typeof fulfillStart === "number" &&
+    declarationEnd < fulfillStart &&
+    isCanonicalRouteFetch(definition.node.init)
+  );
+};
 
 const isCanonicalRuntimeFixture = (declaration, sourceCode) => {
   const fixtureObject = declaration?.init?.arguments?.[0];
@@ -478,7 +537,7 @@ const isCanonicalPageCreation = (node, info) => {
   );
 };
 
-const safeSupportFulfill = (node) => {
+const safeSupportFulfill = (node, sourceCode) => {
   const argument = node.arguments[0];
   if (
     !argument ||
@@ -496,7 +555,7 @@ const safeSupportFulfill = (node) => {
     return false;
   const key = property.key;
   if (key.type === "Identifier" && key.name === "response")
-    return property.value.type === "Identifier";
+    return isCanonicalFetchedResponse(property.value, node, sourceCode);
   if (key.type !== "Identifier" || key.name !== "status") return false;
   return (
     property.value.type === "Literal" &&
@@ -574,6 +633,60 @@ export default {
         context.report({ node, messageId: "browser" });
       else if (names.includes("goto"))
         context.report({ node, messageId: "browser" });
+      else if (memberRoot(node) === "route" && names.includes("fetch"))
+        context.report({ node, messageId: "network" });
+      else if (
+        memberRoot(node) === "route" &&
+        memberHasDynamicComputedProperty(node)
+      )
+        context.report({
+          node,
+          messageId: "network",
+        });
+    };
+    const reportObjectPattern = (node) => {
+      const pattern = node?.type === "AssignmentPattern" ? node.left : node;
+      if (pattern?.type !== "ObjectPattern") return;
+      for (const property of pattern.properties) {
+        if (property.type !== "Property") continue;
+        if (property.computed) {
+          context.report({ node: property, messageId: "network" });
+          continue;
+        }
+        const key = property.key;
+        const name =
+          key.type === "Identifier"
+            ? key.name
+            : key.type === "Literal" && typeof key.value === "string"
+              ? key.value
+              : undefined;
+        if (name === undefined) continue;
+        if (name === "extend")
+          context.report({ node: property, messageId: "fixture" });
+        else if (PAGE_CREATION_APIS.has(name))
+          context.report({ node: property, messageId: "browser" });
+        else if (name === "use")
+          context.report({ node: property, messageId: "browser" });
+        else if (
+          DYNAMIC_CODE_NAMES.has(name) &&
+          property.key.type !== "Identifier"
+        )
+          context.report({ node: property, messageId: "import" });
+        else if (ANNOTATIONS.has(name))
+          context.report({ node: property, messageId: "annotation" });
+        else if (name === "mock")
+          context.report({ node: property, messageId: "mock" });
+        else if (
+          (NETWORK_APIS.has(name) && name !== "route") ||
+          name === "fulfill" ||
+          name === "fetch"
+        )
+          context.report({ node: property, messageId: "network" });
+        else if (BROWSER_APIS.has(name))
+          context.report({ node: property, messageId: "browser" });
+        else if (name === "goto")
+          context.report({ node: property, messageId: "browser" });
+      }
     };
     return {
       ImportDeclaration(node) {
@@ -730,48 +843,12 @@ export default {
           )
             context.report({ node: node.init, messageId: "import" });
         }
-        if (node.id.type === "ObjectPattern") {
-          for (const property of node.id.properties) {
-            if (property.type !== "Property") continue;
-            const key = property.key;
-            const name =
-              key.type === "Identifier"
-                ? key.name
-                : key.type === "Literal" && typeof key.value === "string"
-                  ? key.value
-                  : undefined;
-            if (name === undefined) continue;
-            if (name === "extend")
-              context.report({ node: property, messageId: "fixture" });
-            else if (PAGE_CREATION_APIS.has(name))
-              context.report({ node: property, messageId: "browser" });
-            else if (
-              name === "use" &&
-              node.init?.type === "Identifier" &&
-              testAliases.has(node.init.name)
-            )
-              context.report({ node: property, messageId: "browser" });
-            else if (
-              DYNAMIC_CODE_NAMES.has(name) &&
-              property.key.type !== "Identifier"
-            )
-              context.report({ node: property, messageId: "import" });
-            else if (ANNOTATIONS.has(name))
-              context.report({ node: property, messageId: "annotation" });
-            else if (name === "mock")
-              context.report({ node: property, messageId: "mock" });
-            else if (NETWORK_APIS.has(name) || name === "fulfill")
-              context.report({ node: property, messageId: "network" });
-            else if (BROWSER_APIS.has(name))
-              context.report({ node: property, messageId: "browser" });
-            else if (name === "goto")
-              context.report({ node: property, messageId: "browser" });
-          }
-        }
+        reportObjectPattern(node.id);
       },
       AssignmentExpression(node) {
         if (node.right.type === "MemberExpression")
           reportMemberBypass(node.right);
+        reportObjectPattern(node.left);
         if (node.right.type === "Identifier") {
           if (node.right.name === "require") {
             if (node.left.type === "Identifier") {
@@ -787,6 +864,15 @@ export default {
             context.report({ node: node.right, messageId: "import" });
           }
         }
+      },
+      ArrowFunctionExpression(node) {
+        for (const parameter of node.params) reportObjectPattern(parameter);
+      },
+      FunctionDeclaration(node) {
+        for (const parameter of node.params) reportObjectPattern(parameter);
+      },
+      FunctionExpression(node) {
+        for (const parameter of node.params) reportObjectPattern(parameter);
       },
       Identifier(node) {
         if (!configFile && DYNAMIC_CODE_NAMES.has(node.name)) {
@@ -899,7 +985,7 @@ export default {
           else if (
             !isCanonicalRuntimeModule(info) ||
             !isDirectMemberCall(node, "route", "fulfill") ||
-            !safeSupportFulfill(node)
+            !safeSupportFulfill(node, context.sourceCode)
           )
             context.report({ node: node.callee, messageId: "synthetic" });
           return;

@@ -186,6 +186,8 @@ export const renderProductContractMarkdown = (input: {
     "",
     input.contract.product.summary,
     "",
+    "The links below are structural coverage only. Causal strength and declared-surface usefulness are `unproven` and review-owned. Current verification comes only from the exact-head `.maestro/verification-receipt.json`.",
+    "",
     ...sections,
   ].join("\n")}\n`;
 };

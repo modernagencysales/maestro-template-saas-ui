@@ -1228,6 +1228,90 @@ test.extend({});`,
       ],
     },
     {
+      // A parameter destructure can otherwise extract extend without a member
+      // expression, then call the unstarted fixture as a tagged scenario.
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+(({ extend }) =>
+  extend({
+    runtime: [async ({}, use) => use(undefined), { scope: "worker", auto: true }],
+  })("unstarted runtime", { tag: "@BHV-REC-001-R1" }, async () => {}))(test);`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // Object-pattern extraction is forbidden in parameters and assignments,
+      // not only in a variable declarator.
+      filename: ACCEPTANCE_SUPPORT,
+      code: `const extractControls = ({ continue: redirect, fallback, abort, fulfill }) => undefined;
+({ continue: assignedRedirect, fulfill: assignedFulfill } = route);`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const method = "continue";
+const redirect = route[method];
+await redirect({ url: targetUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const method = "continue";
+({ [method]: redirect } = route);
+await redirect({ url: targetUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const fetch = route.fetch;
+const response = await fetch({ url: targetUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const { fetch } = route;
+const response = await fetch({ url: targetUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await route.fetch({ url: arbitraryUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await route.fetch({ url: targetUrl, url: arbitraryUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await route.fetch({ url: targetUrl, "url": arbitraryUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await route.fetch({ ["url"]: targetUrl, ...overrides });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await fetchResponse();
+await route.fulfill({ response });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
       filename: ACCEPTANCE,
       code: `import { test } from "@playwright/test"; test("title", { tag: ["@BHV-REC-001-R1"] }, async () => {});`,
       errors: [{ messageId: "fixture" }],

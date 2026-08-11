@@ -116,6 +116,9 @@ describe("ProductContract", () => {
     expect(renderProductContractMarkdown({ contract, links: [] })).toMatch(
       /\| Acceptance file paths \| — \|/,
     );
+    expect(renderProductContractMarkdown({ contract, links: [] })).toContain(
+      "The links below are structural coverage only. Causal strength and declared-surface usefulness are `unproven` and review-owned. Current verification comes only from the exact-head `.maestro/verification-receipt.json`.",
+    );
     expect(renderProductContractMarkdown({ contract, links: [] })).toMatch(
       /\n$/,
     );
