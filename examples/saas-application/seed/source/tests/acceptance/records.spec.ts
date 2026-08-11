@@ -71,12 +71,9 @@ const listedTitlesFromObserverCli = async (
     ),
   );
 
-// Playwright 1.61 removes one leading @ while serializing tags; the emitted
-// discovery identity is therefore the required @BHV-...-R1 value.
-
 test(
   "a web-created record appears in the CLI",
-  { tag: "@@BHV-REC-001-R1" },
+  { tag: "@BHV-REC-001-R1" },
   async ({ acceptancePage: page, runtime, scenario }) => {
     const title = `web-${scenario.namespace}`;
     await page.goto(`${runtime.webUrl}/records`);
@@ -95,7 +92,7 @@ test(
 
 test(
   "a CLI-created record appears in the web app",
-  { tag: "@@BHV-REC-002-R1" },
+  { tag: "@BHV-REC-002-R1" },
   async ({ acceptancePage: page, runtime, scenario }) => {
     const title = `cli-${scenario.namespace}`;
     await runtime.runCli(
@@ -114,7 +111,7 @@ test(
 
 test(
   "a missing API key cannot create a record",
-  { tag: "@@BHV-REC-003-R1" },
+  { tag: "@BHV-REC-003-R1" },
   async ({ acceptancePage: page, runtime, scenario }) => {
     const title = `missing-key-${scenario.namespace}`;
     await expect(
@@ -139,7 +136,7 @@ test(
 
 test(
   "a workspace-bound key cannot write to another workspace",
-  { tag: "@@BHV-REC-004-R1" },
+  { tag: "@BHV-REC-004-R1" },
   async ({ runtime, scenario }) => {
     const title = `cross-workspace-${scenario.namespace}`;
     await expect(

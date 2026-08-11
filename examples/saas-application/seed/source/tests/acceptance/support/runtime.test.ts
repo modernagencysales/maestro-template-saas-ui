@@ -1,7 +1,4 @@
 import assert from "node:assert/strict";
-// Vitest is the focused runner for support-only unit tests; visible acceptance
-// examples remain restricted to Playwright, node:*, and this support tree.
-// eslint-disable-next-line template/acceptance-boundary
 import { describe, expect, it } from "vitest";
 
 import {
@@ -144,6 +141,33 @@ describe("Playwright acceptance runtime support", () => {
     const controller = createContractsRuntimeController(dependencies);
     const activeRuntime = await controller.start();
     const activeScenario = await activeRuntime.provisionScenario();
+    let routeHandler: ((route: never) => Promise<void>) | undefined;
+    await activeRuntime.authorizeBrowserContext(activeScenario, {
+      route: async (
+        _pattern: string,
+        handler: (route: never) => Promise<void>,
+      ) => {
+        routeHandler = handler;
+      },
+    } as never);
+    let browserProxyUrl = "";
+    let fulfilled: unknown;
+    await routeHandler?.({
+      request: () => ({
+        method: () => "POST",
+        postData: () => JSON.stringify({ input: {} }),
+        url: () => "http://127.0.0.1:4100/__contracts/api/records.list",
+      }),
+      fetch: async (options: unknown) => {
+        browserProxyUrl = (options as { readonly url: string }).url;
+        return {};
+      },
+      fulfill: async (value: unknown) => {
+        fulfilled = value;
+      },
+    } as never);
+    assert.equal(new URL(browserProxyUrl).origin, activeRuntime.apiBaseUrl);
+    assert.deepEqual(fulfilled, { response: {} });
     await activeRuntime.runCli(activeScenario, [
       "capability",
       "run",

@@ -867,6 +867,11 @@ test("record appears", async ({ page }) => { await proxy(page); });`,
       filename: SEED_SUPPORT,
       code: `import { runtime } from "./runtime"; export { runtime };`,
     },
+    {
+      filename:
+        "examples/saas-application/seed/source/tests/acceptance/support/runtime.test.ts",
+      code: `import { describe, it } from "vitest"; describe("support", () => it("works", () => undefined));`,
+    },
   ],
   invalid: [
     {
@@ -1102,6 +1107,11 @@ await route["fulfill"]({ response });`,
       code: `import { test } from "@playwright/test";
 test[method]("hidden", async () => {});`,
       errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { describe } from "vitest"; describe("hidden", () => undefined);`,
+      errors: [{ messageId: "import" }],
     },
   ],
 });

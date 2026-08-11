@@ -116,6 +116,7 @@ export default [
       "examples/*/seed/source/tests/acceptance/**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}",
     ],
     plugins: { template: templatePlugin },
+    linterOptions: { noInlineConfig: true },
     rules: {
       "template/acceptance-boundary": "error",
     },

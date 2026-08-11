@@ -29,6 +29,12 @@ const relativeTarget = (filename, source) =>
 const sourceAllowed = (info, source) => {
   if (source.startsWith("."))
     return inside(info.supportRoot, relativeTarget(info.filename, source));
+  if (
+    source === "vitest" &&
+    inside(info.supportRoot, info.filename) &&
+    /\.test\.[cm]?[jt]sx?$/u.test(info.filename)
+  )
+    return true;
   return source.startsWith("node:") || ALLOWED_IMPORT.has(source);
 };
 

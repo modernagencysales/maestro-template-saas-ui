@@ -36,6 +36,26 @@ const runtimeReport = {
 };
 
 describe("parsePlaywrightJsonReport", () => {
+  it("normalizes native JSON reporter tags to canonical behavior tags", () => {
+    expect(
+      parsePlaywrightJsonReport({
+        ...runtimeReport,
+        suites: [
+          {
+            ...runtimeReport.suites[0],
+            specs: [
+              {
+                ...spec,
+                tags: ["BHV-REC-001-R1"],
+                tests: runtimeReport.suites[0]?.specs[0]?.tests,
+              },
+            ],
+          },
+        ],
+      }).tests[0]?.behaviorTag,
+    ).toBe("@BHV-REC-001-R1");
+  });
+
   it("flattens native spec identities and runtime results by spec id", () => {
     expect(parsePlaywrightJsonReport(runtimeReport)).toEqual({
       config: runtimeReport.config,

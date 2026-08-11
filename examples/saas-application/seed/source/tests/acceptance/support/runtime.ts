@@ -88,7 +88,6 @@ export type ContractsRuntimeDependencies = {
     spec: AppSpec,
     output: (stream: "stdout" | "stderr", line: string) => void,
   ) => Promise<ManagedProcess>;
-  readonly fetch?: typeof globalThis.fetch;
   readonly commandTimeoutMs?: number;
   readonly startupTimeoutMs?: number;
   readonly seedTimeoutMs?: number;

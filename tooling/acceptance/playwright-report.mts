@@ -76,6 +76,9 @@ const parseAnnotations = (
 
 const behaviorTagPattern = /^@BHV-[A-Z0-9]+-[0-9]+-R[1-9][0-9]*$/u;
 
+const canonicalBehaviorTag = (tag: string): string =>
+  tag.startsWith("@") ? tag : `@${tag}`;
+
 const parseConfig = (value: unknown): ParsedPlaywrightJsonReport["config"] => {
   const config = record(value, "config");
   const workers = integer(config.workers, "config.workers");
@@ -115,7 +118,7 @@ const parseSpec = (
   const file = text(spec.file ?? suiteFile, "spec.file");
   const title = text(spec.title, "spec.title");
   const tags = array(spec.tags, "spec.tags").map((tag) =>
-    text(tag, "spec tag"),
+    canonicalBehaviorTag(text(tag, "spec tag")),
   );
   const behaviorTags = tags.filter((tag) => behaviorTagPattern.test(tag));
   if (behaviorTags.length !== 1)

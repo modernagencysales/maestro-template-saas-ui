@@ -46,7 +46,9 @@ const rawNativeReport = (fixtures: readonly Fixture[]) => ({
         id: fixture.id,
         file: fixture.file ?? "tests/acceptance/records.spec.ts",
         title: fixture.title ?? fixture.id,
-        tags: [fixture.tag],
+        tags: [
+          fixture.tag.startsWith("@") ? fixture.tag.slice(1) : fixture.tag,
+        ],
         tests: [
           {
             projectName: "acceptance-chromium",

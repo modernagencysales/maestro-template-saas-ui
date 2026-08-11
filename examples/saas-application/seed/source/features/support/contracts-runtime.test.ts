@@ -51,12 +51,6 @@ function harness(options?: {
   const terminate = vi.fn(awaitCleanupRelease);
   const terminateCommand = vi.fn(async () => undefined);
   const closeBrowser = vi.fn(awaitCleanupRelease);
-  const fetchRequest = vi.fn<typeof globalThis.fetch>(async (...args) => {
-    void args;
-    return new Response(JSON.stringify({ ok: true, result: [] }), {
-      headers: { "content-type": "application/json" },
-    });
-  });
   const launchBrowser: ContractsRuntimeDependencies["launchBrowser"] = vi.fn(
     async (environment) => {
       environments.push(environment);
@@ -137,7 +131,6 @@ function harness(options?: {
       SAFE_SETTING: "not-allowlisted",
     }),
     freePort: async () => 4100 + random++,
-    fetch: fetchRequest as typeof globalThis.fetch,
     launchBrowser,
     randomBytes: (size) => new Uint8Array(size).fill(++random),
     runCommand,
@@ -152,7 +145,6 @@ function harness(options?: {
     closeBrowser,
     dependencies,
     environments,
-    fetchRequest,
     launchBrowser,
     releaseCleanup,
     spawnApp,
