@@ -1075,6 +1075,29 @@ skip("hidden", async () => {});`,
       errors: [{ messageId: "annotation" }],
     },
     {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `const extracted = context.route;
+assigned = context.route;
+await context.foo.route("**/api/**", handler);
+await context.route.call(context, "**/api/**", handler);
+await page.evaluate.call(page, fn);
+await route.fulfill.call(route, { response });
+await route.foo.fulfill({ response });
+await context["route"]("**/api/**", handler);
+await route["fulfill"]({ response });`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "browser" },
+        { messageId: "synthetic" },
+        { messageId: "synthetic" },
+        { messageId: "network" },
+        { messageId: "synthetic" },
+      ],
+    },
+    {
       filename: SEED_ACCEPTANCE,
       code: `import { test } from "@playwright/test";
 test[method]("hidden", async () => {});`,

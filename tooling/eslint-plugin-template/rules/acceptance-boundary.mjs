@@ -48,8 +48,42 @@ const propertyNames = (node) => {
 
 const memberRoot = (node) => {
   let current = node;
+  if (current?.type === "ChainExpression") current = current.expression;
   while (current?.type === "MemberExpression") current = current.object;
+  if (current?.type === "ChainExpression") current = current.expression;
   return current?.type === "Identifier" ? current.name : undefined;
+};
+
+const memberIsComputed = (node) => {
+  let current = node;
+  while (current?.type === "MemberExpression") {
+    if (current.computed) return true;
+    current = current.object;
+  }
+  return false;
+};
+
+const memberIsOptional = (node) => {
+  let current = node;
+  while (current?.type === "MemberExpression") {
+    if (current.optional) return true;
+    current = current.object;
+  }
+  return current?.type === "ChainExpression";
+};
+
+const isDirectMemberCall = (node, objectName, propertyName) => {
+  const member = node.callee;
+  return (
+    member?.type === "MemberExpression" &&
+    !node.optional &&
+    !member.optional &&
+    !memberIsComputed(member) &&
+    member.object.type === "Identifier" &&
+    member.object.name === objectName &&
+    member.property.type === "Identifier" &&
+    member.property.name === propertyName
+  );
 };
 
 const safeSupportFulfill = (node) => {
@@ -112,29 +146,23 @@ export default {
     const reportedRequireAliases = new Set();
     const createRequireAliases = new Set();
     const reportedCreateRequireAliases = new Set();
-    const routeAliases = new Set();
     const reportImport = (node, source) => {
       if (!sourceAllowed(info, source))
         context.report({ node, messageId: "import" });
     };
     const reportMemberBypass = (node) => {
       const names = propertyNames(node);
-      const property = names.at(-1);
       if (names.some((name) => ANNOTATIONS.has(name)))
         context.report({ node, messageId: "annotation" });
-      else if (property === "mock") context.report({ node, messageId: "mock" });
-      else if (property === "fulfill") {
+      else if (names.includes("mock"))
+        context.report({ node, messageId: "mock" });
+      else if (names.includes("fulfill")) {
         const support = inside(info.supportRoot, info.filename);
         if (!support) context.report({ node, messageId: "network" });
         else context.report({ node, messageId: "synthetic" });
-      } else if (NETWORK_APIS.has(property)) {
-        if (
-          !inside(info.supportRoot, info.filename) ||
-          (property === "route" && memberRoot(node) !== "context") ||
-          property === "routeFromHAR"
-        )
-          context.report({ node, messageId: "network" });
-      } else if (BROWSER_APIS.has(property))
+      } else if (names.some((name) => NETWORK_APIS.has(name)))
+        context.report({ node, messageId: "network" });
+      else if (names.some((name) => BROWSER_APIS.has(name)))
         context.report({ node, messageId: "browser" });
     };
     return {
@@ -212,15 +240,13 @@ export default {
         }
         if (node.init?.type === "MemberExpression") {
           reportMemberBypass(node.init);
-          const property = propertyNames(node.init).at(-1);
           if (
-            node.id.type === "Identifier" &&
-            property === "route" &&
-            memberRoot(node.init) === "context" &&
-            inside(info.supportRoot, info.filename)
+            propertyNames(node.init).some(
+              (name) => name === "require" || name === "createRequire",
+            ) ||
+            memberRoot(node.init) === "require" ||
+            memberRoot(node.init) === "createRequire"
           )
-            routeAliases.add(node.id.name);
-          if (memberRoot(node.init) === "require" || property === "require")
             context.report({ node: node.init, messageId: "import" });
         }
         if (node.id.type === "ObjectPattern") {
@@ -246,16 +272,8 @@ export default {
         }
       },
       AssignmentExpression(node) {
-        if (node.right.type === "MemberExpression") {
+        if (node.right.type === "MemberExpression")
           reportMemberBypass(node.right);
-          if (
-            node.left.type === "Identifier" &&
-            propertyNames(node.right).at(-1) === "route" &&
-            memberRoot(node.right) === "context" &&
-            inside(info.supportRoot, info.filename)
-          )
-            routeAliases.add(node.left.name);
-        }
         if (node.right.type === "Identifier") {
           if (node.right.name === "require") {
             if (node.left.type === "Identifier") {
@@ -295,73 +313,67 @@ export default {
               !createRequireAliases.has(node.callee.name)) ||
             (createRequireAliases.has(node.callee.name) &&
               node.callee.name !== "createRequire" &&
-              !reportedCreateRequireAliases.has(node.callee.name)) ||
-            routeAliases.has(node.callee.name))
+              !reportedCreateRequireAliases.has(node.callee.name)))
         ) {
-          context.report({
-            node,
-            messageId: routeAliases.has(node.callee.name)
-              ? "network"
-              : "import",
-          });
+          context.report({ node, messageId: "import" });
           return;
         }
         if (node.callee.type !== "MemberExpression") return;
         const names = propertyNames(node.callee);
-        const property = names.at(-1);
         const root = memberRoot(node.callee);
         if (
+          names.some(
+            (name) => name === "require" || name === "createRequire",
+          ) ||
           root === "require" ||
-          root === "createRequire" ||
-          property === "require" ||
-          property === "createRequire"
+          root === "createRequire"
         ) {
           context.report({ node: node.callee, messageId: "import" });
-          return;
-        }
-        if (
-          node.callee.computed &&
-          !(
-            node.callee.property.type === "Literal" &&
-            typeof node.callee.property.value === "string"
-          )
-        ) {
-          context.report({
-            node: node.callee,
-            messageId: testAliases.has(root) ? "annotation" : "network",
-          });
           return;
         }
         if (names.some((name) => ANNOTATIONS.has(name))) {
           context.report({ node: node.callee, messageId: "annotation" });
           return;
         }
-        if (property === "mock") {
+        if (names.includes("mock")) {
           context.report({ node: node.callee, messageId: "mock" });
           return;
         }
-        if (property === "fulfill") {
+        if (names.includes("fulfill")) {
           const support = inside(info.supportRoot, info.filename);
           if (!support)
             context.report({ node: node.callee, messageId: "network" });
           else if (
-            memberRoot(node.callee) !== "route" ||
+            !isDirectMemberCall(node, "route", "fulfill") ||
             !safeSupportFulfill(node)
           )
             context.report({ node: node.callee, messageId: "synthetic" });
           return;
         }
-        if (NETWORK_APIS.has(property)) {
+        if (names.some((name) => NETWORK_APIS.has(name))) {
           if (
             !inside(info.supportRoot, info.filename) ||
-            property === "routeFromHAR" ||
-            (property === "route" && memberRoot(node.callee) !== "context")
+            !isDirectMemberCall(node, "context", "route")
           )
             context.report({ node: node.callee, messageId: "network" });
           return;
         }
-        if (BROWSER_APIS.has(property))
+        if (names.some((name) => BROWSER_APIS.has(name)))
           context.report({ node: node.callee, messageId: "browser" });
+        else if (
+          memberIsComputed(node.callee) ||
+          memberIsOptional(node.callee) ||
+          (node.callee.computed &&
+            !(
+              node.callee.property.type === "Literal" &&
+              typeof node.callee.property.value === "string"
+            ))
+        ) {
+          context.report({
+            node: node.callee,
+            messageId: testAliases.has(root) ? "annotation" : "network",
+          });
+        }
       },
     };
   },
