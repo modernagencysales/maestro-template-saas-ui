@@ -23,6 +23,7 @@ const BROWSER_APIS = new Set([
 ]);
 const PAGE_CREATION_APIS = new Set(["newContext", "newPage"]);
 const DYNAMIC_CODE_NAMES = new Set(["eval", "Function", "AsyncFunction"]);
+const SCENARIO_FIXTURES = new Set(["runtime", "scenario", "acceptancePage"]);
 const BEHAVIOR_TAG_TOKEN = /@BHV-[A-Z0-9]+-[0-9]+-R[1-9][0-9]*/u;
 
 const isAcceptanceConfig = (filename) =>
@@ -99,6 +100,9 @@ const memberRoot = (node) => {
   if (current?.type === "ChainExpression") current = current.expression;
   return current?.type === "Identifier" ? current.name : undefined;
 };
+
+const isGlobalRoot = (node) =>
+  node?.type === "Identifier" && ["global", "globalThis"].includes(node.name);
 
 const memberIsComputed = (node) => {
   let current = node;
@@ -231,6 +235,20 @@ const isCanonicalFixtureBinding = (node, info, sourceCode) => {
   );
 };
 
+const isScenarioFixturePattern = (node, info, sourceCode) => {
+  const callback = node.parent;
+  const registration = callback?.parent;
+  return (
+    isScenarioSpec(info) &&
+    isFunction(callback) &&
+    callback.params.includes(node) &&
+    registration?.type === "CallExpression" &&
+    registration.arguments.at(-1) === callback &&
+    isTaggedScenarioRegistration(registration) &&
+    isCanonicalFixtureBinding(registration.callee, info, sourceCode)
+  );
+};
+
 const isImportedBinding = (node, sourceCode, imported, source) => {
   if (node?.type !== "Identifier") return false;
   const definition = resolveVariable(node, sourceCode)?.defs?.[0];
@@ -314,20 +332,7 @@ const isCanonicalFetchedResponse = (node, fulfill, sourceCode) => {
   );
 };
 
-const isCanonicalRuntimeFixture = (declaration, sourceCode) => {
-  const fixtureObject = declaration?.init?.arguments?.[0];
-  if (
-    fixtureObject?.type !== "ObjectExpression" ||
-    fixtureObject.properties.some(
-      (entry) => entry.type !== "Property" || entry.computed,
-    )
-  )
-    return false;
-  const runtimeFixtures = fixtureObject.properties.filter(
-    (entry) => propertyName(entry) === "runtime",
-  );
-  if (runtimeFixtures.length !== 1) return false;
-  const runtime = runtimeFixtures[0];
+const isCanonicalRuntimeFixture = (runtime, sourceCode) => {
   if (runtime?.value?.type !== "ArrayExpression") return false;
   const [factory, options] = runtime.value.elements;
   if (!isFunction(factory) || options?.type !== "ObjectExpression")
@@ -405,6 +410,130 @@ const isCanonicalRuntimeFixture = (declaration, sourceCode) => {
   );
   return (
     use?.type === "Identifier" && useCall !== undefined && stop !== undefined
+  );
+};
+
+const isFixtureParameter = (node, names) =>
+  node?.type === "ObjectPattern" &&
+  node.properties.length === names.length &&
+  node.properties.every(
+    (item) =>
+      item.type === "Property" &&
+      !item.computed &&
+      item.key.type === "Identifier" &&
+      item.value.type === "Identifier" &&
+      item.key.name === item.value.name &&
+      names.includes(item.key.name),
+  );
+
+const isAwaitedUse = (node, use, value) =>
+  node?.type === "ExpressionStatement" &&
+  node.expression.type === "AwaitExpression" &&
+  node.expression.argument.type === "CallExpression" &&
+  node.expression.argument.callee.type === "Identifier" &&
+  node.expression.argument.callee.name === use &&
+  node.expression.argument.arguments.length === 1 &&
+  value(node.expression.argument.arguments[0]);
+
+const isCanonicalScenarioFixture = (scenario) => {
+  const factory = scenario?.value;
+  const [runtime, use] = factory?.params ?? [];
+  const statement = factory?.body?.body?.[0];
+  return (
+    isFunction(factory) &&
+    factory.body.type === "BlockStatement" &&
+    factory.body.body.length === 1 &&
+    isFixtureParameter(runtime, ["runtime"]) &&
+    use?.type === "Identifier" &&
+    isAwaitedUse(statement, use.name, (value) =>
+      awaitedDirectCall(value, "runtime", "provisionScenario"),
+    )
+  );
+};
+
+const isCanonicalPageFixture = (acceptancePage) => {
+  const factory = acceptancePage?.value;
+  const [fixtures, use] = factory?.params ?? [];
+  const [contextDeclaration, lifecycle] = factory?.body?.body ?? [];
+  const context = contextDeclaration?.declarations?.[0];
+  const contextCall = context?.init?.argument;
+  const authorized = lifecycle?.block?.body?.[0];
+  const page = lifecycle?.block?.body?.[1];
+  const closed = lifecycle?.finalizer?.body?.[0];
+  return (
+    isFunction(factory) &&
+    factory.body.type === "BlockStatement" &&
+    factory.body.body.length === 2 &&
+    isFixtureParameter(fixtures, ["runtime", "scenario"]) &&
+    use?.type === "Identifier" &&
+    contextDeclaration?.type === "VariableDeclaration" &&
+    contextDeclaration.declarations.length === 1 &&
+    context?.id.type === "Identifier" &&
+    context.init?.type === "AwaitExpression" &&
+    contextCall?.type === "CallExpression" &&
+    contextCall.arguments.length === 0 &&
+    contextCall.callee.type === "MemberExpression" &&
+    !contextCall.callee.computed &&
+    contextCall.callee.property.type === "Identifier" &&
+    contextCall.callee.property.name === "newContext" &&
+    contextCall.callee.object.type === "MemberExpression" &&
+    !contextCall.callee.object.computed &&
+    contextCall.callee.object.object.type === "Identifier" &&
+    contextCall.callee.object.object.name === "runtime" &&
+    contextCall.callee.object.property.type === "Identifier" &&
+    contextCall.callee.object.property.name === "browser" &&
+    lifecycle?.type === "TryStatement" &&
+    lifecycle.block.body.length === 2 &&
+    authorized?.type === "ExpressionStatement" &&
+    awaitedDirectCall(
+      authorized.expression,
+      "runtime",
+      "authorizeBrowserContext",
+    ) &&
+    authorized.expression.argument.arguments.length === 2 &&
+    authorized.expression.argument.arguments[0]?.type === "Identifier" &&
+    authorized.expression.argument.arguments[0].name === "scenario" &&
+    authorized.expression.argument.arguments[1]?.type === "Identifier" &&
+    authorized.expression.argument.arguments[1].name === context.id.name &&
+    isAwaitedUse(page, use.name, (value) =>
+      awaitedDirectCall(value, context.id.name, "newPage"),
+    ) &&
+    lifecycle.finalizer?.body.length === 1 &&
+    closed?.type === "ExpressionStatement" &&
+    awaitedDirectCall(closed.expression, context.id.name, "close")
+  );
+};
+
+const isCanonicalFixtureShape = (declaration, sourceCode) => {
+  const fixtureObject = declaration?.init?.arguments?.[0];
+  if (
+    fixtureObject?.type !== "ObjectExpression" ||
+    fixtureObject.properties.length !== SCENARIO_FIXTURES.size ||
+    fixtureObject.properties.some(
+      (entry) =>
+        entry.type !== "Property" ||
+        entry.computed ||
+        entry.kind !== "init" ||
+        entry.method,
+    )
+  )
+    return false;
+  const fixture = (name) => {
+    const matches = fixtureObject.properties.filter(
+      (entry) => propertyName(entry) === name,
+    );
+    return matches.length === 1 ? matches[0] : undefined;
+  };
+  const runtime = fixture("runtime");
+  const scenario = fixture("scenario");
+  const acceptancePage = fixture("acceptancePage");
+  return (
+    fixtureObject.properties.every((entry) =>
+      SCENARIO_FIXTURES.has(propertyName(entry)),
+    ) &&
+    isCanonicalRuntimeFixture(runtime, sourceCode) &&
+    isCanonicalScenarioFixture(scenario) &&
+    isCanonicalPageFixture(acceptancePage)
   );
 };
 
@@ -492,7 +621,7 @@ const isCanonicalFixtureExport = (node, sourceCode) => {
       "test",
       "@playwright/test",
     ) &&
-    isCanonicalRuntimeFixture(declaration, sourceCode)
+    isCanonicalFixtureShape(declaration, sourceCode)
   );
 };
 
@@ -700,6 +829,11 @@ export default {
     const reportObjectPattern = (node) => {
       const pattern = node?.type === "AssignmentPattern" ? node.left : node;
       if (pattern?.type !== "ObjectPattern") return;
+      const scenarioFixturePattern = isScenarioFixturePattern(
+        pattern,
+        info,
+        context.sourceCode,
+      );
       const sourceRoot = memberRoot(objectPatternSource(pattern));
       for (const property of pattern.properties) {
         if (property.type !== "Property") continue;
@@ -715,7 +849,9 @@ export default {
               ? key.value
               : undefined;
         if (name === undefined) continue;
-        if (name === "extend")
+        if (scenarioFixturePattern && !SCENARIO_FIXTURES.has(name))
+          context.report({ node: property, messageId: "fixture" });
+        else if (name === "extend")
           context.report({ node: property, messageId: "fixture" });
         else if (name === "describe" && testAliases.has(sourceRoot))
           context.report({ node: property, messageId: "annotation" });
@@ -982,9 +1118,10 @@ export default {
         if (
           !configFile &&
           node.computed &&
-          node.property.type === "Literal" &&
-          typeof node.property.value === "string" &&
-          DYNAMIC_CODE_NAMES.has(node.property.value)
+          ((node.property.type === "Literal" &&
+            typeof node.property.value === "string" &&
+            DYNAMIC_CODE_NAMES.has(node.property.value)) ||
+            (isGlobalRoot(node.object) && node.property.type !== "Literal"))
         ) {
           context.report({ node, messageId: "import" });
           return;

@@ -896,15 +896,21 @@ test("record appears", async ({ acceptancePage: page }) => { await proxy(page); 
       code: `import { test as base } from "@playwright/test";
 import { createContractsRuntimeController } from "./runtime";
 export const test = base.extend({
-  runtime: [async ({}, use) => {
+  runtime: [async ({ playwright: _playwright }, use) => {
+    void _playwright;
     const controller = createContractsRuntimeController();
-    const runtime = await controller.start();
-    try { await use(runtime); } finally { await controller.stop(); }
+    const activeRuntime = await controller.start();
+    try { await use(activeRuntime); } finally { await controller.stop(); }
   }, { scope: "worker", auto: true }],
-  scenario: async ({ runtime }, use) => use(await runtime.provisionScenario()),
-  acceptancePage: async ({ runtime }, use) => {
+  scenario: async ({ runtime }, use) => {
+    await use(await runtime.provisionScenario());
+  },
+  acceptancePage: async ({ runtime, scenario }, use) => {
     const context = await runtime.browser.newContext();
-    await use(await context.newPage());
+    try {
+      await runtime.authorizeBrowserContext(scenario, context);
+      await use(await context.newPage());
+    } finally { await context.close(); }
   },
 });`,
     },
@@ -915,6 +921,50 @@ export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.sp
     },
   ],
   invalid: [
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const make = globalThis["Fun" + "ction"];
+test("record appears", { tag: "@BHV-REC-001-R1" }, async ({ runtime }) => {
+  await make("return import('../../../apps/web/src/router.tsx')")();
+  await runtime.runCli();
+});`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({ playwright: _playwright }, use) => {
+    void _playwright;
+    const controller = createContractsRuntimeController();
+    const activeRuntime = await controller.start();
+    try { await use(activeRuntime); } finally { await controller.stop(); }
+  }, { scope: "worker", auto: true }],
+  scenario: async ({ runtime }, use) => {
+    await use(await runtime.provisionScenario());
+  },
+  acceptancePage: async ({ runtime, scenario }, use) => {
+    const context = await runtime.browser.newContext();
+    try {
+      await runtime.authorizeBrowserContext(scenario, context);
+      await use(await context.newPage());
+    } finally { await context.close(); }
+  },
+  canned: async ({ runtime }, use) => use("counterfeit"),
+});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { expect, test } from "./support/fixtures";
+test("record appears", { tag: "@BHV-REC-001-R1" }, async ({ runtime, canned }) => {
+  void runtime;
+  expect(canned).toBe("counterfeit");
+});`,
+      errors: [{ messageId: "fixture" }],
+    },
     {
       filename: ACCEPTANCE_RUNTIME,
       code: `const identity = (value) => value;
@@ -1079,6 +1129,7 @@ test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
   await page.goto("https://example.com/records");
 });`,
       errors: [
+        { messageId: "fixture" },
         { messageId: "browser" },
         { messageId: "browser" },
         { messageId: "browser" },
@@ -1286,7 +1337,7 @@ export const test = base.extend({
 });
 export { expect };
 export const unsafeTest = base;`,
-      errors: [{ messageId: "fixture" }],
+      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
     },
     {
       filename: "tests/acceptance/support/fixtures.ts",
@@ -1300,7 +1351,7 @@ export const test = base.extend({
   }, { scope: "worker", auto: true }],
 });
 export default base;`,
-      errors: [{ messageId: "fixture" }],
+      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
     },
     {
       filename: "tests/acceptance/support/fixtures.ts",
@@ -1314,7 +1365,7 @@ export const test = base.extend({
   }, { scope: "worker", auto: true }],
 });
 export * from "./runtime";`,
-      errors: [{ messageId: "fixture" }],
+      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
     },
     {
       filename: ACCEPTANCE,

@@ -2443,6 +2443,7 @@ describe("saas application blueprint", () => {
       "check:deploy-authority",
       "test:mutation",
       "test:chassis-ci",
+      "test:acceptance-tooling",
       "test:release-filesystem",
       "check:recipes",
       "check:workflow-version-immutability",

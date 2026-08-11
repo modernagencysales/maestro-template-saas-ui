@@ -44,6 +44,19 @@ describe("customer chassis Woodpecker admission", () => {
     expect(packageJson.scripts.verify).toContain("pnpm acceptance:required");
   });
 
+  it("runs fast acceptance tooling from the root test command", () => {
+    const packageJson = JSON.parse(read("package.json")) as {
+      readonly scripts: Readonly<Record<string, string>>;
+    };
+
+    expect(packageJson.scripts["test:acceptance-tooling"]).toBe(
+      "vitest run tooling/acceptance/*.test.mts examples/saas-application/seed/source/tests/runtime.test.ts --maxWorkers=1 --no-file-parallelism",
+    );
+    expect(
+      packageJson.scripts.test.match(/pnpm test:acceptance-tooling/gmu),
+    ).toHaveLength(1);
+  });
+
   it("binds root product admissions directly to non-skippable TSX commands", () => {
     const packageJson = JSON.parse(read("package.json")) as {
       readonly scripts: Readonly<Record<string, string>>;

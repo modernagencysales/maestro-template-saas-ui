@@ -538,6 +538,16 @@ const readTrustedContract = (
     contractRelativePath,
   ]);
   if (listing === "") {
+    if (
+      allowFirstContract &&
+      readGit(["rev-parse", "--is-shallow-repository"]) === "true"
+    )
+      return {
+        contract: null,
+        findings: [
+          "shallow Git history cannot bootstrap the first product contract",
+        ],
+      };
     const history = readGit([
       "log",
       "--format=%H",

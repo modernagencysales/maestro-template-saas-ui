@@ -677,6 +677,69 @@ behaviors:
     }
   });
 
+  it("rejects bootstrap from a shallow clone", async () => {
+    const source = await mkdtemp(join(tmpdir(), "product-contract-source-"));
+    const shallow = await mkdtemp(join(tmpdir(), "product-contract-shallow-"));
+    const git = (cwd: string, args: readonly string[]) =>
+      execFileSync("git", [...args], {
+        cwd,
+        encoding: "utf8",
+        env: { ...process.env, LEFTHOOK: "0" },
+      });
+    git(source, ["init", "-q", "-b", "main"]);
+    git(source, ["config", "user.email", "test@example.com"]);
+    git(source, ["config", "user.name", "Test"]);
+    writeFileSync(join(source, "README.md"), "root\n");
+    git(source, ["add", "README.md"]);
+    git(source, ["commit", "-qm", "root"]);
+    writeFileSync(join(source, "README.md"), "base\n");
+    git(source, ["add", "README.md"]);
+    git(source, ["commit", "-qm", "base"]);
+    git(source, ["switch", "-q", "-c", "feature"]);
+    writeFileSync(join(source, contractPath), contractYaml("draft"));
+    await generateProductContract({
+      repoRoot: source,
+      sourceRoot: ".",
+      readAcceptanceReport: async () =>
+        reportFor("tests/acceptance/records.spec.ts", source),
+    });
+    git(source, ["add", contractPath, schemaPath, generatedPath]);
+    git(source, ["commit", "-qm", "first contract"]);
+    git(source, [
+      "clone",
+      "-q",
+      "--depth=2",
+      "--branch",
+      "feature",
+      `file://${source}`,
+      shallow,
+    ]);
+    git(shallow, [
+      "fetch",
+      "-q",
+      "--depth=1",
+      "origin",
+      "main:refs/remotes/origin/main",
+    ]);
+    const previousBranch = process.env.CI_COMMIT_TARGET_BRANCH;
+    process.env.CI_COMMIT_TARGET_BRANCH = "main";
+    try {
+      const findings = await checkProductContract({
+        repoRoot: shallow,
+        sourceRoot: ".",
+        allowFirstContract: true,
+        resolveAppMapNodeIds: async () => new Set(),
+        readAcceptanceReport: async () =>
+          reportFor("tests/acceptance/records.spec.ts", shallow),
+      });
+      expect(findings.join("\n")).toMatch(/shallow.*bootstrap/i);
+    } finally {
+      if (previousBranch === undefined)
+        delete process.env.CI_COMMIT_TARGET_BRANCH;
+      else process.env.CI_COMMIT_TARGET_BRANCH = previousBranch;
+    }
+  });
+
   it("rejects stale bootstrap after the target adds and deletes a contract", async () => {
     const root = await mkdtemp(join(tmpdir(), "product-contract-history-"));
     const git = (args: readonly string[]) =>
