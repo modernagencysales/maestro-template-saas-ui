@@ -20,6 +20,7 @@ import noCrossDomainValueImport from "../no-cross-domain-value-import.mjs";
 import noRawScheduler from "../no-raw-scheduler.mjs";
 import frontendRouteThin from "../frontend-route-thin.mjs";
 import frontendRouteServerBoundary from "../frontend-route-server-boundary.mjs";
+import acceptanceBoundary from "../acceptance-boundary.mjs";
 
 const tester = new RuleTester({
   languageOptions: {
@@ -804,6 +805,112 @@ tester.run("frontend-route-server-boundary", frontendRouteServerBoundary, {
       filename: "apps/web/src/routes/callback.tsx",
       code: "import { getSignUpUrl } from '@workos/authkit-tanstack-react-start'; export const x = getSignUpUrl;",
       errors: [{ messageId: "helper" }],
+    },
+  ],
+});
+
+const ACCEPTANCE = "tests/acceptance/records.spec.ts";
+const ACCEPTANCE_SUPPORT = "tests/acceptance/support/proxy.ts";
+const SEED_ACCEPTANCE =
+  "examples/saas-application/seed/source/tests/acceptance/records.spec.ts";
+const SEED_SUPPORT =
+  "examples/saas-application/seed/source/tests/acceptance/support/proxy.ts";
+
+tester.run("acceptance-boundary", acceptanceBoundary, {
+  valid: [
+    {
+      filename: ACCEPTANCE,
+      code: `import { test, expect } from "@playwright/test";
+import { readFixture } from "./support/fixture";
+import { join } from "node:path";
+test("record appears", async ({ page }) => { await page.goto("/"); expect(await readFixture(join("a", "b"))).toBeTruthy(); });`,
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { test } from "@playwright/test";
+import { proxy } from "./support/proxy";
+test("record appears", async ({ page }) => { await proxy(page); });`,
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `export async function proxy(context, route) {
+  await context.route("**/api/**", (request) => request.continue());
+  await route.fulfill({ json: { ok: true } });
+}`,
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `export async function proxy(context, route) {
+  await context.route("**/api/**", (request) => request.continue());
+  await route.fulfill({ json: { ok: true } });
+}`,
+    },
+  ],
+  invalid: [
+    {
+      filename: ACCEPTANCE,
+      code: `import { db } from "../../../packages/convex/confect/db";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { model } from "../../../apps/web/src/features/records/model";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `test.skip("hidden", async () => {});
+test.fixme(true, "hidden");
+test.fail(true, "expected failure");
+test.only("exclusive", async () => {});`,
+      errors: [
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `await page.route("**/api/**", (route) => route.fulfill({ json: { ok: true } }));
+await context.route("**/api/**", (route) => route.continue());
+await route.fulfill({ json: { ok: true } });
+await page.routeFromHAR("fixture.har");`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `await page.evaluate(() => localStorage.setItem("auth", "fake"));
+await context.addInitScript(() => sessionStorage.setItem("auth", "fake"));`,
+      errors: [{ messageId: "browser" }, { messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const module = await import("./hidden-helper");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `vi.mock("product-module");`,
+      errors: [{ messageId: "mock" }],
+    },
+    {
+      // A support helper remains inside the acceptance tree and therefore
+      // cannot launder a product import through the audited proxy exception.
+      filename: ACCEPTANCE_SUPPORT,
+      code: `import { model } from "../../../apps/web/src/features/records/model";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await page.route("**/api/**", (route) => route.fulfill({ json: { ok: true } }));`,
+      errors: [{ messageId: "network" }],
     },
   ],
 });

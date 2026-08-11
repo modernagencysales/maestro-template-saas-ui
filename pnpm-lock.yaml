@@ -39,7 +39,7 @@ importers:
         specifier: ^9.0.0
         version: 9.39.4
       "@playwright/test":
-        specifier: ^1.45.0
+        specifier: 1.61.1
         version: 1.61.1
       "@stryker-mutator/core":
         specifier: 9.6.1

@@ -110,4 +110,14 @@ export default [
       "template/frontend-route-server-boundary": "error",
     },
   },
+  {
+    files: [
+      "tests/acceptance/**/*.{ts,tsx,mts,cts}",
+      "examples/*/seed/source/tests/acceptance/**/*.{ts,tsx,mts,cts}",
+    ],
+    plugins: { template: templatePlugin },
+    rules: {
+      "template/acceptance-boundary": "error",
+    },
+  },
 ];

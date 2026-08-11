@@ -137,7 +137,7 @@
     "@cucumber/cucumber": "13.2.0",
     "@effect/language-service": "0.87.1",
     "@eslint/js": "^9.0.0",
-    "@playwright/test": "^1.45.0",
+    "@playwright/test": "1.61.1",
     "@stryker-mutator/core": "9.6.1",
     "@stryker-mutator/typescript-checker": "9.6.1",
     "@stryker-mutator/vitest-runner": "9.6.1",
