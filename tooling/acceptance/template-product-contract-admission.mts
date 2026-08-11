@@ -19,7 +19,8 @@ const identity = [
 const execFile = promisify(execFileCallback);
 
 export const validateRequiredAcceptanceSummary = (stdout: string): void => {
-  if (!/(?:^|\n)4 required, [4-9]\d* runtime(?:\r?\n|$)/u.test(stdout))
+  const summary = /(?:^|\n)4 required, (\d+) runtime(?:\r?\n|$)/u.exec(stdout);
+  if (summary === null || Number(summary[1]) < 4)
     throw new Error(
       "Generated customer required acceptance must report 4 required behaviors and at least 4 runtime records.",
     );

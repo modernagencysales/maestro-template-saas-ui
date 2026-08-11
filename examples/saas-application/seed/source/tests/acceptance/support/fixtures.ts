@@ -6,13 +6,16 @@ import {
   type ContractsScenario,
 } from "./runtime";
 
-type Fixtures = {
-  readonly runtime: ContractsRuntime;
+type TestFixtures = {
   readonly scenario: ContractsScenario;
   readonly acceptancePage: import("@playwright/test").Page;
 };
 
-export const test = base.extend<Fixtures>({
+type WorkerFixtures = {
+  readonly runtime: ContractsRuntime;
+};
+
+export const test = base.extend<TestFixtures, WorkerFixtures>({
   runtime: [
     async ({ playwright: _playwright }, use) => {
       void _playwright;
@@ -24,7 +27,7 @@ export const test = base.extend<Fixtures>({
         await controller.stop();
       }
     },
-    { scope: "worker" },
+    { scope: "worker", auto: true },
   ],
   scenario: async ({ runtime }, use) => {
     await use(await runtime.provisionScenario());

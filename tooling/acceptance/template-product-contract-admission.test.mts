@@ -2,12 +2,13 @@ import { describe, expect, it } from "vitest";
 import { validateRequiredAcceptanceSummary } from "./template-product-contract-admission.mts";
 
 describe("required acceptance admission summary", () => {
-  it.each(["4 required, 4 runtime", "4 required, 5 runtime"])(
-    "accepts %s",
-    (stdout) => {
-      expect(() => validateRequiredAcceptanceSummary(stdout)).not.toThrow();
-    },
-  );
+  it.each([
+    "4 required, 4 runtime",
+    "4 required, 5 runtime",
+    "4 required, 10 runtime",
+  ])("accepts %s", (stdout) => {
+    expect(() => validateRequiredAcceptanceSummary(stdout)).not.toThrow();
+  });
 
   it.each([
     ["missing required coverage", "3 required, 5 runtime"],

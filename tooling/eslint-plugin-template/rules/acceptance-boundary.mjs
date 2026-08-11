@@ -4,7 +4,7 @@ const ACCEPTANCE_MARKER = "tests/acceptance/";
 const ALLOWED_IMPORT = new Set(["@playwright/test"]);
 const ANNOTATIONS = new Set(["skip", "fixme", "fail", "only"]);
 const NETWORK_APIS = new Set(["route", "routeFromHAR"]);
-const BROWSER_APIS = new Set(["evaluate", "addInitScript"]);
+const BROWSER_APIS = new Set(["evaluate", "addInitScript", "setContent"]);
 
 const pathInfo = (filename) => {
   const normalized = filename.replace(/\\/gu, "/");
@@ -100,6 +100,16 @@ const isDirectMemberCall = (node, objectName, propertyName) => {
     member.object.name === objectName &&
     member.property.type === "Identifier" &&
     member.property.name === propertyName
+  );
+};
+
+const isLiteralCannedNavigation = (node) => {
+  const target = node.arguments[0];
+  return (
+    propertyNames(node.callee).includes("goto") &&
+    target?.type === "Literal" &&
+    typeof target.value === "string" &&
+    /^(?:data|file):/iu.test(target.value)
   );
 };
 
@@ -390,7 +400,10 @@ export default {
             context.report({ node: node.callee, messageId: "network" });
           return;
         }
-        if (names.some((name) => BROWSER_APIS.has(name)))
+        if (
+          names.some((name) => BROWSER_APIS.has(name)) ||
+          isLiteralCannedNavigation(node)
+        )
           context.report({ node: node.callee, messageId: "browser" });
         else if (
           memberIsComputed(node.callee) ||

@@ -238,6 +238,9 @@ describe("saas application blueprint", () => {
       "tests/acceptance/support/runtime.ts",
     ])
       expect(records.has(path), path).toBe(true);
+    expect(records.get("tests/acceptance/support/fixtures.ts")).toContain(
+      '{ scope: "worker", auto: true }',
+    );
     expect(records.get("product.contract.yaml")).toContain("BHV-REC-004");
     expect(
       buildSaasApplicationTargetPlan({

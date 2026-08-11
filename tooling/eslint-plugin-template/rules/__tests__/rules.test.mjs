@@ -880,13 +880,28 @@ test("record appears", async ({ acceptancePage: page }) => { await proxy(page); 
   ],
   invalid: [
     {
+      // A canonical fixture import is insufficient when a scenario can still
+      // use the built-in page fixture to assert canned markup.
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
+  await page.setContent("<h1>Record</h1>");
+  await page.goto("data:text/html,<h1>Record</h1>");
+  await page.goto("file:///tmp/record.html");
+});`,
+      errors: [
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+      ],
+    },
+    {
       // A tagged scenario must use the generated-customer fixture; bare
       // Playwright can pass admission against canned markup without startup.
       filename: ACCEPTANCE,
       code: `import { expect, test } from "@playwright/test";
-test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
-  await page.setContent("<h1>Record</h1>");
-  await expect(page.getByRole("heading", { name: "Record" })).toBeVisible();
+test("uses bare Playwright", { tag: "@BHV-REC-001-R1" }, async () => {
+  expect(true).toBe(true);
 });`,
       errors: [{ messageId: "fixture" }],
     },
@@ -895,9 +910,7 @@ test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
       // Playwright test object around the generated-customer runtime.
       filename: SEED_ACCEPTANCE,
       code: `import { test } from "./support/playwright";
-test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
-  await page.setContent("<h1>Record</h1>");
-});`,
+test("uses a re-export", { tag: "@BHV-REC-001-R1" }, async () => {});`,
       errors: [{ messageId: "fixture" }],
     },
     {
