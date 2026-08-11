@@ -4,8 +4,10 @@ import { tmpdir } from "node:os";
 import { delimiter, isAbsolute, join, relative } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath } from "node:url";
-import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
-import { isWorkflowAutomationPath } from "../../../../tooling/generators/src/blueprints/saasApplicationPatterns";
+import {
+  buildSaasApplicationTargetPlan,
+  isWorkflowAutomationPath,
+} from "@maestro-template/generators";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   CURRENT_PUBLIC_SOURCE,

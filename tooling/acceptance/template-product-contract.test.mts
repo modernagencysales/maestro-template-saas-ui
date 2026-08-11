@@ -5,6 +5,10 @@ import {
   checkTemplateProductContract,
   withMaterializedRecordsCustomer,
 } from "./template-product-contract.mts";
+import {
+  runRequiredAcceptanceAdmission,
+  runStructuralProductContractAdmission,
+} from "./template-product-contract-admission.mts";
 
 const repoRoot = new URL("../..", import.meta.url).pathname;
 
@@ -46,4 +50,16 @@ describe("template product contract adapter", () => {
       } as Parameters<typeof checkTemplateProductContract>[0]),
     ).rejects.toThrow();
   }, 30_000);
+});
+
+describe("template product contract admission", () => {
+  it("validates a prepared generated customer structurally", async () => {
+    await expect(
+      runStructuralProductContractAdmission(),
+    ).resolves.toBeUndefined();
+  }, 900_000);
+
+  it("executes required generated-customer behavior", async () => {
+    await expect(runRequiredAcceptanceAdmission()).resolves.toBeUndefined();
+  }, 900_000);
 });

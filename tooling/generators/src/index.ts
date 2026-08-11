@@ -34,6 +34,10 @@ export {
   buildSaasApplicationFiles,
   buildSaasApplicationTargetPlan,
 } from "./blueprints/saasApplication";
+export {
+  isRecordsOnlyWorkflowProvenancePath,
+  isWorkflowAutomationPath,
+} from "./blueprints/saasApplicationPatterns";
 export { buildSaasApplicationAlpha2TargetPlan } from "./blueprints/alpha2SaasApplicationPlan";
 import { buildWorkflowFiles } from "./workflow-files";
 export { buildWorkflowFiles } from "./workflow-files";
@@ -47,6 +51,7 @@ export {
   type PrivatePackagePlan,
 } from "./private-package";
 export { parseCustomerTemplateInstance } from "./customer-runtime";
+export { createTemplateInstanceMigration } from "./templateInstanceMigration";
 
 export type ProviderMode = "fake" | "test" | "live";
 export type SystemGeneratorDisposition = "reuse" | "extend";

@@ -7,7 +7,7 @@ import {
   renderProductContractMarkdown,
   validateProductContract,
   type ProductContract,
-} from "../../../../packages/template-core/src/productContract";
+} from "@maestro-template/template-core";
 import {
   buildCurrentRecordsExampleFiles,
   buildCurrentSaasApplicationChassisFiles,
@@ -152,8 +152,6 @@ const currentCustomerSource = (
     path === "packages/convex/confect/workflows/_generated/workflowRegistry.ts"
   )
     return customerSourcePath(path);
-  if (path === "packages/convex/tsconfig.json")
-    content = content.replace('    "test/**/*.ts",\n', "");
   if (path === "apps/web/src/adapters/confect-generated-refs.test.ts") {
     const replacements = [
       [
@@ -234,11 +232,6 @@ const currentCustomerSourceProjections = (
 ): readonly GeneratedFile[] =>
   CURRENT_CUSTOMER_SOURCE_PROJECTIONS.filter(
     (path) =>
-      !(
-        selectsSaasApplicationPattern(selection, "records-example") &&
-        !selectsSaasApplicationPattern(selection, "workflow-automation") &&
-        path === "apps/web/src/routeTree.gen.ts"
-      ) &&
       (selectsSaasApplicationPattern(selection, "records-example") ||
         path !== "tooling/generators/src/crud-proof.test.ts") &&
       (selectsSaasApplicationPattern(selection, "workflow-automation") ||

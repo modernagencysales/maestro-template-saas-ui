@@ -15,12 +15,12 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
-import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import {
+  buildSaasApplicationTargetPlan,
   isRecordsOnlyWorkflowProvenancePath,
   isWorkflowAutomationPath,
-} from "../../../../tooling/generators/src/blueprints/saasApplicationPatterns";
+} from "@maestro-template/generators";
+import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import { afterAll, afterEach, beforeAll, describe, expect, it } from "vitest";
 import { runCliAsync } from "../index";
 import { CREATE_HELP } from "./create";
@@ -803,6 +803,7 @@ describe("create root integration", () => {
     mkdirSync(targetRoot, { recursive: true });
     applyCurrentSaasProjection(targetRoot, {
       name: "Records Example",
+      firstOutcome: "Manage shared records",
       patterns: ["records-example"],
     });
     const packageJson = JSON.parse(

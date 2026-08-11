@@ -68,6 +68,7 @@ const FACTORY_PRODUCT_TABLES = [
 const FACTORY_ONLY_EXACT = new Set([
   "apps/cli/src/factory/customerCandidateFixture.ts",
   "CLAUDE.md",
+  "cucumber.cjs",
   "skills-lock.json",
   "schemas/maestro-customer-release-manifest.schema.json",
   "docs/template/do-not-port-register.md",

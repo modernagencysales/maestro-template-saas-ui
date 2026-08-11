@@ -10,15 +10,15 @@ import {
 } from "node:fs";
 import { tmpdir } from "node:os";
 import { join, relative, sep } from "node:path";
-import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
+import {
+  buildSaasApplicationTargetPlan,
+  createTemplateInstanceMigration,
+  isRecordsOnlyWorkflowProvenancePath,
+  isWorkflowAutomationPath,
+} from "@maestro-template/generators";
 import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import { createReleaseTemplateInstanceConsumer } from "@maestro-template/release-tooling/customer-create";
 import { templateInstanceSchemaProvider } from "@maestro-template/template-core/templateInstance";
-import { createTemplateInstanceMigration } from "../../../../tooling/generators/src/templateInstanceMigration";
-import {
-  isRecordsOnlyWorkflowProvenancePath,
-  isWorkflowAutomationPath,
-} from "../../../../tooling/generators/src/blueprints/saasApplicationPatterns";
 import {
   loadCustomerCreateComposition,
   type CustomerCompositionSource,

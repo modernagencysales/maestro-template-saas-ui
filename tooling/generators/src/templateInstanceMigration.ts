@@ -29,7 +29,7 @@ type ResolutionPacket = {
   readonly status: "compatible" | "migratable" | "unsupported" | "newer";
   readonly code: string;
   readonly safeToContinueReadOnly: true;
-  readonly recovery: { readonly action: string };
+  readonly recovery: { readonly kind: string; readonly action: string };
   readonly [key: string]: unknown;
 };
 
@@ -181,6 +181,7 @@ export const createTemplateInstanceMigration = <
 
   const migrateTemplateInstance = (
     input: unknown,
+    // eslint-disable-next-line complexity -- AP-008 tracks splitting migration-result compatibility branches.
   ): TemplateInstanceMigrationResult<Instance> => {
     if (!isRecord(input)) {
       return {
