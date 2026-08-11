@@ -6,6 +6,8 @@ coverage/
 .stryker-tmp/
 .turbo/
 .maestro/
+.superpowers/sdd/
+packages/convex/.convex/
 .claude/settings.json
 apps/*/dist/
 packages/*/dist/
