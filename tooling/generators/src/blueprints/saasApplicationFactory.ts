@@ -6,6 +6,7 @@ import {
   buildCurrentSaasApplicationChassisFiles,
   buildSaasApplicationFiles,
 } from "./saasApplication";
+import { saasFrontendFoundationFiles } from "./saasFrontendFoundation";
 import {
   selectsSaasApplicationPattern,
   type SaasApplicationPatternSelection,
@@ -13,6 +14,7 @@ import {
 import {
   buildSaasRegistrationProjections,
   CURRENT_FACTORY_PRODUCT_TABLES,
+  currentSource,
 } from "./saasRegistrationProjections";
 
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
@@ -511,12 +513,25 @@ export const buildFactorySaasApplicationFiles = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
   readonly patterns?: SaasApplicationPatternSelection["patterns"];
-}): readonly GeneratedFile[] =>
-  projectWorkflowCommandReferences(
+}): readonly GeneratedFile[] => {
+  const currentFiles = currentSaasApplicationFiles(options);
+  const contractFiles = currentContractFiles(options);
+  const registrationFiles = buildSaasRegistrationProjections({
+    patterns: options.patterns,
+  });
+  const existingPaths = new Set(
+    [...currentFiles, ...contractFiles, ...registrationFiles].map(
+      ({ path }) => path,
+    ),
+  );
+  return projectWorkflowCommandReferences(
     [
-      ...currentSaasApplicationFiles(options),
-      ...currentContractFiles(options),
-      ...buildSaasRegistrationProjections({ patterns: options.patterns }),
+      ...currentFiles,
+      ...contractFiles,
+      ...registrationFiles,
+      ...saasFrontendFoundationFiles(currentSource).filter(
+        ({ path }) => !existingPaths.has(path),
+      ),
       ...currentCustomerSourceProjections(options),
       ...(selectsSaasApplicationPattern(options, "records-example")
         ? [recordsFeatureProvenance()]
@@ -524,6 +539,7 @@ export const buildFactorySaasApplicationFiles = (options: {
     ],
     options,
   );
+};
 
 /** Historical projection used only to reproduce the immutable alpha.1 plan. */
 export const buildAlpha1SaasApplicationFiles = (options: {

@@ -653,13 +653,16 @@ const SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS = [
   [".claude/settings.json", "generate"],
   [".npmrc", "copy"],
   [".prettierignore", "copy"],
+  ["apps/web/tsconfig.json", "copy"],
   ["agent-patterns/effect-confect.md", "copy"],
   ["AGENTS.md", "copy"],
   ["README.md", "copy"],
   ["apps/cli/src/commands.ts", "copy"],
   ["docs/template/coding-standards.md", "copy"],
+  ["eslint.config.mjs", "copy"],
   ["packages/convex/confect/headless/auth.ts", "copy"],
   ["tooling/quality/src/check-definitions.mts", "copy"],
+  ["tooling/eslint-plugin-template/index.mjs", "copy"],
 ] as const;
 
 const targetEntryIdentity = (

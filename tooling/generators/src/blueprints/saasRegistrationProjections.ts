@@ -38,7 +38,7 @@ const customerEngineeringRules = (workflowSelected: boolean): string => {
     .join("\n");
 };
 
-const currentSource = (path: string): string => {
+export const currentSource = (path: string): string => {
   const url = new URL(`../../../../${path}`, import.meta.url);
   return existsSync(url) ? readFileSync(url, "utf8") : releasedSource(path);
 };
@@ -291,7 +291,6 @@ export const CURRENT_EMAIL_CLOSURE = [
   "packages/notifications/src/index.ts",
   "packages/template-core/src/actions.test.ts",
   "packages/template-core/src/index.ts",
-  "packages/ui/src/visualize/visualize.test.tsx",
   "project.config.json",
   "tooling/confect-manifest/src/generate.ts",
   "tooling/quality/check-env-boundary.mts",
@@ -325,7 +324,6 @@ export const CURRENT_EMAIL_BASE_COPY_REPLACEMENTS = [
   "packages/notifications/src/index.ts",
   "packages/template-core/src/actions.test.ts",
   "packages/template-core/src/index.ts",
-  "packages/ui/src/visualize/visualize.test.tsx",
   "project.config.json",
   "tooling/confect-manifest/src/generate.ts",
   "tooling/quality/check-env-boundary.mts",
@@ -354,6 +352,7 @@ const currentCustomerRootTestExclusions = (): string =>
   exclusionArguments(CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS);
 
 export const CUSTOMER_ROOT_SCRIPTS = [
+  "check:saas-ui-foundation",
   "maestro",
   "acceptance:syntax",
   "acceptance:check",
@@ -1250,7 +1249,7 @@ const confectDocs = (
 const routeTree = (current: boolean, recordsSelected: boolean): string => {
   let value = current
     ? currentGeneratorSource("blueprints/customer/routeTree.gen.ts.txt")
-    : source("apps/web/src/routeTree.gen.ts");
+    : releasedSource("apps/web/src/routeTree.gen.ts");
   if (current) {
     value = replace(
       value,
