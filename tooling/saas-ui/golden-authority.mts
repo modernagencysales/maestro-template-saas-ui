@@ -30,6 +30,7 @@ const starterRoot =
   "/Users/headless/.tmp/saas-ui-tanstack-pro";
 const starterPin = "b76cb4514b9ab47f7db87901cb9b593b4adc3129";
 const referenceCompatibilityPaths = new Set([
+  "apps/web/src/theme/semantic-tokens/colors.ts",
   "apps/web/src/features/auth/auth-provider.tsx",
   "apps/web/src/features/common/components/app-sidebar.tsx",
   "apps/web/src/features/common/components/billing-status.tsx",

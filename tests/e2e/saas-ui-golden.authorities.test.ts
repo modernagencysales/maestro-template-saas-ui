@@ -167,6 +167,7 @@ describe("golden browser authority startup", () => {
       "if (referenceCompatibilityPaths.has(file.destination)) continue;",
     );
     for (const path of [
+      "apps/web/src/theme/semantic-tokens/colors.ts",
       "apps/web/src/features/common/components/app-sidebar.tsx",
       "apps/web/src/features/common/hooks/use-current-user.ts",
       "apps/web/src/features/common/hooks/use-current-workspace.ts",
