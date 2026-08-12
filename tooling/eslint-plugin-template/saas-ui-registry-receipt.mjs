@@ -46,6 +46,12 @@ function receiptEntries(receiptPath) {
   return entries;
 }
 
+export function saasUiRegistryReceiptFiles(receiptPath) {
+  return [...receiptEntries(receiptPath)].sort((left, right) =>
+    left.localeCompare(right, "en"),
+  );
+}
+
 export function isSaasUiRegistryReceiptFile(filename, receiptPath) {
   const normalizedFilename = normalize(filename);
   if (!normalizedFilename.startsWith("/")) {

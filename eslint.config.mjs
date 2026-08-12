@@ -1,6 +1,26 @@
 import js from "@eslint/js";
 import templatePlugin from "./tooling/eslint-plugin-template/index.mjs";
+import { saasUiRegistryReceiptFiles } from "./tooling/eslint-plugin-template/saas-ui-registry-receipt.mjs";
 import tseslint from "typescript-eslint";
+
+export const saasUiRegistryStandardRuleOverrides = Object.freeze({
+  "@typescript-eslint/no-empty-object-type": "off",
+  "@typescript-eslint/no-explicit-any": "off",
+  "@typescript-eslint/no-non-null-assertion": "off",
+  "@typescript-eslint/no-unused-vars": "off",
+});
+
+export function saasUiRegistryReceiptConfig(receiptPath) {
+  const files = saasUiRegistryReceiptFiles(receiptPath);
+  return files.length === 0
+    ? null
+    : {
+        files,
+        rules: saasUiRegistryStandardRuleOverrides,
+      };
+}
+
+const saasUiRegistryConfig = saasUiRegistryReceiptConfig();
 
 const shiftLeft =
   globalThis.process.env.ESLINT_SHIFT_LEFT === "1" ? "error" : "off";
@@ -124,4 +144,5 @@ export default [
       "template/saas-ui-semantic-colors": "error",
     },
   },
+  ...(saasUiRegistryConfig ? [saasUiRegistryConfig] : []),
 ];
