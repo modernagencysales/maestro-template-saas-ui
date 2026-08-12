@@ -5,6 +5,7 @@ import {
   rmSync,
   writeFileSync,
 } from "node:fs";
+import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
@@ -15,6 +16,7 @@ import {
   readSaasUiDeviations,
   readSaasUiManifest,
   readSaasUiRegistryFiles,
+  hasExecutableEvidenceDeclaration,
 } from "./saas-ui-foundation.js";
 
 const root = process.cwd();
@@ -115,6 +117,55 @@ describe("Saas UI foundation authorities", () => {
       } finally {
         rmSync(temporaryRoot, { recursive: true, force: true });
       }
+    },
+  );
+
+  it("rejects a preference reason even when the JSON digest is recomputed", () => {
+    const authority = JSON.parse(
+      readFileSync(join(root, "docs/template/saas-ui-deviations.json"), "utf8"),
+    ) as {
+      deviations: Array<Record<string, unknown>>;
+      authorityDigest: string;
+    };
+    const first = authority.deviations[0];
+    if (!first) throw new Error("missing deviation fixture");
+    first.reason = "aesthetic preference";
+    authority.authorityDigest = createHash("sha256")
+      .update(JSON.stringify(authority.deviations))
+      .digest("hex");
+    const temporaryRoot = mkdtempSync(
+      join(tmpdir(), "saas-ui-deviation-preference-"),
+    );
+    try {
+      mkdirSync(join(temporaryRoot, "docs/template"), { recursive: true });
+      writeFileSync(
+        join(temporaryRoot, "docs/template/saas-ui-deviations.json"),
+        JSON.stringify(authority),
+      );
+      expect(() => readSaasUiDeviations(temporaryRoot)).toThrow(
+        /authority|digest/,
+      );
+    } finally {
+      rmSync(temporaryRoot, { recursive: true, force: true });
+    }
+  });
+
+  it.each([
+    ['// it("proof")', false],
+    ['const proof = "it(\\"proof\\")";', false],
+    ['it.skip("proof", () => {})', false],
+    ['it.todo("proof")', false],
+    ['it("proof")', false],
+    ['it("proof", undefined)', false],
+    ['if (false) it("proof", () => {})', false],
+    ['false && it("proof", () => {})', false],
+    ['function helper() { it("proof", () => {}) }', false],
+    ['it("proof", () => {})', true],
+    ['test.each([[1]])("proof", () => {})', true],
+  ])(
+    "requires an enabled executable evidence declaration",
+    (source, expected) => {
+      expect(hasExecutableEvidenceDeclaration(source, "proof")).toBe(expected);
     },
   );
 });

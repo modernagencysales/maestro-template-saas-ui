@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import ts from "typescript";
 
 const MANIFEST_PATH = "docs/template/saas-ui-upstream.json";
 const DEVIATIONS_PATH = "docs/template/saas-ui-deviations.json";
@@ -11,6 +12,102 @@ const PINS = {
   starter: "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
   pro: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
 } as const;
+export const SAAS_UI_DEVIATIONS_DIGEST =
+  "23267716380058328650dfb9c784c29d10c4088085cafae27b1b75a70f0cabc0";
+
+export function hasExecutableEvidenceDeclaration(
+  source: string,
+  declaration: string,
+): boolean {
+  const sourceFile = ts.createSourceFile(
+    "evidence.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TSX,
+  );
+  const expectedArg = declaration.startsWith("test(")
+    ? declaration.slice(5, declaration.indexOf(", async"))
+    : JSON.stringify(declaration);
+  let found = false;
+  // eslint-disable-next-line complexity -- validates bounded executable test context.
+  const allowedContext = (node: ts.Node): boolean => {
+    for (
+      let current: ts.Node | undefined = node.parent;
+      current;
+      current = current.parent
+    ) {
+      if (
+        ts.isIfStatement(current) ||
+        ts.isConditionalExpression(current) ||
+        (ts.isBinaryExpression(current) &&
+          [
+            ts.SyntaxKind.AmpersandAmpersandToken,
+            ts.SyntaxKind.BarBarToken,
+            ts.SyntaxKind.QuestionQuestionToken,
+          ].includes(current.operatorToken.kind)) ||
+        ts.isSwitchStatement(current) ||
+        (ts.isIterationStatement(current, true) &&
+          !(
+            ts.isForOfStatement(current) &&
+            /(authorities|acceptanceEntries)/u.test(
+              current.expression.getText(sourceFile),
+            )
+          )) ||
+        ts.isTryStatement(current) ||
+        ts.isCatchClause(current)
+      )
+        return false;
+      if (ts.isFunctionLike(current)) {
+        const parent = current.parent;
+        if (!(
+          ts.isCallExpression(parent) &&
+          ((ts.isIdentifier(parent.expression) &&
+            parent.expression.text === "describe") ||
+            (ts.isPropertyAccessExpression(parent.expression) &&
+              parent.expression.name.text === "describe")) &&
+          parent.arguments[1] === current
+        ))
+          return false;
+      }
+    }
+    return true;
+  };
+  // eslint-disable-next-line complexity -- walks a fixed AST call-shape authority.
+  const visit = (node: ts.Node) => {
+    if (found || !ts.isCallExpression(node)) {
+      ts.forEachChild(node, visit);
+      return;
+    }
+    const callee = node.expression;
+    const eachBase = ts.isCallExpression(callee)
+      ? callee.expression
+      : undefined;
+    const validCallee =
+      (ts.isIdentifier(callee) &&
+        (callee.text === "it" || callee.text === "test")) ||
+      (eachBase !== undefined &&
+        ts.isPropertyAccessExpression(eachBase) &&
+        eachBase.name.text === "each" &&
+        ts.isIdentifier(eachBase.expression) &&
+        (eachBase.expression.text === "it" ||
+          eachBase.expression.text === "test"));
+    const callback = node.arguments[1];
+    const callable =
+      callback !== undefined &&
+      (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback));
+    if (
+      validCallee &&
+      callable &&
+      allowedContext(node) &&
+      node.arguments[0]?.getText(sourceFile) === expectedArg
+    )
+      found = true;
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return found;
+}
 const COMPOSITION_IDS = [
   "app-shell",
   "dashboard-report",
@@ -237,7 +334,10 @@ export function readSaasUiDeviations(root: string): readonly SaasUiDeviation[] {
   const digest = createHash("sha256")
     .update(JSON.stringify(deviations))
     .digest("hex");
-  if (digest !== authority.authorityDigest)
+  if (
+    digest !== SAAS_UI_DEVIATIONS_DIGEST ||
+    authority.authorityDigest !== SAAS_UI_DEVIATIONS_DIGEST
+  )
     throw new Error("deviations authority digest mismatch");
   for (const deviation of deviations) {
     for (const path of deviation.evidencePaths) {
@@ -440,6 +540,72 @@ const FACTORY_SUPPORT_DESTINATIONS = new Set([
   "apps/web/src/features/contacts/list/list-page.tsx",
   "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
 ]);
+const DEVIATION_EVIDENCE_AUTHORITY = new Map<string, string>([
+  [
+    "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)|apps/web/src/features/common/components/client-resizer.tsx",
+    "apps/web/src/features/common/components/client-resizer.test.tsx#renders its fallback during SSR without evaluating the browser-only resizer",
+  ],
+  [
+    "@saas-ui-pro/react@1.0.0-next.4:components/resize/resize-handle.tsx:ResizeHandle|apps/web/src/features/common/components/app-sidebar.tsx:ResizeHandle",
+    "apps/web/src/features/common/shell.test.tsx#guards the upstream resizer from SSR and exposes an accessible separator",
+  ],
+  [
+    "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes|apps/web/tsconfig.json:compilerOptions.exactOptionalPropertyTypes",
+    "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target with frozen dependencies",
+  ],
+  [
+    "tsconfig.base.json:compilerOptions.noUncheckedIndexedAccess|apps/web/tsconfig.json:compilerOptions.noUncheckedIndexedAccess",
+    "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target with frozen dependencies",
+  ],
+  [
+    "@chakra-ui/react@3.30.0:components/stat:StatRoot|apps/web/src/features/reports/reports-page.tsx:Churn by tier metric",
+    "apps/web/src/features/reports/reports-page.test.tsx#does not expose the chart legend as an invalid definition-list item",
+  ],
+  [
+    "apps/web/src/features/common/providers/app-provider.tsx:QueryClientProvider/AuthProvider|apps/web/src/features/common/providers/app-provider.tsx",
+    "apps/web/src/features/common/providers/app-provider.test.tsx#closes the generated auth and React Query provider boundary",
+  ],
+  [
+    "@saas-ui-pro/react@1.0.0-next.4:components/resize/Resizer|apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/settings/common/settings-sidebar.tsx",
+    "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider and resizer seams for upstream screens",
+  ],
+  [
+    "apps/web/src/routes/__root.tsx:AppProvider|apps/web/src/routes/__root.tsx",
+    "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider and resizer seams for upstream screens",
+  ],
+  [
+    "apps/web/src/lib/trpc/react.tsx:fake procedure facade|apps/web/src/lib/trpc/react.tsx",
+    "apps/web/src/lib/trpc/react.test.tsx#serves the shared neutral fixtures required by projected SaaS UI screens",
+  ],
+  [
+    "@saas-ui-pro/react@1.0.0-next.4:Aside.Root|apps/web/src/features/contacts/view/contact-page.tsx; apps/web/src/features/contacts/view/contact-sidebar.tsx",
+    "tests/e2e/saas-ui-golden.interactions.spec.ts#test(`${kind} navigates list to detail and switches the record aside`, async ({",
+  ],
+  [
+    "@saas-ui-pro/react@1.0.0-next.4:DataGridColumnResizer|apps/web/src/features/contacts/list/list-page.tsx",
+    "apps/web/src/features/contacts/list/list-page.ssr.test.tsx#renders the data-grid route during SSR without browser globals",
+  ],
+  [
+    "@saas-ui-pro/react@1.0.0-next.4:DataGridSort and DataGridHeaderCell|patches/@saas-ui-pro__react@1.0.0-next.4.patch; apps/web/src/features/contacts/list/list-page.tsx",
+    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} keeps sorting semantics on column headers and names row actions`, async ({",
+  ],
+  [
+    "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx|apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
+    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${entry.id} ${kind} has no serious or critical axe violations`, async ({",
+  ],
+  [
+    "@saas-ui/react:Steps.List dots recipe|apps/web/src/features/getting-started/getting-started-page.tsx:OnboardingProgress",
+    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} exposes the visual step indicator as named progress`, async ({",
+  ],
+  [
+    "@saas-ui/react:BackButtonPrimitive|apps/web/src/components/back-button.tsx",
+    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${entry.id} exposes names and visible keyboard focus on both authorities`, async ({",
+  ],
+  [
+    "@chakra-ui/react semantic token fg.error|apps/web/src/theme/semantic-tokens/colors.ts",
+    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} has no serious or critical dark-mode axe violations`, async ({",
+  ],
+]);
 
 function deviationDestinationPaths(destination: string): readonly string[] {
   return destination.split(";").flatMap((entry) => {
@@ -467,6 +633,16 @@ function validateDeviations(
     }),
   );
   for (const deviation of deviations) {
+    const expectedCheck = DEVIATION_EVIDENCE_AUTHORITY.get(
+      `${deviation.source}|${deviation.destination}`,
+    );
+    if (
+      deviation.evidenceChecks.length !== 1 ||
+      deviation.evidenceChecks[0] !== expectedCheck
+    )
+      errors.push(
+        `deviation evidence check is not the approved check: ${deviation.destination}`,
+      );
     for (const path of deviation.evidencePaths) {
       if (
         path.includes("..") ||
@@ -481,7 +657,10 @@ function validateDeviations(
         errors.push(`deviation evidence check file is missing: ${path}`);
       else if (
         name.length > 0 &&
-        !readFileSync(resolve(root, path), "utf8").includes(name.join("#"))
+        !hasExecutableEvidenceDeclaration(
+          readFileSync(resolve(root, path), "utf8"),
+          name.join("#"),
+        )
       )
         errors.push(`deviation evidence check is not present: ${check}`);
     }
