@@ -469,6 +469,72 @@ describe("acceptance runtime validation", () => {
 });
 
 describe("runAcceptance", () => {
+  it("rejects a checkout/source mutation during discovery before runtime", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-checkout-"));
+    roots.push(root);
+    await writeRequiredContract(root);
+    const sourceRoot = join(root, "source");
+    execFileSync("git", ["init", "--quiet"], { cwd: sourceRoot });
+    execFileSync("git", ["config", "user.email", "acceptance@example.test"], {
+      cwd: sourceRoot,
+    });
+    execFileSync("git", ["config", "user.name", "Acceptance Test"], {
+      cwd: sourceRoot,
+    });
+    execFileSync("git", ["add", "."], { cwd: sourceRoot });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "core.hooksPath=/dev/null",
+        "commit",
+        "--quiet",
+        "-m",
+        "initial acceptance",
+      ],
+      { cwd: sourceRoot },
+    );
+    const processRunner = vi.fn(
+      async (
+        args: readonly string[],
+        environment: Readonly<Record<string, string>>,
+      ): Promise<PlaywrightProcessResult> => {
+        const discovery = args.includes("--list");
+        await writeFile(
+          environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
+          JSON.stringify(
+            rawNativeReport(
+              [
+                {
+                  id: "required",
+                  tag: "@BHV-REC-001-R1",
+                  ...(discovery ? {} : { status: "passed" }),
+                },
+              ],
+              sourceRoot,
+            ),
+          ),
+        );
+        if (discovery)
+          await writeFile(
+            join(sourceRoot, "tests", "acceptance", "records.spec.ts"),
+            "counterfeit",
+          );
+        return { exitCode: 0, stdout: "", stderr: "" };
+      },
+    );
+
+    await expect(
+      runAcceptance({
+        repoRoot: root,
+        sourceRoot: "source",
+        scope: "required",
+        processRunner,
+      }),
+    ).rejects.toThrow(/checkout.*source mutation.*discovery/i);
+    expect(processRunner).toHaveBeenCalledTimes(1);
+  });
+
   it("executes discovery and the current required grep against native reports", async () => {
     const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-runtime-"));
     roots.push(root);
