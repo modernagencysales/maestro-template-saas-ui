@@ -237,14 +237,40 @@ const meaningfulReadyLocators: Record<string, (page: Page) => Locator> = {
   states: (page) => page.getByRole("heading", { name: "State fixture" }),
 };
 
-const meaningfulMainContentLocators: Record<string, (page: Page) => Locator> = {
-  "list-detail": (page) =>
-    page.getByText("created the contact.", { exact: false }),
-  "record-aside": (page) =>
-    page.getByText("created the contact.", { exact: false }),
-  "split-inbox": (page) =>
-    page.getByText("created the contact.", { exact: false }),
-};
+export function meaningfulMainContentTarget(
+  composition: string,
+  viewportWidth: number,
+) {
+  if (composition === "split-inbox" && viewportWidth <= 600) {
+    return "inbox-row" as const;
+  }
+  if (
+    composition === "list-detail" ||
+    composition === "record-aside" ||
+    composition === "split-inbox"
+  ) {
+    return "activity" as const;
+  }
+  return undefined;
+}
+
+function meaningfulMainContentLocator(
+  page: Page,
+  composition: string,
+): Locator | undefined {
+  const target = meaningfulMainContentTarget(
+    composition,
+    page.viewportSize()?.width ?? 1440,
+  );
+  if (target === "inbox-row")
+    return page.getByRole("row", { name: /Jordan Lee/ });
+  if (target === "activity") {
+    return page
+      .getByRole("tabpanel", { name: "Activity" })
+      .getByText(/created the contact\./i);
+  }
+  return undefined;
+}
 
 function meaningfulReadyLocator(page: Page, composition: string) {
   const createLocator = meaningfulReadyLocators[composition];
@@ -265,10 +291,11 @@ export async function waitForGoldenCaptureReady(input: {
   await expect(
     meaningfulReadyLocator(input.page, input.composition),
   ).toBeVisible();
-  const mainContent = meaningfulMainContentLocators[input.composition];
-  if (mainContent) {
-    await expect(mainContent(input.page)).toBeVisible();
-  }
+  const mainContent = meaningfulMainContentLocator(
+    input.page,
+    input.composition,
+  );
+  if (mainContent) await expect(mainContent).toBeVisible();
   if (input.fixture !== "loading") {
     await expect(
       input.page.locator('[data-scope="suiLoadingOverlay"]'),

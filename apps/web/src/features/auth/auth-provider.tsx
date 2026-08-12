@@ -11,12 +11,14 @@ import { goldenFixtures } from "#features/golden/fixtures";
 
 export const client = authClient;
 
-function isGoldenEvidenceRoute() {
-  if (typeof window === "undefined") return false;
-  const authority = new URL(window.location.href).searchParams.get(
-    "goldenAuthority",
+export function isGoldenEvidenceUrl(value: string) {
+  const url = new URL(value);
+  const loopback = new Set(["localhost", "127.0.0.1", "::1"]);
+  const authority = url.searchParams.get("goldenAuthority");
+  return (
+    (loopback.has(url.hostname) || url.hostname === "[::1]") &&
+    (authority === "reference" || authority === "generated")
   );
-  return authority === "reference" || authority === "generated";
 }
 
 export const authService: Pick<
@@ -24,7 +26,9 @@ export const authService: Pick<
   "onLoadUser" | "onLogin" | "onSignup" | "onLogout"
 > = {
   onLoadUser: async () =>
-    isGoldenEvidenceRoute() ? goldenFixtures.currentUser : null,
+    typeof window !== "undefined" && isGoldenEvidenceUrl(window.location.href)
+      ? goldenFixtures.currentUser
+      : null,
   onLogin: async () => null,
   onSignup: async () => null,
   onLogout: async () => undefined,
