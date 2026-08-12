@@ -105,15 +105,13 @@ test.describe("paired Saas UI golden interactions", () => {
       await expect(menu).toBeVisible();
       const firstOption = menu.getByRole("menuitem").first();
       await firstOption.click();
+      await menu.getByRole("menuitem", { name: "Active", exact: true }).click();
+      const activeFilterRemoves = page.locator(".sui-active-filter__remove");
+      await expect(activeFilterRemoves).toHaveCount(2);
+      await activeFilterRemoves.first().click();
+      await expect(activeFilterRemoves).toHaveCount(0);
       await expect(
-        page.getByRole("button", { name: /remove filter|clear filter/i }),
-      ).toBeVisible();
-      await page
-        .getByRole("button", { name: /remove filter|clear filter/i })
-        .first()
-        .click();
-      await expect(
-        page.getByRole("button", { name: /remove filter|clear filter/i }),
+        page.getByRole("button", { name: "Clear filters" }),
       ).toHaveCount(0);
     });
 
