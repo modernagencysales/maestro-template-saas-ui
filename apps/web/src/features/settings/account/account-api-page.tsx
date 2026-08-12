@@ -7,12 +7,13 @@ import {
   IconButton,
   Section,
   Text,
-  useClipboard,
 } from "@saas-ui/react";
 import { LuCheck, LuCopy, LuX } from "react-icons/lu";
 
 import { LinkButton } from "@workspace/ui/button";
 import { SettingsPage } from "@workspace/ui/settings-page";
+
+import { SaasButton, useSaasClipboard } from "#components/ui/saas-ui-compat";
 
 import { SettingsCard } from "../common/settings-card";
 
@@ -23,7 +24,7 @@ function AccessToken({
   token: string;
   onRemove?: (token: string) => void;
 }) {
-  const { value, copy, copied } = useClipboard(token);
+  const { value, copy, copied } = useSaasClipboard(token);
 
   const handleRemove = () => {
     onRemove?.(token);
@@ -56,7 +57,7 @@ function PersonalAccessTokens() {
       <Section.Header title="Personal access tokens" />
       <Section.Body>
         <SettingsCard
-          footer={<Button variant="primary">Create new token</Button>}
+          footer={<SaasButton variant="primary">Create new token</SaasButton>}
         >
           <GridList.Root p="0">
             <AccessToken token="12345" onRemove={onRemove} />

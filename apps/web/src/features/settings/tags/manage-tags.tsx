@@ -2,7 +2,6 @@ import React, { useEffect, useMemo, useState } from "react";
 
 import {
   Box,
-  Button,
   Collapsible,
   Field,
   Flex,
@@ -18,6 +17,7 @@ import { GridList, SearchInput } from "@saas-ui/react";
 import { LuPencil, LuTrash } from "react-icons/lu";
 
 import { useOpenState } from "#hooks/use-open-state";
+import { SaasButton } from "#components/ui/saas-ui-compat";
 
 import { ColorControl } from "./color-control";
 
@@ -155,17 +155,17 @@ const TagListItem: React.FC<TagListItemProps> = (props) => {
         </Field.Root>
       </GridList.Cell>
       <GridList.Cell display="flex" gap="2">
-        <Button variant="ghost" size="sm" onClick={() => onCancel()}>
+        <SaasButton variant="ghost" size="sm" onClick={() => onCancel()}>
           Cancel
-        </Button>
-        <Button
+        </SaasButton>
+        <SaasButton
           variant="secondary"
           size="sm"
           loading={isLoading}
           onClick={() => onSave()}
         >
           Save
-        </Button>
+        </SaasButton>
       </GridList.Cell>
     </GridList.Item>
   ) : (
@@ -338,17 +338,17 @@ const TagListAddItem: React.FC<TagListAddItemProps> = (props) => {
             </Field.Root>
           </HStack>
           <HStack gap="2">
-            <Button variant="ghost" size="sm" onClick={() => onCancel()}>
+            <SaasButton variant="ghost" size="sm" onClick={() => onCancel()}>
               Cancel
-            </Button>
-            <Button
+            </SaasButton>
+            <SaasButton
               variant="secondary"
               size="sm"
               loading={isLoading}
               onClick={() => onSave()}
             >
               Save
-            </Button>
+            </SaasButton>
           </HStack>
         </HStack>
       </Collapsible.Content>
@@ -418,7 +418,7 @@ export const ManageTags = (props: ManageTagsProps) => {
               }}
             />
           </Box>
-          <Button
+          <SaasButton
             variant="primary"
             colorPalette="indigo"
             onClick={() => {
@@ -428,7 +428,7 @@ export const ManageTags = (props: ManageTagsProps) => {
             size="sm"
           >
             New tag
-          </Button>
+          </SaasButton>
         </HStack>
       </Stack>
 

@@ -1,8 +1,9 @@
 import { Box, Stack } from "@chakra-ui/react";
-import { IconButton, Popover } from "@saas-ui/react";
+import { Popover } from "@saas-ui/react";
 import { LuCheck } from "react-icons/lu";
 
 import { useOpenState } from "#hooks/use-open-state";
+import { SaasIconButton } from "#components/ui/saas-ui-compat";
 
 interface ColorControlProps {
   colors: string[];
@@ -14,7 +15,7 @@ export function ColorControl({ colors, onChange, value }: ColorControlProps) {
   const openState = useOpenState();
 
   const swatches = colors.map((color) => (
-    <IconButton
+    <SaasIconButton
       aria-label={`Select color ${color}`}
       onClick={() => onChange(color)}
       variant="plain"
@@ -39,7 +40,7 @@ export function ColorControl({ colors, onChange, value }: ColorControlProps) {
       data-selected={value === color ? "" : undefined}
     >
       {value === color && <LuCheck size="1.2em" />}
-    </IconButton>
+    </SaasIconButton>
   ));
 
   return (
@@ -52,7 +53,7 @@ export function ColorControl({ colors, onChange, value }: ColorControlProps) {
       lazyMount
     >
       <Popover.Trigger asChild>
-        <IconButton
+        <SaasIconButton
           aria-label="Change primary color"
           variant="secondary"
           bg="bg.panel"
@@ -60,7 +61,7 @@ export function ColorControl({ colors, onChange, value }: ColorControlProps) {
           onClick={() => openState.setOpen(!openState.open)}
         >
           <Box rounded="full" boxSize="2.5" bg={value} />
-        </IconButton>
+        </SaasIconButton>
       </Popover.Trigger>
       <Popover.Content width="auto">
         <Stack gap="2" flexDirection="row" p="2">

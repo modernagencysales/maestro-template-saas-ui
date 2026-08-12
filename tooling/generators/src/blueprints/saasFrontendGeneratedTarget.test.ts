@@ -96,6 +96,32 @@ describe("SaaS UI generated target artifact boundary", () => {
     ).toBe(false);
   });
 
+  it("projects the shared Saas UI compatibility seam for pinned upstream props", () => {
+    const sources = new Map(
+      buildSaasApplicationTargetPlan({
+        name: "Compatibility Seam",
+      }).entries.map(({ path, content }) => [path, content]),
+    );
+
+    expect(
+      sources.get("apps/web/src/components/ui/saas-ui-compat.tsx"),
+    ).toContain("useSaasClipboard");
+    expect(
+      sources.get("apps/web/src/features/common/layouts/app-layout.tsx"),
+    ).toContain("SaasSidebarProvider");
+    expect(
+      sources.get(
+        "apps/web/src/features/settings/account/account-api-page.tsx",
+      ),
+    ).toContain("useSaasClipboard");
+    expect(
+      sources.get("apps/web/src/features/settings/members/members-list.tsx"),
+    ).toContain("SaasButton");
+    expect(
+      sources.get("apps/web/src/features/settings/tags/manage-tags.tsx"),
+    ).toContain("SaasButton");
+  });
+
   it("builds a freshly materialized customer target with frozen dependencies", () => {
     const plan = buildSaasApplicationTargetPlan({ name: "Build Proof" });
     const target = mkdtempSync(join(tmpdir(), "saas-ui-generated-build-"));

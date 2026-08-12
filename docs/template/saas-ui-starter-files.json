@@ -160,7 +160,7 @@
       "source": "apps/web/src/features/common/components/app-sidebar.tsx",
       "destination": "apps/web/src/features/common/components/app-sidebar.tsx",
       "sourceSha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "sha256": "eb4b63ea6f1ef759959fdafdb99fe6a6e9ea5bc7c863e1cb9e12115171960925",
+      "sha256": "27f2e6c1065fb8dd709f754940de58eb4ecf0ac618e7de3c6175395a4d36a991",
       "adapted": true
     },
     {
@@ -251,7 +251,7 @@
       "source": "apps/web/src/features/common/layouts/app-layout.tsx",
       "destination": "apps/web/src/features/common/layouts/app-layout.tsx",
       "sourceSha256": "657ecb6d987d6177a7ec0410fc87f261d1aaffc87f1c8addd112be7f5141b57c",
-      "sha256": "88038e5d1a4d154cdf36b0d55197e402318f51164f2ba854d9321f35ecc79cf8",
+      "sha256": "2dfc85e84ea548b7de83206fbdfd6a331dadefa72beba2b48753324bd4e8d0c9",
       "adapted": true
     },
     {
@@ -580,7 +580,7 @@
       "source": "apps/web/src/features/settings/account/account-api-page.tsx",
       "destination": "apps/web/src/features/settings/account/account-api-page.tsx",
       "sourceSha256": "93355ce79f482cc0102527064c8a3f62799218876c7a01248c1fc39ed5b3fdb4",
-      "sha256": "28548b6e3f91686920c6cd5bd5463995bc3df9a43c39b1e23b44f1cea1a9ef94",
+      "sha256": "a6aace48615fbd75979b9fe784b3c349fde0a4b6aa45bfbeadf0b56af5109e8a",
       "adapted": true
     },
     {
@@ -692,7 +692,7 @@
       "source": "apps/web/src/features/settings/members/members-list.tsx",
       "destination": "apps/web/src/features/settings/members/members-list.tsx",
       "sourceSha256": "3754d10ba3e41cc6f02bb5669ad53dce79ef27ac2a091f8027a7e4e8032d2e79",
-      "sha256": "46376124982735e3ed42c8b02c86721f52d10cbbc3e52a6b2c7e3285cf18dfc5",
+      "sha256": "23cdc9fcd1bcaa629c1ced97ed83acc65ee77330cb50b8db83ac3588efb404d7",
       "adapted": true
     },
     {
@@ -706,14 +706,14 @@
       "source": "apps/web/src/features/settings/tags/color-control.tsx",
       "destination": "apps/web/src/features/settings/tags/color-control.tsx",
       "sourceSha256": "9384e9b43e5a0741d8a0518f1267c77bc96c9629f008f80e88912765f05fb68e",
-      "sha256": "dd7cca4dbf02921bdd60b9683d79cd387411e67f5258e716890c3d2d6f75b2a7",
+      "sha256": "7b16cc7950d030f790e7e4af7513c21ac7d14066804f07bee6a87e52b87d6978",
       "adapted": true
     },
     {
       "source": "apps/web/src/features/settings/tags/manage-tags.tsx",
       "destination": "apps/web/src/features/settings/tags/manage-tags.tsx",
       "sourceSha256": "57cee92ee00848e8ac15685a5877cba58a4e54b067b882506358c78815399b51",
-      "sha256": "74888144a5b11124bbd256d30a34b767600797bcd7231f9eaa0133ac87f5781a",
+      "sha256": "20e9b11195551dd30cab49b592a87e78ffaba65a60e3c2916d2e6e95263f8e97",
       "adapted": true
     },
     {

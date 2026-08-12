@@ -6,7 +6,6 @@ import { ResizeHandle, ResizeHandler } from "@saas-ui-pro/react";
 import {
   Badge,
   Box,
-  Command,
   HStack,
   IconButton,
   Menu,
@@ -31,6 +30,8 @@ import {
 } from "react-icons/lu";
 
 import { useModals } from "@workspace/ui/modals";
+
+import { SaasCommand } from "#components/ui/saas-ui-compat";
 
 import { useUserSettings } from "../../../lib/user-settings/use-user-settings";
 
@@ -215,7 +216,7 @@ const AppSidebarLink = (props: AppSidebarlink) => {
     <Tooltip
       content={
         <>
-          {label} <Command size="xs">{command}</Command>
+          {label} <SaasCommand size="xs">{command}</SaasCommand>
         </>
       }
       positioning={{

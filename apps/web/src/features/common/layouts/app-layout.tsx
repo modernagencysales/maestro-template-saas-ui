@@ -1,11 +1,22 @@
 "use client";
 
+import type { ComponentProps, ComponentType } from "react";
+
 import { AppShell, AppShellProps, Sidebar } from "@saas-ui/react";
 
 import { PaymentOverdueBanner } from "#features/billing/components/payment-overdue-banner";
 import { GlobalSearchInput } from "../components/global-search-input";
 
 export type AppLayoutProps = AppShellProps;
+
+type SaasSidebarProviderProps = ComponentProps<typeof Sidebar.Provider> & {
+  variant?: "sidebar" | "inset";
+};
+
+// The pinned @saas-ui/react declaration loses the slot-recipe variant even
+// though its runtime provider accepts and applies it.
+const SaasSidebarProvider =
+  Sidebar.Provider as ComponentType<SaasSidebarProviderProps>;
 
 /**
  * Base layout for app pages.
@@ -16,7 +27,7 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   ...rest
 }) => {
   return (
-    <Sidebar.Provider variant="inset">
+    <SaasSidebarProvider variant="inset">
       <Sidebar.FlyoutTrigger aria-label="Collapse sidebar" />
 
       <AppShell
@@ -34,6 +45,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       </AppShell>
 
       <Sidebar.Backdrop />
-    </Sidebar.Provider>
+    </SaasSidebarProvider>
   );
 };

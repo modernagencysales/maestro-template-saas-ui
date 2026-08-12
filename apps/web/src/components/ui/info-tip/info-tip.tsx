@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import { InfoIcon } from "../../icons/info-icon";
-import { IconButton } from "../icon-button/index";
+import { SaasIconButton } from "../saas-ui-compat";
 import { ToggleTip, type ToggleTipProps } from "../toggle-tip/index";
 
 export interface InfoTipProps extends Omit<ToggleTipProps, "content"> {
@@ -17,9 +17,9 @@ export const InfoTip = React.forwardRef<HTMLDivElement, InfoTipProps>(
     const { children, icon, "aria-label": ariaLabel = "Info", ...rest } = props;
     return (
       <ToggleTip content={children} {...rest} ref={ref}>
-        <IconButton variant="ghost" aria-label={ariaLabel} size="2xs">
+        <SaasIconButton variant="ghost" aria-label={ariaLabel} size="2xs">
           {icon ?? <InfoIcon />}
-        </IconButton>
+        </SaasIconButton>
       </ToggleTip>
     );
   },

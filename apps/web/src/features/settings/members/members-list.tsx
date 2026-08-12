@@ -31,6 +31,7 @@ import { useModals } from "@workspace/ui/modals";
 import { SearchInput } from "@workspace/ui/search-input";
 
 import { UserAvatar } from "#components/user-avatar";
+import { SaasButton } from "#components/ui/saas-ui-compat";
 
 export interface Member {
   id: string;
@@ -217,7 +218,7 @@ export function MembersList<TMember extends Member = Member>({
           onChange={(e) => searchProps.setQuery(e.target.value)}
           mr="2"
         />
-        <Button
+        <SaasButton
           onClick={invite.onOpen}
           disabled={!allowInvite}
           colorPalette="accent"
@@ -226,7 +227,7 @@ export function MembersList<TMember extends Member = Member>({
           size="sm"
         >
           {inviteLabel}
-        </Button>
+        </SaasButton>
       </Card.Header>
       {results?.length ? (
         <GridList.Root py="0">
