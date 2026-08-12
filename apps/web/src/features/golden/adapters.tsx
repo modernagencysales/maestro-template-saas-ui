@@ -54,6 +54,7 @@ const stateTransitions: Partial<
 const GoldenAdapterContext = createContext<GoldenFrontendAdapter | null>(null);
 const GoldenStateContext = createContext<GoldenState>("ready-read");
 const goldenFixtureStorageKey = "maestro-golden-fixture";
+const goldenContactsStorageKey = "maestro-golden-contacts";
 
 function readGoldenFixtureState(): GoldenState {
   if (typeof window === "undefined") return "ready-read";
@@ -74,10 +75,25 @@ function isGoldenState(value: unknown): value is GoldenState {
   );
 }
 
+function readGoldenContacts(): readonly ContactFixture[] {
+  if (typeof window === "undefined") return goldenFixtures.contacts;
+
+  try {
+    const stored = JSON.parse(
+      window.localStorage.getItem(goldenContactsStorageKey) ?? "null",
+    ) as unknown;
+    return Array.isArray(stored)
+      ? (stored as ContactFixture[])
+      : goldenFixtures.contacts;
+  } catch {
+    return goldenFixtures.contacts;
+  }
+}
+
 export function createGoldenAdapter(
   navigate: (to: string) => void = () => undefined,
 ): GoldenFrontendAdapter {
-  let contacts: readonly ContactFixture[] = goldenFixtures.contacts;
+  let contacts: readonly ContactFixture[] = readGoldenContacts();
   const listeners = new Set<() => void>();
 
   return {
@@ -99,6 +115,12 @@ export function createGoldenAdapter(
       contacts = contacts.map((contact) =>
         contact.id === id ? { ...contact, status } : contact,
       );
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(
+          goldenContactsStorageKey,
+          JSON.stringify(contacts),
+        );
+      }
       for (const listener of listeners) listener();
     },
     search(query) {

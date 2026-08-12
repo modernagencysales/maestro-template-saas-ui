@@ -125,6 +125,7 @@ export async function seedGoldenFixture(
         "maestro-golden-fixture",
         JSON.stringify(fixtureData),
       );
+      window.localStorage.removeItem("maestro-golden-contacts");
     },
     {
       fixtureData: goldenFixtures[fixture],

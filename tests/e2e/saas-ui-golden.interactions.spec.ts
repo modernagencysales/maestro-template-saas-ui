@@ -292,6 +292,13 @@ test.describe("paired Saas UI golden interactions", () => {
       await expect(destination.locator('[data-id="contact-1"]')).toContainText(
         "Jordan Lee",
       );
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(
+        page.locator('[data-column="status:active"] [data-id="contact-1"]'),
+      ).toHaveCount(0);
+      await expect(
+        page.locator('[data-column="status:inactive"] [data-id="contact-1"]'),
+      ).toContainText("Jordan Lee");
     });
 
     test(`${kind} moves the exact Kanban card by keyboard through the adapter`, async ({
@@ -312,6 +319,13 @@ test.describe("paired Saas UI golden interactions", () => {
       await expect(destination.locator('[data-id="contact-1"]')).toContainText(
         "Jordan Lee",
       );
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(
+        page.locator('[data-column="status:active"] [data-id="contact-1"]'),
+      ).toHaveCount(0);
+      await expect(
+        page.locator('[data-column="status:inactive"] [data-id="contact-1"]'),
+      ).toContainText("Jordan Lee");
     });
 
     test(`${kind} auth form validates credentials and preserves input`, async ({
