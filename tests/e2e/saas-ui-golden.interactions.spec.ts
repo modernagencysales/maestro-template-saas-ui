@@ -9,6 +9,18 @@ function entry(id: string) {
   return result;
 }
 
+function expectBoxesNotToOverlap(
+  first: { x: number; y: number; width: number; height: number },
+  second: { x: number; y: number; width: number; height: number },
+) {
+  expect(
+    first.x + first.width <= second.x ||
+      second.x + second.width <= first.x ||
+      first.y + first.height <= second.y ||
+      second.y + second.height <= first.y,
+  ).toBe(true);
+}
+
 test.describe("paired Saas UI golden interactions", () => {
   test.beforeEach(({ page: _page }, testInfo) => {
     void _page;
@@ -486,24 +498,40 @@ test.describe("paired mobile dashboard and data-grid reflow", () => {
 
       await gotoGolden({ page, kind, route: entry("data-grid").route });
       const addPerson = page.getByRole("button", { name: "Add person" });
+      const filter = page.getByRole("button", { name: "Filter" });
       const display = page.getByRole("button", { name: "Display" });
+      const typeControls = ["All", "Leads", "Customers"].map((name) =>
+        page.locator('label[data-part="item"]').filter({ hasText: name }),
+      );
       await expect(addPerson).toBeVisible();
+      await expect(filter).toBeVisible();
       await expect(display).toBeVisible();
-      const [addPersonBox, displayBox] = await Promise.all([
-        addPerson.boundingBox(),
-        display.boundingBox(),
-      ]);
+      for (const typeControl of typeControls)
+        await expect(typeControl).toBeVisible();
+      const [addPersonBox, filterBox, displayBox, ...typeControlBoxes] =
+        await Promise.all([
+          addPerson.boundingBox(),
+          filter.boundingBox(),
+          display.boundingBox(),
+          ...typeControls.map((typeControl) => typeControl.boundingBox()),
+        ]);
       expect(addPersonBox).not.toBeNull();
+      expect(filterBox).not.toBeNull();
       expect(displayBox).not.toBeNull();
-      if (!addPersonBox || !displayBox) {
+      if (
+        !addPersonBox ||
+        !filterBox ||
+        !displayBox ||
+        typeControlBoxes.some((typeControlBox) => !typeControlBox)
+      ) {
         throw new Error("Expected mobile data-grid controls to have bounds");
       }
-      expect(
-        addPersonBox.x + addPersonBox.width <= displayBox.x ||
-          displayBox.x + displayBox.width <= addPersonBox.x ||
-          addPersonBox.y + addPersonBox.height <= displayBox.y ||
-          displayBox.y + displayBox.height <= addPersonBox.y,
-      ).toBe(true);
+      expectBoxesNotToOverlap(addPersonBox, displayBox);
+      for (const typeControlBox of typeControlBoxes) {
+        if (!typeControlBox)
+          throw new Error("Expected mobile type controls to have bounds");
+        expectBoxesNotToOverlap(filterBox, typeControlBox);
+      }
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(320);
