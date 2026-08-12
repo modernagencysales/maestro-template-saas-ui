@@ -5,6 +5,7 @@ const baseURL =
 
 export default defineConfig({
   testDir: "./tests/e2e",
+  outputDir: "./artifacts/saas-ui-golden/playwright",
   snapshotPathTemplate:
     "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}",
   timeout: 30_000,
