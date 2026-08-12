@@ -71,12 +71,16 @@ describe("transplanted application shell", () => {
       "utf8",
     );
 
-    expect(layout).toContain('<Sidebar.Provider variant="inset">');
+    expect(layout).toContain("type SaasSidebarProviderProps");
+    expect(layout).toContain(
+      "Sidebar.Provider as ComponentType<SaasSidebarProviderProps>",
+    );
+    expect(layout).toContain('<SaasSidebarProvider variant="inset">');
     expect(layout).toContain("sidebar={sidebar}");
     expect(layout).toContain("<PaymentOverdueBanner />");
     expect(layout).toContain("GlobalSearchInput");
     expect(sidebar).not.toContain("LuPanelLeftClose");
-    expect(sidebar).toContain('<Command size="xs">');
+    expect(sidebar).toContain('<SaasCommand size="xs">');
     expect(invite).toContain("toast.promise");
   });
 

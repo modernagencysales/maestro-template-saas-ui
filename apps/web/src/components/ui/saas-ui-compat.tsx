@@ -2,15 +2,17 @@
 
 import * as React from "react";
 
+import { Button as ChakraButton } from "@chakra-ui/react";
 import {
-  Button as ChakraButton,
-  IconButton as ChakraIconButton,
-} from "@chakra-ui/react";
-import { useClipboard } from "@saas-ui/react";
+  IconButton as SaasIconButtonPrimitive,
+  useClipboard,
+} from "@saas-ui/react";
 import { Command as SaasCommandPrimitive } from "@saas-ui/react/command";
 
 type ChakraButtonProps = React.ComponentProps<typeof ChakraButton>;
-type ChakraIconButtonProps = React.ComponentProps<typeof ChakraIconButton>;
+type SaasIconButtonPrimitiveProps = React.ComponentProps<
+  typeof SaasIconButtonPrimitive
+>;
 
 type SemanticButtonVariant = "primary" | "secondary" | "tertiary";
 type SaasPresetButtonVariant =
@@ -49,12 +51,12 @@ export const SaasButton = React.forwardRef<HTMLButtonElement, SaasButtonProps>(
 );
 
 export type SaasIconButtonProps = Omit<
-  ChakraIconButtonProps,
+  SaasIconButtonPrimitiveProps,
   "size" | "variant"
 > & {
-  size?: ChakraIconButtonProps["size"] | "2xs";
+  size?: SaasIconButtonPrimitiveProps["size"] | "2xs";
   variant?:
-    | ChakraIconButtonProps["variant"]
+    | SaasIconButtonPrimitiveProps["variant"]
     | SaasPresetButtonVariant
     | SemanticButtonVariant;
 };
@@ -64,9 +66,12 @@ export const SaasIconButton = React.forwardRef<
   SaasIconButtonProps
 >(function SaasIconButton({ size, variant, ...props }, ref) {
   return (
-    <ChakraIconButton
+    <SaasIconButtonPrimitive
       ref={ref}
-      size={size === "2xs" ? "xs" : size}
+      px="0"
+      py="0"
+      _icon={{ fontSize: "1.2em" }}
+      size={size as never}
       variant={mapButtonVariant(variant) as never}
       {...props}
     />
