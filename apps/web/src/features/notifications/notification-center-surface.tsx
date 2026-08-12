@@ -56,7 +56,7 @@ type TemplateToastApi = Readonly<{
     title: string;
     description?: string;
     tone?: string;
-    announcement?: string;
+    announcement?: string | { message: string; priority?: "assertive" | "polite" };
   }): string;
 }>;
 const useTemplateToast = (): TemplateToastApi => ({
@@ -66,10 +66,12 @@ const useTemplateToast = (): TemplateToastApi => ({
 function TemplateNotificationCenter({
   notifications,
   onMarkRead,
+  preferences: _preferences,
   summary,
 }: {
   notifications: readonly PlatformNotification[];
   onMarkRead: (id: string) => void;
+  preferences: readonly PlatformNotificationPreference[];
   summary: { readonly unread: number };
 }) {
   return (

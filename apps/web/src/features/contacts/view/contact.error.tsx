@@ -8,11 +8,8 @@ export function ContactError(props: ErrorComponentProps) {
       title="Failed to load contact"
       description="An error occurred while loading the contact."
       height="full"
-      actions={
-        <>
-          <Button onClick={props.reset}>Try again</Button>
-        </>
-      }
-    />
+    >
+      <Button onClick={props.reset}>Try again</Button>
+    </EmptyState>
   );
 }

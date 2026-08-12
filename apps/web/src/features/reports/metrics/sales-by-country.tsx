@@ -1,6 +1,6 @@
 import { HStack, Text } from "@chakra-ui/react";
 import { ColumnDef, DataGrid, DataGridCell } from "@saas-ui-pro/react";
-import { useIntl } from "react-intl";
+import { useIntl } from "@workspace/i18n";
 
 import { MetricsCard } from "./metrics-card";
 

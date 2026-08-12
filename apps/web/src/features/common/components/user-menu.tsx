@@ -6,7 +6,7 @@ import { Menu } from "@saas-ui/react";
 import { useHotkeysShortcut } from "@saas-ui/use-hotkeys";
 import { Link, useNavigate } from "@tanstack/react-router";
 
-import { useColorMode } from "../../../components/color-mode.tsx";
+import { useColorMode } from "../../../components/color-mode";
 import { UserAvatar } from "../../../components/user-avatar";
 
 import { useCurrentUser } from "../hooks/use-current-user";
@@ -16,7 +16,7 @@ import { useGoldenAdapter } from "../../golden/adapters";
 export const UserMenu = () => {
   const workspace = useWorkspaceSlug();
   const navigate = useNavigate({
-    from: "/$workspace/",
+    from: "/",
   });
   const { signOut } = useGoldenAdapter();
 
@@ -25,7 +25,8 @@ export const UserMenu = () => {
   const logOutAndClearCache = () => {
     signOut().then(() => {
       navigate({
-        to: "/login",
+      to: "/login",
+      search: { redirectTo: undefined },
       });
     });
   };
@@ -53,10 +54,7 @@ export const UserMenu = () => {
         <Menu.ItemGroup title={currentUser?.name || ""}>
           <Menu.Item value="profile" asChild>
             <Link
-              to="/$workspace/settings/account"
-              params={{
-                workspace,
-              }}
+              to="/settings/account"
             >
               Profile
             </Link>
@@ -64,10 +62,7 @@ export const UserMenu = () => {
           <Has feature="settings">
             <Menu.Item value="settings" asChild>
               <Link
-                to="/$workspace/settings/workspace"
-                params={{
-                  workspace,
-                }}
+                to="/settings/workspace"
               >
                 Settings
               </Link>

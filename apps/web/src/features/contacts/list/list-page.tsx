@@ -153,8 +153,8 @@ export function ContactsListPage({
           <HStack gap="4">
             <ContactAvatar contact={cell.row.original} size="xs" />
             <Link
-              to="/$workspace/contacts/view/$id"
-              params={{ workspace: params.workspace, id: cell.row.original.id }}
+              to="/contacts/view/$id"
+              params={{ id: cell.row.original.id }}
             >
               {cell.getValue()}
             </Link>
@@ -168,19 +168,22 @@ export function ContactsListPage({
       }),
       helper.accessor("createdAt", {
         header: "Created at",
-        cell: (cell) => <DateCell date={cell.getValue()} />,
+        cell: (cell) => <DateCell date={cell.getValue() as string | Date | null} />,
         filterFn: getDataGridFilter("date"),
         enableGlobalFilter: false,
       }),
       helper.accessor("updatedAt", {
         header: "Updated at",
-        cell: (cell) => <DateCell date={cell.getValue()} />,
+        cell: (cell) => <DateCell date={cell.getValue() as string | Date | null} />,
         filterFn: getDataGridFilter("date"),
         enableGlobalFilter: false,
       }),
       helper.accessor("type", {
         header: "Type",
-        cell: (cell) => <ContactType type={cell.getValue()} />,
+        cell: (cell) => {
+          const type = cell.getValue();
+          return <ContactType {...(type ? { type } : {})} />;
+        },
         filterFn: getDataGridFilter("string"),
         enableGlobalFilter: false,
       }),
@@ -199,7 +202,7 @@ export function ContactsListPage({
       helper.accessor("status", {
         header: "Status",
         cell: (cell) => (
-          <ContactStatus status={cell.getValue()} color="muted" />
+          <ContactStatus status={cell.getValue() ?? "new"} color="muted" />
         ),
         filterFn: getDataGridFilter("string"),
         enableGlobalFilter: false,
@@ -277,7 +280,7 @@ export function ContactsListPage({
       }
     >
       <Button
-        variant="primary"
+        variant="solid"
         colorPalette="accent"
         size="xs"
         onClick={addPerson}
@@ -373,7 +376,7 @@ export function ContactsListPage({
       icon={<LuSquareUser />}
       height="full"
     >
-      <Button variant="primary" colorPalette="accent" onClick={addPerson}>
+      <Button variant="solid" colorPalette="accent" onClick={addPerson}>
         Add a person
       </Button>
       <Button>Import data</Button>

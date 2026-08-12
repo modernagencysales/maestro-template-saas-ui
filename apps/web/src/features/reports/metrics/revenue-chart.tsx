@@ -1,8 +1,8 @@
 import * as React from "react";
 
-import { AreaChart } from "@saas-ui/charts";
+import { AreaChart } from "#components/charts";
 import { format } from "date-fns";
-import { useIntl } from "react-intl";
+import { useIntl } from "@workspace/i18n";
 
 export interface MetricData {
   timestamp: number;

@@ -33,9 +33,11 @@ import { Sidebar } from "@saas-ui/react/sidebar";
 export interface SortableNavGroupProps
   extends
     Omit<HTMLChakraProps<"div">, "onDragStart" | "onDragEnd" | "onDragOver">,
-    DndContextProps {
+    Omit<DndContextProps, "onDragOver" | "id"> {
   items: any[];
+  isCollapsible?: boolean;
   onSorted?: (fn: (items: any[]) => any[]) => void;
+  onDragOver?: DndContextProps["onDragOver"];
 }
 export const SortableNavGroup: React.FC<SortableNavGroupProps> = (props) => {
   const {
@@ -105,7 +107,7 @@ export const SortableNavGroup: React.FC<SortableNavGroupProps> = (props) => {
         setActiveId(event.active.id);
         onDragStart?.(event);
       }}
-      onDragOver={onDragOver}
+      {...(onDragOver ? { onDragOver } : {})}
       onDragEnd={(event) => {
         handleDragEnd(event);
         onDragEnd?.(event);

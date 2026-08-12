@@ -16,11 +16,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   ...rest
 }) => {
   return (
-    <Sidebar.Provider variant="inset">
+    <Sidebar.Provider>
       <Sidebar.FlyoutTrigger aria-label="Collapse sidebar" />
 
       <AppShell
-        sidebar={sidebar}
+        {...(sidebar ? { sidebar } : {})}
         header={
           <>
             <PaymentOverdueBanner />

@@ -29,12 +29,12 @@ export function SearchPage() {
   const navigate = useNavigate();
 
   const { q } = useSearch({
-    from: "/_app/$workspace/_dashboard/search",
+    from: "/_workspace/search",
   });
 
   const setSearch = (q: string) => {
     navigate({
-      from: "/$workspace/search",
+      from: "/search",
       to: ".",
       search: {
         q,
@@ -44,7 +44,7 @@ export function SearchPage() {
 
   const { data } = useQuery({
     queryKey: ["search", q],
-    queryFn: async () => {
+    queryFn: async (): Promise<ContactDTO[]> => {
       // TODO: Implement search
       return [];
     },
@@ -60,7 +60,7 @@ export function SearchPage() {
         title={
           <SearchInput
             placeholder="Search your workspace..."
-            value={q}
+            value={q ?? ""}
             onChange={(e) => setSearch(e.target.value)}
             onReset={() => setSearch("")}
             width="full"
@@ -69,7 +69,7 @@ export function SearchPage() {
         }
       />
       <Page.Body p="0">
-        {q ? <SearchResults data={data} search={q} /> : <RecentSearches />}
+        {q ? <SearchResults {...(data ? { data } : {})} search={q} /> : <RecentSearches />}
       </Page.Body>
     </Page.Root>
   );
@@ -95,9 +95,8 @@ function RecentSearches() {
 
   const getSearchLinkOptions = (q: string) =>
     linkOptions({
-      to: "/$workspace/search",
+      to: "/search",
       params: {
-        workspace,
       },
       search: {
         q,
@@ -156,9 +155,8 @@ function SearchResults(props: { data?: ContactDTO[]; search: string }) {
 
   const getLinkOptions = (id: string) =>
     linkOptions({
-      to: "/$workspace/contacts/view/$id",
+      to: "/contacts/view/$id",
       params: {
-        workspace,
         id,
       },
     });
@@ -169,7 +167,7 @@ function SearchResults(props: { data?: ContactDTO[]; search: string }) {
         title="No results"
         description={`No results for for query "${props.search}"`}
       >
-        <LinkButton to="/$workspace/search" params={{ workspace }}>
+        <LinkButton to="/search" search={{ q: "" }}>
           Clear search
         </LinkButton>
       </EmptyState>
@@ -188,7 +186,7 @@ function SearchResults(props: { data?: ContactDTO[]; search: string }) {
               <GridList.Cell>
                 <Avatar
                   name={contact.name ?? contact.email ?? ""}
-                  src={contact.avatar ?? undefined}
+                  {...(contact.avatar ? { src: contact.avatar } : {})}
                   size="2xs"
                 />
               </GridList.Cell>

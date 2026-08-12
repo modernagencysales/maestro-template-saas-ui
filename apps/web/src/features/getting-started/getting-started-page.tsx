@@ -118,10 +118,7 @@ const OnboardingCompleted = () => {
       bg="bg"
       ref={() => {
         navigate({
-          to: "/$workspace",
-          params: {
-            workspace: workspace.value!,
-          },
+          to: "/",
         });
       }}
     >

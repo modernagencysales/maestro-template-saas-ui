@@ -69,11 +69,11 @@ export const TextField = React.forwardRef<HTMLInputElement, TextFieldProps>(
       <FieldRoot
         label={label}
         help={help}
-        orientation={orientation}
-        required={required}
-        rootProps={rootProps}
+        {...(orientation ? { orientation } : {})}
+        {...(required ? { required } : {})}
+        {...(rootProps ? { rootProps } : {})}
         invalid={invalid}
-        errorText={errorText}
+        {...(errorText ? { errorText } : {})}
       >
         {startElement || endElement ? (
           <InputGroup startElement={startElement} endElement={endElement}>

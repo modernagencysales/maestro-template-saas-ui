@@ -93,7 +93,7 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
     ),
     value: useMemo(() => (groupBy ? [groupBy] : []), [groupBy]),
     onChange: (grouping) => {
-      onGroupChange?.(grouping[0]);
+      if (grouping[0]) onGroupChange?.(grouping[0]);
     },
   });
 
@@ -105,8 +105,8 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
     getGroupedRowModel: getGroupedRowModel(),
     getCoreRowModel: getCoreRowModel(),
     getFilteredRowModel: getFilteredRowModel(),
-    getRowId,
-    initialState: React.useMemo(() => initialStateProp, [initialStateProp]),
+    ...(getRowId ? { getRowId } : {}),
+    ...(initialStateProp ? { initialState: initialStateProp } : {}),
     state: React.useMemo(
       () => ({
         ...stateProp,
@@ -124,8 +124,14 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
 
   const rows = instance.getRowModel().rows;
 
-  const noResults = (state.columnFilters?.length || state.globalFilter) &&
-    !rows.length && <NoResultsComponent onReset={onResetFilters} />;
+  const noResults =
+    (state.columnFilters?.length || state.globalFilter) &&
+    !rows.length &&
+    (onResetFilters ? (
+      <NoResultsComponent onReset={onResetFilters} />
+    ) : (
+      <NoResultsComponent />
+    ));
 
   const mapItems = React.useCallback(() => {
     const items: KanbanItems = groupBy
@@ -162,10 +168,7 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
           return (
             <KanbanColumn key={id} id={id} width="320px" px="4">
               <KanbanColumnHeader>
-                {flexRender(
-                  renderHeader,
-                  row || { id, groupingValue, groupingColumnId },
-                )}
+                {row ? flexRender(renderHeader, row) : null}
               </KanbanColumnHeader>
               <KanbanColumnBody>
                 {items[id]?.map((itemId) => {
@@ -179,11 +182,16 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
           );
         })}
         <KanbanDragOverlay>
-          {activeId && (
-            <KanbanCard id={activeId}>
-              {renderCard(instance.getRowModel().rowsById[activeId])}
-            </KanbanCard>
-          )}
+          {activeId
+            ? (() => {
+                const activeRow = instance.getRowModel().rowsById[activeId];
+                return (
+                  <KanbanCard id={activeId}>
+                    {activeRow ? renderCard(activeRow) : null}
+                  </KanbanCard>
+                );
+              })()
+            : null}
         </KanbanDragOverlay>
       </>
     );
@@ -192,7 +200,7 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
   return (
     <DataGridProvider instance={instance}>
       <DataBoardProvider value={instance}>
-        <Kanban items={items} onChange={setItems} {...rest}>
+        <Kanban items={items} onChange={setItems}>
           {noResults || board}
         </Kanban>
       </DataBoardProvider>
@@ -205,7 +213,7 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
 ) => React.ReactElement) & { displayName?: string };
 
 interface BoardCardProps {
-  item: Row<any>;
+  item: Row<any> | undefined;
   render: (item: Row<any>) => React.ReactNode;
 }
 

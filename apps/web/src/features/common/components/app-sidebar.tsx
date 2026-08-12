@@ -85,7 +85,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
             aria-label="Search"
             asChild
           >
-            <Link to="/$workspace/search" params={{ workspace }}>
+            <Link to="/search" search={{ q: "" }}>
               <LuSearch size="1.1em" />
             </Link>
           </IconButton>
@@ -97,10 +97,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
         <Sidebar.Body>
           <Sidebar.Group>
             <AppSidebarLink
-              to="/$workspace"
-              params={{
-                workspace,
-              }}
+              to="/"
               activeOptions={{
                 exact: true,
               }}
@@ -109,10 +106,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
               hotkey="navigation.dashboard"
             />
             <AppSidebarLink
-              to="/$workspace/inbox"
-              params={{
-                workspace,
-              }}
+              to="/inbox"
               activeOptions={{
                 exact: false,
               }}
@@ -122,10 +116,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
               hotkey="navigation.inbox"
             />
             <AppSidebarLink
-              to="/$workspace/contacts"
-              params={{
-                workspace,
-              }}
+              to="/contacts"
               activeOptions={{
                 exact: false,
               }}
@@ -205,6 +196,7 @@ interface AppSidebarlink
   extends
     Sidebar.NavItemProps,
     Pick<LinkProps, "to" | "params" | "activeOptions"> {
+  to: NonNullable<LinkProps["to"]>;
   hotkey: string;
   label: string;
   icon: React.ReactNode;
@@ -216,13 +208,13 @@ const AppSidebarLink = (props: AppSidebarlink) => {
     props;
 
   const navigate = useNavigate({
-    from: "/$workspace/",
+    from: "/",
   });
 
   const command = useHotkeysShortcut(hotkey, () => {
     navigate({
       to,
-      params,
+      ...(params ? { params } : {}),
     });
   }, [to]);
 
@@ -230,7 +222,7 @@ const AppSidebarLink = (props: AppSidebarlink) => {
     <Tooltip
       content={
         <>
-          {label} <Command size="xs">{command}</Command>
+          {label} <Command size="sm">{command}</Command>
         </>
       }
       positioning={{
@@ -242,11 +234,11 @@ const AppSidebarLink = (props: AppSidebarlink) => {
       <Sidebar.NavItem {...rest}>
         <NavLink
           to={to}
-          params={params}
+          {...(params ? { params } : {})}
           activeProps={{
             "data-active": true,
           }}
-          activeOptions={activeOptions}
+          {...(activeOptions ? { activeOptions } : {})}
         >
           {icon}
 

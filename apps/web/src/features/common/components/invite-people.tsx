@@ -2,7 +2,7 @@ import { toast } from "@saas-ui/react";
 
 import { InviteDialog } from "@workspace/ui/invite-dialog";
 
-import { api, isTRPCClientError } from "#lib/trpc/react";
+import { api } from "#lib/trpc/react";
 
 import { useCurrentWorkspace } from "../hooks/use-current-workspace";
 
@@ -18,39 +18,18 @@ export function InvitePeopleDialog(props: {
     <InviteDialog
       {...props}
       onInvite={async ({ emails, role }) => {
-        const result = await toast.promise(
-          inviteMembers.mutateAsync({
+        try {
+          await inviteMembers.mutateAsync({
             workspaceId: workspace.id,
             emails,
             role,
-          }),
-          {
-            loading: {
-              title:
-                emails.length === 1
-                  ? `Inviting ${emails[0]}...`
-                  : `Inviting ${emails.length} people...`,
-            },
-
-            success: () => {
-              return {
-                title: "Invitation(s) have been sent.",
-              };
-            },
-            error: (error: Error) => {
-              if (isTRPCClientError(error)) {
-                console.error(error.data);
-              }
-
-              return {
-                title: error.message,
-              };
-            },
-          },
-        );
-
-        if (!result) {
-          throw new Error("Failed to invite people");
+          });
+          toast.success({ title: "Invitation(s) have been sent." });
+        } catch (error: unknown) {
+          toast.error({
+            title: error instanceof Error ? error.message : "Invitation failed",
+          });
+          throw error;
         }
       }}
     />

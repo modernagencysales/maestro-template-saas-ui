@@ -5,7 +5,7 @@ import { Button, Dialog } from "@saas-ui/react";
 
 import { Form, useAppForm } from "@workspace/ui/form";
 
-import { updatePasswordSchema } from "./schema/update-password.schema.ts";
+import { updatePasswordSchema } from "./schema/update-password.schema";
 
 export interface UpdatePasswordFormProps extends Omit<
   Dialog.RootProps,

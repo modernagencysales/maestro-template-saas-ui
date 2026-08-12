@@ -35,9 +35,8 @@ export const ContactCard = ({ contact }: { contact: ContactDTO }) => {
 
   return (
     <CardLink
-      to="/$workspace/contacts/view/$id"
+      to="/contacts/view/$id"
       params={{
-        workspace,
         id: contact.id,
       }}
       position="relative"
@@ -61,7 +60,7 @@ export const ContactCard = ({ contact }: { contact: ContactDTO }) => {
               {renderColumn(
                 "status",
                 <ContactStatus
-                  status={contact.status}
+                  status={contact.status ?? "new"}
                   hideLabel
                   position="absolute"
                   top="4"
@@ -82,7 +81,10 @@ export const ContactCard = ({ contact }: { contact: ContactDTO }) => {
           </Stack>
         </Stack>
         <HStack>
-          {renderColumn("type", <ContactType type={contact.type} size="sm" />)}
+          {renderColumn(
+            "type",
+            <ContactType {...(contact.type ? { type: contact.type } : {})} size="sm" />,
+          )}
           {renderColumn(
             "tags",
             tags?.map((tag) => <ContactTag key={tag} tag={tag} size="sm" />),

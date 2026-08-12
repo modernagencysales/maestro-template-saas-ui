@@ -102,7 +102,11 @@ export const AddFilterButton: React.FC<Omit<FilterMenuProps, "items">> = (
 
   const onSelect = async (item: FilterItem) => {
     const { id, value } = item;
-    await enableFilter({ id, operator: item.defaultOperator, value });
+    await enableFilter({
+      id,
+      ...(item.defaultOperator ? { operator: item.defaultOperator } : {}),
+      ...(typeof value !== "undefined" ? { value } : {}),
+    });
   };
 
   const filters = useContactFilters();

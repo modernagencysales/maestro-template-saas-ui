@@ -29,7 +29,7 @@ export const BillingStatus = () => {
           {message}
           <Has feature="billing">
             <LinkButton
-              to="/$workspace/settings/billing"
+              to="/settings/billing"
               params={{
                 workspace,
               }}

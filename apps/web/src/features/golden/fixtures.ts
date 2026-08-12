@@ -25,11 +25,23 @@ export type WorkspaceFixture = {
   label: string;
   logo?: string;
   tags: readonly TagFixture[];
+  members: readonly { id: string; email: string; roles: string[]; status: string }[];
+  subscription: {
+    accountId: string | null;
+    status: string;
+    planId: string;
+    startedAt: string;
+    trialEndsAt: string;
+    cancelAt: string | null;
+    cancelAtPeriodEnd: boolean;
+    currentPeriodEnd: string;
+  };
 };
 
 export type TagFixture = {
   id: string;
   name: string;
+  label: string;
   color: string;
 };
 
@@ -51,8 +63,8 @@ export type SearchResultFixture = NavigationFixture & {
 };
 
 const tags = [
-  { id: "tag-1", name: "Priority", color: "red" },
-  { id: "tag-2", name: "Partner", color: "blue" },
+  { id: "tag-1", name: "Priority", label: "Priority", color: "red" },
+  { id: "tag-2", name: "Partner", label: "Partner", color: "blue" },
 ] as const satisfies readonly TagFixture[];
 
 const workspace = {
@@ -60,8 +72,25 @@ const workspace = {
   slug: "acme",
   name: "Acme Inc.",
   label: "Acme Inc.",
-  logo: undefined,
   tags,
+  members: [
+    {
+      id: "user-1",
+      email: "alex@example.com",
+      roles: ["owner"],
+      status: "active",
+    },
+  ],
+  subscription: {
+    accountId: null,
+    status: "active",
+    planId: "starter",
+    startedAt: "2026-01-01T00:00:00.000Z",
+    trialEndsAt: "2026-02-01T00:00:00.000Z",
+    cancelAt: null,
+    cancelAtPeriodEnd: false,
+    currentPeriodEnd: "2026-02-28T00:00:00.000Z",
+  },
 } satisfies WorkspaceFixture;
 
 export const goldenFixtures = {
@@ -71,8 +100,6 @@ export const goldenFixtures = {
     id: "user-1",
     name: "Alex Morgan",
     email: "alex@example.com",
-    image: undefined,
-    avatar: undefined,
     workspaces: [workspace],
   } satisfies UserFixture,
   contacts: [

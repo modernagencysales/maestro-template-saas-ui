@@ -11,7 +11,7 @@ export function ContactAvatar(
     <Persona.Root {...props}>
       <Persona.Avatar
         name={props.contact.name ?? props.contact.email}
-        src={props.contact.avatar ?? undefined}
+        {...(props.contact.avatar ? { src: props.contact.avatar } : {})}
       />
     </Persona.Root>
   );

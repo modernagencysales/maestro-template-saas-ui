@@ -38,6 +38,7 @@ export const ResetPasswordPage = () => {
 
       navigate({
         to: "/login",
+        search: { redirectTo: undefined },
       });
     },
     onError: (error) => {
@@ -77,7 +78,7 @@ export const ResetPasswordPage = () => {
         <Container maxW="sm" py="8">
           <AuthCard
             title="Choose a new password"
-            footer={<Link to="/login">Back to log in</Link>}
+            footer={<Link to="/login" search={{ redirectTo: undefined }}>Back to log in</Link>}
           >
             <Form form={form}>
               <form.AppField name="newPassword">

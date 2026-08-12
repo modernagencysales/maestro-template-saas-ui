@@ -61,7 +61,7 @@ export const ContactTags: React.FC<{ contact: ContactDTO }> = ({ contact }) => {
         tags={allTags}
         value={tags}
         onChange={onChangeTags}
-        variant={tags?.length ? "compact" : "default"}
+        variant={tags?.length ? "solid" : "subtle"}
       />
     </TagsList>
   );

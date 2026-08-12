@@ -49,7 +49,6 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
       boxShadow="md"
       bg="bg.panel"
       borderLeftWidth="1px"
-      size="lg"
       {...rest}
     >
       {contact ? (
@@ -134,9 +133,6 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
             <Icon
               transitionProperty="transform"
               transitionDuration="fast"
-              _groupOpen={{
-                transform: "rotate(90deg)",
-              }}
             >
               <LuChevronRight />
             </Icon>
@@ -147,7 +143,12 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
           <DataList.Root orientation="horizontal" size="sm">
             <Property
               label="Type"
-              value={<ContactType type={contact?.type} ms="-2" />}
+              value={
+                <ContactType
+                  {...(contact?.type ? { type: contact.type } : {})}
+                  ms="-2"
+                />
+              }
             />
             <Property
               label="Status"

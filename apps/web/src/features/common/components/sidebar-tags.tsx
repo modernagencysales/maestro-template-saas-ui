@@ -16,7 +16,7 @@ import { useWorkspaceSlug } from "../hooks/use-workspace-slug";
 export const AppSidebarTags = () => {
   const workspace = useWorkspaceSlug();
 
-  const tags = useTags();
+  const tags = useTags().map((tag) => ({ ...tag }));
 
   const getSortedTags = React.useCallback((tags: TagDTO[]) => {
     return tags as TagDTO[];
@@ -46,16 +46,15 @@ export const AppSidebarTags = () => {
           key={tag.id}
           id={tag.id}
           my="0"
-          to="/$workspace/tag/$tag"
+          to="/tag/$tag"
           params={{
-            workspace,
             tag: tag.id,
           }}
           activeProps={{
-            isActive: true,
+            "data-active": true,
           }}
-          icon={<TagColor color={tag.color ?? undefined} />}
         >
+          <TagColor color={tag.color ?? undefined} />
           <Text>{tag.name}</Text>
         </TagLink>
       ))}

@@ -140,7 +140,7 @@ export const PricingTable: React.FC<PricingTableProps> = (props) => {
                       </Button>
                     ) : (
                       <Button
-                        variant={isDowngrade ? "surface" : "glass"}
+                        variant={isDowngrade ? "surface" : "solid"}
                         colorPalette={isDowngrade ? "gray" : "accent"}
                         disabled={loading}
                         onClick={() => updatePlan?.(plan)}
@@ -232,7 +232,7 @@ const PricingTablePeriod: React.FC<PricingTablePeriodProps> = (props) => {
         }))}
         onValueChange={(details) => {
           console.log(details);
-          onChange(details.value);
+          if (details.value) onChange(details.value);
         }}
         value={period}
       />

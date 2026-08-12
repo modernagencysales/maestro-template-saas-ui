@@ -50,7 +50,7 @@ function PersonalAccessTokens() {
       <Section.Header title="Personal access tokens" />
       <Section.Body>
         <SettingsCard
-          footer={<Button variant="primary">Create new token</Button>}
+          footer={<Button variant="solid">Create new token</Button>}
         >
           <GridList.Root p="0">
             <AccessToken token="12345" onRemove={onRemove} />

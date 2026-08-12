@@ -161,8 +161,7 @@ export function MembersSettingsPage() {
                 </Alert.Description>
               </Alert.Content>
               <Link
-                to="/$workspace/settings/plans"
-                params={{ workspace: workspace.slug }}
+                to="/settings/plans"
                 fontWeight="medium"
               >
                 Upgrade now

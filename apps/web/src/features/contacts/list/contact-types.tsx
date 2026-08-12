@@ -29,25 +29,21 @@ export const ContactTypes = () => {
     setValue(type);
   }, [type]);
 
-  const setType = (id: string) => {
+  const setType = (id: string | null) => {
+    if (!id) return;
     const type = getContactType(id);
 
     if (!type) return;
 
     if (type.id === "all") {
       navigate({
-        to: "/$workspace/contacts",
-        params: {
-          workspace,
-        },
+        to: "/contacts",
+        params: {},
       });
     } else {
       navigate({
-        to: "/$workspace/contacts/$type",
-        params: {
-          workspace,
-          type: type.id,
-        },
+        to: "/contacts/$type",
+        params: { type: type.id },
       });
     }
 

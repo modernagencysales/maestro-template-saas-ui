@@ -41,18 +41,16 @@ const InboxListItem: React.FC<InboxListItemProps> = (props) => {
 
   return (
     <ListLink
-      to="/$workspace/inbox/$id"
+      to="/inbox/$id"
       params={{
-        workspace,
         id: item.id,
       }}
       search={{
         contactId: item.subjectId,
       }}
       mask={{
-        to: "/$workspace/contacts/view/$id",
+        to: "/contacts/view/$id",
         params: {
-          workspace,
           id: item.subjectId,
         },
       }}
@@ -119,7 +117,7 @@ const useActor = (id: string | null) => {
     .getData({
       slug: workspace,
     })
-    ?.members.find((m) => m.id === id);
+    ?.members.find((m: { id: string }) => m.id === id);
 };
 
 /**

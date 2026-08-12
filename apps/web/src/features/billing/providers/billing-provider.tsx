@@ -21,13 +21,33 @@ export function BillingProvider(props: { children: React.ReactNode }) {
   const billing = useMemo(() => {
     return {
       plans: plans,
-      status: subscription?.status,
+      ...(subscription?.status
+        ? {
+            status: subscription.status as
+              | "active"
+              | "canceled"
+              | "past_due"
+              | "trialing"
+              | "unpaid"
+              | "incomplete"
+              | "incomplete_expired"
+              | "paused",
+          }
+        : {}),
       planId: subscription?.planId,
-      startedAt: subscription?.startedAt,
-      trialEndsAt: subscription?.trialEndsAt ?? undefined,
-      cancelAt: subscription?.cancelAt ?? undefined,
+      ...(subscription?.startedAt
+        ? { startedAt: new Date(String(subscription.startedAt)) }
+        : {}),
+      ...(subscription?.trialEndsAt
+        ? { trialEndsAt: new Date(String(subscription.trialEndsAt)) }
+        : {}),
+      ...(subscription?.cancelAt
+        ? { cancelAt: new Date(String(subscription.cancelAt)) }
+        : {}),
       cancelAtPeriodEnd: subscription?.cancelAtPeriodEnd,
-      currentPeriodEnd: subscription?.currentPeriodEnd,
+      ...(subscription?.currentPeriodEnd
+        ? { currentPeriodEnd: new Date(String(subscription.currentPeriodEnd)) }
+        : {}),
     };
   }, [subscription]);
 

@@ -1,5 +1,5 @@
 type QueryResult = {
-  data?: unknown;
+  data?: any;
   isLoading: boolean;
   isPending: boolean;
   error?: unknown;

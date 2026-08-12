@@ -56,10 +56,10 @@ export const Editor = React.forwardRef<HTMLDivElement, EditorProps>(
       extensions: [
         StarterKit,
         Placeholder.configure({
-          placeholder,
+          ...(placeholder ? { placeholder } : {}),
         }),
       ],
-      content: defaultValue,
+      ...(defaultValue ? { content: defaultValue } : {}),
       onUpdate: ({ editor }) => {
         const html = editor?.getHTML();
         onChange?.(html || "");

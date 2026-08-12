@@ -11,7 +11,7 @@ export function PaymentOverdueBanner() {
         </Alert.Description>
 
         <Link
-          to="/$workspace/settings/billing"
+          to="/settings/billing"
           params={{
             workspace,
           }}

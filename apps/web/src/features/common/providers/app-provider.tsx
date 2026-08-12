@@ -17,8 +17,9 @@ const LinkComponent = React.forwardRef<
   HTMLAnchorElement,
   TanstackLinkProps & { href: TanstackLinkProps["to"] }
 >(function LinkComponent(props, ref) {
-  const { href, ...rest } = props;
-  return <TanstackLink ref={ref} to={href} {...rest} />;
+  const { href, to: _to, ...rest } = props;
+  const linkProps = { ...rest, to: href } as TanstackLinkProps;
+  return <TanstackLink ref={ref} {...linkProps} />;
 });
 
 export interface AppProviderProps {
@@ -30,7 +31,11 @@ export const AppProvider: React.FC<AppProviderProps> = (props) => {
   const { onError, children } = props;
 
   return (
-    <SuiProvider linkComponent={LinkComponent} onError={onError} value={system}>
+    <SuiProvider
+      linkComponent={LinkComponent}
+      {...(onError ? { onError } : {})}
+      value={system}
+    >
       <Hotkeys hotkeys={appHotkeys}>{children}</Hotkeys>
     </SuiProvider>
   );

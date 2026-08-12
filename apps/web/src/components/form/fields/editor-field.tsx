@@ -31,11 +31,11 @@ export const EditorField = React.forwardRef<HTMLDivElement, EditorFieldProps>(
       <FieldRoot
         label={label}
         help={help}
-        orientation={orientation}
-        required={required}
-        rootProps={rootProps}
+        {...(orientation ? { orientation } : {})}
+        {...(required ? { required } : {})}
+        {...(rootProps ? { rootProps } : {})}
         invalid={invalid}
-        errorText={errorText}
+        {...(errorText ? { errorText } : {})}
       >
         <Editor
           ref={ref}

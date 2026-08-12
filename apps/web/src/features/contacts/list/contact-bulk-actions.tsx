@@ -20,7 +20,7 @@ export const bulkActions = ({ selections }: { selections: Array<string> }) => {
           </>
         }
       >
-        <Button variant="secondary" onClick={handleAddTags}>
+        <Button variant="outline" onClick={handleAddTags}>
           <LuTag size="1em" /> Add tags
         </Button>
       </Tooltip>
@@ -31,7 +31,7 @@ export const bulkActions = ({ selections }: { selections: Array<string> }) => {
           </>
         }
       >
-        <Button variant="secondary" onClick={handleCommand}>
+        <Button variant="outline" onClick={handleCommand}>
           <LuCommand size="1em" /> Command
         </Button>
       </Tooltip>

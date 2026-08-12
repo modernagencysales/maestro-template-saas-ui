@@ -13,7 +13,7 @@ import { AuthCard } from "./components/auth-card";
 import {
   ForgotPasswordFormInput,
   forgotPasswordSchema,
-} from "./schema/forgot-password.schema.ts";
+} from "./schema/forgot-password.schema";
 
 export const ForgotPasswordPage = () => {
   const auth = useAuth();
@@ -57,7 +57,7 @@ export const ForgotPasswordPage = () => {
         <Container maxW="md" py="8">
           <AuthCard
             title="Forgot your password?"
-            footer={<Link to="/login">Back to log in</Link>}
+            footer={<Link to="/login" search={{ redirectTo: undefined }}>Back to log in</Link>}
           >
             {mutation.data ? (
               <Alert.Root

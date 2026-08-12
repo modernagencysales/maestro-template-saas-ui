@@ -10,7 +10,7 @@ import {
 
 import { Form, useAppForm } from "@workspace/ui/form";
 
-import { type ColorMode, useColorMode } from "#components/color-mode.tsx";
+import { type ColorMode, useColorMode } from "#components/color-mode";
 
 import { OnboardingStep } from "./onboarding-step";
 import { appearanceSchema } from "./schema/appearance.schema";

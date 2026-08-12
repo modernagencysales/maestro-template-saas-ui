@@ -56,11 +56,11 @@ export function SelectField(props: SelectFieldProps) {
     <FieldRoot
       label={label}
       help={help}
-      orientation={orientation}
-      required={required}
-      rootProps={rootProps}
+      {...(orientation ? { orientation } : {})}
+      {...(required ? { required } : {})}
+      {...(rootProps ? { rootProps } : {})}
       invalid={invalid}
-      errorText={errorText}
+      {...(errorText ? { errorText } : {})}
     >
       <Select.Root
         name={field.name}

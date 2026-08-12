@@ -49,9 +49,8 @@ export const SettingsSidebar = () => {
 
   useHotkeysShortcut("settings.close", () => {
     navigate({
-      to: "/$workspace",
+      to: "/",
       params: {
-        workspace,
       },
     });
   });
@@ -64,9 +63,8 @@ export const SettingsSidebar = () => {
 
   const getLinkOptions = (to: string) => {
     return linkOptions({
-      from: "/$workspace/settings",
+      from: "/settings",
       to: `./${to}`,
-      params: { workspace },
       activeOptions: { exact: true },
       activeProps: {
         "data-active": true,
@@ -86,8 +84,7 @@ export const SettingsSidebar = () => {
       <Sidebar.Root borderRightWidth="1px">
         <Sidebar.Header>
           <LinkButton
-            to="/$workspace"
-            params={{ workspace }}
+            to="/"
             variant="ghost"
             size="sm"
             _hover={{

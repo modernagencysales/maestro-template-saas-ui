@@ -13,11 +13,11 @@ import {
 import { useNavigate } from "@tanstack/react-router";
 import { LuInbox } from "react-icons/lu";
 
-import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace.ts";
-import { useOpenState } from "#hooks/use-open-state.ts";
-import { api } from "#lib/trpc/react.tsx";
+import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
+import { useOpenState } from "#hooks/use-open-state";
+import { api } from "#lib/trpc/react";
 
-import { InboxList } from "./inbox-list.tsx";
+import { InboxList } from "./inbox-list";
 
 export function InboxLayout({
   params,
@@ -54,18 +54,16 @@ export function InboxLayout({
         // redirect to the first inbox notification if it's available.
         startTransition(() => {
           navigate({
-            to: "/$workspace/inbox/$id",
+            to: "/inbox/$id",
             params: {
-              workspace: params.workspace,
               id: firstItem.id,
             },
             search: {
               contactId: firstItem.subjectId,
             },
             mask: {
-              to: "/$workspace/contacts/view/$id",
+              to: "/contacts/view/$id",
               params: {
-                workspace: params.workspace,
                 id: firstItem.subjectId,
               },
             },
@@ -155,7 +153,11 @@ export function InboxLayout({
   );
 
   return (
-    <SplitPage open={open} onOpenChange={setOpen}>
+    <SplitPage
+      {...(typeof open === "boolean" ? { open } : {})}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+    >
       <Resizer
         defaultWidth={width}
         onResize={({ width }) => setWidth(width)}
@@ -181,7 +183,7 @@ export function InboxLayout({
           <ResizeHandle />
         </Page.Root>
       </Resizer>
-      {children}
+      <>{children}</>
     </SplitPage>
   );
 }

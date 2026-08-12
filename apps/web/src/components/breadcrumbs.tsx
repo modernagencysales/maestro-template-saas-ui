@@ -39,7 +39,7 @@ export const Breadcrumbs: React.FC<BreadCrumbsProps> = (props) => {
                 {to ? (
                   <BreadcrumbLink
                     to={to}
-                    params={params}
+                    {...(params ? { params } : {})}
                     fontWeight="medium"
                     color="fg"
                     _hover={{

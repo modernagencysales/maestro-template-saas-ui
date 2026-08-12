@@ -33,11 +33,11 @@ export const TextareaField = React.forwardRef<
     <FieldRoot
       label={label}
       help={help}
-      orientation={orientation}
-      required={required}
-      rootProps={rootProps}
+      {...(orientation ? { orientation } : {})}
+      {...(required ? { required } : {})}
+      {...(rootProps ? { rootProps } : {})}
       invalid={invalid}
-      errorText={errorText}
+      {...(errorText ? { errorText } : {})}
     >
       <Textarea
         ref={ref}

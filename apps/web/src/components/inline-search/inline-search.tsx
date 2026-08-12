@@ -19,6 +19,7 @@ export const InlineSearch = React.forwardRef<
   HTMLInputElement,
   SearchInputProps
 >(function InlineSearch(props, ref) {
+  const { endElement: _endElement, value: _value, ...inputProps } = props;
   const inputRef = React.useRef<HTMLInputElement>(null);
   const isMobile = useBreakpointValue({ base: true, lg: false });
 
@@ -87,14 +88,14 @@ export const InlineSearch = React.forwardRef<
     <Box onClick={onClick}>
       <Box css={styles}>
         <SearchInput
+          {...inputProps}
           ref={mergeRefs(ref, inputRef)}
           size="sm"
           width={{ base: open ? "full" : 8, lg: 60 }}
           pr={0}
           onReset={onReset}
-          endElement={resetButton}
+          {...(resetButton ? { endElement: resetButton } : {})}
           value={value}
-          {...props}
         />
       </Box>
     </Box>

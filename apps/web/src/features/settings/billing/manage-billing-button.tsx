@@ -15,7 +15,7 @@ export function ManageBillingButton(props: ManageBillingButtonProps) {
   return (
     <Button
       role="group"
-      variant={props.variant ?? "secondary"}
+      variant={props.variant === "secondary" ? "outline" : props.variant}
       disabled={isPending}
       onClick={async () => {
         try {

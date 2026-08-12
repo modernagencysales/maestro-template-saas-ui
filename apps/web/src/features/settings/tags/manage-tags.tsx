@@ -159,7 +159,7 @@ const TagListItem: React.FC<TagListItemProps> = (props) => {
           Cancel
         </Button>
         <Button
-          variant="secondary"
+          variant="outline"
           size="sm"
           loading={isLoading}
           onClick={() => onSave()}
@@ -342,7 +342,7 @@ const TagListAddItem: React.FC<TagListAddItemProps> = (props) => {
               Cancel
             </Button>
             <Button
-              variant="secondary"
+              variant="outline"
               size="sm"
               loading={isLoading}
               onClick={() => onSave()}
@@ -419,7 +419,7 @@ export const ManageTags = (props: ManageTagsProps) => {
             />
           </Box>
           <Button
-            variant="primary"
+            variant="solid"
             colorPalette="indigo"
             onClick={() => {
               setEditId(null);

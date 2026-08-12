@@ -47,7 +47,7 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = (props) => {
     return (
       <Menu.Root>
         <Menu.Button variant="surface" size="xs">
-          {activeSegment.label}
+          {activeSegment?.label}
         </Menu.Button>
         <Menu.Content portalled>
           <Menu.RadioItemGroup

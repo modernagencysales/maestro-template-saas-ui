@@ -33,9 +33,15 @@ export const DateTimeSince: React.FC<DateTimeSinceProps> = (props) => {
         }}
       >
         {type === "relative" ? (
-          <FormatRelativeTime date={props.date} style={format} />
+          <FormatRelativeTime
+            date={props.date}
+            {...(format ? { style: format } : {})}
+          />
         ) : (
-          <FormatDateTime date={props.date} style={format} />
+          <FormatDateTime
+            date={props.date}
+            {...(format ? { style: format } : {})}
+          />
         )}
       </Box>
     </Tooltip>

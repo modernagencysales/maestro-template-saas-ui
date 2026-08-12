@@ -68,7 +68,7 @@ export const SignupPage = () => {
             title="Sign up"
             footer={
               <Text color="fg.muted">
-                Already have an account? <Link to="/login">Log in</Link>.
+                Already have an account? <Link to="/login" search={{ redirectTo: undefined }}>Log in</Link>.
               </Text>
             }
           >

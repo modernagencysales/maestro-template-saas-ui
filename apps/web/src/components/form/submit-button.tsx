@@ -43,7 +43,7 @@ export const SubmitButton = React.forwardRef<
         <Button
           ref={ref}
           type="submit"
-          variant="primary"
+          variant="solid"
           colorPalette="accent"
           loading={isSubmitting}
           loadingText={loadingText}

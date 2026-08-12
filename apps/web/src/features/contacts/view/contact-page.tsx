@@ -2,6 +2,8 @@
 
 import * as React from "react";
 
+import { Button } from "@chakra-ui/react";
+
 import {
   ButtonGroup,
   HStack,
@@ -20,7 +22,7 @@ import {
 
 import { Breadcrumbs } from "#components/breadcrumbs";
 import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
-import { useOpenState } from "#hooks/use-open-state.ts";
+import { useOpenState } from "#hooks/use-open-state";
 import { api } from "#lib/trpc/react";
 
 import { ActivitiesPanel } from "./activities-panel";
@@ -67,8 +69,7 @@ export function ContactPage({ params, toolbarItems }: ContactPageProps) {
     <Breadcrumbs
       items={[
         {
-          to: "/$workspace/contacts",
-          params: { workspace: params.workspace },
+          to: "/contacts",
           title: "Contacts",
         },
         { title: data?.name },
@@ -103,8 +104,8 @@ export function ContactPage({ params, toolbarItems }: ContactPageProps) {
           gap="0"
         >
           <Tabs.Root
-            variant="pills"
-            size="xs"
+            variant="subtle"
+            size="sm"
             colorPalette="gray"
             defaultValue="activity"
             lazyMount
@@ -134,7 +135,7 @@ export function ContactPage({ params, toolbarItems }: ContactPageProps) {
 
           <ContactSidebar
             contact={data}
-            open={sidebar.open}
+            {...(sidebar.open ? { open: true } : {})}
             onOpenChange={sidebar.onOpenChange}
           />
         </HStack>

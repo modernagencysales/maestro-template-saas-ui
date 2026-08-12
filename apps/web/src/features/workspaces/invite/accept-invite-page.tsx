@@ -27,10 +27,7 @@ export function AcceptInvitePage({ params }: { params: { token: string } }) {
       });
 
       navigate({
-        to: "/$workspace",
-        params: {
-          workspace: data.workspace.slug,
-        },
+        to: "/",
       });
     },
     onError(error) {

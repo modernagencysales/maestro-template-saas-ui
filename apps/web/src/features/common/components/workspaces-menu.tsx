@@ -11,7 +11,7 @@ const WorkspaceLogo: React.FC<AvatarProps> = (props) => {
   return (
     <Avatar
       display="inline-flex"
-      src={src}
+      {...(src ? { src } : {})}
       size="xs"
       borderRadius="full"
       {...rest}
@@ -21,7 +21,7 @@ const WorkspaceLogo: React.FC<AvatarProps> = (props) => {
 
 export const WorkspacesMenu: React.FC = () => {
   const navigate = useNavigate({
-    from: "/$workspace/",
+    from: "/",
   });
   const workspace = useWorkspaceSlug();
   const workspaces = useWorkspaces();
@@ -42,7 +42,10 @@ export const WorkspacesMenu: React.FC = () => {
   };
 
   const activeLogo = (
-    <WorkspaceLogo name={activeWorkspace?.label} src={activeWorkspace?.logo} />
+    <WorkspaceLogo
+      {...(activeWorkspace?.label ? { name: activeWorkspace.label } : {})}
+      {...(activeWorkspace?.logo ? { src: activeWorkspace.logo } : {})}
+    />
   );
 
   return (
@@ -66,7 +69,7 @@ export const WorkspacesMenu: React.FC = () => {
                 onClick={() => setWorkspace(slug)}
                 {...props}
               >
-                <WorkspaceLogo name={label} src={logo} />
+                <WorkspaceLogo name={label} {...(logo ? { src: logo } : {})} />
 
                 <Text>{label}</Text>
                 <Spacer />
@@ -78,7 +81,7 @@ export const WorkspacesMenu: React.FC = () => {
         <Menu.Separator />
         <Has feature="settings">
           <Menu.Item value="workspace-settings" asChild>
-            <Link to="/$workspace/settings/workspace" params={{ workspace }}>
+          <Link to="/settings/workspace">
               Workspace settings
             </Link>
           </Menu.Item>
