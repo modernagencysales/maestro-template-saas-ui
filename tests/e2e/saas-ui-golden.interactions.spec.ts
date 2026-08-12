@@ -30,9 +30,11 @@ test.describe("paired Saas UI golden interactions", () => {
         .getByRole("separator", { name: "Collapse sidebar" })
         .first();
       await handle.click();
-      await expect(
-        page.locator('[data-mode="flyout"][data-state="open"]'),
-      ).toBeVisible();
+      const sidebar = page.locator("[data-mode]").first();
+      await expect(sidebar).toHaveAttribute("data-mode", "flyout");
+      await expect(sidebar).toHaveAttribute("data-state", "closed");
+      await page.getByRole("button", { name: "Collapse sidebar" }).hover();
+      await expect(sidebar).toHaveAttribute("data-state", "open");
     });
 
     test(`${kind} workspace and user menus expose named commands`, async ({
