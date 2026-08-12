@@ -377,7 +377,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/contacts/list/list-page.tsx",
       "destination": "apps/web/src/features/contacts/list/list-page.tsx",
       "sourceSha256": "9f3d5186cd1b1c06ac7b5c80d68123ff78025d7ac6f4179cef9baae69b8c0a57",
-      "sha256": "71e9d198d4f6e1a80b67bbe456e363654a21069d898a5c73051c232c8f06f72c",
+      "sha256": "21f9ecead9b86918cdcaa82e0bd6deca30c642ae0d9c885306a8880738647aac",
       "adapted": true
     },
     {

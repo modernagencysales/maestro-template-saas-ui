@@ -24,6 +24,7 @@ import {
 import {
   Button,
   ButtonGroup,
+  ClientOnly,
   Command,
   DataList,
   EmptyState,
@@ -42,7 +43,7 @@ import { LuSlidersHorizontal, LuSquareUser } from "react-icons/lu";
 import { z } from "zod";
 
 import { ContactDTO } from "@workspace/api/types";
-import { DataBoard } from "@workspace/ui/data-board";
+import { DataBoard, type DataBoardProps } from "@workspace/ui/data-board";
 import { useDataGridFocus } from "@workspace/ui/hooks";
 import { InlineSearch } from "@workspace/ui/inline-search";
 import { useModals } from "@workspace/ui/modals";
@@ -86,6 +87,90 @@ const DateCell = ({ date }: { date?: string | Date | null }) => {
 };
 
 type BoardContact = ContactDTO & { sortOrder?: number };
+type CardDragEnd = NonNullable<DataBoardProps<ContactDTO>["onCardDragEnd"]>;
+type CardDragEndEvent = Parameters<CardDragEnd>[0];
+
+function inferredNextContact(
+  contacts: readonly BoardContact[],
+  previous: BoardContact | undefined,
+  next: BoardContact | undefined,
+  previousId: string | undefined,
+) {
+  if (previous && !next)
+    return contacts[contacts.findIndex(({ id }) => id === previousId) + 1];
+  return next;
+}
+
+function inferredPreviousContact(
+  contacts: readonly BoardContact[],
+  previous: BoardContact | undefined,
+  next: BoardContact | undefined,
+  previousId: string | undefined,
+) {
+  if (!previous && !next)
+    return contacts[contacts.findIndex(({ id }) => id === previousId) - 1];
+  return previous;
+}
+
+function midpointSortOrder(
+  previous: BoardContact | undefined,
+  next: BoardContact | undefined,
+  contactsLength: number,
+  fallback: number,
+) {
+  return (
+    ((previous?.sortOrder || 0) + (next?.sortOrder ?? contactsLength)) / 2 ||
+    fallback
+  );
+}
+
+function sortOrderForDrop(
+  contacts: readonly BoardContact[],
+  { items, to }: CardDragEndEvent,
+) {
+  const previousId = items[to.columnId]?.[to.index - 1];
+  const previous = contacts.find(({ id }) => id === previousId);
+  const nextId = items[to.columnId]?.[to.index + 1];
+  const next = contacts.find(({ id }) => id === nextId);
+
+  return midpointSortOrder(
+    inferredPreviousContact(contacts, previous, next, previousId),
+    inferredNextContact(contacts, previous, next, previousId),
+    contacts.length,
+    to.index,
+  );
+}
+
+function updateForDrop(input: {
+  contacts: readonly BoardContact[];
+  event: CardDragEndEvent;
+  workspaceId: string;
+}) {
+  const { contacts, event, workspaceId } = input;
+  const { items, to, from } = event;
+  const contact = contacts.find(
+    ({ id }) => id === items[to.columnId]?.[to.index],
+  );
+  if (!contact) throw new Error("Contact not found");
+
+  const [field, toValue] = String(to.columnId).split(":") as [
+    keyof ContactDTO,
+    string,
+  ];
+  const [, previousValue] = String(from.columnId).split(":");
+  const value = Array.isArray(contact[field])
+    ? (toValue !== "" ? [toValue] : []).concat(
+        (contact[field] as string[]).filter((item) => item !== previousValue),
+      )
+    : toValue;
+
+  return {
+    workspaceId,
+    id: contact.id,
+    [field]: value,
+    sortOrder: sortOrderForDrop(contacts, event),
+  };
+}
 
 const ActionCell: DataGridCell<ContactDTO> = (cell) => {
   return (
@@ -466,64 +551,14 @@ export function ContactsListPage({
           renderHeader={(header) => <ContactBoardHeader {...header} />}
           renderCard={(row) => <ContactCard contact={row.original} />}
           groupBy={userSettings.contactsGroupBy}
-          onCardDragEnd={({ items, to, from }) => {
-            const contacts = (data?.contacts ?? []) as BoardContact[];
-            const contact = contacts.find(
-              ({ id }: BoardContact) => id === items[to.columnId]?.[to.index],
+          onCardDragEnd={(event) => {
+            updateContactMutation.mutateAsync(
+              updateForDrop({
+                contacts: (data?.contacts ?? []) as BoardContact[],
+                event,
+                workspaceId: workspace.id,
+              }),
             );
-
-            const [field, toValue] = (to.columnId as string).split(":") as [
-              keyof ContactDTO,
-              string,
-            ];
-            const [, prevValue] = (from.columnId as string).split(":");
-
-            if (!contact) {
-              throw new Error("Contact not found");
-            }
-
-            const prevId = items[to.columnId]?.[to.index - 1];
-            let prevContact = contacts.find(
-              ({ id }: BoardContact) => id === prevId,
-            );
-
-            const nextId = items[to.columnId]?.[to.index + 1];
-            let nextContact = contacts.find(
-              ({ id }: BoardContact) => id === nextId,
-            );
-
-            if (prevContact && !nextContact) {
-              nextContact =
-                contacts[
-                  contacts.findIndex(({ id }: BoardContact) => id === prevId) +
-                    1
-                ];
-            } else if (!prevContact && !nextContact) {
-              prevContact =
-                contacts[
-                  contacts.findIndex(({ id }: BoardContact) => id === prevId) -
-                    1
-                ];
-            }
-
-            const prevSortOrder = prevContact?.sortOrder || 0;
-            const nextSortOrder = nextContact?.sortOrder ?? contacts.length;
-
-            const sortOrder = (prevSortOrder + nextSortOrder) / 2 || to.index;
-
-            let value: string | string[] = toValue;
-            if (Array.isArray(contact[field])) {
-              value = (value !== "" ? [value] : []).concat(
-                (contact[field] as string[]).filter((v) => v !== prevValue),
-              );
-            }
-
-            updateContactMutation.mutateAsync({
-              workspaceId: workspace.id,
-              id: contact.id,
-              [field]: value,
-              sortOrder,
-            });
           }}
           noResults={NoFilteredResults}
           getRowId={getRowId}
@@ -541,38 +576,40 @@ export function ContactsListPage({
     );
   } else {
     content = (
-      <DataGrid<ContactDTO>
-        ref={containerRef}
-        instanceRef={gridRef}
-        columns={columns}
-        data={contacts}
-        isSelectable
-        isSortable
-        isHoverable
-        columnResizeEnabled
-        onSelectedRowsChange={setSelections}
-        onRowClick={onRowClick}
-        onFocusChange={onFocusChange}
-        onColumnFiltersChange={setColumnFilters}
-        noResults={NoFilteredResults}
-        getRowId={getRowId}
-        initialState={{
-          columnVisibility,
-          pagination: { pageSize: 20 },
-          columnPinning: {
-            left: ["selection", "name"],
-            right: ["action"],
-          },
-        }}
-        state={state}
-      >
-        <DataGridPagination.Root borderTopWidth="1px" siblingCount={3}>
-          <DataGridPagination.PageControl />
-          <DataGridPagination.PreviousButton />
-          <DataGridPagination.Items />
-          <DataGridPagination.NextButton />
-        </DataGridPagination.Root>
-      </DataGrid>
+      <ClientOnly fallback={null}>
+        <DataGrid<ContactDTO>
+          ref={containerRef}
+          instanceRef={gridRef}
+          columns={columns}
+          data={contacts}
+          isSelectable
+          isSortable
+          isHoverable
+          columnResizeEnabled
+          onSelectedRowsChange={setSelections}
+          onRowClick={onRowClick}
+          onFocusChange={onFocusChange}
+          onColumnFiltersChange={setColumnFilters}
+          noResults={NoFilteredResults}
+          getRowId={getRowId}
+          initialState={{
+            columnVisibility,
+            pagination: { pageSize: 20 },
+            columnPinning: {
+              left: ["selection", "name"],
+              right: ["action"],
+            },
+          }}
+          state={state}
+        >
+          <DataGridPagination.Root borderTopWidth="1px" siblingCount={3}>
+            <DataGridPagination.PageControl />
+            <DataGridPagination.PreviousButton />
+            <DataGridPagination.Items />
+            <DataGridPagination.NextButton />
+          </DataGridPagination.Root>
+        </DataGrid>
+      </ClientOnly>
     );
   }
 

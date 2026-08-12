@@ -68,5 +68,12 @@
     "change": "The preserved aside gains named open/close controls and restores focus to its trigger after close or Escape.",
     "reason": "The upstream Aside primitive exposes controlled open state but no close control or trigger relationship; the acceptance contract requires keyboard-close and focus restoration.",
     "evidence": "The paired golden interaction spec closes the contact details aside with Escape and asserts focus returns to the named trigger."
+  },
+  {
+    "source": "@saas-ui-pro/react@1.0.0-next.4:DataGridColumnResizer",
+    "destination": "apps/web/src/features/contacts/list/list-page.tsx",
+    "change": "The upstream DataGrid is mounted through ClientOnly while retaining its original client-side JSX and styles.",
+    "reason": "The column-resizer EnvironmentContext evaluates document during SSR, which crashes both reference and generated golden authorities.",
+    "evidence": "data-grid.ssr.test.tsx reproduces ReferenceError: document is not defined for the vendor DataGrid with resizing enabled; the ContactsListPage SSR regression and paired desktop golden subset prove the boundary and hydrated grid."
   }
 ]

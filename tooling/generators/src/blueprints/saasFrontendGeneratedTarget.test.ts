@@ -55,6 +55,9 @@ describe("SaaS UI generated target artifact boundary", () => {
       expect(source).toContain("<ClientResizer");
       expect(source).not.toContain("<Resizer");
     }
+    expect(
+      sources.get("apps/web/src/features/contacts/list/list-page.tsx"),
+    ).toContain("<ClientOnly fallback={null}>");
   });
 
   it("keeps the mandatory frontend authority and private package boundary in the current target plan", () => {
