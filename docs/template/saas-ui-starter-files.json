@@ -391,7 +391,7 @@
       "source": "apps/web/src/features/contacts/list/list-page.tsx",
       "destination": "apps/web/src/features/contacts/list/list-page.tsx",
       "sourceSha256": "9f3d5186cd1b1c06ac7b5c80d68123ff78025d7ac6f4179cef9baae69b8c0a57",
-      "sha256": "e5cae2b0a44fe4a6df285466bf9c9b5e0c96acaadf465538dbe8f4942b0ba07c",
+      "sha256": "1689299d5a0b2791c5d6453f49ca0ce938317c5b8cb4ff8ebddbcfc8d618106a",
       "adapted": true
     },
     {
@@ -566,7 +566,7 @@
       "source": "apps/web/src/features/reports/reports-page.tsx",
       "destination": "apps/web/src/features/reports/reports-page.tsx",
       "sourceSha256": "fe804d3873917ad8e7cc615f205a59c6bbbabac9e6ed221fca503a9569734d58",
-      "sha256": "bc6c32133b9873d39b39fe0ece899a840c55cb30fb815c713549ecad4c046b9b",
+      "sha256": "83297a4ea97b17bea98c712f0cc1efed1a0d13f852180f6b25cd6f936c3e980a",
       "adapted": true
     },
     {
