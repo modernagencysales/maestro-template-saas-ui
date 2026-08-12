@@ -257,7 +257,7 @@ const meaningfulReadyLocators: Record<string, (page: Page) => Locator> = {
       .getByRole("complementary", { name: "Contact details" })
       .getByText("Jordan Lee", { exact: true }),
   "split-inbox": (page) => page.getByRole("row", { name: /Jordan Lee/ }),
-  settings: (page) => page.getByText("Account", { exact: true }),
+  settings: (page) => page.getByRole("heading", { name: "Profile" }),
   form: (page) => page.getByRole("heading", { name: "Form archetype" }),
   onboarding: (page) =>
     page.getByRole("heading", { name: "Create a new workspace" }),
