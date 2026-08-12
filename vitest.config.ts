@@ -1,4 +1,5 @@
 import { defineConfig } from "vitest/config";
+import { fileURLToPath } from "node:url";
 
 // Directories measured by the coverage ratchet. Everything runs under this
 // root config; generated files and vendored trees are excluded below.
@@ -19,6 +20,51 @@ export const coverageRatchetDirs = [
 ];
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      "#config": fileURLToPath(
+        new URL("./apps/web/src/config", import.meta.url),
+      ),
+      "#components": fileURLToPath(
+        new URL("./apps/web/src/components", import.meta.url),
+      ),
+      "#features": fileURLToPath(
+        new URL("./apps/web/src/features", import.meta.url),
+      ),
+      "#lib": fileURLToPath(new URL("./apps/web/src/lib", import.meta.url)),
+      "#theme": fileURLToPath(new URL("./apps/web/src/theme", import.meta.url)),
+      [/^#config\//u]: fileURLToPath(
+        new URL("./apps/web/src/config/", import.meta.url),
+      ),
+      [/^#components\//u]: fileURLToPath(
+        new URL("./apps/web/src/components/", import.meta.url),
+      ),
+      [/^#features\//u]: fileURLToPath(
+        new URL("./apps/web/src/features/", import.meta.url),
+      ),
+      [/^#lib\//u]: fileURLToPath(
+        new URL("./apps/web/src/lib/", import.meta.url),
+      ),
+      [/^#theme\//u]: fileURLToPath(
+        new URL("./apps/web/src/theme/", import.meta.url),
+      ),
+      "@workspace/ui": fileURLToPath(
+        new URL("./apps/web/src/components", import.meta.url),
+      ),
+      "@workspace/api": fileURLToPath(
+        new URL("./apps/web/src/workspace/api", import.meta.url),
+      ),
+      "@workspace/i18n": fileURLToPath(
+        new URL("./apps/web/src/workspace/i18n/index.ts", import.meta.url),
+      ),
+      "@workspace/config": fileURLToPath(
+        new URL("./apps/web/src/workspace/config/index.ts", import.meta.url),
+      ),
+      "@workspace/better-auth": fileURLToPath(
+        new URL("./apps/web/src/workspace/better-auth", import.meta.url),
+      ),
+    },
+  },
   test: {
     globals: false,
     include: ["**/*.test.{ts,tsx,mts,mjs}"],

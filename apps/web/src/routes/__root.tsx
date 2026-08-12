@@ -10,9 +10,7 @@ import { AuthKitProvider } from "@workos/authkit-tanstack-react-start/client";
 import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { TemplateToastProvider } from "@maestro-template/ui";
-
-import { MaestroSaasUiProvider } from "../saas-ui/provider";
+import { AppProvider } from "../features/common/providers/app-provider";
 import {
   createBrowserWorkspaceStorage,
   WorkspaceProvider,
@@ -69,16 +67,14 @@ function RootComponent() {
             {(analyticsConsent) => (
               <PostHogWebProvider analyticsConsent={analyticsConsent}>
                 <RootDocument>
-                  <WebRouteUxBoundary
-                    href={location.href}
-                    pathname={location.pathname}
-                  >
-                    <MaestroSaasUiProvider>
-                      <TemplateToastProvider>
-                        <Outlet />
-                      </TemplateToastProvider>
-                    </MaestroSaasUiProvider>
-                  </WebRouteUxBoundary>
+                  <AppProvider>
+                    <WebRouteUxBoundary
+                      href={location.href}
+                      pathname={location.pathname}
+                    >
+                      <Outlet />
+                    </WebRouteUxBoundary>
+                  </AppProvider>
                 </RootDocument>
               </PostHogWebProvider>
             )}

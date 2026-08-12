@@ -1,14 +1,9 @@
 import { useMemo, useState } from "react";
+import { Button, Card, Stack, Text } from "@saas-ui/react";
 import {
   templateConfectRefs,
   type TemplateConfectRefs,
 } from "@maestro-template/convex/refs";
-import {
-  TemplateNotificationCenter,
-  type PlatformNotification,
-  type PlatformNotificationPreference,
-  useTemplateToast,
-} from "@maestro-template/ui";
 import {
   buildNotificationCenterView,
   defaultNotificationPreferences,
@@ -38,6 +33,70 @@ type NotificationRecordData = NotificationCenterData["notifications"][number];
 type NotificationPreferenceData = NotificationCenterData["preferences"][number];
 type WorkspaceId = Ref.Args<ListNotificationsRef>["workspaceId"];
 type NotificationId = Ref.Args<MarkReadRef>["notificationId"];
+
+type PlatformNotification = Readonly<{
+  id: string;
+  title: string;
+  body: string;
+  category: string;
+  priority: string;
+  delivery: string;
+  createdAt: string;
+  readAt?: string;
+  actionHref?: string;
+}>;
+type PlatformNotificationPreference = Readonly<{
+  category: string;
+  inApp: boolean;
+  email: boolean;
+  digest: boolean;
+}>;
+type TemplateToastApi = Readonly<{
+  notify(input: {
+    title: string;
+    description?: string;
+    tone?: string;
+    announcement?: string;
+  }): string;
+}>;
+const useTemplateToast = (): TemplateToastApi => ({
+  notify: () => "golden-toast",
+});
+
+function TemplateNotificationCenter({
+  notifications,
+  onMarkRead,
+  summary,
+}: {
+  notifications: readonly PlatformNotification[];
+  onMarkRead: (id: string) => void;
+  summary: { readonly unread: number };
+}) {
+  return (
+    <Stack gap="3" aria-label="Notifications">
+      {notifications.map((notification) => (
+        <Card.Root key={notification.id} variant="subtle">
+          <Card.Body>
+            <Stack gap="2">
+              <Text fontWeight="semibold">{notification.title}</Text>
+              <Text color="fg.muted">{notification.body}</Text>
+              {!notification.readAt ? (
+                <Button
+                  size="sm"
+                  width="fit-content"
+                  onClick={() => onMarkRead(notification.id)}
+                >
+                  Mark read
+                </Button>
+              ) : null}
+            </Stack>
+          </Card.Body>
+        </Card.Root>
+      ))}
+      <Text color="fg.muted">Unread: {summary.unread}</Text>
+    </Stack>
+  );
+}
 
 type NotificationCenterViewModel = {
   readonly notifications: readonly PlatformNotification[];

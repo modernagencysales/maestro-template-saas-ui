@@ -80,6 +80,7 @@ export default defineConfig({
     react(),
   ],
   resolve: {
+    dedupe: ["react", "react-dom"],
     alias: {
       "@": fileURLToPath(new URL("./src", import.meta.url)),
       "@maestro-template/template-core/generated/confectManifest":
@@ -94,9 +95,6 @@ export default defineConfig({
           "../../packages/template-core/src/workflow-semantics/contract.ts",
           import.meta.url,
         ),
-      ),
-      "@maestro-template/ui": fileURLToPath(
-        new URL("../../packages/ui/src/index.tsx", import.meta.url),
       ),
       "@maestro-template/convex/refs": fileURLToPath(
         new URL("../../packages/convex/src/refs.ts", import.meta.url),
@@ -115,6 +113,21 @@ export default defineConfig({
       ),
       "@maestro-template/workflow-ui": fileURLToPath(
         new URL("../../packages/workflow-ui/src/index.tsx", import.meta.url),
+      ),
+      "@workspace/ui": fileURLToPath(
+        new URL("./src/components", import.meta.url),
+      ),
+      "@workspace/api": fileURLToPath(
+        new URL("./src/workspace/api", import.meta.url),
+      ),
+      "@workspace/i18n": fileURLToPath(
+        new URL("./src/workspace/i18n/index.ts", import.meta.url),
+      ),
+      "@workspace/config": fileURLToPath(
+        new URL("./src/workspace/config/index.ts", import.meta.url),
+      ),
+      "@workspace/better-auth": fileURLToPath(
+        new URL("./src/workspace/better-auth", import.meta.url),
       ),
     },
   },

@@ -19,7 +19,6 @@ import {
   templateConfectRefs,
   type TemplateConfectRefs,
 } from "@maestro-template/convex/refs";
-import { useTemplateToast, type TemplateToastApi } from "@maestro-template/ui";
 import { describeTypedFailure } from "../../adapters/failure-message";
 import {
   classifyConfectMutationResult,
@@ -29,9 +28,14 @@ import {
   useTemplateMutation,
   useTemplateQuery,
 } from "../../adapters/confect-state";
+import type { TemplateToastApi } from "../../adapters/confect-state";
 import { isConvexConfigured } from "../../env";
 import { useWorkspace } from "../../providers/workspace";
 import { StatusNotice } from "../../saas-ui/status-notice";
+
+const useTemplateToast = (): TemplateToastApi => ({
+  notify: () => "golden-toast",
+});
 
 type ListDsarRequestsRef =
   TemplateConfectRefs["public"]["ops"]["dataLifecycle"]["listDsarRequests"];

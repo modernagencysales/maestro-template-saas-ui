@@ -1,10 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BusinessSectionRoute } from "../saas-ui/business-shell";
-
+import { GettingStartedPage } from "../features/getting-started/getting-started-page";
 export const Route = createFileRoute("/_workspace/onboarding")({
-  component: OnboardingRoute,
+  component: GettingStartedPage,
 });
-
-function OnboardingRoute() {
-  return <BusinessSectionRoute section="onboarding" />;
-}

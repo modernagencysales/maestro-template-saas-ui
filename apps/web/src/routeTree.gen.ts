@@ -16,6 +16,7 @@ import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as LibraryRouteImport } from './routes/library'
 import { Route as EvaluateRouteImport } from './routes/evaluate'
 import { Route as DashboardRouteImport } from './routes/dashboard'
+import { Route as WorkspaceRouteImport } from './routes/_workspace'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as ReportEvaluationIdRouteImport } from './routes/report.$evaluationId'
@@ -24,17 +25,23 @@ import { Route as CheckoutReturnRouteImport } from './routes/checkout.return'
 import { Route as CheckoutReportIdRouteImport } from './routes/checkout.$reportId'
 import { Route as BuildPackPackIdRouteImport } from './routes/build-pack.$packId'
 import { Route as WorkspaceWorkflowsRouteImport } from './routes/_workspace.workflows'
+import { Route as WorkspaceStatesRouteImport } from './routes/_workspace.states'
 import { Route as WorkspaceSourcesRouteImport } from './routes/_workspace.sources'
 import { Route as WorkspaceSettingsRouteImport } from './routes/_workspace.settings'
 import { Route as WorkspaceRunsRouteImport } from './routes/_workspace.runs'
+import { Route as WorkspaceReportsRouteImport } from './routes/_workspace.reports'
 import { Route as WorkspaceOnboardingRouteImport } from './routes/_workspace.onboarding'
 import { Route as WorkspaceNotificationsRouteImport } from './routes/_workspace.notifications'
 import { Route as WorkspaceLegalRouteImport } from './routes/_workspace.legal'
+import { Route as WorkspaceKanbanRouteImport } from './routes/_workspace.kanban'
 import { Route as WorkspaceIntegrationsRouteImport } from './routes/_workspace.integrations'
+import { Route as WorkspaceInboxRouteImport } from './routes/_workspace.inbox'
 import { Route as WorkspaceHealthRouteImport } from './routes/_workspace.health'
+import { Route as WorkspaceFormsRouteImport } from './routes/_workspace.forms'
 import { Route as WorkspaceDocumentsRouteImport } from './routes/_workspace.documents'
 import { Route as WorkspaceDataMapRouteImport } from './routes/_workspace.data-map'
 import { Route as WorkspaceDataLifecycleRouteImport } from './routes/_workspace.data-lifecycle'
+import { Route as WorkspaceContactsRouteImport } from './routes/_workspace.contacts'
 import { Route as WorkspaceCapabilitiesRouteImport } from './routes/_workspace.capabilities'
 import { Route as WorkspaceBrainRouteImport } from './routes/_workspace.brain'
 import { Route as WorkspaceBillingRouteImport } from './routes/_workspace.billing'
@@ -45,6 +52,7 @@ import { Route as WorkspaceAdminRouteImport } from './routes/_workspace.admin'
 import { Route as BuildPackPackIdIndexRouteImport } from './routes/build-pack.$packId.index'
 import { Route as CheckoutFakeHostedSessionIdRouteImport } from './routes/checkout.fake-hosted.$sessionId'
 import { Route as BuildPackPackIdGeneratingRouteImport } from './routes/build-pack.$packId.generating'
+import { Route as WorkspaceContactsContactIdRouteImport } from './routes/_workspace.contacts.$contactId'
 
 const VerifyReportRoute = VerifyReportRouteImport.update({
   id: '/verify-report',
@@ -79,6 +87,10 @@ const EvaluateRoute = EvaluateRouteImport.update({
 const DashboardRoute = DashboardRouteImport.update({
   id: '/dashboard',
   path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const WorkspaceRoute = WorkspaceRouteImport.update({
+  id: '/_workspace',
   getParentRoute: () => rootRouteImport,
 } as any)
 const IndexRoute = IndexRouteImport.update({
@@ -117,99 +129,129 @@ const BuildPackPackIdRoute = BuildPackPackIdRouteImport.update({
   getParentRoute: () => rootRouteImport,
 } as any)
 const WorkspaceWorkflowsRoute = WorkspaceWorkflowsRouteImport.update({
-  id: '/_workspace/workflows',
+  id: '/workflows',
   path: '/workflows',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceStatesRoute = WorkspaceStatesRouteImport.update({
+  id: '/states',
+  path: '/states',
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceSourcesRoute = WorkspaceSourcesRouteImport.update({
-  id: '/_workspace/sources',
+  id: '/sources',
   path: '/sources',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceSettingsRoute = WorkspaceSettingsRouteImport.update({
-  id: '/_workspace/settings',
+  id: '/settings',
   path: '/settings',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceRunsRoute = WorkspaceRunsRouteImport.update({
-  id: '/_workspace/runs',
+  id: '/runs',
   path: '/runs',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceReportsRoute = WorkspaceReportsRouteImport.update({
+  id: '/reports',
+  path: '/reports',
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceOnboardingRoute = WorkspaceOnboardingRouteImport.update({
-  id: '/_workspace/onboarding',
+  id: '/onboarding',
   path: '/onboarding',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceNotificationsRoute = WorkspaceNotificationsRouteImport.update({
-  id: '/_workspace/notifications',
+  id: '/notifications',
   path: '/notifications',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceLegalRoute = WorkspaceLegalRouteImport.update({
-  id: '/_workspace/legal',
+  id: '/legal',
   path: '/legal',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceKanbanRoute = WorkspaceKanbanRouteImport.update({
+  id: '/kanban',
+  path: '/kanban',
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceIntegrationsRoute = WorkspaceIntegrationsRouteImport.update({
-  id: '/_workspace/integrations',
+  id: '/integrations',
   path: '/integrations',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceInboxRoute = WorkspaceInboxRouteImport.update({
+  id: '/inbox',
+  path: '/inbox',
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceHealthRoute = WorkspaceHealthRouteImport.update({
-  id: '/_workspace/health',
+  id: '/health',
   path: '/health',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceFormsRoute = WorkspaceFormsRouteImport.update({
+  id: '/forms',
+  path: '/forms',
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceDocumentsRoute = WorkspaceDocumentsRouteImport.update({
-  id: '/_workspace/documents',
+  id: '/documents',
   path: '/documents',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceDataMapRoute = WorkspaceDataMapRouteImport.update({
-  id: '/_workspace/data-map',
+  id: '/data-map',
   path: '/data-map',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceDataLifecycleRoute = WorkspaceDataLifecycleRouteImport.update({
-  id: '/_workspace/data-lifecycle',
+  id: '/data-lifecycle',
   path: '/data-lifecycle',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
+} as any)
+const WorkspaceContactsRoute = WorkspaceContactsRouteImport.update({
+  id: '/contacts',
+  path: '/contacts',
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceCapabilitiesRoute = WorkspaceCapabilitiesRouteImport.update({
-  id: '/_workspace/capabilities',
+  id: '/capabilities',
   path: '/capabilities',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceBrainRoute = WorkspaceBrainRouteImport.update({
-  id: '/_workspace/brain',
+  id: '/brain',
   path: '/brain',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceBillingRoute = WorkspaceBillingRouteImport.update({
-  id: '/_workspace/billing',
+  id: '/billing',
   path: '/billing',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceApiRoute = WorkspaceApiRouteImport.update({
-  id: '/_workspace/api',
+  id: '/api',
   path: '/api',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceAnalyticsRoute = WorkspaceAnalyticsRouteImport.update({
-  id: '/_workspace/analytics',
+  id: '/analytics',
   path: '/analytics',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceAgentsRoute = WorkspaceAgentsRouteImport.update({
-  id: '/_workspace/agents',
+  id: '/agents',
   path: '/agents',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const WorkspaceAdminRoute = WorkspaceAdminRouteImport.update({
-  id: '/_workspace/admin',
+  id: '/admin',
   path: '/admin',
-  getParentRoute: () => rootRouteImport,
+  getParentRoute: () => WorkspaceRoute,
 } as any)
 const BuildPackPackIdIndexRoute = BuildPackPackIdIndexRouteImport.update({
   id: '/',
@@ -228,6 +270,12 @@ const BuildPackPackIdGeneratingRoute =
     path: '/generating',
     getParentRoute: () => BuildPackPackIdRoute,
   } as any)
+const WorkspaceContactsContactIdRoute =
+  WorkspaceContactsContactIdRouteImport.update({
+    id: '/$contactId',
+    path: '/$contactId',
+    getParentRoute: () => WorkspaceContactsRoute,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -245,17 +293,23 @@ export interface FileRoutesByFullPath {
   '/billing': typeof WorkspaceBillingRoute
   '/brain': typeof WorkspaceBrainRoute
   '/capabilities': typeof WorkspaceCapabilitiesRoute
+  '/contacts': typeof WorkspaceContactsRouteWithChildren
   '/data-lifecycle': typeof WorkspaceDataLifecycleRoute
   '/data-map': typeof WorkspaceDataMapRoute
   '/documents': typeof WorkspaceDocumentsRoute
+  '/forms': typeof WorkspaceFormsRoute
   '/health': typeof WorkspaceHealthRoute
+  '/inbox': typeof WorkspaceInboxRoute
   '/integrations': typeof WorkspaceIntegrationsRoute
+  '/kanban': typeof WorkspaceKanbanRoute
   '/legal': typeof WorkspaceLegalRoute
   '/notifications': typeof WorkspaceNotificationsRoute
   '/onboarding': typeof WorkspaceOnboardingRoute
+  '/reports': typeof WorkspaceReportsRoute
   '/runs': typeof WorkspaceRunsRoute
   '/settings': typeof WorkspaceSettingsRoute
   '/sources': typeof WorkspaceSourcesRoute
+  '/states': typeof WorkspaceStatesRoute
   '/workflows': typeof WorkspaceWorkflowsRoute
   '/build-pack/$packId': typeof BuildPackPackIdRouteWithChildren
   '/checkout/$reportId': typeof CheckoutReportIdRoute
@@ -263,6 +317,7 @@ export interface FileRoutesByFullPath {
   '/maestro/$packId': typeof MaestroPackIdRoute
   '/report/$evaluationId': typeof ReportEvaluationIdRoute
   '/share/$token': typeof ShareTokenRoute
+  '/contacts/$contactId': typeof WorkspaceContactsContactIdRoute
   '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
   '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
   '/build-pack/$packId/': typeof BuildPackPackIdIndexRoute
@@ -283,23 +338,30 @@ export interface FileRoutesByTo {
   '/billing': typeof WorkspaceBillingRoute
   '/brain': typeof WorkspaceBrainRoute
   '/capabilities': typeof WorkspaceCapabilitiesRoute
+  '/contacts': typeof WorkspaceContactsRouteWithChildren
   '/data-lifecycle': typeof WorkspaceDataLifecycleRoute
   '/data-map': typeof WorkspaceDataMapRoute
   '/documents': typeof WorkspaceDocumentsRoute
+  '/forms': typeof WorkspaceFormsRoute
   '/health': typeof WorkspaceHealthRoute
+  '/inbox': typeof WorkspaceInboxRoute
   '/integrations': typeof WorkspaceIntegrationsRoute
+  '/kanban': typeof WorkspaceKanbanRoute
   '/legal': typeof WorkspaceLegalRoute
   '/notifications': typeof WorkspaceNotificationsRoute
   '/onboarding': typeof WorkspaceOnboardingRoute
+  '/reports': typeof WorkspaceReportsRoute
   '/runs': typeof WorkspaceRunsRoute
   '/settings': typeof WorkspaceSettingsRoute
   '/sources': typeof WorkspaceSourcesRoute
+  '/states': typeof WorkspaceStatesRoute
   '/workflows': typeof WorkspaceWorkflowsRoute
   '/checkout/$reportId': typeof CheckoutReportIdRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/maestro/$packId': typeof MaestroPackIdRoute
   '/report/$evaluationId': typeof ReportEvaluationIdRoute
   '/share/$token': typeof ShareTokenRoute
+  '/contacts/$contactId': typeof WorkspaceContactsContactIdRoute
   '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
   '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
   '/build-pack/$packId': typeof BuildPackPackIdIndexRoute
@@ -307,6 +369,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/_workspace': typeof WorkspaceRouteWithChildren
   '/dashboard': typeof DashboardRoute
   '/evaluate': typeof EvaluateRoute
   '/library': typeof LibraryRoute
@@ -321,17 +384,23 @@ export interface FileRoutesById {
   '/_workspace/billing': typeof WorkspaceBillingRoute
   '/_workspace/brain': typeof WorkspaceBrainRoute
   '/_workspace/capabilities': typeof WorkspaceCapabilitiesRoute
+  '/_workspace/contacts': typeof WorkspaceContactsRouteWithChildren
   '/_workspace/data-lifecycle': typeof WorkspaceDataLifecycleRoute
   '/_workspace/data-map': typeof WorkspaceDataMapRoute
   '/_workspace/documents': typeof WorkspaceDocumentsRoute
+  '/_workspace/forms': typeof WorkspaceFormsRoute
   '/_workspace/health': typeof WorkspaceHealthRoute
+  '/_workspace/inbox': typeof WorkspaceInboxRoute
   '/_workspace/integrations': typeof WorkspaceIntegrationsRoute
+  '/_workspace/kanban': typeof WorkspaceKanbanRoute
   '/_workspace/legal': typeof WorkspaceLegalRoute
   '/_workspace/notifications': typeof WorkspaceNotificationsRoute
   '/_workspace/onboarding': typeof WorkspaceOnboardingRoute
+  '/_workspace/reports': typeof WorkspaceReportsRoute
   '/_workspace/runs': typeof WorkspaceRunsRoute
   '/_workspace/settings': typeof WorkspaceSettingsRoute
   '/_workspace/sources': typeof WorkspaceSourcesRoute
+  '/_workspace/states': typeof WorkspaceStatesRoute
   '/_workspace/workflows': typeof WorkspaceWorkflowsRoute
   '/build-pack/$packId': typeof BuildPackPackIdRouteWithChildren
   '/checkout/$reportId': typeof CheckoutReportIdRoute
@@ -339,6 +408,7 @@ export interface FileRoutesById {
   '/maestro/$packId': typeof MaestroPackIdRoute
   '/report/$evaluationId': typeof ReportEvaluationIdRoute
   '/share/$token': typeof ShareTokenRoute
+  '/_workspace/contacts/$contactId': typeof WorkspaceContactsContactIdRoute
   '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
   '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
   '/build-pack/$packId/': typeof BuildPackPackIdIndexRoute
@@ -361,17 +431,23 @@ export interface FileRouteTypes {
     | '/billing'
     | '/brain'
     | '/capabilities'
+    | '/contacts'
     | '/data-lifecycle'
     | '/data-map'
     | '/documents'
+    | '/forms'
     | '/health'
+    | '/inbox'
     | '/integrations'
+    | '/kanban'
     | '/legal'
     | '/notifications'
     | '/onboarding'
+    | '/reports'
     | '/runs'
     | '/settings'
     | '/sources'
+    | '/states'
     | '/workflows'
     | '/build-pack/$packId'
     | '/checkout/$reportId'
@@ -379,6 +455,7 @@ export interface FileRouteTypes {
     | '/maestro/$packId'
     | '/report/$evaluationId'
     | '/share/$token'
+    | '/contacts/$contactId'
     | '/build-pack/$packId/generating'
     | '/checkout/fake-hosted/$sessionId'
     | '/build-pack/$packId/'
@@ -399,29 +476,37 @@ export interface FileRouteTypes {
     | '/billing'
     | '/brain'
     | '/capabilities'
+    | '/contacts'
     | '/data-lifecycle'
     | '/data-map'
     | '/documents'
+    | '/forms'
     | '/health'
+    | '/inbox'
     | '/integrations'
+    | '/kanban'
     | '/legal'
     | '/notifications'
     | '/onboarding'
+    | '/reports'
     | '/runs'
     | '/settings'
     | '/sources'
+    | '/states'
     | '/workflows'
     | '/checkout/$reportId'
     | '/checkout/return'
     | '/maestro/$packId'
     | '/report/$evaluationId'
     | '/share/$token'
+    | '/contacts/$contactId'
     | '/build-pack/$packId/generating'
     | '/checkout/fake-hosted/$sessionId'
     | '/build-pack/$packId'
   id:
     | '__root__'
     | '/'
+    | '/_workspace'
     | '/dashboard'
     | '/evaluate'
     | '/library'
@@ -436,17 +521,23 @@ export interface FileRouteTypes {
     | '/_workspace/billing'
     | '/_workspace/brain'
     | '/_workspace/capabilities'
+    | '/_workspace/contacts'
     | '/_workspace/data-lifecycle'
     | '/_workspace/data-map'
     | '/_workspace/documents'
+    | '/_workspace/forms'
     | '/_workspace/health'
+    | '/_workspace/inbox'
     | '/_workspace/integrations'
+    | '/_workspace/kanban'
     | '/_workspace/legal'
     | '/_workspace/notifications'
     | '/_workspace/onboarding'
+    | '/_workspace/reports'
     | '/_workspace/runs'
     | '/_workspace/settings'
     | '/_workspace/sources'
+    | '/_workspace/states'
     | '/_workspace/workflows'
     | '/build-pack/$packId'
     | '/checkout/$reportId'
@@ -454,6 +545,7 @@ export interface FileRouteTypes {
     | '/maestro/$packId'
     | '/report/$evaluationId'
     | '/share/$token'
+    | '/_workspace/contacts/$contactId'
     | '/build-pack/$packId/generating'
     | '/checkout/fake-hosted/$sessionId'
     | '/build-pack/$packId/'
@@ -461,6 +553,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  WorkspaceRoute: typeof WorkspaceRouteWithChildren
   DashboardRoute: typeof DashboardRoute
   EvaluateRoute: typeof EvaluateRoute
   LibraryRoute: typeof LibraryRoute
@@ -468,25 +561,6 @@ export interface RootRouteChildren {
   SupportRoute: typeof SupportRoute
   TermsRoute: typeof TermsRoute
   VerifyReportRoute: typeof VerifyReportRoute
-  WorkspaceAdminRoute: typeof WorkspaceAdminRoute
-  WorkspaceAgentsRoute: typeof WorkspaceAgentsRoute
-  WorkspaceAnalyticsRoute: typeof WorkspaceAnalyticsRoute
-  WorkspaceApiRoute: typeof WorkspaceApiRoute
-  WorkspaceBillingRoute: typeof WorkspaceBillingRoute
-  WorkspaceBrainRoute: typeof WorkspaceBrainRoute
-  WorkspaceCapabilitiesRoute: typeof WorkspaceCapabilitiesRoute
-  WorkspaceDataLifecycleRoute: typeof WorkspaceDataLifecycleRoute
-  WorkspaceDataMapRoute: typeof WorkspaceDataMapRoute
-  WorkspaceDocumentsRoute: typeof WorkspaceDocumentsRoute
-  WorkspaceHealthRoute: typeof WorkspaceHealthRoute
-  WorkspaceIntegrationsRoute: typeof WorkspaceIntegrationsRoute
-  WorkspaceLegalRoute: typeof WorkspaceLegalRoute
-  WorkspaceNotificationsRoute: typeof WorkspaceNotificationsRoute
-  WorkspaceOnboardingRoute: typeof WorkspaceOnboardingRoute
-  WorkspaceRunsRoute: typeof WorkspaceRunsRoute
-  WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
-  WorkspaceSourcesRoute: typeof WorkspaceSourcesRoute
-  WorkspaceWorkflowsRoute: typeof WorkspaceWorkflowsRoute
   BuildPackPackIdRoute: typeof BuildPackPackIdRouteWithChildren
   CheckoutReportIdRoute: typeof CheckoutReportIdRoute
   CheckoutReturnRoute: typeof CheckoutReturnRoute
@@ -547,6 +621,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/_workspace': {
+      id: '/_workspace'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof WorkspaceRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -601,133 +682,175 @@ declare module '@tanstack/react-router' {
       path: '/workflows'
       fullPath: '/workflows'
       preLoaderRoute: typeof WorkspaceWorkflowsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/_workspace/states': {
+      id: '/_workspace/states'
+      path: '/states'
+      fullPath: '/states'
+      preLoaderRoute: typeof WorkspaceStatesRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/sources': {
       id: '/_workspace/sources'
       path: '/sources'
       fullPath: '/sources'
       preLoaderRoute: typeof WorkspaceSourcesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/settings': {
       id: '/_workspace/settings'
       path: '/settings'
       fullPath: '/settings'
       preLoaderRoute: typeof WorkspaceSettingsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/runs': {
       id: '/_workspace/runs'
       path: '/runs'
       fullPath: '/runs'
       preLoaderRoute: typeof WorkspaceRunsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/_workspace/reports': {
+      id: '/_workspace/reports'
+      path: '/reports'
+      fullPath: '/reports'
+      preLoaderRoute: typeof WorkspaceReportsRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/onboarding': {
       id: '/_workspace/onboarding'
       path: '/onboarding'
       fullPath: '/onboarding'
       preLoaderRoute: typeof WorkspaceOnboardingRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/notifications': {
       id: '/_workspace/notifications'
       path: '/notifications'
       fullPath: '/notifications'
       preLoaderRoute: typeof WorkspaceNotificationsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/legal': {
       id: '/_workspace/legal'
       path: '/legal'
       fullPath: '/legal'
       preLoaderRoute: typeof WorkspaceLegalRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/_workspace/kanban': {
+      id: '/_workspace/kanban'
+      path: '/kanban'
+      fullPath: '/kanban'
+      preLoaderRoute: typeof WorkspaceKanbanRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/integrations': {
       id: '/_workspace/integrations'
       path: '/integrations'
       fullPath: '/integrations'
       preLoaderRoute: typeof WorkspaceIntegrationsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/_workspace/inbox': {
+      id: '/_workspace/inbox'
+      path: '/inbox'
+      fullPath: '/inbox'
+      preLoaderRoute: typeof WorkspaceInboxRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/health': {
       id: '/_workspace/health'
       path: '/health'
       fullPath: '/health'
       preLoaderRoute: typeof WorkspaceHealthRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/_workspace/forms': {
+      id: '/_workspace/forms'
+      path: '/forms'
+      fullPath: '/forms'
+      preLoaderRoute: typeof WorkspaceFormsRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/documents': {
       id: '/_workspace/documents'
       path: '/documents'
       fullPath: '/documents'
       preLoaderRoute: typeof WorkspaceDocumentsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/data-map': {
       id: '/_workspace/data-map'
       path: '/data-map'
       fullPath: '/data-map'
       preLoaderRoute: typeof WorkspaceDataMapRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/data-lifecycle': {
       id: '/_workspace/data-lifecycle'
       path: '/data-lifecycle'
       fullPath: '/data-lifecycle'
       preLoaderRoute: typeof WorkspaceDataLifecycleRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
+    }
+    '/_workspace/contacts': {
+      id: '/_workspace/contacts'
+      path: '/contacts'
+      fullPath: '/contacts'
+      preLoaderRoute: typeof WorkspaceContactsRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/capabilities': {
       id: '/_workspace/capabilities'
       path: '/capabilities'
       fullPath: '/capabilities'
       preLoaderRoute: typeof WorkspaceCapabilitiesRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/brain': {
       id: '/_workspace/brain'
       path: '/brain'
       fullPath: '/brain'
       preLoaderRoute: typeof WorkspaceBrainRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/billing': {
       id: '/_workspace/billing'
       path: '/billing'
       fullPath: '/billing'
       preLoaderRoute: typeof WorkspaceBillingRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/api': {
       id: '/_workspace/api'
       path: '/api'
       fullPath: '/api'
       preLoaderRoute: typeof WorkspaceApiRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/analytics': {
       id: '/_workspace/analytics'
       path: '/analytics'
       fullPath: '/analytics'
       preLoaderRoute: typeof WorkspaceAnalyticsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/agents': {
       id: '/_workspace/agents'
       path: '/agents'
       fullPath: '/agents'
       preLoaderRoute: typeof WorkspaceAgentsRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/_workspace/admin': {
       id: '/_workspace/admin'
       path: '/admin'
       fullPath: '/admin'
       preLoaderRoute: typeof WorkspaceAdminRouteImport
-      parentRoute: typeof rootRouteImport
+      parentRoute: typeof WorkspaceRoute
     }
     '/build-pack/$packId/': {
       id: '/build-pack/$packId/'
@@ -750,8 +873,86 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof BuildPackPackIdGeneratingRouteImport
       parentRoute: typeof BuildPackPackIdRoute
     }
+    '/_workspace/contacts/$contactId': {
+      id: '/_workspace/contacts/$contactId'
+      path: '/$contactId'
+      fullPath: '/contacts/$contactId'
+      preLoaderRoute: typeof WorkspaceContactsContactIdRouteImport
+      parentRoute: typeof WorkspaceContactsRoute
+    }
   }
 }
+
+interface WorkspaceContactsRouteChildren {
+  WorkspaceContactsContactIdRoute: typeof WorkspaceContactsContactIdRoute
+}
+
+const WorkspaceContactsRouteChildren: WorkspaceContactsRouteChildren = {
+  WorkspaceContactsContactIdRoute: WorkspaceContactsContactIdRoute,
+}
+
+const WorkspaceContactsRouteWithChildren =
+  WorkspaceContactsRoute._addFileChildren(WorkspaceContactsRouteChildren)
+
+interface WorkspaceRouteChildren {
+  WorkspaceAdminRoute: typeof WorkspaceAdminRoute
+  WorkspaceAgentsRoute: typeof WorkspaceAgentsRoute
+  WorkspaceAnalyticsRoute: typeof WorkspaceAnalyticsRoute
+  WorkspaceApiRoute: typeof WorkspaceApiRoute
+  WorkspaceBillingRoute: typeof WorkspaceBillingRoute
+  WorkspaceBrainRoute: typeof WorkspaceBrainRoute
+  WorkspaceCapabilitiesRoute: typeof WorkspaceCapabilitiesRoute
+  WorkspaceContactsRoute: typeof WorkspaceContactsRouteWithChildren
+  WorkspaceDataLifecycleRoute: typeof WorkspaceDataLifecycleRoute
+  WorkspaceDataMapRoute: typeof WorkspaceDataMapRoute
+  WorkspaceDocumentsRoute: typeof WorkspaceDocumentsRoute
+  WorkspaceFormsRoute: typeof WorkspaceFormsRoute
+  WorkspaceHealthRoute: typeof WorkspaceHealthRoute
+  WorkspaceInboxRoute: typeof WorkspaceInboxRoute
+  WorkspaceIntegrationsRoute: typeof WorkspaceIntegrationsRoute
+  WorkspaceKanbanRoute: typeof WorkspaceKanbanRoute
+  WorkspaceLegalRoute: typeof WorkspaceLegalRoute
+  WorkspaceNotificationsRoute: typeof WorkspaceNotificationsRoute
+  WorkspaceOnboardingRoute: typeof WorkspaceOnboardingRoute
+  WorkspaceReportsRoute: typeof WorkspaceReportsRoute
+  WorkspaceRunsRoute: typeof WorkspaceRunsRoute
+  WorkspaceSettingsRoute: typeof WorkspaceSettingsRoute
+  WorkspaceSourcesRoute: typeof WorkspaceSourcesRoute
+  WorkspaceStatesRoute: typeof WorkspaceStatesRoute
+  WorkspaceWorkflowsRoute: typeof WorkspaceWorkflowsRoute
+}
+
+const WorkspaceRouteChildren: WorkspaceRouteChildren = {
+  WorkspaceAdminRoute: WorkspaceAdminRoute,
+  WorkspaceAgentsRoute: WorkspaceAgentsRoute,
+  WorkspaceAnalyticsRoute: WorkspaceAnalyticsRoute,
+  WorkspaceApiRoute: WorkspaceApiRoute,
+  WorkspaceBillingRoute: WorkspaceBillingRoute,
+  WorkspaceBrainRoute: WorkspaceBrainRoute,
+  WorkspaceCapabilitiesRoute: WorkspaceCapabilitiesRoute,
+  WorkspaceContactsRoute: WorkspaceContactsRouteWithChildren,
+  WorkspaceDataLifecycleRoute: WorkspaceDataLifecycleRoute,
+  WorkspaceDataMapRoute: WorkspaceDataMapRoute,
+  WorkspaceDocumentsRoute: WorkspaceDocumentsRoute,
+  WorkspaceFormsRoute: WorkspaceFormsRoute,
+  WorkspaceHealthRoute: WorkspaceHealthRoute,
+  WorkspaceInboxRoute: WorkspaceInboxRoute,
+  WorkspaceIntegrationsRoute: WorkspaceIntegrationsRoute,
+  WorkspaceKanbanRoute: WorkspaceKanbanRoute,
+  WorkspaceLegalRoute: WorkspaceLegalRoute,
+  WorkspaceNotificationsRoute: WorkspaceNotificationsRoute,
+  WorkspaceOnboardingRoute: WorkspaceOnboardingRoute,
+  WorkspaceReportsRoute: WorkspaceReportsRoute,
+  WorkspaceRunsRoute: WorkspaceRunsRoute,
+  WorkspaceSettingsRoute: WorkspaceSettingsRoute,
+  WorkspaceSourcesRoute: WorkspaceSourcesRoute,
+  WorkspaceStatesRoute: WorkspaceStatesRoute,
+  WorkspaceWorkflowsRoute: WorkspaceWorkflowsRoute,
+}
+
+const WorkspaceRouteWithChildren = WorkspaceRoute._addFileChildren(
+  WorkspaceRouteChildren,
+)
 
 interface BuildPackPackIdRouteChildren {
   BuildPackPackIdGeneratingRoute: typeof BuildPackPackIdGeneratingRoute
@@ -769,6 +970,7 @@ const BuildPackPackIdRouteWithChildren = BuildPackPackIdRoute._addFileChildren(
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  WorkspaceRoute: WorkspaceRouteWithChildren,
   DashboardRoute: DashboardRoute,
   EvaluateRoute: EvaluateRoute,
   LibraryRoute: LibraryRoute,
@@ -776,25 +978,6 @@ const rootRouteChildren: RootRouteChildren = {
   SupportRoute: SupportRoute,
   TermsRoute: TermsRoute,
   VerifyReportRoute: VerifyReportRoute,
-  WorkspaceAdminRoute: WorkspaceAdminRoute,
-  WorkspaceAgentsRoute: WorkspaceAgentsRoute,
-  WorkspaceAnalyticsRoute: WorkspaceAnalyticsRoute,
-  WorkspaceApiRoute: WorkspaceApiRoute,
-  WorkspaceBillingRoute: WorkspaceBillingRoute,
-  WorkspaceBrainRoute: WorkspaceBrainRoute,
-  WorkspaceCapabilitiesRoute: WorkspaceCapabilitiesRoute,
-  WorkspaceDataLifecycleRoute: WorkspaceDataLifecycleRoute,
-  WorkspaceDataMapRoute: WorkspaceDataMapRoute,
-  WorkspaceDocumentsRoute: WorkspaceDocumentsRoute,
-  WorkspaceHealthRoute: WorkspaceHealthRoute,
-  WorkspaceIntegrationsRoute: WorkspaceIntegrationsRoute,
-  WorkspaceLegalRoute: WorkspaceLegalRoute,
-  WorkspaceNotificationsRoute: WorkspaceNotificationsRoute,
-  WorkspaceOnboardingRoute: WorkspaceOnboardingRoute,
-  WorkspaceRunsRoute: WorkspaceRunsRoute,
-  WorkspaceSettingsRoute: WorkspaceSettingsRoute,
-  WorkspaceSourcesRoute: WorkspaceSourcesRoute,
-  WorkspaceWorkflowsRoute: WorkspaceWorkflowsRoute,
   BuildPackPackIdRoute: BuildPackPackIdRouteWithChildren,
   CheckoutReportIdRoute: CheckoutReportIdRoute,
   CheckoutReturnRoute: CheckoutReturnRoute,

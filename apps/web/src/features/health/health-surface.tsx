@@ -2,7 +2,10 @@ import {
   providerConfigReport,
   type ProviderMode,
 } from "@maestro-template/integrations";
-import { TemplateHealthBoard, type HealthCheck } from "@maestro-template/ui";
+type HealthCheck = {
+  readonly label: string;
+  readonly status: "ready" | "degraded" | "blocked";
+};
 
 export type TemplateHealthEnvironment = "fake" | "test" | "live";
 
@@ -139,7 +142,13 @@ export function HealthSurface() {
           </div>
         </dl>
       </header>
-      <TemplateHealthBoard checks={view.checks} state={view.state} />
+      <ul aria-label="Health checks">
+        {view.checks.map((check) => (
+          <li key={check.label} data-status={check.status}>
+            <strong>{check.label}</strong>: {check.detail}
+          </li>
+        ))}
+      </ul>
       <p className="template-health-footnote">
         Checked {view.checkedAt} at {view.commitSha}. Run deploy doctor in a
         client fork before promoting live providers.

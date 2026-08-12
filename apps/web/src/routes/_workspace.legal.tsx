@@ -1,10 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BusinessSectionRoute } from "../saas-ui/business-shell";
-
+import { GoldenStatePage } from "../features/golden/state-page";
 export const Route = createFileRoute("/_workspace/legal")({
-  component: LegalRoute,
+  component: () => <GoldenStatePage state="ready-read" />,
 });
-
-function LegalRoute() {
-  return <BusinessSectionRoute section="legal" />;
-}

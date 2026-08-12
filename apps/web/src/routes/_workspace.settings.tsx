@@ -1,6 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BusinessSettingsRoute } from "../saas-ui/business-shell";
-
+import { SettingsLayout } from "../features/settings/common/settings-layout";
 export const Route = createFileRoute("/_workspace/settings")({
-  component: BusinessSettingsRoute,
+  component: SettingsLayout,
 });

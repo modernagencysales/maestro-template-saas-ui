@@ -1,10 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BusinessSectionRoute } from "../saas-ui/business-shell";
-
+import { BillingPage } from "../features/settings/billing/billing-page";
 export const Route = createFileRoute("/_workspace/billing")({
-  component: BillingRoute,
+  component: BillingPage,
 });
-
-function BillingRoute() {
-  return <BusinessSectionRoute section="billing" />;
-}

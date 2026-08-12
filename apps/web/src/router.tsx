@@ -1,11 +1,29 @@
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
-import { TemplateRouteError, TemplateRoutePending } from "@maestro-template/ui";
+import { Box, Heading, Spinner, Stack, Text } from "@saas-ui/react";
+import type { ReactNode } from "react";
 
 import "./react-global";
 import { getWebEnv } from "./env";
 import { routeTree } from "./routeTree.gen";
+
+const TemplateRoutePending = () => <Spinner />;
+const TemplateRouteError = ({
+  title = "Something went wrong",
+  description = "Please try again.",
+  action,
+}: {
+  title?: string;
+  description?: string;
+  action?: ReactNode;
+}) => (
+  <Stack gap="3" p="8">
+    <Heading size="lg">{title}</Heading>
+    <Text color="fg.muted">{description}</Text>
+    {action ? <Box>{action}</Box> : null}
+  </Stack>
+);
 
 export function getRouter() {
   const convexQueryClient = new ConvexQueryClient(getWebEnv().VITE_CONVEX_URL);

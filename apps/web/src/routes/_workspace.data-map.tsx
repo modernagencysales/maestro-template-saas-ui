@@ -1,10 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BusinessSectionRoute } from "../saas-ui/business-shell";
-
+import { GoldenStatePage } from "../features/golden/state-page";
 export const Route = createFileRoute("/_workspace/data-map")({
-  component: DataMapRoute,
+  component: () => <GoldenStatePage state="ready-read" />,
 });
-
-function DataMapRoute() {
-  return <BusinessSectionRoute section="dataMap" />;
-}

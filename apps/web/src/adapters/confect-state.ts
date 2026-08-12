@@ -6,11 +6,18 @@ import {
   type ReactMutation,
 } from "@confect/react";
 import type { Ref } from "@confect/core";
-import type {
-  TemplateToastApi,
-  TemplateToastInput,
-} from "@maestro-template/ui";
 import * as Result from "effect/Result";
+
+export type TemplateToastInput = Readonly<{
+  title: string;
+  description?: string;
+  tone?: "neutral" | "success" | "warning" | "danger";
+  announcement?:
+    string | Readonly<{ message: string; priority?: "polite" | "assertive" }>;
+}>;
+export type TemplateToastApi = Readonly<{
+  notify(input: TemplateToastInput): string;
+}>;
 
 export type TemplateReadyMode = "read" | "edit";
 

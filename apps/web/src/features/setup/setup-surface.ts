@@ -1,5 +1,13 @@
 import type { ProviderAdapter } from "@maestro-template/template-core";
-import type { OnboardingStep, TemplateToastInput } from "@maestro-template/ui";
+import type { TemplateToastInput } from "../../adapters/confect-state";
+
+export type OnboardingStep = Readonly<{
+  id: string;
+  label: string;
+  description: string;
+  status: "complete" | "ready" | "blocked";
+  missingEnv?: readonly string[];
+}>;
 
 export type SetupDocumentSection = {
   readonly heading: string;

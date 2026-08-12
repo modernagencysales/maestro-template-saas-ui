@@ -1,10 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { BusinessDataLifecycleRoute } from "../saas-ui/business-shell";
-
+import { GoldenStatePage } from "../features/golden/state-page";
 export const Route = createFileRoute("/_workspace/data-lifecycle")({
-  component: DataLifecycleRoute,
+  component: () => <GoldenStatePage state="ready-edit" />,
 });
-
-function DataLifecycleRoute() {
-  return <BusinessDataLifecycleRoute />;
-}

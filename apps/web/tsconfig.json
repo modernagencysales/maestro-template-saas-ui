@@ -6,9 +6,23 @@
     "exactOptionalPropertyTypes": false,
     "noUncheckedIndexedAccess": false,
     "baseUrl": ".",
-    "paths": { "@/*": ["./src/*"] },
     "rootDir": ".",
-    "outDir": "dist"
+    "outDir": "dist",
+    "paths": {
+      "@/*": ["./src/*"],
+      "#config/*": ["src/config/*"],
+      "#components/*": ["src/components/*"],
+      "#features/*": ["src/features/*"],
+      "#hooks/*": ["src/hooks/*"],
+      "#lib/*": ["src/lib/*"],
+      "#theme/*": ["src/theme/*"],
+      "#utils/*": ["src/utils/*"],
+      "@workspace/ui/*": ["src/components/*"],
+      "@workspace/api/*": ["src/workspace/api/*"],
+      "@workspace/i18n": ["src/workspace/i18n/index.ts"],
+      "@workspace/config": ["src/workspace/config/index.ts"],
+      "@workspace/better-auth/*": ["src/workspace/better-auth/*"]
+    }
   },
   "include": [
     "src/**/*.ts",
