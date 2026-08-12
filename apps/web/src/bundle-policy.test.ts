@@ -1,3 +1,5 @@
+import { readFileSync } from "node:fs";
+
 import { describe, expect, it } from "vitest";
 
 import { dependencyChunkName } from "./bundle-policy";
@@ -35,5 +37,16 @@ describe("dependencyChunkName", () => {
 
   it("leaves application modules to automatic route splitting", () => {
     expect(dependencyChunkName("/workspace/apps/web/src/index.tsx")).toBeNull();
+  });
+
+  it("keeps React with each manually split dependency group", () => {
+    const viteConfig = readFileSync(
+      new URL("../vite.config.ts", import.meta.url),
+      "utf8",
+    );
+
+    expect(viteConfig).toMatch(
+      /name: "vendor-chakra",[\s\S]*?includeDependenciesRecursively: true/u,
+    );
   });
 });

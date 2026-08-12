@@ -61,6 +61,13 @@ export default defineConfig({
               includeDependenciesRecursively: true,
             },
             {
+              name: "vendor-chakra",
+              priority: 100,
+              test: (moduleId: string) =>
+                dependencyChunkName(moduleId) === "vendor-chakra",
+              includeDependenciesRecursively: true,
+            },
+            {
               name: dependencyChunkName,
             },
           ],
