@@ -33,5 +33,33 @@
     "change": "The upstream Stat.Root and Stat.Label for the chart/legend block render as div elements while retaining the upstream Stat styles and layout props.",
     "reason": "Chakra Stat.Root defaults to dl, but this block contains a chart div and legend ul rather than a dt/dd pair; the default markup triggers axe definition-list serious violations.",
     "evidence": "The pinned desktop authority artifact and generated desktop authority artifact both reported axe rule definition-list (serious) on <dl class=\"chakra-stat__root css-1pbhjgj\"> with direct chart div and legend ul children; focused generated axe passed after the seam, and the pinned reference source was synchronized with the same minimal semantic change."
+  },
+  {
+    "source": "apps/web/src/features/common/providers/app-provider.tsx:QueryClientProvider/AuthProvider",
+    "destination": "apps/web/src/features/common/providers/app-provider.tsx",
+    "change": "The factory provider composition supplies the generated QueryClient and fake-safe AuthProvider around the preserved Saas UI provider.",
+    "reason": "The pinned Starter provider imports starter-owned auth and query clients; the factory must close those providers at the neutral adapter boundary so generated SSR and browser fixtures render without starter credentials.",
+    "evidence": "app-provider.test.tsx verifies the provider composition with a real QueryClient and the reference authority launcher reaches Vite preview after the provider seam."
+  },
+  {
+    "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/Resizer",
+    "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/settings/common/settings-sidebar.tsx",
+    "change": "The browser-only upstream Resizer is replaced at both served factory call sites by the shared ClientResizer seam while preserving the upstream layout and resize-handle structure.",
+    "reason": "The upstream Resizer evaluates browser globals during SSR; ClientResizer defers that behavior behind ClientOnly for generated TanStack Start SSR.",
+    "evidence": "The receipt-backed adapted-file test hashes both served call sites, and the existing client-resizer SSR evidence covers renderToString without a document global."
+  },
+  {
+    "source": "apps/web/src/routes/__root.tsx:AppProvider",
+    "destination": "apps/web/src/routes/__root.tsx",
+    "change": "The root route passes its route-context QueryClient into the adapted AppProvider.",
+    "reason": "The factory provider seam requires the route-owned query client while preserving the upstream root document and shell composition.",
+    "evidence": "The generated-target SSR provider test exercises the root composition and the reference authority launcher reaches preview startup."
+  },
+  {
+    "source": "apps/web/src/lib/trpc/react.tsx:fake procedure facade",
+    "destination": "apps/web/src/lib/trpc/react.tsx",
+    "change": "The starter tRPC client is represented by a neutral recursive fake facade until generated refs replace it.",
+    "reason": "Starter-specific tRPC credentials and client construction are not available in the factory; the facade keeps transplanted screens runnable with fake fixtures.",
+    "evidence": "react.test.tsx verifies nested query/mutation access remains fake-safe, and the generated-target proof reaches the web build without a live tRPC client."
   }
 ]

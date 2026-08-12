@@ -300,7 +300,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "sourceSha256": "bc5baf32043a6d9e67b10b79e01f7efcae44120ea12b3fd54fee9bb6e60fb56f",
-      "sha256": "b4f5ff4c65a13b860ac8c3fa08229de462c7991417d78664ecd0b99ba100de1a",
+      "sha256": "1415eff4846cb36384b01acb7eb1af3b3bfa4c9f7a6489d4e3ddf85ee52e6c84",
       "adapted": true
     },
     {
@@ -664,7 +664,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/settings/common/settings-sidebar.tsx",
       "destination": "apps/web/src/features/settings/common/settings-sidebar.tsx",
       "sourceSha256": "bea225dd07d211543d8445a918f192c7bde6cdcacf42fdc9280be96315f90a84",
-      "sha256": "0f4181eb9cace55b2a404c2a614043583702ed7835747fd2889c765d1292291b",
+      "sha256": "f9a20e4dc4f8053adee6d757bf7da59168b3badc601ec77a768a474eb834ef58",
       "adapted": true
     },
     {

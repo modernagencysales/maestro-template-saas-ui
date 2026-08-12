@@ -1,4 +1,7 @@
 import { createHash } from "node:crypto";
+import { mkdtempSync, readFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
@@ -9,11 +12,84 @@ import {
   assertDistinctAuthorities,
   proveReferenceServedFiles,
   serializeAuthorityMetadata,
+  assertNoNewGoldenServerErrors,
+  createGoldenServerErrorRecorder,
+  readGoldenServerErrorEvents,
 } from "./golden-authority-runtime";
 
 const starterPin = "b76cb4514b9ab47f7db87901cb9b593b4adc3129";
 
 describe("golden runtime authority provenance", () => {
+  it("records only clear SSR exceptions and ignores benign warnings", () => {
+    const root = mkdtempSync(join(tmpdir(), "golden-server-errors-"));
+    try {
+      const recorder = createGoldenServerErrorRecorder({
+        evidenceRoot: root,
+        authority: "reference",
+      });
+      recorder.recordChunk(
+        "stderr",
+        "Warning: Error in renderToReadableStream is recoverable\n",
+      );
+      recorder.recordChunk(
+        "stderr",
+        "Error in renderToReadableStream: /private/tmp/secret-paid-payload.json\n",
+      );
+      recorder.recordChunk(
+        "stdout",
+        "Uncaught ReferenceError: document is not defined\n",
+      );
+      recorder.close();
+
+      const events = readGoldenServerErrorEvents({
+        evidenceRoot: root,
+        authority: "reference",
+      });
+      expect(events).toHaveLength(2);
+      expect(events.map((event) => event.sequence)).toEqual([1, 2]);
+      expect(events[0]).toMatchObject({
+        authority: "reference",
+        stream: "stderr",
+        marker: "renderToReadableStream",
+      });
+      expect(events[1]).toMatchObject({
+        authority: "reference",
+        stream: "stdout",
+        marker: "uncaught-error",
+      });
+      const serialized = readFileSync(
+        join(root, "server-errors-reference.jsonl"),
+        "utf8",
+      );
+      expect(serialized).not.toContain("/private/tmp");
+      expect(serialized).not.toContain("secret-paid-payload");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("asserts server errors by per-authority sequence baseline", () => {
+    const root = mkdtempSync(join(tmpdir(), "golden-server-errors-"));
+    try {
+      const recorder = createGoldenServerErrorRecorder({
+        evidenceRoot: root,
+        authority: "generated",
+      });
+      const baseline = recorder.baseline();
+      recorder.recordChunk("stderr", "Uncaught TypeError: broken\n");
+      recorder.close();
+      expect(() =>
+        assertNoNewGoldenServerErrors({
+          evidenceRoot: root,
+          authority: "generated",
+          baseline,
+        }),
+      ).toThrow("generated server runtime errors");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("uses distinct loopback authorities for reference and generated previews", () => {
     const reference = previewCommand({
       repositoryRoot: "/workspace/factory",

@@ -1,6 +1,8 @@
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join, relative } from "node:path";
+import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { transplantStarter } from "./transplant-starter.mts";
@@ -48,6 +50,25 @@ describe("pinned starter transplant", () => {
           sha256: file.sha256,
         }),
       );
+    }
+  });
+
+  it("tracks every adapted receipt destination after factory compatibility seams", () => {
+    const root = resolve(import.meta.dirname, "../..");
+    const receipt = JSON.parse(
+      readFileSync(
+        join(root, "docs/template/saas-ui-starter-files.json"),
+        "utf8",
+      ),
+    ) as {
+      files: Array<{ destination: string; sha256: string; adapted: boolean }>;
+    };
+
+    for (const file of receipt.files.filter(({ adapted }) => adapted)) {
+      const servedSha256 = createHash("sha256")
+        .update(readFileSync(join(root, file.destination)))
+        .digest("hex");
+      expect(servedSha256, file.destination).toBe(file.sha256);
     }
   });
 });

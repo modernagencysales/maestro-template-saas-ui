@@ -43,6 +43,25 @@ describe("golden browser authority startup", () => {
     expect(fixture).toContain('resourceType() === "document"');
     expect(fixture).toContain('resourceType() === "script"');
     expect(fixture).toContain("status() >= 400");
+    expect(fixture).toContain("assertNoNewGoldenServerErrors");
+    const helper = readFileSync(
+      `${root}/tests/e2e/fixtures/saas-ui-golden.ts`,
+      "utf8",
+    );
+    expect(helper).toContain("baselineGoldenServerErrors");
+  });
+
+  it("captures and tees authority launcher output into redacted server evidence", () => {
+    const authorityScript = readFileSync(
+      `${root}/tooling/saas-ui/golden-authority.mts`,
+      "utf8",
+    );
+
+    expect(authorityScript).toContain('stdio: ["ignore", "pipe", "pipe"]');
+    expect(authorityScript).toContain("process.stdout.write");
+    expect(authorityScript).toContain("process.stderr.write");
+    expect(authorityScript).toContain("createGoldenServerErrorRecorder");
+    expect(authorityScript).toContain("evidenceRoot");
   });
 
   it("keeps evidence outside Playwright's disposable output directory", () => {

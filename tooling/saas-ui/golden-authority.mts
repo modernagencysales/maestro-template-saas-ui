@@ -8,6 +8,7 @@ import { buildSaasApplicationTargetPlan } from "../../tooling/generators/src/blu
 import { checkSaasUiFoundation } from "../quality/saas-ui-foundation";
 import { previewCommand } from "./golden-authority-command";
 import {
+  createGoldenServerErrorRecorder,
   createGeneratedAuthorityMetadata,
   proveReferenceServedFiles,
   serializeAuthorityMetadata,
@@ -211,6 +212,10 @@ const command = previewCommand({
   authority,
   port,
 });
+const serverErrors = createGoldenServerErrorRecorder({
+  evidenceRoot,
+  authority,
+});
 const child = spawn(command.command, command.args, {
   cwd: command.cwd,
   env: {
@@ -219,13 +224,26 @@ const child = spawn(command.command, command.args, {
     GOLDEN_AUTHORITY_ROOT: targetRoot,
     REFERENCE_SOURCE_MODE: authority === "reference" ? "1" : "0",
   },
-  stdio: "inherit",
+  stdio: ["ignore", "pipe", "pipe"],
+});
+
+child.stdout?.on("data", (chunk: Buffer) => {
+  process.stdout.write(chunk);
+  serverErrors.recordChunk("stdout", chunk);
+});
+child.stderr?.on("data", (chunk: Buffer) => {
+  process.stderr.write(chunk);
+  serverErrors.recordChunk("stderr", chunk);
+});
+child.on("error", (error) => {
+  serverErrors.recordProcessError(error.message);
 });
 
 const stop = (signal: NodeJS.Signals) => child.kill(signal);
 process.on("SIGINT", () => stop("SIGINT"));
 process.on("SIGTERM", () => stop("SIGTERM"));
 child.on("exit", (code, signal) => {
+  serverErrors.close();
   if (signal) process.kill(process.pid, signal);
   process.exit(code ?? 1);
 });

@@ -1,6 +1,10 @@
 import { type Page } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
+import {
+  assertNoNewGoldenServerErrors as assertNoNewServerErrors,
+  baselineGoldenServerErrors as readServerErrorBaseline,
+} from "../../../tooling/saas-ui/golden-authority-runtime";
 
 export const goldenFixtures = {
   "ready-read": {
@@ -35,6 +39,39 @@ export type GoldenFixture = keyof typeof goldenFixtures;
 export type GoldenKind = "reference" | "generated";
 export type GoldenColorMode = "light" | "dark";
 export type GoldenViewport = "desktop" | "mobile";
+
+const serverErrorEvidenceRoot = resolve(
+  process.cwd(),
+  "artifacts",
+  "saas-ui-golden",
+);
+const serverErrorBaselines = new WeakMap<Page, Map<GoldenKind, number>>();
+
+export function baselineGoldenServerErrors(
+  page: Page,
+  authority: GoldenKind,
+): number {
+  const baseline = readServerErrorBaseline({
+    evidenceRoot: serverErrorEvidenceRoot,
+    authority,
+  });
+  const baselines = serverErrorBaselines.get(page) ?? new Map();
+  baselines.set(authority, baseline);
+  serverErrorBaselines.set(page, baselines);
+  return baseline;
+}
+
+export function assertNoNewGoldenServerErrors(page: Page): void {
+  const baselines = serverErrorBaselines.get(page);
+  if (!baselines) return;
+  for (const [authority, baseline] of baselines) {
+    assertNoNewServerErrors({
+      evidenceRoot: serverErrorEvidenceRoot,
+      authority,
+      baseline,
+    });
+  }
+}
 
 export type AcceptanceEntry = Readonly<{
   id: string;
@@ -125,10 +162,12 @@ export async function gotoGolden(input: {
 }) {
   const fixture = input.fixture ?? "ready-read";
   const colorMode = input.colorMode ?? "light";
+  baselineGoldenServerErrors(input.page, input.kind);
   await seedGoldenFixture(input.page, fixture, colorMode);
   await input.page.goto(goldenUrl(input.kind, input.route), {
     waitUntil: "networkidle",
   });
+  assertNoNewGoldenServerErrors(input.page);
 }
 
 function viewportName(page: Page): GoldenViewport {

@@ -1,4 +1,5 @@
 import { expect, test as base } from "@playwright/test";
+import { assertNoNewGoldenServerErrors } from "./saas-ui-golden";
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -58,6 +59,7 @@ export const test = base.extend({
         page.off("requestfailed", onRequestFailed);
         page.off("response", onResponse);
         expect(failures, "browser runtime errors").toEqual([]);
+        assertNoNewGoldenServerErrors(page);
       }
     },
     { auto: true },
