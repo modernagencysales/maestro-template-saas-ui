@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
+  lstatSync,
   readFileSync,
   realpathSync,
   statSync,
@@ -36,8 +37,8 @@ export type Pins = Readonly<{
 
 export type GoldenCommandResult = Readonly<{
   command: string;
-  startedAt?: string;
-  finishedAt?: string;
+  startedAt: string;
+  finishedAt: string;
   exitCode: number;
   completedAt: string;
   result?: string;
@@ -56,6 +57,45 @@ export type GoldenRunReceipt = Readonly<{
   evidencePaths: readonly string[];
   commands: readonly GoldenCommandResult[];
 }>;
+
+export type GoldenCommandExecutor = (input: {
+  command: string;
+  argv: readonly string[];
+  cwd: string;
+}) => number;
+
+const commandArgv = (command: (typeof REQUIRED_GOLDEN_COMMANDS)[number]) => {
+  switch (command) {
+    case "pnpm check:saas-ui-foundation":
+      return ["check:saas-ui-foundation"];
+    case "pnpm check:saas-ui-artifact-safety":
+      return ["check:saas-ui-artifact-safety"];
+    case "pnpm --dir tooling/generators test -- saasFrontendFoundation.test.ts saasFrontendGeneratedTarget.test.ts":
+      return [
+        "--dir",
+        "tooling/generators",
+        "test",
+        "--",
+        "saasFrontendFoundation.test.ts",
+        "saasFrontendGeneratedTarget.test.ts",
+      ];
+    case "pnpm smoke:golden:browser":
+      return ["smoke:golden:browser"];
+    case "pnpm smoke:golden:a11y":
+      return ["smoke:golden:a11y"];
+    case "pnpm smoke:golden:visual":
+      return ["smoke:golden:visual"];
+  }
+};
+
+const strictIso = (value: string, label: string): number => {
+  if (!/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}\.\d{3}Z$/u.test(value))
+    throw new Error(`${label} must be strict ISO-8601 UTC`);
+  const time = Date.parse(value);
+  if (!Number.isFinite(time) || new Date(time).toISOString() !== value)
+    throw new Error(`${label} must be a finite timestamp`);
+  return time;
+};
 
 export type GoldenSummaryInput = Readonly<{
   generatedAt: string;
@@ -89,7 +129,6 @@ function assertEvidencePath(value: string): void {
   }
 }
 
-// eslint-disable-next-line complexity -- each branch closes one filesystem trust-boundary case.
 function assertFreshEvidence(
   repositoryRoot: string,
   evidencePaths: readonly string[],
@@ -97,14 +136,9 @@ function assertFreshEvidence(
   finishedAt: string,
 ): void {
   const root = realpathSync(repositoryRoot);
-  const started = Date.parse(startedAt);
-  const finished = Date.parse(finishedAt);
-  if (
-    !Number.isFinite(started) ||
-    !Number.isFinite(finished) ||
-    started > finished
-  )
-    throw new Error("Golden run receipt timestamps are invalid");
+  const started = strictIso(startedAt, "run startedAt");
+  const finished = strictIso(finishedAt, "run finishedAt");
+  if (started > finished) throw new Error("Golden run timestamps are invalid");
   for (const relativePath of evidencePaths) {
     const path = resolve(repositoryRoot, relativePath);
     let realPath: string;
@@ -189,7 +223,7 @@ function exactHead(repositoryRoot: string): string {
   return head;
 }
 
-// eslint-disable-next-line complexity -- each branch closes one receipt authority field.
+// eslint-disable-next-line complexity -- validates the fixed receipt authority fields.
 function assertReceiptMetadata(
   receipt: GoldenRunReceipt,
   expected: { finalHead: string; pins: Pins; generatedDigest: string },
@@ -217,7 +251,7 @@ function assertReceiptMetadata(
     );
 }
 
-// eslint-disable-next-line complexity -- each branch rejects one malformed machine receipt field.
+// eslint-disable-next-line complexity -- validates each required command result field.
 function assertCommandResult(command: unknown): void {
   if (
     !isRecord(command) ||
@@ -230,20 +264,24 @@ function assertCommandResult(command: unknown): void {
   if (
     typeof command.startedAt !== "string" ||
     typeof command.finishedAt !== "string" ||
-    Date.parse(command.startedAt) > Date.parse(command.finishedAt) ||
     typeof command.completedAt !== "string" ||
     command.completedAt.length === 0 ||
-    Number.isNaN(Date.parse(command.completedAt))
+    strictIso(command.startedAt, "command startedAt") >
+      strictIso(command.finishedAt, "command finishedAt") ||
+    !Number.isFinite(strictIso(command.completedAt, "command completedAt"))
   )
     throw new Error("Golden run receipt command timestamp is invalid");
 }
 
-// eslint-disable-next-line complexity -- bounded validation of the fixed receipt contract.
+// eslint-disable-next-line complexity -- validates the bounded fixed receipt contract.
 function assertExecutableReceipt(receipt: GoldenRunReceipt): void {
-  if (Date.parse(receipt.startedAt) > Date.parse(receipt.finishedAt))
+  const runStarted = strictIso(receipt.startedAt, "run startedAt");
+  const runFinished = strictIso(receipt.finishedAt, "run finishedAt");
+  if (runStarted > runFinished)
     throw new Error("Golden run receipt timestamps are invalid");
-  if (!receipt.generatedAt || Number.isNaN(Date.parse(receipt.generatedAt)))
-    throw new Error("Golden run receipt generatedAt is missing or invalid");
+  const generated = strictIso(receipt.generatedAt, "generatedAt");
+  if (generated < runStarted || generated > runFinished)
+    throw new Error("generatedAt falls outside the recorded run");
   if (
     !Array.isArray(receipt.evidencePaths) ||
     receipt.evidencePaths.length === 0
@@ -251,7 +289,13 @@ function assertExecutableReceipt(receipt: GoldenRunReceipt): void {
     throw new Error("Golden run receipt must include evidence paths");
   if (!Array.isArray(receipt.commands) || receipt.commands.length === 0)
     throw new Error("Golden run receipt must include command results");
-  for (const command of receipt.commands) assertCommandResult(command);
+  for (const command of receipt.commands) {
+    assertCommandResult(command);
+    const started = strictIso(command.startedAt, "command startedAt");
+    const finished = strictIso(command.finishedAt, "command finishedAt");
+    if (started < runStarted || finished > runFinished || started > finished)
+      throw new Error("Command timestamps fall outside the recorded run");
+  }
   if (
     receipt.commands.length !== REQUIRED_GOLDEN_COMMANDS.length ||
     receipt.commands.some(
@@ -263,18 +307,9 @@ function assertExecutableReceipt(receipt: GoldenRunReceipt): void {
     );
 }
 
-export function readGoldenRunReceipt(path: string): GoldenRunReceipt {
-  const value = readJson(path);
-  return value as unknown as GoldenRunReceipt;
-}
-
 export function buildGoldenSummaryInput(input: {
   repositoryRoot: string;
-  receipt?: GoldenRunReceipt;
-  generatedAt?: string;
-  evidencePaths?: readonly string[];
-  commands?: readonly GoldenCommandResult[];
-  deviations?: readonly SaasUiDeviation[];
+  receipt: GoldenRunReceipt;
 }): GoldenSummaryInput {
   const repositoryRoot = resolve(input.repositoryRoot);
   const finalHead = exactHead(repositoryRoot);
@@ -291,27 +326,7 @@ export function buildGoldenSummaryInput(input: {
   )
     throw new Error("Generated golden authority digest is missing");
 
-  let receipt = input.receipt;
-  if (receipt === undefined) {
-    if (
-      !input.generatedAt ||
-      input.evidencePaths === undefined ||
-      input.commands === undefined
-    )
-      throw new Error(
-        "Golden summaries require a run receipt or explicit generatedAt, evidencePaths, and command results",
-      );
-    receipt = {
-      schemaVersion: 1,
-      generatedAt: input.generatedAt,
-      finalHead,
-      pins,
-      generatedDigest: authority.digest,
-      deviations: input.deviations ?? [],
-      evidencePaths: input.evidencePaths,
-      commands: input.commands,
-    };
-  }
+  const receipt = input.receipt;
   assertReceiptMetadata(receipt, {
     finalHead,
     pins,
@@ -335,10 +350,99 @@ export function buildGoldenSummaryInput(input: {
   };
 }
 
+export function runGoldenSummaryCommands(
+  repositoryRoot: string,
+  execute: GoldenCommandExecutor = ({ argv, cwd }) => {
+    try {
+      execFileSync("pnpm", argv, { cwd, stdio: "inherit" });
+      return 0;
+    } catch (error) {
+      return typeof error === "object" && error !== null && "status" in error
+        ? Number(error.status) || 1
+        : 1;
+    }
+  },
+): GoldenRunReceipt {
+  const root = resolve(repositoryRoot);
+  const finalHead = exactHead(root);
+  const manifest = readJson(join(root, "docs/template/saas-ui-upstream.json"));
+  const authority = readJson(
+    join(root, "artifacts/saas-ui-golden/authority-generated.json"),
+  );
+  if (typeof authority.digest !== "string")
+    throw new Error("Generated authority digest is missing");
+  const startedAt = new Date().toISOString();
+  const commands = REQUIRED_GOLDEN_COMMANDS.map((command) => {
+    const commandStartedAt = new Date().toISOString();
+    const exitCode = execute({
+      command,
+      argv: commandArgv(command),
+      cwd: root,
+    });
+    const finishedAt = new Date().toISOString();
+    return {
+      command,
+      startedAt: commandStartedAt,
+      finishedAt,
+      completedAt: finishedAt,
+      exitCode,
+      result: `exitCode=${exitCode}`,
+    };
+  });
+  if (exactHead(root) !== finalHead)
+    throw new Error("Repository HEAD changed while golden commands ran");
+  const finishedAt = new Date().toISOString();
+  return {
+    schemaVersion: 2,
+    createdBy: "saas-ui:golden-summary-runner",
+    startedAt,
+    finishedAt,
+    generatedAt: finishedAt,
+    finalHead,
+    pins: exactPins(manifest.pins),
+    generatedDigest: authority.digest,
+    deviations: [],
+    evidencePaths: [
+      "artifacts/saas-ui-golden/authority-generated.json",
+      "artifacts/saas-ui-golden/authority-reference.json",
+    ],
+    commands,
+  };
+}
+
+export function assertSafeSummaryOutput(
+  repositoryRoot: string,
+  outputRoot: string,
+): void {
+  const expected = resolve(repositoryRoot, "artifacts/saas-ui-golden");
+  if (resolve(outputRoot) !== expected)
+    throw new Error("Summary output must be the fixed artifacts directory");
+  mkdirSync(expected, { recursive: true });
+  const repositoryRealPath = realpathSync(repositoryRoot);
+  const outputRealPath = realpathSync(expected);
+  if (
+    lstatSync(expected).isSymbolicLink() ||
+    relative(repositoryRealPath, outputRealPath).startsWith("..")
+  )
+    throw new Error("Summary output directory must not be a symlink");
+  for (const name of SUMMARY_NAMES) {
+    const path = join(expected, name);
+    try {
+      if (lstatSync(path).isSymbolicLink())
+        throw new Error(`Summary output file must not be a symlink: ${name}`);
+    } catch (error) {
+      if (error instanceof Error && error.message.includes("must not"))
+        throw error;
+    }
+  }
+}
+
 export function writeGoldenSummaries(
   outputRoot: string,
   input: GoldenSummaryInput,
+  repositoryRoot = process.cwd(),
 ): void {
+  assertSafeSummaryOutput(repositoryRoot, outputRoot);
   validateInput(input);
   const shared = {
     schemaVersion: 1,

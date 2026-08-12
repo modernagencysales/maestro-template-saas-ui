@@ -1,20 +1,21 @@
 import { execFileSync } from "node:child_process";
 import {
   mkdtempSync,
+  mkdirSync,
   readFileSync,
-  readdirSync,
   statSync,
   unlinkSync,
-  writeFileSync,
 } from "node:fs";
-import { join, resolve } from "node:path";
+import { join } from "node:path";
 import { tmpdir } from "node:os";
 
 import { describe, expect, it } from "vitest";
 
 import {
   buildGoldenSummaryInput,
+  assertSafeSummaryOutput,
   REQUIRED_GOLDEN_COMMANDS,
+  runGoldenSummaryCommands,
   writeGoldenSummaries,
 } from "./golden-summaries";
 import { main as writeGoldenSummariesCli } from "./write-golden-summaries.mts";
@@ -81,7 +82,7 @@ function validReceipt(repositoryRoot: string) {
     createdBy: "saas-ui:golden-summary-runner" as const,
     startedAt,
     finishedAt,
-    generatedAt: new Date().toISOString(),
+    generatedAt: finishedAt,
     finalHead,
     pins,
     generatedDigest,
@@ -101,8 +102,16 @@ function validReceipt(repositoryRoot: string) {
 describe("golden Task 12 summaries", () => {
   it("writes all four summaries with pins, results, ledger, digest, and evidence", () => {
     const root = mkdtempSync(join(tmpdir(), "golden-summary-test-"));
+    const repositoryRoot = join(root, "repo");
+    mkdirSync(join(repositoryRoot, "artifacts/saas-ui-golden"), {
+      recursive: true,
+    });
 
-    writeGoldenSummaries(root, input);
+    writeGoldenSummaries(
+      join(repositoryRoot, "artifacts/saas-ui-golden"),
+      input,
+      repositoryRoot,
+    );
 
     for (const name of [
       "acceptance-summary.json",
@@ -111,7 +120,10 @@ describe("golden Task 12 summaries", () => {
       "accessibility-summary.json",
     ]) {
       const summary = JSON.parse(
-        readFileSync(join(root, name), "utf8"),
+        readFileSync(
+          join(repositoryRoot, "artifacts/saas-ui-golden", name),
+          "utf8",
+        ),
       ) as Record<string, unknown>;
       expect(summary.schemaVersion).toBe(1);
       expect(summary.status).toBe("passed");
@@ -123,39 +135,71 @@ describe("golden Task 12 summaries", () => {
     }
 
     const deviations = JSON.parse(
-      readFileSync(join(root, "deviation-summary.json"), "utf8"),
+      readFileSync(
+        join(
+          repositoryRoot,
+          "artifacts/saas-ui-golden",
+          "deviation-summary.json",
+        ),
+        "utf8",
+      ),
     ) as { deviations: unknown };
     expect(deviations.deviations).toEqual(input.deviations);
   });
 
   it("preserves a failed final command instead of fabricating a pass", () => {
     const root = mkdtempSync(join(tmpdir(), "golden-summary-failure-"));
-
-    writeGoldenSummaries(root, {
-      ...input,
-      commands: [
-        {
-          command: "pnpm smoke:golden:a11y",
-          exitCode: 1,
-          completedAt: input.commands[0].completedAt,
-        },
-      ],
+    const repositoryRoot = join(root, "repo");
+    mkdirSync(join(repositoryRoot, "artifacts/saas-ui-golden"), {
+      recursive: true,
     });
 
+    writeGoldenSummaries(
+      join(repositoryRoot, "artifacts/saas-ui-golden"),
+      {
+        ...input,
+        commands: [
+          {
+            command: "pnpm smoke:golden:a11y",
+            exitCode: 1,
+            completedAt: input.commands[0].completedAt,
+            startedAt: input.commands[0].completedAt,
+            finishedAt: input.commands[0].completedAt,
+          },
+        ],
+      },
+      repositoryRoot,
+    );
+
     const summary = JSON.parse(
-      readFileSync(join(root, "acceptance-summary.json"), "utf8"),
+      readFileSync(
+        join(
+          repositoryRoot,
+          "artifacts/saas-ui-golden",
+          "acceptance-summary.json",
+        ),
+        "utf8",
+      ),
     ) as { status: string };
     expect(summary.status).toBe("failed");
   });
 
   it("rejects absolute or temporary evidence paths", () => {
     const root = mkdtempSync(join(tmpdir(), "golden-summary-path-"));
+    const repositoryRoot = join(root, "repo");
+    mkdirSync(join(repositoryRoot, "artifacts/saas-ui-golden"), {
+      recursive: true,
+    });
 
     expect(() =>
-      writeGoldenSummaries(root, {
-        ...input,
-        evidencePaths: ["/Users/alice/private-capture.png"],
-      }),
+      writeGoldenSummaries(
+        join(repositoryRoot, "artifacts/saas-ui-golden"),
+        {
+          ...input,
+          evidencePaths: ["/Users/alice/private-capture.png"],
+        },
+        repositoryRoot,
+      ),
     ).toThrow(/repository-relative|absolute|temporary/u);
   });
 
@@ -181,6 +225,46 @@ describe("golden Task 12 summaries", () => {
         receipt: { ...validReceipt(process.cwd()), finalHead: "0".repeat(40) },
       }),
     ).toThrow(/head|stale|receipt/u);
+  });
+
+  it("executes the fixed inventory through argv arrays and records real exits", () => {
+    const calls: Array<{ command: string; argv: readonly string[] }> = [];
+    const receipt = runGoldenSummaryCommands(
+      process.cwd(),
+      ({ command, argv }) => {
+        calls.push({ command, argv });
+        return command === REQUIRED_GOLDEN_COMMANDS[0] ? 7 : 0;
+      },
+    );
+    expect(calls.map(({ command }) => command)).toEqual(
+      REQUIRED_GOLDEN_COMMANDS,
+    );
+    expect(calls[0]?.argv).toEqual(["check:saas-ui-foundation"]);
+    expect(receipt.commands[0]?.exitCode).toBe(7);
+    expect(receipt.commands).toHaveLength(REQUIRED_GOLDEN_COMMANDS.length);
+  });
+
+  it("rejects garbage and out-of-bounds timestamps", () => {
+    const receipt = validReceipt(process.cwd());
+    expect(() =>
+      buildGoldenSummaryInput({
+        repositoryRoot: process.cwd(),
+        receipt: { ...receipt, generatedAt: "not-a-date" },
+      }),
+    ).toThrow(/timestamp|ISO|finite/u);
+    expect(() =>
+      buildGoldenSummaryInput({
+        repositoryRoot: process.cwd(),
+        receipt: {
+          ...receipt,
+          commands: receipt.commands.map((command, index) =>
+            index === 0
+              ? { ...command, startedAt: "1999-01-01T00:00:00.000Z" }
+              : command,
+          ),
+        },
+      }),
+    ).toThrow(/outside|timestamp|run/u);
   });
 
   it("rejects fake command receipts and nonexistent evidence", () => {
@@ -218,42 +302,37 @@ describe("golden Task 12 summaries", () => {
     ).toThrow(/fresh|run|timestamp/u);
   });
 
-  it("has an executable caller that writes only the four required summaries", () => {
-    const repositoryRoot = process.cwd();
-    const root = mkdtempSync(join(tmpdir(), "golden-summary-cli-"));
-    const receiptPath = join(root, "receipt.json");
-    writeFileSync(
-      receiptPath,
-      `${JSON.stringify(validReceipt(repositoryRoot))}\n`,
+  it("rejects old receipt and output override CLI arguments", () => {
+    expect(() => writeGoldenSummariesCli(["--receipt", "old.json"])).toThrow(
+      /Usage/u,
+    );
+    expect(() =>
+      writeGoldenSummariesCli(["--output-root", "/tmp/out"]),
+    ).toThrow(/Usage/u);
+  });
+
+  it("rejects symlinked fixed output directories and summary files", () => {
+    const root = mkdtempSync(join(tmpdir(), "golden-summary-symlink-"));
+    const repositoryRoot = join(root, "repo");
+    const outside = join(root, "outside");
+    mkdirSync(outside, { recursive: true });
+    mkdirSync(repositoryRoot, { recursive: true });
+    const output = join(repositoryRoot, "artifacts/saas-ui-golden");
+    mkdirSync(join(repositoryRoot, "artifacts"), { recursive: true });
+    execFileSync("ln", ["-s", outside, output]);
+    expect(() => assertSafeSummaryOutput(repositoryRoot, output)).toThrow(
+      /symlink/u,
     );
 
-    writeGoldenSummariesCli(["--receipt", receiptPath]);
-
-    expect(
-      readdirSync(resolve(repositoryRoot, "artifacts/saas-ui-golden"))
-        .filter((name) => name.endsWith("-summary.json"))
-        .sort(),
-    ).toEqual([
-      "acceptance-summary.json",
-      "accessibility-summary.json",
-      "deviation-summary.json",
-      "interaction-summary.json",
+    unlinkSync(output);
+    mkdirSync(output, { recursive: true });
+    execFileSync("ln", [
+      "-s",
+      join(outside, "summary.json"),
+      join(output, "acceptance-summary.json"),
     ]);
-
-    expect(() =>
-      writeGoldenSummariesCli([
-        "--receipt",
-        receiptPath,
-        "--output-root",
-        root,
-      ]),
-    ).toThrow(/Usage|receipt/u);
-    for (const name of [
-      "acceptance-summary.json",
-      "accessibility-summary.json",
-      "deviation-summary.json",
-      "interaction-summary.json",
-    ])
-      unlinkSync(resolve(repositoryRoot, "artifacts/saas-ui-golden", name));
+    expect(() => assertSafeSummaryOutput(repositoryRoot, output)).toThrow(
+      /symlink/u,
+    );
   });
 });
