@@ -162,7 +162,9 @@ const stateCases = [
 
 test.describe("required state coverage", () => {
   for (const [fixture, copy] of stateCases) {
-    test(`states exposes ${fixture} on both authorities`, async ({ page }) => {
+    test(`state fixture ${fixture} hydrates on both authorities`, async ({
+      page,
+    }) => {
       for (const kind of ["reference", "generated"] as const) {
         await gotoGolden({ page, kind, route: "/states", fixture });
         await expect(page.getByText(copy, { exact: true })).toBeVisible();

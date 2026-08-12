@@ -1,4 +1,5 @@
 import * as React from "react";
+import { ClientOnly } from "@saas-ui/react";
 
 import {
   goldenFixtures,
@@ -83,14 +84,35 @@ export function GoldenAdapterProvider({
   initialState?: GoldenState;
   adapter?: GoldenFrontendAdapter;
 }) {
-  const state = initialState ?? readGoldenFixtureState();
+  const fallback = (
+    <GoldenStateContext.Provider value={initialState ?? "ready-read"}>
+      {children}
+    </GoldenStateContext.Provider>
+  );
 
   return (
     <GoldenAdapterContext.Provider value={adapter}>
-      <GoldenStateContext.Provider value={state}>
-        {children}
-      </GoldenStateContext.Provider>
+      <ClientOnly fallback={fallback}>
+        <GoldenFixtureStateProvider initialState={initialState}>
+          {children}
+        </GoldenFixtureStateProvider>
+      </ClientOnly>
     </GoldenAdapterContext.Provider>
+  );
+}
+
+function GoldenFixtureStateProvider({
+  children,
+  initialState,
+}: {
+  children: React.ReactNode;
+  initialState?: GoldenState;
+}) {
+  const state = initialState ?? readGoldenFixtureState();
+  return (
+    <GoldenStateContext.Provider value={state}>
+      {children}
+    </GoldenStateContext.Provider>
   );
 }
 
