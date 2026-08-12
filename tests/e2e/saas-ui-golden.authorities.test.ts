@@ -157,6 +157,26 @@ describe("golden browser authority startup", () => {
     expect(config).not.toMatch(/apps\/web preview/);
   });
 
+  it("keeps generated compatibility seams over the pinned transplant", () => {
+    const authorityScript = readFileSync(
+      `${root}/tooling/saas-ui/golden-authority.mts`,
+      "utf8",
+    );
+
+    expect(authorityScript).toContain(
+      "if (referenceCompatibilityPaths.has(file.destination)) continue;",
+    );
+    for (const path of [
+      "apps/web/src/features/common/components/app-sidebar.tsx",
+      "apps/web/src/features/common/hooks/use-current-user.ts",
+      "apps/web/src/features/common/hooks/use-current-workspace.ts",
+      "apps/web/src/features/common/hooks/use-tags.ts",
+      "apps/web/src/features/common/hooks/use-workspaces.ts",
+    ]) {
+      expect(authorityScript).toContain(`"${path}"`);
+    }
+  });
+
   it("materializes generated output in a distinct temporary root and hashes both authorities", () => {
     const authorityScript = readFileSync(
       `${root}/tooling/saas-ui/golden-authority.mts`,
@@ -166,7 +186,7 @@ describe("golden browser authority startup", () => {
     expect(authorityScript).toContain("mkdtempSync");
     expect(authorityScript).toContain('createHash("sha256")');
     expect(authorityScript).toContain(
-      "const targetRoot = generated?.targetRoot ?? repositoryRoot",
+      "const targetRoot = materialized.targetRoot;",
     );
     expect(authorityScript).toContain("must have a distinct root and digest");
     expect(authorityScript).toContain("buildSaasApplicationTargetPlan");

@@ -29,6 +29,19 @@ const starterRoot =
   process.env.SAAS_UI_STARTER_ROOT ??
   "/Users/headless/.tmp/saas-ui-tanstack-pro";
 const starterPin = "b76cb4514b9ab47f7db87901cb9b593b4adc3129";
+const referenceCompatibilityPaths = new Set([
+  "apps/web/src/features/auth/auth-provider.tsx",
+  "apps/web/src/features/common/components/app-sidebar.tsx",
+  "apps/web/src/features/common/hooks/use-current-user.ts",
+  "apps/web/src/features/common/hooks/use-current-workspace.ts",
+  "apps/web/src/features/common/hooks/use-tags.ts",
+  "apps/web/src/features/common/hooks/use-workspaces.ts",
+  "apps/web/src/features/common/providers/app-provider.tsx",
+  "apps/web/src/features/common/layouts/app-layout.tsx",
+  "apps/web/src/features/common/layouts/dashboard-layout.tsx",
+  "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
+  "apps/web/src/features/settings/common/settings-sidebar.tsx",
+]);
 const port = process.env.PORT ?? process.argv[3] ?? "4173";
 const authority = process.argv[2];
 
@@ -104,14 +117,19 @@ function readReferenceReceipt(servedRoot: string) {
       );
     const content = readFileSync(resolve(servedRoot, destination));
     const servedSha256 = createHash("sha256").update(content).digest("hex");
-    if (servedRoot !== repositoryRoot && servedSha256 !== sourceSha256)
+    if (
+      servedRoot !== repositoryRoot &&
+      servedSha256 !== sourceSha256 &&
+      servedSha256 !== sha256
+    )
       throw new Error(`Pinned starter source mismatch: ${destination}`);
     return {
       destination,
       content,
       sourceSha256,
       sha256: servedRoot === repositoryRoot ? sha256 : servedSha256,
-      adapted: servedRoot === repositoryRoot ? adapted : false,
+      adapted:
+        servedRoot === repositoryRoot ? adapted : servedSha256 !== sourceSha256,
     };
   });
   return {
@@ -192,6 +210,8 @@ function materializePinnedReferenceTarget() {
   const starterDestinations = new Set(
     receipt.files.map(({ destination }) => destination),
   );
+  for (const path of referenceCompatibilityPaths)
+    starterDestinations.delete(path);
   for (const entry of plan.entries) {
     if (starterDestinations.has(entry.path)) continue;
     const target = join(targetRoot, entry.path);
@@ -199,6 +219,7 @@ function materializePinnedReferenceTarget() {
     writeFileSync(target, entry.content);
   }
   for (const file of receipt.files) {
+    if (referenceCompatibilityPaths.has(file.destination)) continue;
     const target = join(targetRoot, file.destination);
     if (!existsSync(target)) continue;
     const source = execFileSync(
