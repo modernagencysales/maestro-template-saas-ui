@@ -14,6 +14,47 @@ import { buildSaasApplicationTargetPlan } from "../../tooling/generators/src/blu
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
 describe("golden browser authority startup", () => {
+  it("registers one browser gate that runs every behavioral golden spec", () => {
+    const packageJson = JSON.parse(
+      readFileSync(`${root}/package.json`, "utf8"),
+    ) as { scripts: Record<string, string> };
+
+    const browserSmoke = packageJson.scripts["smoke:golden:browser"] ?? "";
+    expect(browserSmoke).toBeTypeOf("string");
+    expect(browserSmoke).toContain("saas-ui-golden.spec.ts");
+    expect(packageJson.scripts["smoke:golden:browser"]).toContain(
+      "saas-ui-golden.acceptance.spec.ts",
+    );
+    expect(packageJson.scripts["smoke:golden:browser"]).toContain(
+      "saas-ui-golden.interactions.spec.ts",
+    );
+  });
+
+  it("installs automatic browser runtime-error gates", () => {
+    const fixture = readFileSync(
+      `${root}/tests/e2e/fixtures/saas-ui-golden-test.ts`,
+      "utf8",
+    );
+
+    expect(fixture).toContain('page.on("console"');
+    expect(fixture).toContain('page.on("pageerror"');
+    expect(fixture).toContain('page.on("requestfailed"');
+    expect(fixture).toContain('page.on("response"');
+    expect(fixture).toContain('resourceType() === "document"');
+    expect(fixture).toContain('resourceType() === "script"');
+    expect(fixture).toContain("status() >= 400");
+  });
+
+  it("keeps evidence outside Playwright's disposable output directory", () => {
+    const fixture = readFileSync(
+      `${root}/tests/e2e/fixtures/saas-ui-golden.ts`,
+      "utf8",
+    );
+
+    expect(fixture).toContain('"artifacts", "saas-ui-golden"');
+    expect(fixture).not.toContain('testInfo.outputPath("saas-ui-golden"');
+  });
+
   it("starts a pinned reference and a freshly generated customer target", () => {
     const config = readFileSync(`${root}/playwright.config.ts`, "utf8");
 
@@ -31,7 +72,7 @@ describe("golden browser authority startup", () => {
     expect(authorityScript).toContain("mkdtempSync");
     expect(authorityScript).toContain('createHash("sha256")');
     expect(authorityScript).toContain(
-      "const targetRoot = generated?.targetRoot ?? starterRoot",
+      "const targetRoot = generated?.targetRoot ?? repositoryRoot",
     );
     expect(authorityScript).toContain("must have a distinct root and digest");
     expect(authorityScript).toContain("buildSaasApplicationTargetPlan");
@@ -88,20 +129,15 @@ describe("golden browser authority startup", () => {
     expect(fixture).not.toContain('page.getByText("Acme Inc.")');
   });
 
-  it("stamps fixture metadata after navigation while seeding storage before it", () => {
+  it("seeds fixtures before navigation without self-authored result metadata", () => {
     const fixture = readFileSync(
       `${root}/tests/e2e/fixtures/saas-ui-golden.ts`,
       "utf8",
     );
     const navigation = fixture.indexOf("await input.page.goto");
-    const metadata = fixture.indexOf(
-      "document.documentElement.dataset.goldenFixture",
-    );
-
     expect(fixture).toContain("window.localStorage.setItem");
     expect(navigation).toBeGreaterThanOrEqual(0);
-    expect(metadata).toBeGreaterThan(navigation);
-    expect(fixture).toContain("data-golden-state");
-    expect(fixture).toContain("data-color-mode");
+    expect(fixture).not.toContain("document.documentElement.dataset.golden");
+    expect(fixture).not.toContain('toHaveAttribute(\n    "data-golden');
   });
 });

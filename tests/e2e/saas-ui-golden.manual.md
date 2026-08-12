@@ -8,8 +8,10 @@
       search shortcut, table states, list/board switch, split/detail navigation,
       Kanban drag, dialog/drawer trap and restore, forms, and success/failure
       states were exercised.
-- [ ] Keyboard-only traversal, visible focus, reduced motion, 200% zoom, and 320
-      px reflow were reviewed; no document horizontal overflow exists.
+- [ ] Keyboard-only traversal, visible focus, and reduced motion were reviewed.
+- [ ] Manual owner review at 200% browser zoom confirms the intended layout and
+      controls remain usable.
+- [ ] Automated 320 px reflow checks pass with no document horizontal overflow.
 - [ ] Axe results for both authorities have zero serious or critical findings.
 - [ ] Owner approval phrase recorded in the PR: “Approved: pinned reference and
       generated target match the accepted structure and interactions.”

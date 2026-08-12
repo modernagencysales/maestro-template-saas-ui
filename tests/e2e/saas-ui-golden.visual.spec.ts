@@ -1,4 +1,4 @@
-import { test } from "@playwright/test";
+import { test } from "./fixtures/saas-ui-golden-test";
 import {
   acceptanceEntries,
   captureReferenceAndGenerated,
@@ -9,10 +9,9 @@ test.describe("paired Saas UI golden visual evidence", () => {
     for (const entry of acceptanceEntries) {
       test(`${entry.id} ready-read ${colorMode} captures both authorities`, async ({
         page,
-      }, testInfo) => {
+      }) => {
         await captureReferenceAndGenerated({
           page,
-          testInfo,
           route: entry.route,
           fixture: "ready-read",
           colorMode,
@@ -32,10 +31,9 @@ test.describe("paired Saas UI golden visual evidence", () => {
     for (const colorMode of ["light", "dark"] as const) {
       test(`states ${fixture} ${colorMode} captures both authorities`, async ({
         page,
-      }, testInfo) => {
+      }) => {
         await captureReferenceAndGenerated({
           page,
-          testInfo,
           route: "/states",
           fixture,
           colorMode,

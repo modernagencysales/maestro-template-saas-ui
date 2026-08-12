@@ -1,6 +1,6 @@
-import { expect, type Page, type TestInfo } from "@playwright/test";
-import { readFileSync } from "node:fs";
-import { resolve } from "node:path";
+import { type Page } from "@playwright/test";
+import { mkdirSync, readFileSync } from "node:fs";
+import { join, resolve } from "node:path";
 
 export const goldenFixtures = {
   "ready-read": {
@@ -129,43 +129,20 @@ export async function gotoGolden(input: {
   await input.page.goto(goldenUrl(input.kind, input.route), {
     waitUntil: "networkidle",
   });
-  await input.page.evaluate(
-    ({ fixtureName, fixtureState, requestedColorMode }) => {
-      document.documentElement.dataset.goldenFixture = fixtureName;
-      document.documentElement.dataset.goldenState = fixtureState;
-      document.documentElement.dataset.colorMode = requestedColorMode;
-    },
-    {
-      fixtureName: fixture,
-      fixtureState: goldenFixtures[fixture].state,
-      requestedColorMode: colorMode,
-    },
-  );
-  await expect(input.page.locator("html")).toHaveAttribute(
-    "data-golden-fixture",
-    fixture,
-  );
-  await expect(input.page.locator("html")).toHaveAttribute(
-    "data-golden-state",
-    goldenFixtures[fixture].state,
-  );
-  await expect(input.page.locator("html")).toHaveAttribute(
-    "data-color-mode",
-    colorMode,
-  );
 }
 
 function viewportName(page: Page): GoldenViewport {
   return (page.viewportSize()?.width ?? 1440) <= 600 ? "mobile" : "desktop";
 }
 
-function evidencePath(testInfo: TestInfo, name: string) {
-  return testInfo.outputPath("saas-ui-golden", `${name}.png`);
+function evidencePath(name: string) {
+  const evidenceRoot = resolve(process.cwd(), "artifacts", "saas-ui-golden");
+  mkdirSync(evidenceRoot, { recursive: true });
+  return join(evidenceRoot, `${name}.png`);
 }
 
 export async function captureReferenceAndGenerated(input: {
   page: Page;
-  testInfo: TestInfo;
   route: string;
   fixture: GoldenFixture;
   colorMode: GoldenColorMode;
@@ -182,7 +159,6 @@ export async function captureReferenceAndGenerated(input: {
     });
     await input.page.screenshot({
       path: evidencePath(
-        input.testInfo,
         `${input.composition}-${goldenFixtures[input.fixture].state}-${kind}-${viewport}-${input.colorMode}`,
       ),
       fullPage: true,

@@ -1,25 +1,7 @@
-import { expect, test } from "@playwright/test";
-import {
-  captureReferenceAndGenerated,
-  forEachGoldenAuthority,
-} from "./fixtures/saas-ui-golden";
+import { expect, test } from "./fixtures/saas-ui-golden-test";
+import { forEachGoldenAuthority } from "./fixtures/saas-ui-golden";
 
 test.describe("paired Saas UI golden behavior", () => {
-  for (const colorMode of ["light", "dark"] as const) {
-    test(`dashboard ${colorMode} captures reference and generated authorities`, async ({
-      page,
-    }, testInfo) => {
-      await captureReferenceAndGenerated({
-        page,
-        testInfo,
-        route: "/dashboard",
-        fixture: "ready-read",
-        colorMode,
-        composition: "dashboard",
-      });
-    });
-  }
-
   test("paired authorities expose the authenticated workspace shell", async ({
     page,
   }) => {

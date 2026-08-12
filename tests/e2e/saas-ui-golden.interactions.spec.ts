@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/saas-ui-golden-test";
 import { acceptanceEntries, gotoGolden } from "./fixtures/saas-ui-golden";
 
 const authorities = ["reference", "generated"] as const;
@@ -59,7 +59,9 @@ test.describe("paired Saas UI golden interactions", () => {
       const search = page
         .getByRole("textbox", { name: /Search your workspace/i })
         .first();
+      const globalSearch = page.getByRole("searchbox", { name: "Search" });
       await page.keyboard.press("Control+k");
+      await expect(globalSearch).toBeFocused();
       await search.fill("contact");
       await expect(search).toHaveValue("contact");
       await expect(page).toHaveURL(/search/);

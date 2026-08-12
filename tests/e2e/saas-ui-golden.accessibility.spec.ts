@@ -1,5 +1,5 @@
 import AxeBuilder from "@axe-core/playwright";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./fixtures/saas-ui-golden-test";
 import { acceptanceEntries, gotoGolden } from "./fixtures/saas-ui-golden";
 
 const authorities = ["reference", "generated"] as const;
@@ -66,28 +66,6 @@ test.describe("paired Saas UI golden accessibility", () => {
           await page.keyboard.press("Tab");
           await expect(page.locator(":focus")).toBeVisible();
         }
-      }
-    });
-  }
-
-  for (const entry of acceptanceEntries) {
-    test(`${entry.id} keeps reduced-motion and 200 percent zoom usable`, async ({
-      page,
-    }) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      for (const kind of authorities) {
-        await gotoGolden({ page, kind, route: entry.route });
-        await page.evaluate(() => {
-          document.documentElement.style.zoom = "200%";
-        });
-        expect(
-          await page.evaluate(
-            () => matchMedia("(prefers-reduced-motion: reduce)").matches,
-          ),
-        ).toBe(true);
-        expect(
-          await page.evaluate(() => document.documentElement.scrollWidth),
-        ).toBeGreaterThan(0);
       }
     });
   }

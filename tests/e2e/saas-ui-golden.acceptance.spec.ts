@@ -1,4 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "./fixtures/saas-ui-golden-test";
+import type { Page } from "@playwright/test";
 import {
   acceptanceEntries,
   concreteRoute,
