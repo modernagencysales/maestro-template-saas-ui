@@ -50,6 +50,7 @@ describe("Saas UI foundation authorities", () => {
       ]),
     );
     expect(readSaasUiDeviations(root).map(({ source }) => source)).toEqual([
+      "apps/web/src/features/common/layouts/app-layout.tsx:Sidebar.Inset mobile block-start lane",
       "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
       "@saas-ui-pro/react@1.0.0-next.4:components/resize/resize-handle.tsx:ResizeHandle",
       "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes",

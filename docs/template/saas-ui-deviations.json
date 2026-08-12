@@ -1,7 +1,22 @@
 {
   "schemaVersion": 1,
-  "authorityDigest": "3617279125481ab68f908c4ecf94d1b897c96eba7e4165f26742458849a42f4e",
+  "authorityDigest": "7973cb33c3b1db32b54e7a73b6f631dcd8e84004326e79462506cc59edc0e593",
   "deviations": [
+    {
+      "source": "apps/web/src/features/common/layouts/app-layout.tsx:Sidebar.Inset mobile block-start lane",
+      "destination": "apps/web/src/features/common/layouts/app-layout.tsx:Sidebar.Inset",
+      "change": "The shared inset reserves a mobile block-start lane while retaining the pinned desktop layout.",
+      "reason": "The factory-added fixed mobile sidebar trigger otherwise overlaps the visible page heading at 320 px; the shared shell boundary must provide clearance without changing individual pages.",
+      "evidence": "The paired 320 px reference/generated geometry assertion proves the Contacts heading begins at or below the trigger bottom edge, and the desktop data-grid interaction regression preserves the desktop layout.",
+      "evidencePaths": [
+        "tests/e2e/saas-ui-golden.visual.spec.ts",
+        "tests/e2e/saas-ui-golden.interactions.spec.ts"
+      ],
+      "evidenceChecks": [
+        "tests/e2e/saas-ui-golden.visual.spec.ts#keeps page headings clear of the sidebar trigger"
+      ],
+      "sourceAuthority": "starter-receipt"
+    },
     {
       "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
       "destination": "apps/web/src/features/common/components/client-resizer.tsx",

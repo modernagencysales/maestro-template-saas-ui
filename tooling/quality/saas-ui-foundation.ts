@@ -13,7 +13,7 @@ const PINS = {
   pro: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
 } as const;
 export const SAAS_UI_DEVIATIONS_DIGEST =
-  "3617279125481ab68f908c4ecf94d1b897c96eba7e4165f26742458849a42f4e";
+  "7973cb33c3b1db32b54e7a73b6f631dcd8e84004326e79462506cc59edc0e593";
 
 export function hasExecutableEvidenceDeclaration(
   source: string,
@@ -544,6 +544,10 @@ const FACTORY_SUPPORT_DESTINATIONS = new Set([
   "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
 ]);
 const DEVIATION_EVIDENCE_AUTHORITY = new Map<string, string>([
+  [
+    "apps/web/src/features/common/layouts/app-layout.tsx:Sidebar.Inset mobile block-start lane|apps/web/src/features/common/layouts/app-layout.tsx:Sidebar.Inset",
+    "tests/e2e/saas-ui-golden.visual.spec.ts#keeps page headings clear of the sidebar trigger",
+  ],
   [
     "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)|apps/web/src/features/common/components/client-resizer.tsx",
     "apps/web/src/features/common/components/client-resizer.test.tsx#renders its fallback during SSR without evaluating the browser-only resizer",

@@ -68,12 +68,9 @@ test.describe("paired Saas UI golden visual evidence", () => {
             "Expected the trigger and page heading to have bounds",
           );
         }
-        expect(
-          triggerRect.x + triggerRect.width <= headingRect.x ||
-            headingRect.x + headingRect.width <= triggerRect.x ||
-            triggerRect.y + triggerRect.height <= headingRect.y ||
-            headingRect.y + headingRect.height <= triggerRect.y,
-        ).toBe(true);
+        expect(headingRect.y).toBeGreaterThanOrEqual(
+          triggerRect.y + triggerRect.height,
+        );
       }
     });
   });
