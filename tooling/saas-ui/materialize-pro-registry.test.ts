@@ -1,12 +1,15 @@
 import { mkdir, readFile, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
+import { execFileSync } from "node:child_process";
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
-  discoverComponentConfigs,
+  compareProRegistryProjection,
+  discoverInstallableItems,
   materializeProRegistry,
   snapshotMaterializedTarget,
+  verifyProSourceCommit,
 } from "./materialize-pro-registry.mts";
 
 const proRoot = "/Users/headless/.cache/codex-research/saas-ui-pro";
@@ -22,6 +25,138 @@ afterEach(async () => {
 });
 
 describe("complete Saas UI Pro registry materialization", () => {
+  it("rejects dirty source even when HEAD matches the expected pin", async () => {
+    const source = await mkdtemp(join(tmpdir(), "saas-ui-pro-source-"));
+    targets.push(source);
+    execFileSync("git", ["init"], { cwd: source });
+    execFileSync("git", ["config", "user.name", "Saas UI test"], {
+      cwd: source,
+    });
+    execFileSync("git", ["config", "user.email", "saas-ui@example.test"], {
+      cwd: source,
+    });
+    await mkdir(join(source, "packages/blocks/example"), { recursive: true });
+    await writeFile(
+      join(source, "packages/blocks/example/source.ts"),
+      "export const clean = true;\n",
+    );
+    execFileSync("git", ["add", "packages/blocks/example/source.ts"], {
+      cwd: source,
+    });
+    execFileSync("git", ["commit", "-m", "test source"], { cwd: source });
+    const expectedCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: source,
+      encoding: "utf8",
+    }).trim();
+    await writeFile(
+      join(source, "packages/blocks/example/untracked.ts"),
+      "dirty\n",
+    );
+
+    expect(() => verifyProSourceCommit(source, expectedCommit)).toThrow(
+      /working tree is not clean/,
+    );
+  });
+
+  it("rejects ignored source files that the collector would materialize", async () => {
+    const source = await mkdtemp(join(tmpdir(), "saas-ui-pro-source-"));
+    targets.push(source);
+    execFileSync("git", ["init"], { cwd: source });
+    execFileSync("git", ["config", "user.name", "Saas UI test"], {
+      cwd: source,
+    });
+    execFileSync("git", ["config", "user.email", "saas-ui@example.test"], {
+      cwd: source,
+    });
+    await mkdir(join(source, "packages/blocks/example"), { recursive: true });
+    await writeFile(join(source, ".gitignore"), "*.generated.ts\n");
+    await writeFile(
+      join(source, "packages/blocks/example/source.ts"),
+      "export const clean = true;\n",
+    );
+    execFileSync("git", ["add", ".gitignore", "packages"], { cwd: source });
+    execFileSync("git", ["commit", "-m", "test source"], { cwd: source });
+    const expectedCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: source,
+      encoding: "utf8",
+    }).trim();
+    await writeFile(
+      join(source, "packages/blocks/example/extra.generated.ts"),
+      "dirty\n",
+    );
+
+    expect(() => verifyProSourceCommit(source, expectedCommit)).toThrow(
+      /working tree is not clean/,
+    );
+  });
+
+  it("mechanically compares every pinned registry item with editable local source", async () => {
+    const root = join(import.meta.dirname, "../..");
+    const comparison = await compareProRegistryProjection({
+      proRoot,
+      targetRoot: join(root, "apps/web"),
+    });
+
+    expect(comparison.sourceCommit).toBe(
+      "ac3a40c8dc05e403f9d501a87c092646891d3c40",
+    );
+    expect(comparison.registryIds).toEqual(
+      JSON.parse(await readFile(join(root, "apps/web/components.json"), "utf8"))
+        .installed,
+    );
+    const installable = await discoverInstallableItems(proRoot);
+    expect(comparison.registryIds).toEqual(
+      installable
+        .map(({ name }) => name)
+        .sort((left, right) => left.localeCompare(right, "en")),
+    );
+    expect(comparison.files).toHaveLength(
+      JSON.parse(
+        await readFile(
+          join(root, "docs/template/saas-ui-registry-files.json"),
+          "utf8",
+        ),
+      ).files.length,
+    );
+    expect(comparison.differences).toEqual([]);
+  }, 30_000);
+
+  it("records catalog source paths and hashes for every projected destination", async () => {
+    const root = join(import.meta.dirname, "../..");
+    const receipt = JSON.parse(
+      await readFile(
+        join(root, "docs/template/saas-ui-registry-files.json"),
+        "utf8",
+      ),
+    ) as {
+      files: Array<{
+        source: string;
+        destination: string;
+        sourceSha256: string;
+        sha256: string;
+      }>;
+    };
+
+    expect(receipt.files).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          source: expect.stringMatching(/^registry:/),
+          destination: expect.stringMatching(/^apps\/web\/src\/components\//),
+          sourceSha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+          sha256: expect.stringMatching(/^[a-f0-9]{64}$/),
+        }),
+      ]),
+    );
+    expect(
+      receipt.files.every(
+        ({ source, sourceSha256, sha256 }) =>
+          source.length > 0 &&
+          /^[a-f0-9]{64}$/.test(sourceSha256) &&
+          /^[a-f0-9]{64}$/.test(sha256),
+      ),
+    ).toBe(true);
+  });
+
   it("installs every published Pro root and is byte-idempotent", async () => {
     const projectRoot = await mkdtemp(
       join(tmpdir(), "maestro-saas-ui-registry-project-"),
@@ -40,15 +175,12 @@ describe("complete Saas UI Pro registry materialization", () => {
     );
 
     const first = await materializeProRegistry({ proRoot, targetRoot: target });
-    const authoredRoots = await discoverComponentConfigs(
-      join(proRoot, "packages/blocks"),
+    const installable = await discoverInstallableItems(proRoot);
+    expect(first.installed).toEqual(
+      installable
+        .map(({ name }) => name)
+        .sort((left, right) => left.localeCompare(right, "en")),
     );
-
-    expect(first.installed).toHaveLength(authoredRoots.length);
-    for (const config of authoredRoots)
-      expect(
-        first.items.some(({ sourceConfig }) => sourceConfig === config),
-      ).toBe(true);
     expect(
       JSON.parse(await readFile(join(target, "components.json"), "utf8"))
         .installed,
@@ -69,8 +201,12 @@ describe("complete Saas UI Pro registry materialization", () => {
     ).toBe(true);
     expect(first.unresolvedImports).toEqual([]);
     expect(first.receipt.files).toEqual(
-      first.files.map(({ path, sha256 }) => ({
+      first.files.map(({ path, source, sourceSha256, sha256 }) => ({
+        source: source.startsWith("registry:")
+          ? source
+          : source.slice(proRoot.length + 1),
         destination: `apps/web/${path}`,
+        sourceSha256,
         sha256,
       })),
     );

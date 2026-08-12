@@ -54,7 +54,7 @@ export function ColorControl({ colors, onChange, value }: ColorControlProps) {
       <Popover.Trigger asChild>
         <IconButton
           aria-label="Change primary color"
-          variant="outline"
+          variant="secondary"
           bg="bg.panel"
           size="sm"
           onClick={() => openState.setOpen(!openState.open)}

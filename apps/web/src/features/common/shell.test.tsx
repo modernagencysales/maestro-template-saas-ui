@@ -54,6 +54,32 @@ describe("transplanted application shell", () => {
     expect(source).toContain('aria-orientation="vertical"');
   });
 
+  it("preserves the pinned Starter shell structure and density", () => {
+    const webRoot = process.cwd().endsWith("/apps/web")
+      ? process.cwd()
+      : resolve(process.cwd(), "apps/web");
+    const layout = readFileSync(
+      resolve(webRoot, "src/features/common/layouts/app-layout.tsx"),
+      "utf8",
+    );
+    const sidebar = readFileSync(
+      resolve(webRoot, "src/features/common/components/app-sidebar.tsx"),
+      "utf8",
+    );
+    const invite = readFileSync(
+      resolve(webRoot, "src/features/common/components/invite-people.tsx"),
+      "utf8",
+    );
+
+    expect(layout).toContain('<Sidebar.Provider variant="inset">');
+    expect(layout).toContain("sidebar={sidebar}");
+    expect(layout).toContain("<PaymentOverdueBanner />");
+    expect(layout).toContain("GlobalSearchInput");
+    expect(sidebar).not.toContain("LuPanelLeftClose");
+    expect(sidebar).toContain('<Command size="xs">');
+    expect(invite).toContain("toast.promise");
+  });
+
   it("preserves upstream shell controls while adapters supply neutral data", async () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,

@@ -37,6 +37,33 @@ type StarterReceipt = Readonly<{
 const digest = (contents: Buffer) =>
   createHash("sha256").update(contents).digest("hex");
 
+export function verifyStarterSourceCommit(
+  starterRoot: string,
+  expectedCommit = STARTER_COMMIT,
+): string {
+  const actual = execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: starterRoot,
+    encoding: "utf8",
+  }).trim();
+  if (actual !== expectedCommit)
+    throw new Error(`Starter checkout ${actual}; expected ${expectedCommit}`);
+  const status = execFileSync(
+    "git",
+    [
+      "status",
+      "--porcelain",
+      "--ignored",
+      "--untracked-files=all",
+      "--",
+      "apps/web/src",
+    ],
+    { cwd: starterRoot, encoding: "utf8" },
+  ).trim();
+  if (status)
+    throw new Error(`Starter working tree is not clean: ${starterRoot}`);
+  return actual;
+}
+
 export async function transplantStarter({
   starterRoot,
   targetRoot,
@@ -48,13 +75,7 @@ export async function transplantStarter({
   ),
   receiptOnly = false,
 }: TransplantOptions): Promise<readonly TransplantedFile[]> {
-  const actual = execFileSync("git", ["rev-parse", "HEAD"], {
-    cwd: starterRoot,
-    encoding: "utf8",
-  }).trim();
-  if (actual !== expectedCommit) {
-    throw new Error(`Starter checkout ${actual}; expected ${expectedCommit}`);
-  }
+  const actual = verifyStarterSourceCommit(starterRoot, expectedCommit);
 
   const files: TransplantedFile[] = [];
   for (const file of starterFiles(ids)) {
@@ -80,7 +101,7 @@ export async function transplantStarter({
     sourceCommit: actual,
     files: files
       .map((file) => ({
-        source: relative(resolve(dirname(receiptPath), "../.."), file.source),
+        source: relative(starterRoot, file.source).split("/").join("/"),
         destination: relative(
           resolve(dirname(receiptPath), "../.."),
           file.destination,

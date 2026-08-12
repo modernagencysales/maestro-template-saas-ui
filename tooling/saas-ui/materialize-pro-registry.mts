@@ -1,6 +1,15 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { existsSync } from "node:fs";
-import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  writeFile,
+} from "node:fs/promises";
+import { tmpdir } from "node:os";
 import {
   basename,
   dirname,
@@ -11,13 +20,24 @@ import {
   resolve,
 } from "node:path";
 import prettier from "prettier";
+import { discoverRegistryItems } from "@saas-ui/registry/compiler";
 
 type JsonRecord = Record<string, unknown>;
-type FileRecord = Readonly<{ path: string; sha256: string }>;
+type FileRecord = Readonly<{
+  path: string;
+  source: string;
+  sourceSha256: string;
+  sha256: string;
+}>;
 type RegistryReceipt = Readonly<{
   schemaVersion: 1;
   sourceCommit: string;
-  files: readonly Readonly<{ destination: string; sha256: string }>[];
+  files: readonly Readonly<{
+    source: string;
+    destination: string;
+    sourceSha256: string;
+    sha256: string;
+  }>[];
 }>;
 
 export type RegistryMaterialization = Readonly<{
@@ -31,19 +51,28 @@ export type RegistryMaterialization = Readonly<{
   receipt: RegistryReceipt;
 }>;
 
+export type RegistryProjectionComparison = Readonly<{
+  sourceCommit: string;
+  registryIds: readonly string[];
+  items: readonly Readonly<{ name: string; sourceConfig: string }>[];
+  files: readonly FileRecord[];
+  differences: readonly string[];
+}>;
+
 type MaterializeOptions = Readonly<{ proRoot: string; targetRoot: string }>;
 type SourceFile = Readonly<{
   source: string;
   destination: string;
   content: string;
+  sourceSha256: string;
 }>;
+type PublicImportRequest = Readonly<{ specifier: string; from?: string }>;
 type PublicCatalogItem = Readonly<{
   name: string;
   type?: string;
   dependencies?: readonly string[];
   files?: readonly Readonly<{ path: string; content: string; type?: string }>[];
 }>;
-type PublicImportRequest = Readonly<{ specifier: string; from?: string }>;
 
 const sourceExtensions = new Set([
   ".ts",
@@ -76,6 +105,37 @@ const knownVersions: Readonly<Record<string, string>> = {
   zod: "4.1.5",
 };
 const proSourceCommit = "ac3a40c8dc05e403f9d501a87c092646891d3c40";
+
+export function verifyProSourceCommit(
+  proRoot: string,
+  expectedCommit = proSourceCommit,
+): string {
+  const actual = execFileSync("git", ["rev-parse", "HEAD"], {
+    cwd: proRoot,
+    encoding: "utf8",
+  }).trim();
+  if (actual !== expectedCommit)
+    throw new Error(
+      `Saas UI Pro checkout ${actual}; expected ${expectedCommit}`,
+    );
+  const status = execFileSync(
+    "git",
+    [
+      "status",
+      "--porcelain",
+      "--ignored",
+      "--untracked-files=all",
+      "--",
+      "packages/blocks",
+      "packages/registry/public/public-catalog.json",
+      "packages/react/package.json",
+    ],
+    { cwd: proRoot, encoding: "utf8" },
+  ).trim();
+  if (status)
+    throw new Error(`Saas UI Pro working tree is not clean: ${proRoot}`);
+  return actual;
+}
 
 function hash(content: string): string {
   return createHash("sha256").update(content).digest("hex");
@@ -132,11 +192,12 @@ async function collectSourceFiles(
       const source = join(directory, entry.name);
       if (entry.isDirectory()) await visit(source);
       else if (isSourceFile(entry.name)) {
-        const content = rewriteAliases(await readFile(source, "utf8"));
+        const sourceContent = await readFile(source, "utf8");
         result.push({
           source,
           destination: join(destinationRoot, relative(root, source)),
-          content,
+          content: rewriteAliases(sourceContent),
+          sourceSha256: hash(sourceContent),
         });
       }
     }
@@ -174,6 +235,38 @@ async function readCatalog(
   if (!Array.isArray(value))
     throw new Error(`Pinned registry catalog is not an array: ${catalogPath}`);
   return value as PublicCatalogItem[];
+}
+
+export async function discoverInstallableItems(
+  proRoot: string,
+): Promise<readonly Readonly<{ name: string; sourceConfig: string }>[]> {
+  const packagesRoot = join(proRoot, "packages");
+  const { items } = await discoverRegistryItems({
+    sourceRoots: [
+      {
+        basePath: packagesRoot,
+        path: join(packagesRoot, "blocks"),
+        style: "default",
+        type: "registry:block",
+      },
+      {
+        basePath: join(packagesRoot, "blocks"),
+        path: join(packagesRoot, "blocks/hooks"),
+        style: "default",
+        type: "registry:hook",
+      },
+    ],
+  });
+  const unique = new Map<string, { name: string; sourceConfig: string }>();
+  for (const item of items) {
+    if (item.type === "registry:block" && !item.configPath) continue;
+    const sourceConfig =
+      item.configPath ?? join(item.sourceDirectory, `${item.name}.ts`);
+    unique.set(item.name, { name: item.name, sourceConfig });
+  }
+  return [...unique.values()].sort((left, right) =>
+    left.name.localeCompare(right.name, "en"),
+  );
 }
 
 function publicFileStem(path: string): string {
@@ -237,6 +330,7 @@ async function collectPublicDependencies(
         source: `registry:${item.name}/${file.path}`,
         destination,
         content,
+        sourceSha256: hash(file.content),
       });
       queue.push(
         ...importedSpecifiers(content)
@@ -324,7 +418,12 @@ async function writeFiles(
     const path = relative(targetRoot, file.destination).split("/").join("/");
     const sha256 = hash(formatted);
     hashes[path] = sha256;
-    records.push({ path, sha256 });
+    records.push({
+      path,
+      source: file.source,
+      sourceSha256: file.sourceSha256,
+      sha256,
+    });
   }
   return {
     hashes,
@@ -347,16 +446,21 @@ function projectRootFor(targetRoot: string): string | undefined {
 
 function registryReceipt(
   projectRoot: string | undefined,
+  proRoot: string,
   targetRoot: string,
   records: readonly FileRecord[],
 ): RegistryReceipt {
   return {
     schemaVersion: 1,
     sourceCommit: proSourceCommit,
-    files: records.map(({ path, sha256 }) => ({
+    files: records.map(({ path, source, sourceSha256, sha256 }) => ({
+      source: source.startsWith("registry:")
+        ? source
+        : relative(proRoot, source).split("/").join("/"),
       destination: projectRoot
         ? relative(projectRoot, join(targetRoot, path)).split("/").join("/")
         : path,
+      sourceSha256,
       sha256,
     })),
   };
@@ -436,8 +540,9 @@ async function resolveMaterializedDependencies(
   sourceFiles: SourceFile[];
   declarations: Readonly<Record<string, string>>;
 }> {
+  const catalog = await readCatalog(proRoot);
   const publicDependencies = await collectPublicDependencies(
-    await readCatalog(proRoot),
+    catalog,
     sourceFiles,
     targetRoot,
   );
@@ -554,6 +659,7 @@ export async function materializeProRegistry({
 }: MaterializeOptions): Promise<RegistryMaterialization> {
   const resolvedProRoot = resolve(proRoot);
   const resolvedTargetRoot = resolve(targetRoot);
+  verifyProSourceCommit(resolvedProRoot);
   const projectRoot = projectRootFor(resolvedTargetRoot);
   const configPaths = await discoverComponentConfigs(
     join(resolvedProRoot, "packages/blocks"),
@@ -562,15 +668,10 @@ export async function materializeProRegistry({
     throw new Error(
       `Pinned Pro registry has no component.config.ts files: ${resolvedProRoot}`,
     );
-  const installed = configPaths
-    .map((config) => basename(dirname(config)))
+  const items = await discoverInstallableItems(resolvedProRoot);
+  const installed = items
+    .map(({ name }) => name)
     .sort((left, right) => left.localeCompare(right, "en"));
-  const items = configPaths
-    .map((sourceConfig) => ({
-      name: basename(dirname(sourceConfig)),
-      sourceConfig,
-    }))
-    .sort((left, right) => left.name.localeCompare(right.name, "en"));
   const conflicts = [
     ...new Set(
       installed.filter((name, index) => installed.indexOf(name) !== index),
@@ -618,6 +719,7 @@ export async function materializeProRegistry({
   );
   const receipt = registryReceipt(
     projectRoot,
+    resolvedProRoot,
     resolvedTargetRoot,
     written.records,
   );
@@ -633,6 +735,141 @@ export async function materializeProRegistry({
     unresolvedImports: uniqueUnresolved,
     receipt,
   };
+}
+
+function stringArray(value: unknown): readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? value
+    : [];
+}
+
+function difference(
+  differences: string[],
+  label: string,
+  actual: unknown,
+  expected: unknown,
+): void {
+  if (JSON.stringify(actual) !== JSON.stringify(expected))
+    differences.push(
+      `${label}: expected ${JSON.stringify(expected)}, received ${JSON.stringify(actual)}`,
+    );
+}
+
+export async function compareProRegistryProjection({
+  proRoot,
+  targetRoot,
+}: MaterializeOptions): Promise<RegistryProjectionComparison> {
+  const resolvedProRoot = resolve(proRoot);
+  const resolvedTargetRoot = resolve(targetRoot);
+  const sourceCommit = verifyProSourceCommit(resolvedProRoot);
+  const stagingRoot = await mkdtemp(join(tmpdir(), "saas-ui-pro-compare-"));
+
+  try {
+    const expected = await materializeProRegistry({
+      proRoot: resolvedProRoot,
+      targetRoot: join(stagingRoot, "apps/web"),
+    });
+    const differences: string[] = [];
+    const components = JSON.parse(
+      await readFile(join(resolvedTargetRoot, "components.json"), "utf8"),
+    ) as JsonRecord;
+    difference(
+      differences,
+      "components.json installed registry ids",
+      stringArray(components.installed),
+      expected.installed,
+    );
+
+    const projectRoot = projectRootFor(resolvedTargetRoot);
+    if (!projectRoot)
+      throw new Error(
+        `Unable to locate docs/template/saas-ui-upstream.json for ${resolvedTargetRoot}`,
+      );
+    const manifest = JSON.parse(
+      await readFile(
+        join(projectRoot, "docs/template/saas-ui-upstream.json"),
+        "utf8",
+      ),
+    ) as JsonRecord;
+    const registry = (manifest.registry ?? {}) as JsonRecord;
+    difference(
+      differences,
+      "upstream manifest installed registry ids",
+      stringArray(registry.installed),
+      expected.installed,
+    );
+    difference(
+      differences,
+      "upstream manifest Pro source commit",
+      registry.sourceCommit,
+      sourceCommit,
+    );
+
+    const receipt = JSON.parse(
+      await readFile(
+        join(projectRoot, "docs/template/saas-ui-registry-files.json"),
+        "utf8",
+      ),
+    ) as RegistryReceipt;
+    difference(
+      differences,
+      "registry receipt Pro source commit",
+      receipt.sourceCommit,
+      sourceCommit,
+    );
+    const receiptFiles = new Map(
+      receipt.files.map((file) => [file.destination, file]),
+    );
+    const targetPrefix = relative(projectRoot, resolvedTargetRoot)
+      .split("/")
+      .join("/");
+    const expectedDestinations = expected.files.map(({ path }) =>
+      [targetPrefix, path].filter(Boolean).join("/"),
+    );
+    difference(
+      differences,
+      "registry receipt destinations",
+      [...receiptFiles.keys()].sort((left, right) =>
+        left.localeCompare(right, "en"),
+      ),
+      expectedDestinations,
+    );
+
+    for (const file of expected.files) {
+      const destination = [targetPrefix, file.path].filter(Boolean).join("/");
+      const receiptFile = receiptFiles.get(destination);
+      const expectedSource = file.source.startsWith("registry:")
+        ? file.source
+        : relative(resolvedProRoot, file.source).split("/").join("/");
+      if (
+        receiptFile?.source !== expectedSource ||
+        receiptFile?.sourceSha256 !== file.sourceSha256 ||
+        receiptFile?.sha256 !== file.sha256
+      )
+        differences.push(
+          `registry receipt projection mismatch: ${destination}`,
+        );
+      try {
+        const actualHash = hash(
+          await readFile(join(resolvedTargetRoot, file.path), "utf8"),
+        );
+        if (actualHash !== file.sha256)
+          differences.push(`editable registry source drift: ${destination}`);
+      } catch {
+        differences.push(`editable registry source missing: ${destination}`);
+      }
+    }
+
+    return {
+      sourceCommit,
+      registryIds: expected.installed,
+      items: expected.items,
+      files: expected.files,
+      differences,
+    };
+  } finally {
+    await rm(stagingRoot, { recursive: true, force: true });
+  }
 }
 
 async function main() {

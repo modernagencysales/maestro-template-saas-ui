@@ -1,15 +1,46 @@
 import { createHash } from "node:crypto";
+import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdir, mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
-import { transplantStarter } from "./transplant-starter.mts";
+import {
+  transplantStarter,
+  verifyStarterSourceCommit,
+} from "./transplant-starter.mts";
 
 const starterRoot = "/Users/headless/.tmp/saas-ui-tanstack-pro";
 
 describe("pinned starter transplant", () => {
+  it("rejects dirty Starter source even when HEAD matches the pin", async () => {
+    const source = await mkdtemp(join(tmpdir(), "saas-ui-starter-source-"));
+    execFileSync("git", ["init"], { cwd: source });
+    execFileSync("git", ["config", "user.name", "Saas UI test"], {
+      cwd: source,
+    });
+    execFileSync("git", ["config", "user.email", "saas-ui@example.test"], {
+      cwd: source,
+    });
+    await mkdir(join(source, "apps/web/src"), { recursive: true });
+    await writeFile(
+      join(source, "apps/web/src/source.ts"),
+      "export const clean = true;\n",
+    );
+    execFileSync("git", ["add", "apps/web/src/source.ts"], { cwd: source });
+    execFileSync("git", ["commit", "-m", "test source"], { cwd: source });
+    const expectedCommit = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: source,
+      encoding: "utf8",
+    }).trim();
+    await writeFile(join(source, "apps/web/src/untracked.ts"), "dirty\n");
+
+    expect(() => verifyStarterSourceCommit(source, expectedCommit)).toThrow(
+      /working tree is not clean/,
+    );
+  });
+
   it("rejects a checkout whose HEAD is not the source pin", async () => {
     const targetRoot = await mkdtemp(join(tmpdir(), "saas-ui-target-"));
 
@@ -69,6 +100,42 @@ describe("pinned starter transplant", () => {
         .update(readFileSync(join(root, file.destination)))
         .digest("hex");
       expect(servedSha256, file.destination).toBe(file.sha256);
+    }
+  });
+
+  it("maps every owned Starter projection to its pinned source", () => {
+    const root = resolve(import.meta.dirname, "../..");
+    const receipt = JSON.parse(
+      readFileSync(
+        join(root, "docs/template/saas-ui-starter-files.json"),
+        "utf8",
+      ),
+    ) as { files: Array<{ source: string; destination: string }> };
+    const upstream = JSON.parse(
+      readFileSync(join(root, "docs/template/saas-ui-upstream.json"), "utf8"),
+    ) as {
+      compositions: Array<{
+        files: Array<{ source: string; destination: string }>;
+      }>;
+    };
+    const mapped = new Map(
+      upstream.compositions.flatMap(({ files }) =>
+        files.map(({ source, destination }) => [destination, source]),
+      ),
+    );
+    const owned = receipt.files.filter(
+      ({ destination }) =>
+        destination === "apps/web/src/theme/preset.ts" ||
+        destination.startsWith("apps/web/src/features/common/layouts/") ||
+        destination.startsWith("apps/web/src/features/common/components/") ||
+        destination.startsWith("apps/web/src/features/settings/"),
+    );
+
+    expect(owned).toHaveLength(34);
+    for (const file of owned) {
+      expect(mapped.get(file.destination), file.destination).toBe(
+        file.source.slice(file.source.lastIndexOf("apps/web/src/")),
+      );
     }
   });
 });

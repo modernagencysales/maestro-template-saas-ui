@@ -221,7 +221,7 @@ export function MembersList<TMember extends Member = Member>({
           onClick={invite.onOpen}
           disabled={!allowInvite}
           colorPalette="accent"
-          variant="surface"
+          variant="glass"
           flexShrink="0"
           size="sm"
         >

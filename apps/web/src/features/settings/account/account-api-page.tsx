@@ -16,7 +16,13 @@ import { SettingsPage } from "@workspace/ui/settings-page";
 
 import { SettingsCard } from "../common/settings-card";
 
-function AccessToken({ token, onRemove }: any) {
+function AccessToken({
+  token,
+  onRemove,
+}: {
+  token: string;
+  onRemove?: (token: string) => void;
+}) {
   const { value, copy, copied } = useClipboard(token);
 
   const handleRemove = () => {
@@ -50,7 +56,7 @@ function PersonalAccessTokens() {
       <Section.Header title="Personal access tokens" />
       <Section.Body>
         <SettingsCard
-          footer={<Button variant="solid">Create new token</Button>}
+          footer={<Button variant="primary">Create new token</Button>}
         >
           <GridList.Root p="0">
             <AccessToken token="12345" onRemove={onRemove} />

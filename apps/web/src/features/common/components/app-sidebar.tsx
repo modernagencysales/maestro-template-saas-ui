@@ -25,7 +25,6 @@ import {
 import {
   LuHouse,
   LuInbox,
-  LuPanelLeftClose,
   LuPlus,
   LuSearch,
   LuSquareUser,
@@ -68,14 +67,6 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
           </React.Suspense>
 
           <Spacer />
-          <IconButton
-            variant="ghost"
-            size="xs"
-            aria-label="Collapse sidebar"
-            onClick={() => setOpen(!open)}
-          >
-            <LuPanelLeftClose size="1.1em" />
-          </IconButton>
           <IconButton
             variant="ghost"
             size="xs"
@@ -224,7 +215,7 @@ const AppSidebarLink = (props: AppSidebarlink) => {
     <Tooltip
       content={
         <>
-          {label} <Command size="sm">{command}</Command>
+          {label} <Command size="xs">{command}</Command>
         </>
       }
       positioning={{

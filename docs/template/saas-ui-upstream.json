@@ -37,6 +37,7 @@
       "sortable-task-list",
       "task-card-with-labels",
       "task-card-with-properties",
+      "use-open-state",
       "user-menu",
       "workspace-members-settings"
     ]
@@ -63,6 +64,50 @@
         {
           "source": "apps/web/src/config/hotkeys.config.ts",
           "destination": "apps/web/src/config/hotkeys.config.ts"
+        },
+        {
+          "source": "apps/web/src/features/common/components/app-sidebar.tsx",
+          "destination": "apps/web/src/features/common/components/app-sidebar.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/components/billing-status.tsx",
+          "destination": "apps/web/src/features/common/components/billing-status.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/components/global-search-input.tsx",
+          "destination": "apps/web/src/features/common/components/global-search-input.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/components/hotkeys.tsx",
+          "destination": "apps/web/src/features/common/components/hotkeys.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/components/invite-people.tsx",
+          "destination": "apps/web/src/features/common/components/invite-people.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/components/sidebar-tags.tsx",
+          "destination": "apps/web/src/features/common/components/sidebar-tags.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/components/user-menu.tsx",
+          "destination": "apps/web/src/features/common/components/user-menu.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/components/workspaces-menu.tsx",
+          "destination": "apps/web/src/features/common/components/workspaces-menu.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/layouts/app-layout.tsx",
+          "destination": "apps/web/src/features/common/layouts/app-layout.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/layouts/dashboard-layout.tsx",
+          "destination": "apps/web/src/features/common/layouts/dashboard-layout.tsx"
+        },
+        {
+          "source": "apps/web/src/features/common/layouts/fullscreen-layout.tsx",
+          "destination": "apps/web/src/features/common/layouts/fullscreen-layout.tsx"
         }
       ]
     },
@@ -195,6 +240,66 @@
         {
           "source": "apps/web/src/features/settings/billing/billing-page.tsx",
           "destination": "apps/web/src/features/settings/billing/billing-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/account/account-api-page.tsx",
+          "destination": "apps/web/src/features/settings/account/account-api-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/account/account-notifications-page.tsx",
+          "destination": "apps/web/src/features/settings/account/account-notifications-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/account/account-security-page.tsx",
+          "destination": "apps/web/src/features/settings/account/account-security-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/account/index.ts",
+          "destination": "apps/web/src/features/settings/account/index.ts"
+        },
+        {
+          "source": "apps/web/src/features/settings/account/schema/profile.schema.ts",
+          "destination": "apps/web/src/features/settings/account/schema/profile.schema.ts"
+        },
+        {
+          "source": "apps/web/src/features/settings/account/schema/update-password.schema.ts",
+          "destination": "apps/web/src/features/settings/account/schema/update-password.schema.ts"
+        },
+        {
+          "source": "apps/web/src/features/settings/account/update-password-dialog.tsx",
+          "destination": "apps/web/src/features/settings/account/update-password-dialog.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/billing/billing-status.tsx",
+          "destination": "apps/web/src/features/settings/billing/billing-status.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/common/settings-card.tsx",
+          "destination": "apps/web/src/features/settings/common/settings-card.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/common/support-card.tsx",
+          "destination": "apps/web/src/features/settings/common/support-card.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/members/members-list.tsx",
+          "destination": "apps/web/src/features/settings/members/members-list.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/tags/color-control.tsx",
+          "destination": "apps/web/src/features/settings/tags/color-control.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/tags/manage-tags.tsx",
+          "destination": "apps/web/src/features/settings/tags/manage-tags.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/tags/tags-settings-page.tsx",
+          "destination": "apps/web/src/features/settings/tags/tags-settings-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/workspace/workspace-settings-page.tsx",
+          "destination": "apps/web/src/features/settings/workspace/workspace-settings-page.tsx"
         }
       ]
     },

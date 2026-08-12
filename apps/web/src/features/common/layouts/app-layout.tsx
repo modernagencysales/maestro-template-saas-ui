@@ -5,7 +5,7 @@ import { AppShell, AppShellProps, Sidebar } from "@saas-ui/react";
 import { PaymentOverdueBanner } from "#features/billing/components/payment-overdue-banner";
 import { GlobalSearchInput } from "../components/global-search-input";
 
-export interface AppLayoutProps extends AppShellProps {}
+export type AppLayoutProps = AppShellProps;
 
 /**
  * Base layout for app pages.
@@ -16,11 +16,11 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   ...rest
 }) => {
   return (
-    <Sidebar.Provider>
+    <Sidebar.Provider variant="inset">
       <Sidebar.FlyoutTrigger aria-label="Collapse sidebar" />
 
       <AppShell
-        {...(sidebar ? { sidebar } : {})}
+        sidebar={sidebar}
         header={
           <>
             <PaymentOverdueBanner />

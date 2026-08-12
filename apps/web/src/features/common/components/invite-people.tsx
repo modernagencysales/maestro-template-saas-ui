@@ -18,19 +18,28 @@ export function InvitePeopleDialog(props: {
     <InviteDialog
       {...props}
       onInvite={async ({ emails, role }) => {
-        try {
-          await inviteMembers.mutateAsync({
+        const result = await toast.promise(
+          inviteMembers.mutateAsync({
             workspaceId: workspace.id,
             emails,
             role,
-          });
-          toast.success({ title: "Invitation(s) have been sent." });
-        } catch (error: unknown) {
-          toast.error({
-            title: error instanceof Error ? error.message : "Invitation failed",
-          });
-          throw error;
-        }
+          }),
+          {
+            loading: {
+              title:
+                emails.length === 1
+                  ? `Inviting ${emails[0]}...`
+                  : `Inviting ${emails.length} people...`,
+            },
+            success: { title: "Invitation(s) have been sent." },
+            error: (error: unknown) => ({
+              title:
+                error instanceof Error ? error.message : "Invitation failed",
+            }),
+          },
+        );
+
+        if (!result) throw new Error("Failed to invite people");
       }}
     />
   );
