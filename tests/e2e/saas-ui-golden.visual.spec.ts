@@ -42,6 +42,40 @@ test.describe("paired Saas UI golden visual evidence", () => {
         );
       }
     });
+
+    test("keeps page headings clear of the sidebar trigger", async ({
+      page,
+    }) => {
+      for (const kind of ["reference", "generated"] as const) {
+        await gotoGolden({ page, kind, route: "/contacts" });
+
+        const trigger = page.getByRole("button", { name: "Open sidebar" });
+        const heading = page.getByRole("heading", {
+          name: "Contacts",
+          exact: true,
+        });
+        await expect(trigger).toBeVisible();
+        await expect(heading).toBeVisible();
+        const [triggerRect, headingRect] = await Promise.all([
+          trigger.boundingBox(),
+          heading.boundingBox(),
+        ]);
+
+        expect(triggerRect).not.toBeNull();
+        expect(headingRect).not.toBeNull();
+        if (!triggerRect || !headingRect) {
+          throw new Error(
+            "Expected the trigger and page heading to have bounds",
+          );
+        }
+        expect(
+          triggerRect.x + triggerRect.width <= headingRect.x ||
+            headingRect.x + headingRect.width <= triggerRect.x ||
+            triggerRect.y + triggerRect.height <= headingRect.y ||
+            headingRect.y + headingRect.height <= triggerRect.y,
+        ).toBe(true);
+      }
+    });
   });
 
   test("dark mode changes computed theme and screenshot evidence", async ({

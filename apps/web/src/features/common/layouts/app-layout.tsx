@@ -102,7 +102,7 @@ const AppLayoutContent: React.FC<AppLayoutProps> = ({
         bg="sidebar.bg"
         {...rest}
       >
-        <Sidebar.Inset>{children}</Sidebar.Inset>
+        <Sidebar.Inset pt={{ base: "14", md: "0" }}>{children}</Sidebar.Inset>
       </AppShell>
 
       <Sidebar.Backdrop data-testid="sidebar-backdrop" />
