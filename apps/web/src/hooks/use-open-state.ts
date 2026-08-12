@@ -33,9 +33,16 @@ export const useOpenState = (
       [isControlled, props.open, handleChange],
     );
 
+  const onOpenChange = useCallback(
+    (details: { open: boolean }) => {
+      setOpen(details.open);
+    },
+    [setOpen],
+  );
+
   return {
     open: isControlled ? props.open : value,
     setOpen,
-    onOpenChange: ({ open }: { open: boolean }) => setOpen(open),
+    onOpenChange,
   };
 };
