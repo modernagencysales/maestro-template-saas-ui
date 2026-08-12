@@ -1563,6 +1563,12 @@ export const buildSaasRegistrationProjections = (
             content: currentSource("patches/@confect__cli@10.0.0-next.9.patch"),
           },
           {
+            path: "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
+            content: currentSource(
+              "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
+            ),
+          },
+          {
             path: "patches/@tanstack__start-plugin-core@1.171.18.patch",
             content: currentSource(
               "patches/@tanstack__start-plugin-core@1.171.18.patch",

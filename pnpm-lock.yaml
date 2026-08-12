@@ -20,6 +20,9 @@ patchedDependencies:
   "@confect/cli@10.0.0-next.9":
     hash: 1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08
     path: patches/@confect__cli@10.0.0-next.9.patch
+  "@saas-ui-pro/react@1.0.0-next.4":
+    hash: a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b
+    path: patches/@saas-ui-pro__react@1.0.0-next.4.patch
   "@tanstack/start-plugin-core@1.171.18":
     hash: 5d013d8588e0de0c6ebccbec103262e26f24233a90102822271ac6fb023aadf6
     path: patches/@tanstack__start-plugin-core@1.171.18.patch
@@ -230,7 +233,7 @@ importers:
         version: 1.0.0-next.0(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui-pro/react":
         specifier: 1.0.0-next.4
-        version: 1.0.0-next.4(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 1.0.0-next.4(patch_hash=a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b)(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/assets":
         specifier: ^1.1.0
         version: 1.1.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -12343,7 +12346,7 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@saas-ui-pro/react@1.0.0-next.4(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@saas-ui-pro/react@1.0.0-next.4(patch_hash=a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b)(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@ark-ui/react": 5.30.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@chakra-ui/react": 3.30.0(@emotion/react@11.14.0(@types/react@19.2.2)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)

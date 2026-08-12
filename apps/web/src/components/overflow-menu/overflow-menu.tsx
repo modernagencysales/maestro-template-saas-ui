@@ -9,7 +9,7 @@ interface OverflowMenuRootProps extends Menu.RootProps {
 }
 
 const OverflowMenuRoot: React.FC<OverflowMenuRootProps> = (props) => {
-  const { children, portalled = true, label, ...rest } = props;
+  const { children, portalled = true, label = "More actions", ...rest } = props;
   return (
     <Menu.Root {...rest}>
       <Menu.Trigger asChild>

@@ -75,5 +75,12 @@
     "change": "The upstream DataGrid is mounted through ClientOnly while retaining its original client-side JSX and styles.",
     "reason": "The column-resizer EnvironmentContext evaluates document during SSR, which crashes both reference and generated golden authorities.",
     "evidence": "data-grid.ssr.test.tsx reproduces ReferenceError: document is not defined for the vendor DataGrid with resizing enabled; the ContactsListPage SSR regression and paired desktop golden subset prove the boundary and hydrated grid."
+  },
+  {
+    "source": "@saas-ui-pro/react@1.0.0-next.4:DataGridSort and DataGridHeaderCell",
+    "destination": "patches/@saas-ui-pro__react@1.0.0-next.4.patch; apps/web/src/features/contacts/list/list-page.tsx",
+    "change": "Sortable grid headers retain their interactive title while aria-sort moves to the native column header, decorative sort icons are hidden from assistive technology, and contact action menus receive a name.",
+    "reason": "The pinned package writes aria-sort to a div and aria-label to a presentational span, while the preserved contact list creates unnamed icon-only action triggers; both are serious or critical WCAG failures.",
+    "evidence": "The paired data-grid accessibility test fails on both authorities before the seam; frozen generated-target installation includes the patch, and paired axe coverage verifies the repaired DOM without rule exclusions."
   }
 ]

@@ -71,6 +71,30 @@ test.describe("paired Saas UI golden accessibility", () => {
   }
 });
 
+test.describe("paired Saas UI golden data-grid semantics", () => {
+  for (const kind of authorities) {
+    test(`${kind} keeps sorting semantics on column headers and names row actions`, async ({
+      page,
+    }) => {
+      const dataGrid = acceptanceEntries.find(
+        (entry) => entry.id === "data-grid",
+      );
+      if (!dataGrid) throw new Error("Missing data-grid acceptance entry");
+
+      await gotoGolden({ page, kind, route: dataGrid.route });
+
+      await expect(page.locator("div[aria-sort]")).toHaveCount(0);
+      await expect(page.locator('th[aria-sort="none"]')).toHaveCount(5);
+      await expect(
+        page.locator('[role="presentation"][aria-label]'),
+      ).toHaveCount(0);
+      await expect(
+        page.getByRole("button", { name: "Contact actions" }).first(),
+      ).toBeVisible();
+    });
+  }
+});
+
 test.describe("paired mobile 320px reflow", () => {
   test.use({ viewport: { width: 320, height: 800 } });
 

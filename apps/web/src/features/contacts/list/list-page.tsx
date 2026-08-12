@@ -176,7 +176,7 @@ function updateForDrop(input: {
 const ActionCell: DataGridCell<ContactDTO> = (cell) => {
   return (
     <Box onClick={(e) => e.stopPropagation()}>
-      <OverflowMenu.Root>
+      <OverflowMenu.Root label="Contact actions">
         <OverflowMenu.Item
           value="delete"
           onClick={() => console.log(cell.row.id)}

@@ -16,6 +16,7 @@ overrides:
 
 patchedDependencies:
   "@confect/cli@10.0.0-next.9": "patches/@confect__cli@10.0.0-next.9.patch"
+  "@saas-ui-pro/react@1.0.0-next.4": "patches/@saas-ui-pro__react@1.0.0-next.4.patch"
   "@tanstack/start-plugin-core@1.171.18": "patches/@tanstack__start-plugin-core@1.171.18.patch"
 
 onlyBuiltDependencies:

@@ -134,6 +134,9 @@ describe("SaaS UI generated target artifact boundary", () => {
       expect(
         paths.has("apps/web/src/features/common/components/client-resizer.tsx"),
       ).toBe(true);
+      expect(paths.has("patches/@saas-ui-pro__react@1.0.0-next.4.patch")).toBe(
+        true,
+      );
 
       const packageJson = JSON.parse(
         readFileSync(join(target, "apps/web/package.json"), "utf8"),

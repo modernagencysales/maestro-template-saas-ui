@@ -1860,6 +1860,7 @@ Feature: Reconcile disputed invoices
         "package.json",
         "pnpm-lock.yaml",
         "patches/@confect__cli@10.0.0-next.9.patch",
+        "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
         "patches/@tanstack__start-plugin-core@1.171.18.patch",
         "tooling/confect-manifest/tsconfig.json",
         "tooling/generators/package.json",
