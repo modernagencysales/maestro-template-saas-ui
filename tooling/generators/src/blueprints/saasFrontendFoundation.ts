@@ -1,5 +1,5 @@
 import { fileURLToPath } from "node:url";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { GeneratedFile } from "../index";
 
@@ -33,6 +33,8 @@ const registryReceipt = readJson<RegistryReceipt>(
 // lintable, private, and reviewable in a generated target.
 const FRONTEND_SUPPORT_PATHS = [
   "tsconfig.base.json",
+  "packages/convex/src/refs.ts",
+  "packages/convex/confect/_generated/refs.ts",
   "apps/web/package.json",
   "apps/web/tsconfig.json",
   "apps/web/vite.config.ts",
@@ -77,6 +79,34 @@ const FRONTEND_SUPPORT_PATHS = [
   "docs/template/saas-ui-deviations.json",
 ] as const;
 
+const currentWebSourcePaths = (directory: string): readonly string[] =>
+  readdirSync(resolve(repositoryRoot, directory), {
+    withFileTypes: true,
+  }).flatMap((entry) => {
+    const path = `${directory}/${entry.name}`;
+    if (entry.isDirectory()) return currentWebSourcePaths(path);
+    return /\.(?:ts|tsx|mts|mjs)$/.test(entry.name) ? [path] : [];
+  });
+
+const STARTER_SOURCE_ROOTS = [
+  "apps/web/src/components",
+  "apps/web/src/adapters",
+  "apps/web/src/lib",
+  "apps/web/src/providers",
+  "apps/web/src/sample",
+  "apps/web/src/saas-ui",
+  "apps/web/src/workspace",
+  "apps/web/src/features/auth",
+  "apps/web/src/features/billing",
+  "apps/web/src/features/common",
+  "apps/web/src/features/contacts",
+  "apps/web/src/features/getting-started",
+  "apps/web/src/features/reports",
+  "apps/web/src/features/search",
+  "apps/web/src/features/settings",
+  "apps/web/src/features/workspaces",
+] as const;
+
 const manifestCompositionPaths = (): readonly string[] =>
   manifest.compositions.flatMap((composition) =>
     composition.files.map(({ destination }) => destination),
@@ -94,6 +124,7 @@ const foundationPaths = [
   ...registryReceipt.files.map(({ destination }) => destination),
   ...manifest.licenses.map(({ destination }) => destination),
   ...FRONTEND_SUPPORT_PATHS,
+  ...STARTER_SOURCE_ROOTS.flatMap(currentWebSourcePaths),
 ];
 
 const UNIQUE_FOUNDATION_PATHS = Object.freeze(
