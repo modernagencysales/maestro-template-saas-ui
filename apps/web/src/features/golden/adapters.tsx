@@ -26,10 +26,6 @@ export type GoldenFrontendAdapter = Readonly<{
     state: GoldenState,
     action: GoldenStateAction,
   ): Promise<GoldenState | "access-requested">;
-  updateContactStatus(
-    id: string,
-    status: ContactFixture["status"],
-  ): Promise<void>;
 }>;
 
 export type GoldenStateAction =
@@ -92,7 +88,6 @@ export function createGoldenAdapter(
     signOut: async () => undefined,
     transitionState: async (state, action) =>
       stateTransitions[state]?.[action] ?? state,
-    updateContactStatus: async () => undefined,
   };
 }
 
