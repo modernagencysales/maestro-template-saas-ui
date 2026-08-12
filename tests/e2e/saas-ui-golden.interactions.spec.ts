@@ -137,11 +137,9 @@ test.describe("paired Saas UI golden interactions", () => {
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("split-inbox").route });
-      const items = page.locator(
-        '[role="grid"] [role="row"], [role="griditem"]',
-      );
-      await expect(items.first()).toBeVisible();
-      await items.first().click();
+      const item = page.getByText("Jordan Lee", { exact: true });
+      await expect(item).toBeVisible();
+      await item.click();
       await expect(page).toHaveURL(/inbox/);
     });
 
@@ -224,9 +222,7 @@ test.describe("paired Saas UI golden interactions", () => {
       await gotoGolden({ page, kind, route: entry("auth").route });
       await page.getByRole("button", { name: "Log in" }).click();
       await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
-      await expect(
-        page.getByRole("textbox", { name: "Password" }),
-      ).toBeVisible();
+      await expect(page.getByLabel("Password")).toBeVisible();
       await expect(
         page.getByRole("link", { name: "Forgot your password?" }),
       ).toBeVisible();

@@ -25,7 +25,13 @@ export type WorkspaceFixture = {
   label: string;
   logo?: string;
   tags: readonly TagFixture[];
-  members: readonly { id: string; email: string; roles: string[]; status: string }[];
+  members: readonly {
+    id: string;
+    name?: string;
+    email: string;
+    roles: string[];
+    status: string;
+  }[];
   subscription: {
     accountId: string | null;
     status: string;
@@ -51,6 +57,11 @@ export type ContactFixture = {
   email: string;
   company: string;
   status: "active" | "inactive";
+  type: "lead" | "customer";
+  tags: readonly string[];
+  workspaceId: string;
+  createdAt: string;
+  updatedAt: string;
 };
 
 export type NavigationFixture = {
@@ -76,6 +87,7 @@ const workspace = {
   members: [
     {
       id: "user-1",
+      name: "Alex Morgan",
       email: "alex@example.com",
       roles: ["owner"],
       status: "active",
@@ -109,6 +121,11 @@ export const goldenFixtures = {
       email: "jordan@example.com",
       company: "Northstar Labs",
       status: "active",
+      type: "lead",
+      tags: ["Priority"],
+      workspaceId: "workspace-1",
+      createdAt: "2026-01-12T09:00:00.000Z",
+      updatedAt: "2026-01-15T09:00:00.000Z",
     },
     {
       id: "contact-2",
@@ -116,8 +133,37 @@ export const goldenFixtures = {
       email: "sam@example.com",
       company: "Acme Inc.",
       status: "inactive",
+      type: "customer",
+      tags: ["Partner"],
+      workspaceId: "workspace-1",
+      createdAt: "2026-01-10T09:00:00.000Z",
+      updatedAt: "2026-01-14T09:00:00.000Z",
     },
   ] satisfies readonly ContactFixture[],
+  notifications: [
+    {
+      id: "notification-1",
+      subjectId: "contact-1",
+      actorId: "user-1",
+      createdAt: "2026-01-15T09:00:00.000Z",
+      type: "action",
+      subject: { name: "Jordan Lee" },
+      metadata: { action: "created-contact" },
+    },
+  ],
+  billing: {
+    email: "alex@example.com",
+    invoices: [
+      {
+        number: "INV-001",
+        date: "2026-01-15T00:00:00.000Z",
+        status: "paid",
+        total: 2900,
+        currency: "USD",
+        url: null,
+      },
+    ],
+  },
   navigation: [
     { label: "Dashboard", to: "/dashboard" },
     { label: "Contacts", to: "/contacts" },
