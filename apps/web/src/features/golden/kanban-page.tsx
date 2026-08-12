@@ -1,6 +1,6 @@
-import { Box, Page, Text } from "@saas-ui/react";
+import { Box, Page } from "@saas-ui/react";
 import type { ColumnDef } from "@tanstack/react-table";
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useMemo, useSyncExternalStore } from "react";
 
 import type { ContactDTO } from "@workspace/api/types";
 import { DataBoard, type DataBoardProps } from "@workspace/ui/data-board";
@@ -30,34 +30,32 @@ const visibleColumns = {
 
 export function GoldenKanbanPage() {
   const adapter = useGoldenAdapter();
-  const initialContacts = useMemo(
+  const contacts = useSyncExternalStore(
+    adapter.subscribe,
+    () => adapter.contacts,
+    () => adapter.contacts,
+  );
+  const visibleContacts = useMemo(
     () =>
-      adapter.contacts
+      contacts
         .slice(0, 2)
         .map((contact) => ({ ...contact, tags: [...contact.tags] })),
-    [adapter.contacts],
+    [contacts],
   );
-  const [contacts, setContacts] = useState(initialContacts);
-  const [mutationMessage, setMutationMessage] = useState<string | null>(null);
 
   const onCardDragEnd = useCallback(
-    (event: CardDragEndEvent) => {
+    async (event: CardDragEndEvent) => {
       const contactId = event.items[event.to.columnId]?.[event.to.index];
       const [, status] = String(event.to.columnId).split(":");
-      const contact = contacts.find(({ id }) => id === contactId);
+      const contact = adapter.contacts.find(({ id }) => id === contactId);
 
       if (!contact || (status !== "active" && status !== "inactive")) {
         throw new Error("Contact mutation could not be resolved");
       }
 
-      setContacts((current) =>
-        current.map((item) =>
-          item.id === contact.id ? { ...item, status } : item,
-        ),
-      );
-      setMutationMessage(`Moved ${contact.name} to ${status}`);
+      await adapter.updateContactStatus(contact.id, status);
     },
-    [contacts],
+    [adapter],
   );
 
   return (
@@ -69,7 +67,7 @@ export function GoldenKanbanPage() {
             height="100%"
             px="6"
             columns={columns}
-            data={contacts}
+            data={visibleContacts}
             renderHeader={(header) => <ContactBoardHeader {...header} />}
             renderCard={(row) => <ContactCard contact={row.original} />}
             groupBy="status"
@@ -77,9 +75,6 @@ export function GoldenKanbanPage() {
             getRowId={(row) => row.id}
             state={{ columnVisibility: visibleColumns }}
           />
-          {mutationMessage ? (
-            <Text role="status">{mutationMessage}</Text>
-          ) : null}
         </Box>
       </Page.Body>
     </Page.Root>

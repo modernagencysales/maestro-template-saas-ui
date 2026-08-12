@@ -294,7 +294,7 @@ test.describe("paired Saas UI golden interactions", () => {
       );
     });
 
-    test(`${kind} moves the exact Kanban card by keyboard and reports the mutation`, async ({
+    test(`${kind} moves the exact Kanban card by keyboard through the adapter`, async ({
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("kanban").route });
@@ -311,9 +311,6 @@ test.describe("paired Saas UI golden interactions", () => {
       await expect(origin.locator('[data-id="contact-1"]')).toHaveCount(0);
       await expect(destination.locator('[data-id="contact-1"]')).toContainText(
         "Jordan Lee",
-      );
-      await expect(page.getByRole("status")).toHaveText(
-        "Moved Jordan Lee to inactive",
       );
     });
 

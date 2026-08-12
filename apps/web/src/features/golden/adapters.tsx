@@ -19,6 +19,11 @@ export type GoldenFrontendAdapter = Readonly<{
   workspaces: readonly WorkspaceFixture[];
   navigation: readonly NavigationFixture[];
   contacts: readonly ContactFixture[];
+  subscribe(listener: () => void): () => void;
+  updateContactStatus(
+    id: string,
+    status: ContactFixture["status"],
+  ): Promise<void>;
   search(query: string): readonly SearchResultFixture[];
   navigate(to: string): void;
   signOut(): Promise<void>;
@@ -72,12 +77,30 @@ function isGoldenState(value: unknown): value is GoldenState {
 export function createGoldenAdapter(
   navigate: (to: string) => void = () => undefined,
 ): GoldenFrontendAdapter {
+  let contacts: readonly ContactFixture[] = goldenFixtures.contacts;
+  const listeners = new Set<() => void>();
+
   return {
     currentUser: goldenFixtures.currentUser,
     currentWorkspace: goldenFixtures.currentWorkspace,
     workspaces: goldenFixtures.workspaces,
     navigation: goldenFixtures.navigation,
-    contacts: goldenFixtures.contacts,
+    get contacts() {
+      return contacts;
+    },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    async updateContactStatus(id, status) {
+      if (!contacts.some((contact) => contact.id === id)) {
+        throw new Error(`Contact not found: ${id}`);
+      }
+      contacts = contacts.map((contact) =>
+        contact.id === id ? { ...contact, status } : contact,
+      );
+      for (const listener of listeners) listener();
+    },
     search(query) {
       const normalized = query.trim().toLowerCase();
       return goldenFixtures.navigation
