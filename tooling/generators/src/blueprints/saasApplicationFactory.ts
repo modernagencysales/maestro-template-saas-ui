@@ -107,39 +107,6 @@ const currentCustomerSource = (
       throw new Error("customer shared env evaluator test markers are missing");
     content = `${content.slice(0, evaluatorTestStart)}${content.slice(retainedTestStart)}`;
   }
-  if (path === "apps/web/src/adapters/confect-generated-refs.test.ts") {
-    const replacements = [
-      [
-        'import type { InvokeReturn, ReactMutation } from "@confect/react";',
-        'import type { ReactMutation } from "@confect/react";',
-      ],
-      [
-        "  useTemplateAction,\n  useTemplateMutation,",
-        "  useTemplateMutation,",
-      ],
-      [
-        'type EvaluateAppIdeaWithModelRef =\n  TemplateConfectRefs["public"]["capabilities"]["evaluateAppIdea"]["evaluateAppIdeaWithModel"];\n',
-        "",
-      ],
-      [
-        "type TemplateActionResult<Action extends Ref.AnyPublicAction> = ReturnType<\n  typeof useTemplateAction<Action>\n>;\n",
-        "",
-      ],
-    ] as const;
-    for (const [search, replacement] of replacements) {
-      if (!content.includes(search))
-        throw new Error("customer generated refs evaluator marker is missing");
-      content = content.replace(search, replacement);
-    }
-    const evaluatorTestStart = content.indexOf(
-      '  it("infers generated action args, results, and typed failures"',
-    );
-    if (evaluatorTestStart < 0 || !content.endsWith("});\n"))
-      throw new Error(
-        "customer generated refs evaluator test marker is missing",
-      );
-    content = `${content.slice(0, evaluatorTestStart)}});\n`;
-  }
   if (path === "packages/template-core/src/generated/confectManifest.ts") {
     content = content
       .split("\n")

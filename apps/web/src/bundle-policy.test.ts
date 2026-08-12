@@ -12,7 +12,7 @@ describe("dependencyChunkName", () => {
     ["@saas-ui-pro/kanban/index.js", "vendor-saas-pro"],
     ["@zag-js/dialog/index.js", "vendor-zag"],
     ["@floating-ui/dom/index.js", "vendor-floating"],
-    ["@chakra-ui/react/dist/index.js", "vendor-ui"],
+    ["@chakra-ui/react/dist/index.js", "vendor-chakra"],
     ["@blocknote/core/dist/index.js", "vendor-editor"],
     ["@xyflow/react/dist/index.js", "vendor-graph"],
     ["@tanstack/react-router/dist/index.js", "vendor-router"],

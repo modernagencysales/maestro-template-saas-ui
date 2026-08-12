@@ -87,6 +87,17 @@ describe("SaaS UI generated target artifact boundary", () => {
         paths.has("apps/web/src/adapters/confect-generated-refs.test.ts"),
       ).toBe(false);
       expect(paths.has("apps/web/src/sample/templateData.test.ts")).toBe(false);
+      for (const path of [
+        "apps/web/src/routes/_auth.login.tsx",
+        "apps/web/src/routes/_auth.signup.tsx",
+        "apps/web/src/routes/_auth.forgot-password.tsx",
+        "apps/web/src/routes/_auth.reset-password.tsx",
+        "apps/web/src/routes/_workspace.settings.plans.tsx",
+        "apps/web/src/routes/privacy.tsx",
+        "apps/web/src/routes/terms.tsx",
+      ]) {
+        expect(paths.has(path)).toBe(true);
+      }
 
       const packageJson = JSON.parse(
         readFileSync(join(target, "apps/web/package.json"), "utf8"),
@@ -123,8 +134,8 @@ describe("SaaS UI generated target artifact boundary", () => {
           }
         })();
       command(["install", "--frozen-lockfile"]);
-      command(["--dir", "apps/web", "typecheck"]);
       command(["--dir", "apps/web", "build"]);
+      command(["--dir", "apps/web", "typecheck"]);
     } finally {
       rmSync(target, { recursive: true, force: true });
     }

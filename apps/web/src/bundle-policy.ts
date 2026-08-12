@@ -26,16 +26,10 @@ const dependencyChunks = [
   ["vendor-saas-pro", ["@saas-ui-pro"]],
   ["vendor-zag", ["@zag-js", "@pandacss/is-valid-prop"]],
   ["vendor-floating", ["@floating-ui"]],
+  ["vendor-chakra", ["@chakra-ui"]],
   [
     "vendor-ui",
-    [
-      "@ark-ui",
-      "@chakra-ui",
-      "@emotion",
-      "@saas-ui",
-      "framer-motion",
-      "lucide-react",
-    ],
+    ["@ark-ui", "@emotion", "@saas-ui", "framer-motion", "lucide-react"],
   ],
   [
     "vendor-editor",

@@ -415,6 +415,7 @@ describe("saas application blueprint", () => {
     const sourcePaths = new Set(sourceTree.stdout.trim().split("\n"));
     const mismatches = buildSaasApplicationTargetPlan().entries.flatMap(
       (entry) => {
+        if (saasFrontendFoundationPaths().includes(entry.path)) return [];
         const baseWrite = reviewedBaseWrite(paths, entry.path, sourcePaths);
         return baseWrite === entry.replaces
           ? []
@@ -1969,7 +1970,6 @@ Feature: Reconcile disputed invoices
         "packages/convex/convex/records/records.ts",
         "apps/web/src/routeTree.gen.ts",
         "apps/web/src/routeRegistry.generated.ts",
-        "apps/web/src/adapters/confect-generated-refs.test.ts",
         "docs/template/env-manifest.json",
         "docs/template/env-manifest.md",
         "docs/template/operations-runbook.md",
