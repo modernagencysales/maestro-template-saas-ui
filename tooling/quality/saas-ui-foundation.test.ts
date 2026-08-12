@@ -5,6 +5,7 @@ import {
   readSaasUiAcceptance,
   readSaasUiDeviations,
   readSaasUiManifest,
+  readSaasUiRegistryFiles,
 } from "./saas-ui-foundation.js";
 
 const root = process.cwd();
@@ -38,6 +39,7 @@ describe("Saas UI foundation authorities", () => {
       ]),
     );
     expect(readSaasUiDeviations(root)).toEqual([]);
+    expect(readSaasUiRegistryFiles(root).files.length).toBeGreaterThan(0);
     expect(checkSaasUiFoundation(root)).toEqual([]);
   });
 

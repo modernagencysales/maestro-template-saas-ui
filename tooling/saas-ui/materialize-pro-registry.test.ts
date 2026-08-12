@@ -1,4 +1,4 @@
-import { readFile, mkdtemp, writeFile } from "node:fs/promises";
+import { mkdir, readFile, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -23,8 +23,17 @@ afterEach(async () => {
 
 describe("complete Saas UI Pro registry materialization", () => {
   it("installs every published Pro root and is byte-idempotent", async () => {
-    const target = await mkdtemp(join(tmpdir(), "maestro-saas-ui-registry-"));
-    targets.push(target);
+    const projectRoot = await mkdtemp(
+      join(tmpdir(), "maestro-saas-ui-registry-project-"),
+    );
+    const target = join(projectRoot, "apps/web");
+    targets.push(projectRoot);
+    await mkdir(join(projectRoot, "docs/template"), { recursive: true });
+    await writeFile(
+      join(projectRoot, "docs/template/saas-ui-upstream.json"),
+      JSON.stringify({ registry: {} }),
+    );
+    await mkdir(target, { recursive: true });
     await writeFile(
       join(target, "package.json"),
       JSON.stringify({ name: "fixture", private: true, dependencies: {} }),
@@ -59,6 +68,21 @@ describe("complete Saas UI Pro registry materialization", () => {
       ),
     ).toBe(true);
     expect(first.unresolvedImports).toEqual([]);
+    expect(first.receipt.files).toEqual(
+      first.files.map(({ path, sha256 }) => ({
+        destination: `apps/web/${path}`,
+        sha256,
+      })),
+    );
+    expect(
+      JSON.parse(
+        await readFile(
+          join(projectRoot, "docs/template/saas-ui-registry-files.json"),
+          "utf8",
+        ),
+      ),
+    ).toEqual(first.receipt);
+    expect(second.receipt).toEqual(first.receipt);
     expect(Object.keys(first.externalDependencies)).toEqual(
       expect.arrayContaining([
         "@ark-ui/react",

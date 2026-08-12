@@ -1,9 +1,11 @@
+import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const MANIFEST_PATH = "docs/template/saas-ui-upstream.json";
 const DEVIATIONS_PATH = "docs/template/saas-ui-deviations.json";
 const ACCEPTANCE_PATH = "docs/template/saas-ui-acceptance.json";
+const REGISTRY_FILES_PATH = "docs/template/saas-ui-registry-files.json";
 const PINS = {
   template: "acf0bc4be38dea842f321831387fc77cf7242439",
   starter: "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
@@ -76,6 +78,15 @@ export type SaasUiAcceptanceMap = Readonly<{
     route: string;
     behaviorCheck: string;
     evidence: readonly string[];
+  }>[];
+}>;
+
+export type SaasUiRegistryFiles = Readonly<{
+  schemaVersion: 1;
+  sourceCommit: string;
+  files: readonly Readonly<{
+    destination: string;
+    sha256: string;
   }>[];
 }>;
 
@@ -246,8 +257,30 @@ function readAcceptanceValue(value: unknown): SaasUiAcceptanceMap {
   };
 }
 
+function readRegistryFilesValue(value: unknown): SaasUiRegistryFiles {
+  const root = record(value, REGISTRY_FILES_PATH);
+  if (root.schemaVersion !== 1)
+    throw new Error("registry files schemaVersion must be 1");
+  const sourceCommit = string(root.sourceCommit, "registry files.sourceCommit");
+  if (!Array.isArray(root.files))
+    throw new Error("registry files.files must be an array");
+  const files = root.files.map((fileValue, index) => {
+    const file = record(fileValue, `registry files.files[${index}]`);
+    const destination = string(file.destination, "registry files.destination");
+    const sha256 = string(file.sha256, "registry files.sha256");
+    if (!/^[a-f0-9]{64}$/.test(sha256))
+      throw new Error(`registry files.files[${index}] sha256 is invalid`);
+    return { destination, sha256 };
+  });
+  return { schemaVersion: 1, sourceCommit, files };
+}
+
 export function readSaasUiAcceptance(root: string): SaasUiAcceptanceMap {
   return readAcceptanceValue(readJson(root, ACCEPTANCE_PATH));
+}
+
+export function readSaasUiRegistryFiles(root: string): SaasUiRegistryFiles {
+  return readRegistryFilesValue(readJson(root, REGISTRY_FILES_PATH));
 }
 
 function duplicateValues(values: readonly string[]): readonly string[] {
@@ -315,15 +348,54 @@ function validateAcceptance(
   return errors;
 }
 
+function validateRegistryFiles(
+  registryFiles: SaasUiRegistryFiles,
+  manifest: SaasUiManifest,
+  root: string,
+): readonly string[] {
+  const errors: string[] = [];
+  if (registryFiles.sourceCommit !== manifest.pins.pro)
+    errors.push("registry files source commit is not the approved Pro pin");
+  const destinations = registryFiles.files.map(
+    ({ destination }) => destination,
+  );
+  for (const duplicate of duplicateValues(destinations))
+    errors.push(`duplicate registry file destination: ${duplicate}`);
+  for (const destination of destinations) {
+    if (destination.startsWith("/") || destination.includes(".."))
+      errors.push(
+        `registry file destination is not repository-relative: ${destination}`,
+      );
+  }
+  if (registryFiles.files.length === 0)
+    errors.push("registry files receipt has no files");
+  for (const file of registryFiles.files) {
+    try {
+      const actual = createHash("sha256")
+        .update(readFileSync(resolve(root, file.destination)))
+        .digest("hex");
+      if (actual !== file.sha256)
+        errors.push(`registry file hash mismatch: ${file.destination}`);
+    } catch {
+      errors.push(`registry file destination is missing: ${file.destination}`);
+    }
+  }
+  return errors;
+}
+
 export function checkSaasUiFoundation(root: string): readonly string[] {
   const errors: string[] = [];
   const manifest = readAuthority(() => readSaasUiManifest(root), errors);
   const acceptance = readAuthority(() => readSaasUiAcceptance(root), errors);
+  const registryFiles = readAuthority(
+    () => readSaasUiRegistryFiles(root),
+    errors,
+  );
   const deviations = readAuthority(() => readSaasUiDeviations(root), errors);
   for (const deviation of deviations ?? [])
     if (deviation.reason.toLowerCase().includes("aesthetic"))
       errors.push(`deviation ${deviation.source} uses an aesthetic reason`);
-  if (!manifest || !acceptance) return errors;
+  if (!manifest || !acceptance || !registryFiles) return errors;
   errors.push(...validateManifest(manifest));
   errors.push(
     ...validateAcceptance(
@@ -331,6 +403,7 @@ export function checkSaasUiFoundation(root: string): readonly string[] {
       manifest.compositions.map(({ id }) => id),
     ),
   );
+  errors.push(...validateRegistryFiles(registryFiles, manifest, root));
   return errors;
 }
 

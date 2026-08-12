@@ -14,6 +14,11 @@ import prettier from "prettier";
 
 type JsonRecord = Record<string, unknown>;
 type FileRecord = Readonly<{ path: string; sha256: string }>;
+type RegistryReceipt = Readonly<{
+  schemaVersion: 1;
+  sourceCommit: string;
+  files: readonly Readonly<{ destination: string; sha256: string }>[];
+}>;
 
 export type RegistryMaterialization = Readonly<{
   installed: readonly string[];
@@ -23,6 +28,7 @@ export type RegistryMaterialization = Readonly<{
   externalDependencies: Readonly<Record<string, string>>;
   conflicts: readonly string[];
   unresolvedImports: readonly string[];
+  receipt: RegistryReceipt;
 }>;
 
 type MaterializeOptions = Readonly<{ proRoot: string; targetRoot: string }>;
@@ -69,6 +75,7 @@ const knownVersions: Readonly<Record<string, string>> = {
   "next-themes": "0.4.6",
   zod: "4.1.5",
 };
+const proSourceCommit = "ac3a40c8dc05e403f9d501a87c092646891d3c40";
 
 function hash(content: string): string {
   return createHash("sha256").update(content).digest("hex");
@@ -327,6 +334,199 @@ async function writeFiles(
   };
 }
 
+function projectRootFor(targetRoot: string): string | undefined {
+  let current = resolve(targetRoot);
+  while (true) {
+    if (existsSync(join(current, "docs/template/saas-ui-upstream.json")))
+      return current;
+    const parent = dirname(current);
+    if (parent === current) return undefined;
+    current = parent;
+  }
+}
+
+function registryReceipt(
+  projectRoot: string | undefined,
+  targetRoot: string,
+  records: readonly FileRecord[],
+): RegistryReceipt {
+  return {
+    schemaVersion: 1,
+    sourceCommit: proSourceCommit,
+    files: records.map(({ path, sha256 }) => ({
+      destination: projectRoot
+        ? relative(projectRoot, join(targetRoot, path)).split("/").join("/")
+        : path,
+      sha256,
+    })),
+  };
+}
+
+function validateRegistryReceipt(receipt: RegistryReceipt): void {
+  if (receipt.schemaVersion !== 1 || receipt.sourceCommit !== proSourceCommit)
+    throw new Error("Generated registry receipt has invalid authority");
+  const destinations = receipt.files.map(({ destination }) => destination);
+  if (
+    destinations.length === 0 ||
+    new Set(destinations).size !== destinations.length
+  )
+    throw new Error(
+      "Generated registry receipt has duplicate or missing files",
+    );
+  if (
+    destinations.some(
+      (destination) =>
+        destination.startsWith("/") || destination.includes(".."),
+    )
+  )
+    throw new Error("Generated registry receipt has an unsafe destination");
+}
+
+async function writeRegistryReceipt(
+  projectRoot: string | undefined,
+  receipt: RegistryReceipt,
+): Promise<void> {
+  validateRegistryReceipt(receipt);
+  if (!projectRoot) return;
+  const receiptPath = join(
+    projectRoot,
+    "docs/template/saas-ui-registry-files.json",
+  );
+  await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+  const persisted = JSON.parse(
+    await readFile(receiptPath, "utf8"),
+  ) as RegistryReceipt;
+  if (JSON.stringify(persisted) !== JSON.stringify(receipt))
+    throw new Error(
+      "Persisted registry receipt differs from generated receipt",
+    );
+}
+
+async function collectMaterializedSources(
+  resolvedProRoot: string,
+  resolvedTargetRoot: string,
+  configPaths: readonly string[],
+): Promise<SourceFile[]> {
+  const sourceFiles: SourceFile[] = [];
+  for (const config of configPaths) {
+    const blockRoot = dirname(config);
+    sourceFiles.push(
+      ...(await collectSourceFiles(
+        blockRoot,
+        join(resolvedTargetRoot, "src/components", basename(blockRoot)),
+      )),
+    );
+  }
+  const hooksRoot = join(resolvedProRoot, "packages/blocks/hooks");
+  if (existsSync(hooksRoot))
+    sourceFiles.push(
+      ...(await collectSourceFiles(
+        hooksRoot,
+        join(resolvedTargetRoot, "src/hooks"),
+      )),
+    );
+  return sourceFiles;
+}
+
+async function resolveMaterializedDependencies(
+  proRoot: string,
+  targetRoot: string,
+  sourceFiles: SourceFile[],
+): Promise<{
+  sourceFiles: SourceFile[];
+  declarations: Readonly<Record<string, string>>;
+}> {
+  const publicDependencies = await collectPublicDependencies(
+    await readCatalog(proRoot),
+    sourceFiles,
+    targetRoot,
+  );
+  sourceFiles.push(...publicDependencies.files);
+  const externalDependencies = externalDependencyNames(
+    sourceFiles,
+    publicDependencies.dependencies,
+  );
+  const versions = await readProDependencies(proRoot);
+  return {
+    sourceFiles,
+    declarations: dependencyDeclarations(externalDependencies, versions),
+  };
+}
+
+function externalDependencyNames(
+  sourceFiles: readonly SourceFile[],
+  initial: ReadonlySet<string>,
+): Set<string> {
+  const externalDependencies = new Set(initial);
+  for (const file of sourceFiles) {
+    for (const specifier of importedSpecifiers(file.content)) {
+      if (
+        specifier.startsWith(".") ||
+        specifier.startsWith("@/") ||
+        specifier.startsWith("#")
+      )
+        continue;
+      const name = packageName(specifier);
+      if (name !== "react" && name !== "react-dom")
+        externalDependencies.add(name);
+    }
+  }
+  return externalDependencies;
+}
+
+function dependencyDeclarations(
+  externalDependencies: ReadonlySet<string>,
+  versions: Readonly<Record<string, string>>,
+): Readonly<Record<string, string>> {
+  const declarations: Record<string, string> = {};
+  for (const name of [...externalDependencies].sort((left, right) =>
+    left.localeCompare(right, "en"),
+  )) {
+    const version = versions[name];
+    if (version && !version.startsWith("workspace:"))
+      declarations[name] = version;
+  }
+  return declarations;
+}
+
+function unresolvedImports(
+  sourceFiles: readonly SourceFile[],
+  targetRoot: string,
+): readonly string[] {
+  const unresolved: string[] = [];
+  for (const file of sourceFiles) {
+    for (const specifier of importedSpecifiers(file.content)) {
+      if (
+        specifier.startsWith("@/") &&
+        !localImportExists(targetRoot, specifier)
+      )
+        unresolved.push(
+          `${relative(targetRoot, file.destination)} -> ${specifier}`,
+        );
+      if (specifier.startsWith("#"))
+        unresolved.push(
+          `${relative(targetRoot, file.destination)} -> ${specifier}`,
+        );
+    }
+  }
+  return [...new Set(unresolved)].sort((left, right) =>
+    left.localeCompare(right, "en"),
+  );
+}
+
+async function updateRegistryManifest(
+  projectRoot: string | undefined,
+  installed: readonly string[],
+): Promise<void> {
+  if (!projectRoot) return;
+  const manifestPath = join(projectRoot, "docs/template/saas-ui-upstream.json");
+  const manifest = JSON.parse(
+    await readFile(manifestPath, "utf8"),
+  ) as JsonRecord;
+  manifest.registry = { ...(manifest.registry as JsonRecord), installed };
+  await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
 export async function snapshotMaterializedTarget(
   targetRoot: string,
 ): Promise<Readonly<Record<string, string>>> {
@@ -354,6 +554,7 @@ export async function materializeProRegistry({
 }: MaterializeOptions): Promise<RegistryMaterialization> {
   const resolvedProRoot = resolve(proRoot);
   const resolvedTargetRoot = resolve(targetRoot);
+  const projectRoot = projectRootFor(resolvedTargetRoot);
   const configPaths = await discoverComponentConfigs(
     join(resolvedProRoot, "packages/blocks"),
   );
@@ -377,54 +578,17 @@ export async function materializeProRegistry({
   ].map((name) => `duplicate registry root: ${name}`);
   if (conflicts.length > 0) throw new Error(conflicts.join("\n"));
 
-  const sourceFiles: SourceFile[] = [];
-  for (const config of configPaths) {
-    const blockRoot = dirname(config);
-    sourceFiles.push(
-      ...(await collectSourceFiles(
-        blockRoot,
-        join(resolvedTargetRoot, "src/components", basename(blockRoot)),
-      )),
-    );
-  }
-  const hooksRoot = join(resolvedProRoot, "packages/blocks/hooks");
-  if (existsSync(hooksRoot))
-    sourceFiles.push(
-      ...(await collectSourceFiles(
-        hooksRoot,
-        join(resolvedTargetRoot, "src/hooks"),
-      )),
-    );
-  const publicDependencies = await collectPublicDependencies(
-    await readCatalog(resolvedProRoot),
-    sourceFiles,
+  const sourceFiles = await collectMaterializedSources(
+    resolvedProRoot,
     resolvedTargetRoot,
+    configPaths,
   );
-  sourceFiles.push(...publicDependencies.files);
-
-  const externalDependencies = new Set<string>(publicDependencies.dependencies);
-  for (const file of sourceFiles) {
-    for (const specifier of importedSpecifiers(file.content)) {
-      if (
-        specifier.startsWith(".") ||
-        specifier.startsWith("@/") ||
-        specifier.startsWith("#")
-      )
-        continue;
-      const name = packageName(specifier);
-      if (name !== "react" && name !== "react-dom")
-        externalDependencies.add(name);
-    }
-  }
-  const versions = await readProDependencies(resolvedProRoot);
-  const declarations: Record<string, string> = {};
-  for (const name of [...externalDependencies].sort((left, right) =>
-    left.localeCompare(right, "en"),
-  )) {
-    const version = versions[name];
-    if (version && !version.startsWith("workspace:"))
-      declarations[name] = version;
-  }
+  const resolved = await resolveMaterializedDependencies(
+    resolvedProRoot,
+    resolvedTargetRoot,
+    sourceFiles,
+  );
+  const { declarations } = resolved;
   await updatePackageManifest(resolvedTargetRoot, declarations);
 
   const config = {
@@ -447,36 +611,18 @@ export async function materializeProRegistry({
     join(resolvedTargetRoot, "components.json"),
     `${JSON.stringify(config, null, 2)}\n`,
   );
-  const written = await writeFiles(sourceFiles, resolvedTargetRoot);
-  const unresolvedImports: string[] = [];
-  for (const file of sourceFiles) {
-    for (const specifier of importedSpecifiers(file.content)) {
-      if (
-        specifier.startsWith("@/") &&
-        !localImportExists(resolvedTargetRoot, specifier)
-      )
-        unresolvedImports.push(
-          `${relative(resolvedTargetRoot, file.destination)} -> ${specifier}`,
-        );
-      if (specifier.startsWith("#"))
-        unresolvedImports.push(
-          `${relative(resolvedTargetRoot, file.destination)} -> ${specifier}`,
-        );
-    }
-  }
-  const uniqueUnresolved = [...new Set(unresolvedImports)].sort((left, right) =>
-    left.localeCompare(right, "en"),
+  const written = await writeFiles(resolved.sourceFiles, resolvedTargetRoot);
+  const uniqueUnresolved = unresolvedImports(
+    resolved.sourceFiles,
+    resolvedTargetRoot,
   );
-  const projectRoot = resolve(resolvedTargetRoot, "../..");
-  const manifestPath = join(projectRoot, "docs/template/saas-ui-upstream.json");
-  if (existsSync(manifestPath)) {
-    const manifest = JSON.parse(
-      await readFile(manifestPath, "utf8"),
-    ) as JsonRecord;
-    const registry = { ...(manifest.registry as JsonRecord), installed };
-    manifest.registry = registry;
-    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
-  }
+  const receipt = registryReceipt(
+    projectRoot,
+    resolvedTargetRoot,
+    written.records,
+  );
+  await writeRegistryReceipt(projectRoot, receipt);
+  await updateRegistryManifest(projectRoot, installed);
   return {
     installed,
     items,
@@ -485,6 +631,7 @@ export async function materializeProRegistry({
     externalDependencies: declarations,
     conflicts,
     unresolvedImports: uniqueUnresolved,
+    receipt,
   };
 }
 
