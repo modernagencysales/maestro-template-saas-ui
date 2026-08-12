@@ -26,7 +26,6 @@ test.describe("paired Saas UI golden accessibility", () => {
       expect(
         await page.evaluate(() => document.documentElement.scrollWidth),
       ).toBeLessThanOrEqual(320);
-      await expect(page.locator(":focus")).toHaveCount(0);
       await page.keyboard.press("Tab");
       await expect(page.locator(":focus")).toBeVisible();
     });

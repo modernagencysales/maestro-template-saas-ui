@@ -26,7 +26,9 @@ export function goldenUrl(kind: GoldenKind, route: string) {
   const base = requiredUrl(
     kind === "reference" ? "UPSTREAM_REFERENCE_URL" : "GOLDEN_GENERATED_URL",
   );
-  return new URL(route.replace(/^\//, ""), base).href;
+  const url = new URL(route.replace(/^\//, ""), base);
+  url.searchParams.set("goldenAuthority", kind);
+  return url.href;
 }
 
 export async function seedGoldenFixture(
