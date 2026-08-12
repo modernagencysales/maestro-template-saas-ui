@@ -98,6 +98,9 @@ describe("SaaS UI generated target artifact boundary", () => {
       ]) {
         expect(paths.has(path)).toBe(true);
       }
+      expect(
+        paths.has("apps/web/src/features/common/components/client-resizer.tsx"),
+      ).toBe(true);
 
       const packageJson = JSON.parse(
         readFileSync(join(target, "apps/web/package.json"), "utf8"),

@@ -2,7 +2,7 @@
 
 import * as React from "react";
 
-import { ResizeHandle, ResizeHandler, Resizer } from "@saas-ui-pro/react";
+import { ResizeHandle, ResizeHandler } from "@saas-ui-pro/react";
 import {
   Badge,
   Box,
@@ -35,19 +35,17 @@ import { useModals } from "@workspace/ui/modals";
 
 import { useUserSettings } from "../../../lib/user-settings/use-user-settings";
 
-import { useWorkspaceSlug } from "../hooks/use-workspace-slug";
 import { BillingStatus } from "./billing-status";
 import { InvitePeopleDialog } from "./invite-people";
 import { AppSidebarTags } from "./sidebar-tags";
 import { UserMenu } from "./user-menu";
 import { WorkspacesMenu } from "./workspaces-menu";
+import { ClientResizer } from "./client-resizer";
 
-export interface AppSidebarProps extends Sidebar.RootProps {}
+export type AppSidebarProps = Sidebar.RootProps;
 
 export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
   const modals = useModals();
-
-  const workspace = useWorkspaceSlug();
 
   const [{ sidebarWidth }, setUserSettings] = useUserSettings();
 
@@ -58,7 +56,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
   const { mode, setMode, open, setOpen, isMobile } = useSidebar();
 
   return (
-    <Resizer
+    <ClientResizer
       defaultWidth={sidebarWidth}
       onResize={onResize}
       enabled={!isMobile && open}
@@ -185,10 +183,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
             }
           }}
         >
-          <ResizeHandle aria-label="Collapse sidebar" />
+          <ResizeHandle
+            aria-label="Collapse sidebar"
+            role="separator"
+            aria-orientation="vertical"
+          />
         </Sidebar.Track>
       </Sidebar.Root>
-    </Resizer>
+    </ClientResizer>
   );
 };
 

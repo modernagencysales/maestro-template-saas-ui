@@ -84,6 +84,7 @@ const FRONTEND_SUPPORT_PATHS = [
   "apps/web/src/features/common/layouts/dashboard-layout.tsx",
   "apps/web/src/features/common/layouts/fullscreen-layout.tsx",
   "apps/web/src/features/common/components/app-sidebar.tsx",
+  "apps/web/src/features/common/components/client-resizer.tsx",
   "apps/web/src/features/common/components/global-search-input.tsx",
   "apps/web/src/features/common/components/hotkeys.tsx",
   "apps/web/src/features/common/components/user-menu.tsx",

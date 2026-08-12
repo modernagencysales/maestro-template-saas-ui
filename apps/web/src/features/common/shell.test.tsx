@@ -12,11 +12,12 @@ import {
   createRouter,
 } from "@tanstack/react-router";
 
-import { AppLayout } from "./layouts/app-layout";
 import { DashboardLayout } from "./layouts/dashboard-layout";
 import { GoldenAdapterProvider } from "../golden/adapters";
 import { goldenFixtures } from "../golden/fixtures";
 import { system } from "../../theme/preset";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 vi.mock("./components/global-search-input", () => ({
   GlobalSearchInput: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
@@ -38,6 +39,21 @@ vi.mock("./components/app-sidebar", () => ({
 }));
 
 describe("transplanted application shell", () => {
+  it("guards the upstream resizer from SSR and exposes an accessible separator", () => {
+    const source = readFileSync(
+      resolve(
+        process.cwd().endsWith("/apps/web")
+          ? process.cwd()
+          : resolve(process.cwd(), "apps/web"),
+        "src/features/common/components/app-sidebar.tsx",
+      ),
+      "utf8",
+    );
+    expect(source).toContain("<ClientResizer");
+    expect(source).toContain('role="separator"');
+    expect(source).toContain('aria-orientation="vertical"');
+  });
+
   it("preserves upstream shell controls while adapters supply neutral data", async () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,

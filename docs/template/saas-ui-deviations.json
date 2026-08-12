@@ -1,5 +1,19 @@
 [
   {
+    "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
+    "destination": "apps/web/src/features/common/components/client-resizer.tsx",
+    "change": "The upstream Resizer is mounted through ClientOnly and its fallback renders the sidebar child during SSR; the resizer attaches after hydration.",
+    "reason": "The pinned upstream hook evaluates the browser-only document global during render, causing generated TanStack Start SSR to throw ReferenceError: document is not defined.",
+    "evidence": "Generated-target SSR reproduced the error in @saas-ui-pro/react useResize while rendering AppSidebar; client-resizer.test.tsx renders the fallback with renderToString without throwing."
+  },
+  {
+    "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/resize-handle.tsx:ResizeHandle",
+    "destination": "apps/web/src/features/common/components/app-sidebar.tsx:ResizeHandle",
+    "change": "The resize handle receives role=separator and aria-orientation=vertical alongside its existing accessible label.",
+    "reason": "The upstream component renders a div; aria-label on that div is prohibited without a valid role.",
+    "evidence": "Paired axe run reported serious aria-prohibited-attr on .sui-resize-handle; shell.test.tsx asserts the generated sidebar source includes the separator role and orientation."
+  },
+  {
     "source": "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes",
     "destination": "apps/web/tsconfig.json:compilerOptions.exactOptionalPropertyTypes",
     "change": "The generated web target sets exactOptionalPropertyTypes to false.",
