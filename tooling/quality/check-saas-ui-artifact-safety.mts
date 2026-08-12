@@ -10,6 +10,7 @@ import { isDirectRun } from "./src/direct-run.mts";
 
 const PUBLIC_ARTIFACT_ROOT = "apps/web/dist/client";
 const STARTER_RECEIPT = "docs/template/saas-ui-starter-files.json";
+const LICENSE_ROOT = "docs/licenses/saas-ui/";
 
 type PackageJson = Readonly<{
   private?: boolean;
@@ -53,12 +54,11 @@ const packageFor = (
     const packagePath = join(directory, "package.json");
     if (existsSync(packagePath)) {
       const json = readPackage(packagePath);
-      if (json !== undefined)
-        return {
-          root: directory,
-          path: relative(rootPath, packagePath).replaceAll(sep, "/"),
-          json,
-        };
+      return {
+        root: directory,
+        path: relative(rootPath, packagePath).replaceAll(sep, "/"),
+        json: json ?? {},
+      };
     }
     if (directory === rootPath) break;
     directory = dirname(directory);
@@ -234,6 +234,10 @@ export function assertSaasUiArtifactSafety(root: string): readonly string[] {
       )
         errors.push(
           `missing paid source license notice: ${license.destination}`,
+        );
+      else if (!destination.startsWith(LICENSE_ROOT))
+        errors.push(
+          `paid source license notice must remain under ${LICENSE_ROOT}: ${destination}`,
         );
       else if (
         readFileSync(resolve(root, destination), "utf8").trim().length === 0

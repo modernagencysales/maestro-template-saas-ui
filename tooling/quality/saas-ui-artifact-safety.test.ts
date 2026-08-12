@@ -1,4 +1,4 @@
-import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
@@ -181,6 +181,29 @@ describe("Saas UI artifact safety", () => {
       rmSync(join(root, "docs/licenses/saas-ui/pro-NOTICE.md"));
       expect(assertSaasUiArtifactSafety(root)).toContain(
         "missing paid source license notice: docs/licenses/saas-ui/pro-NOTICE.md",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("requires preserved notices to remain under the Saas UI license root", () => {
+    const root = createFixture();
+    try {
+      const manifestPath = join(root, "docs/template/saas-ui-upstream.json");
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+        licenses: Array<{ destination: string }>;
+      };
+      const firstLicense = manifest.licenses[0];
+      if (!firstLicense) throw new Error("fixture license is missing");
+      manifest.licenses[0] = {
+        ...firstLicense,
+        destination: "docs/template/starter-NOTICE.md",
+      };
+      writeFileSync(manifestPath, JSON.stringify(manifest));
+      writeFileSync(join(root, "docs/template/starter-NOTICE.md"), "notice\n");
+      expect(assertSaasUiArtifactSafety(root)).toContain(
+        "paid source license notice must remain under docs/licenses/saas-ui/: docs/template/starter-NOTICE.md",
       );
     } finally {
       rmSync(root, { recursive: true, force: true });
