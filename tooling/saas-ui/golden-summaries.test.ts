@@ -265,6 +265,33 @@ describe("golden Task 12 summaries", () => {
         },
       }),
     ).toThrow(/outside|timestamp|run/u);
+
+    expect(() =>
+      buildGoldenSummaryInput({
+        repositoryRoot: process.cwd(),
+        receipt: {
+          ...receipt,
+          commands: receipt.commands.map((command, index) =>
+            index === 0
+              ? { ...command, completedAt: "1999-01-01T00:00:00.000Z" }
+              : command,
+          ),
+        },
+      }),
+    ).toThrow(/outside|timestamp|run/u);
+    expect(() =>
+      buildGoldenSummaryInput({
+        repositoryRoot: process.cwd(),
+        receipt: {
+          ...receipt,
+          commands: receipt.commands.map((command, index) =>
+            index === 0
+              ? { ...command, completedAt: "2999-01-01T00:00:00.000Z" }
+              : command,
+          ),
+        },
+      }),
+    ).toThrow(/outside|timestamp|run/u);
   });
 
   it("rejects fake command receipts and nonexistent evidence", () => {

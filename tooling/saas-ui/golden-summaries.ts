@@ -293,7 +293,14 @@ function assertExecutableReceipt(receipt: GoldenRunReceipt): void {
     assertCommandResult(command);
     const started = strictIso(command.startedAt, "command startedAt");
     const finished = strictIso(command.finishedAt, "command finishedAt");
-    if (started < runStarted || finished > runFinished || started > finished)
+    const completed = strictIso(command.completedAt, "command completedAt");
+    if (
+      started < runStarted ||
+      finished > runFinished ||
+      started > completed ||
+      completed > finished ||
+      started > finished
+    )
       throw new Error("Command timestamps fall outside the recorded run");
   }
   if (
