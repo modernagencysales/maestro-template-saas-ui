@@ -18,6 +18,20 @@ describe("generated fake tRPC facade", () => {
       name: "Jordan Lee",
     });
     expect(
+      api.contacts.activitiesById.useQuery({ id: "contact-1" }),
+    ).toMatchObject({
+      data: {
+        activities: [
+          expect.objectContaining({
+            type: "action",
+            actorId: "user-1",
+          }),
+        ],
+      },
+      isLoading: false,
+      isPending: false,
+    });
+    expect(
       api.contacts.byId.useSuspenseQuery({ id: "contact-2" })[0],
     ).toMatchObject({
       id: "contact-2",

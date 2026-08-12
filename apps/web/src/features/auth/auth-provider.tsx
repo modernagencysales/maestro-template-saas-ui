@@ -7,12 +7,14 @@ import {
 
 import { authClient } from "@workspace/better-auth/client";
 
+import { goldenFixtures } from "#features/golden/fixtures";
+
 export const client = authClient;
 export const authService: Pick<
   AuthProviderProps,
   "onLoadUser" | "onLogin" | "onSignup" | "onLogout"
 > = {
-  onLoadUser: async () => null,
+  onLoadUser: async () => goldenFixtures.currentUser,
   onLogin: async () => null,
   onSignup: async () => null,
   onLogout: async () => undefined,

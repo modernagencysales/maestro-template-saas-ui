@@ -237,6 +237,15 @@ const meaningfulReadyLocators: Record<string, (page: Page) => Locator> = {
   states: (page) => page.getByRole("heading", { name: "State fixture" }),
 };
 
+const meaningfulMainContentLocators: Record<string, (page: Page) => Locator> = {
+  "list-detail": (page) =>
+    page.getByText("created the contact.", { exact: false }),
+  "record-aside": (page) =>
+    page.getByText("created the contact.", { exact: false }),
+  "split-inbox": (page) =>
+    page.getByText("created the contact.", { exact: false }),
+};
+
 function meaningfulReadyLocator(page: Page, composition: string) {
   const createLocator = meaningfulReadyLocators[composition];
   if (!createLocator) {
@@ -256,6 +265,10 @@ export async function waitForGoldenCaptureReady(input: {
   await expect(
     meaningfulReadyLocator(input.page, input.composition),
   ).toBeVisible();
+  const mainContent = meaningfulMainContentLocators[input.composition];
+  if (mainContent) {
+    await expect(mainContent(input.page)).toBeVisible();
+  }
   if (input.fixture !== "loading") {
     await expect(
       input.page.locator('[data-scope="suiLoadingOverlay"]'),

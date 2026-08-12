@@ -20,7 +20,7 @@ const result = (data?: UntypedProcedure): QueryResult => ({
 
 const queryResults = new Map<string, QueryResult>();
 
-function queryFixture(
+function queryContactFixture(
   path: readonly string[],
   input?: UntypedProcedure,
 ): UntypedProcedure {
@@ -32,6 +32,32 @@ function queryFixture(
         goldenFixtures.contacts.find((contact) => contact.id === input?.id) ??
         goldenFixtures.contacts[0]
       );
+    case "contacts.activitiesById":
+      return {
+        activities: [
+          {
+            id: `activity-${input?.id ?? "contact-1"}`,
+            type: "action",
+            actorId: "user-1",
+            metadata: { action: "created-contact" },
+            createdAt: "2026-01-12T09:00:00.000Z",
+          },
+        ],
+      };
+    default:
+      return undefined;
+  }
+}
+
+function queryFixture(
+  path: readonly string[],
+  input?: UntypedProcedure,
+): UntypedProcedure {
+  switch (path.join(".")) {
+    case "contacts.listByType":
+    case "contacts.byId":
+    case "contacts.activitiesById":
+      return queryContactFixture(path, input);
     case "notifications.inbox":
       return { notifications: goldenFixtures.notifications };
     case "billing.account":
