@@ -63,7 +63,16 @@ test.describe("paired Saas UI golden interactions", () => {
       await expect(focusedGlobalSearch).toHaveCount(1);
       await focusedGlobalSearch.fill("contact");
       await expect(focusedGlobalSearch).toHaveValue("contact");
-      await expect(page).toHaveURL(/search/);
+      const routeSearch = page.getByPlaceholder("Search your workspace...");
+      await routeSearch.fill("contact");
+      await expect(page).toHaveURL(/search\?q=contact/);
+      await expect(
+        page.getByRole("heading", { name: "No results" }),
+      ).toBeVisible();
+      await page.getByRole("link", { name: "Clear search" }).click();
+      await expect(
+        page.getByRole("heading", { name: "Recent searches" }),
+      ).toBeVisible();
     });
 
     test(`${kind} data grid filters, sorts, pages, and selects`, async ({
@@ -98,6 +107,20 @@ test.describe("paired Saas UI golden interactions", () => {
       });
       await checkbox.check({ force: true });
       await expect(checkbox).toBeChecked();
+      const selectionAction = page.getByText("21 selected", { exact: true });
+      await expect(selectionAction).toBeVisible();
+      await expect(
+        page.getByRole("button", { name: "Add tags" }),
+      ).toBeVisible();
+      const action = page.waitForEvent("console", {
+        predicate: (message) => message.text().startsWith("Add tags"),
+      });
+      await page.getByRole("button", { name: "Add tags" }).click();
+      const selectedIds = await (await action).args()[1]?.jsonValue();
+      expect(selectedIds).toContain("contact-21");
+      await checkbox.uncheck({ force: true });
+      await expect(selectionAction).toHaveCount(0);
+      await expect(checkbox).not.toBeChecked();
     });
 
     test(`${kind} removes an active collection filter`, async ({ page }) => {
@@ -166,11 +189,23 @@ test.describe("paired Saas UI golden interactions", () => {
 
     test(`${kind} settings navigation reaches billing`, async ({ page }) => {
       await gotoGolden({ page, kind, route: entry("settings").route });
-      await page.getByRole("link", { name: "Billing" }).click();
+      await page.getByRole("button", { name: "Billing" }).click();
       await expect(page).toHaveURL(/settings\/billing/);
       await expect(
-        page.getByRole("heading", { name: "Billing" }),
+        page.getByRole("heading", { name: "Billing", exact: true }),
       ).toBeVisible();
+    });
+
+    test(`${kind} report period selection changes the active period`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("dashboard-report").route });
+      const previousPeriod = page.getByText("Year to date", { exact: true });
+      await expect(previousPeriod).toHaveAttribute("data-state", "checked");
+      const period = page.getByText("Last 7 days", { exact: true });
+      await period.click();
+      await expect(period).toHaveAttribute("data-state", "checked");
+      await expect(previousPeriod).toHaveAttribute("data-state", "unchecked");
     });
 
     test(`${kind} form covers validation, success, and failure`, async ({
@@ -238,31 +273,50 @@ test.describe("paired Saas UI golden interactions", () => {
       const card = page.locator('[draggable="true"]').first();
       const destination = page.locator('[data-kanban-column="In progress"]');
       await card.dragTo(destination);
-      await expect(destination).toContainText(/Northwind|Jordan Lee/);
+      await expect(destination).toContainText("Jordan Lee");
     });
 
-    test(`${kind} auth form reports invalid credentials and preserves names`, async ({
+    test(`${kind} auth form validates credentials and preserves input`, async ({
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("auth").route });
-      await page.getByRole("button", { name: "Log in" }).click();
-      await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
-      await expect(page.getByLabel("Password")).toBeVisible();
+      const email = page.getByRole("textbox", { name: "Email" });
+      await email.fill("invalid");
+      await email.press("Tab");
+      await expect(email).toHaveValue("invalid");
+      await expect(email).toHaveAttribute("aria-invalid", "true");
       await expect(
-        page.getByRole("link", { name: "Forgot your password?" }),
-      ).toBeVisible();
+        page.getByRole("button", { name: "Log in", exact: true }),
+      ).toBeDisabled();
     });
 
-    test(`${kind} billing presents plan, email, and invoice actions`, async ({
+    test(`${kind} billing validates email before an update`, async ({
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("billing").route });
-      await expect(
-        page.getByText("Billing plan", { exact: true }),
-      ).toBeVisible();
-      await expect(page.getByRole("button", { name: "Update" })).toBeVisible();
-      await expect(page.getByText("Invoices", { exact: true })).toBeVisible();
+      const email = page.getByRole("textbox", { name: "Email address" });
+      await email.fill("invalid");
+      await email.press("Tab");
+      await expect(email).toHaveValue("invalid");
+      await expect(email).toHaveAttribute("aria-invalid", "true");
+      await expect(page.getByRole("button", { name: "Update" })).toBeDisabled();
     });
+
+    for (const [fixture, action, result] of [
+      ["ready-edit", "Save changes", "Changes saved successfully"],
+      ["mutation-failure", "Try again", "Changes saved successfully"],
+      ["error", "Retry", "Loading workspace data"],
+      ["not-found", "Back to records", "Records are ready to review"],
+      ["permission-denied", "Request access", "Access request sent"],
+    ] as const) {
+      test(`${kind} ${fixture} state performs its recovery action`, async ({
+        page,
+      }) => {
+        await gotoGolden({ page, kind, route: "/states", fixture });
+        await page.getByRole("button", { name: action }).click();
+        await expect(page.getByText(result, { exact: true })).toBeVisible();
+      });
+    }
   }
 });
 

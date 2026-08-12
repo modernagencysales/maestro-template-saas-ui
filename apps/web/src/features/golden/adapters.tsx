@@ -3,6 +3,7 @@ import { ClientOnly } from "@saas-ui/react";
 
 import {
   goldenFixtures,
+  goldenStates,
   type GoldenState,
   type NavigationFixture,
   type SearchResultFixture,
@@ -41,18 +42,7 @@ function readGoldenFixtureState(): GoldenState {
 
 function isGoldenState(value: unknown): value is GoldenState {
   return (
-    typeof value === "string" &&
-    [
-      "loading",
-      "empty",
-      "ready-read",
-      "ready-edit",
-      "mutation-success",
-      "mutation-failure",
-      "error",
-      "not-found",
-      "permission-denied",
-    ].includes(value)
+    typeof value === "string" && goldenStates.includes(value as GoldenState)
   );
 }
 

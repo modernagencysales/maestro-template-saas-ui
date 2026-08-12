@@ -27,7 +27,7 @@
       "factoryDestination": "apps/web/src/features/reports",
       "generatedDestination": "apps/web/src/features/reports",
       "route": "/reports",
-      "behaviorCheck": "dashboard report renders",
+      "behaviorCheck": "dashboard report renders and active period control changes",
       "evidence": [
         "dashboard-ready-read-desktop-light",
         "paid-artifact-boundary"
@@ -43,7 +43,7 @@
       "factoryDestination": "apps/web/src/features/contacts/list",
       "generatedDestination": "apps/web/src/features/contacts/list",
       "route": "/contacts",
-      "behaviorCheck": "filter sort pagination selection",
+      "behaviorCheck": "filter sort pagination changes content and selection exposes actions",
       "evidence": [
         "contacts-ready-read-desktop-light",
         "paid-artifact-boundary"
@@ -172,7 +172,7 @@
       "factoryDestination": "apps/web/src/features/auth",
       "generatedDestination": "apps/web/src/features/auth",
       "route": "/login",
-      "behaviorCheck": "auth form state",
+      "behaviorCheck": "auth form validation preserves invalid input",
       "evidence": ["auth-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
@@ -185,7 +185,7 @@
       "factoryDestination": "apps/web/src/features/settings/billing",
       "generatedDestination": "apps/web/src/features/settings/billing",
       "route": "/settings/billing",
-      "behaviorCheck": "billing presentation",
+      "behaviorCheck": "billing presentation and email validation",
       "evidence": ["billing-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
@@ -198,7 +198,7 @@
       "factoryDestination": "apps/web/src/features/search",
       "generatedDestination": "apps/web/src/features/search",
       "route": "/search",
-      "behaviorCheck": "search shortcut and commands",
+      "behaviorCheck": "search shortcut, query result, and clear command",
       "evidence": ["search-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
@@ -211,7 +211,7 @@
       "factoryDestination": "apps/web/src/features/workspaces",
       "generatedDestination": "apps/web/src/features/workspaces",
       "route": "/states",
-      "behaviorCheck": "loading empty success failure",
+      "behaviorCheck": "loading empty ready read edit success failure error not-found permission and recovery transitions",
       "evidence": ["states-all-desktop-light", "paid-artifact-boundary"]
     }
   ]

@@ -73,6 +73,18 @@ export type SearchResultFixture = NavigationFixture & {
   description: string;
 };
 
+export const goldenStates = [
+  "loading",
+  "empty",
+  "ready-read",
+  "ready-edit",
+  "mutation-success",
+  "mutation-failure",
+  "error",
+  "not-found",
+  "permission-denied",
+] as const satisfies readonly GoldenState[];
+
 const tags = [
   { id: "tag-1", name: "Priority", label: "Priority", color: "red" },
   { id: "tag-2", name: "Partner", label: "Partner", color: "blue" },
@@ -194,6 +206,16 @@ export const goldenFixtures = {
       },
     ],
   },
+  dashboard: {
+    openTasks: 12,
+  },
+  form: {
+    projectName: "Northstar launch",
+  },
+  kanban: [
+    { id: "contact-1", name: "Jordan Lee", column: "Backlog" },
+    { id: "contact-2", name: "Sam Rivera", column: "In progress" },
+  ],
   navigation: [
     { label: "Dashboard", to: "/dashboard" },
     { label: "Contacts", to: "/contacts" },

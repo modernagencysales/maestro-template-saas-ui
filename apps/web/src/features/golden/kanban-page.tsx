@@ -15,21 +15,10 @@ const columns = ["Backlog", "In progress", "Done"] as const;
 type Column = (typeof columns)[number];
 type CardFixture = { id: string; name: string; column: Column };
 
-const initialCards: CardFixture[] = [
-  {
-    id: "contact-1",
-    name: goldenFixtures.contacts[0]?.name ?? "Jordan Lee",
-    column: "Backlog",
-  },
-  {
-    id: "contact-2",
-    name: goldenFixtures.contacts[1]?.name ?? "Sam Rivera",
-    column: "In progress",
-  },
-];
-
 export function GoldenKanbanPage() {
-  const [cards, setCards] = React.useState(initialCards);
+  const [cards, setCards] = React.useState<CardFixture[]>(
+    goldenFixtures.kanban.map((card) => ({ ...card })),
+  );
   const [draggedCard, setDraggedCard] = React.useState<string | null>(null);
   const moveCard = (id: string, column: Column) => {
     setCards((current) =>

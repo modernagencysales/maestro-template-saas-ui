@@ -5,37 +5,16 @@ import {
   assertNoNewGoldenServerErrors as assertNoNewServerErrors,
   baselineGoldenServerErrors as readServerErrorBaseline,
 } from "../../../tooling/saas-ui/golden-authority-runtime";
+import {
+  goldenStates,
+  type GoldenState,
+} from "../../../apps/web/src/features/golden/fixtures";
 
-export const goldenFixtures = {
-  "ready-read": {
-    workspace: "Golden workspace",
-    records: ["Northwind", "Acme"],
-    state: "ready-read",
-  },
-  "ready-edit": {
-    workspace: "Golden workspace",
-    records: ["Northwind", "Acme"],
-    state: "ready-edit",
-  },
-  loading: {
-    workspace: "Golden workspace",
-    records: [],
-    state: "loading",
-  },
-  empty: { workspace: "Golden workspace", records: [], state: "empty" },
-  "mutation-success": {
-    workspace: "Golden workspace",
-    records: ["Northwind"],
-    state: "mutation-success",
-  },
-  "mutation-failure": {
-    workspace: "Golden workspace",
-    records: ["Northwind"],
-    state: "mutation-failure",
-  },
-} as const;
+export const goldenFixtures = Object.fromEntries(
+  goldenStates.map((state) => [state, { state }]),
+) as Record<GoldenState, { state: GoldenState }>;
 
-export type GoldenFixture = keyof typeof goldenFixtures;
+export type GoldenFixture = GoldenState;
 export type GoldenKind = "reference" | "generated";
 export type GoldenColorMode = "light" | "dark";
 export type GoldenViewport = "desktop" | "mobile";

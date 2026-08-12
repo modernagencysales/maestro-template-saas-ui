@@ -2,7 +2,7 @@ import { Button, Field, Heading, Input, Stack, Text } from "@saas-ui/react";
 import * as React from "react";
 
 import { useGoldenState } from "./adapters";
-import type { GoldenState } from "./fixtures";
+import { goldenFixtures, type GoldenState } from "./fixtures";
 
 export function GoldenFormPage({
   state = "ready-edit",
@@ -11,7 +11,9 @@ export function GoldenFormPage({
 }) {
   const fixtureState = useGoldenState();
   const resolvedState = state ?? fixtureState;
-  const [name, setName] = React.useState("Northstar launch");
+  const [name, setName] = React.useState<string>(
+    goldenFixtures.form.projectName,
+  );
   const [message, setMessage] = React.useState<"success" | "failure" | null>(
     resolvedState === "mutation-success"
       ? "success"

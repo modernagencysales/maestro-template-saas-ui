@@ -1,4 +1,5 @@
 import { Box, Button, Heading, Stack, Text } from "@saas-ui/react";
+import * as React from "react";
 
 import type { GoldenState } from "./fixtures";
 
@@ -14,28 +15,48 @@ const copy: Record<GoldenState, string> = {
   "permission-denied": "You do not have permission to view this record",
 };
 
+const roles: Partial<Record<GoldenState, "alert" | "status">> = {
+  loading: "status",
+  "mutation-success": "status",
+  "mutation-failure": "alert",
+  error: "alert",
+  "permission-denied": "alert",
+};
+
+const actions: Partial<
+  Record<GoldenState, { label: string; next: GoldenState }>
+> = {
+  "ready-edit": { label: "Save changes", next: "mutation-success" },
+  "mutation-failure": { label: "Try again", next: "mutation-success" },
+  "mutation-success": { label: "Continue", next: "ready-read" },
+  error: { label: "Retry", next: "loading" },
+  "not-found": { label: "Back to records", next: "ready-read" },
+};
+
 export function GoldenStatePage({ state }: { state: GoldenState }) {
-  const resolvedState = state;
-  const messageRole =
-    resolvedState === "mutation-failure" ||
-    resolvedState === "error" ||
-    resolvedState === "permission-denied"
-      ? "alert"
-      : resolvedState === "loading" || resolvedState === "mutation-success"
-        ? "status"
-        : undefined;
+  const [resolvedState, setResolvedState] = React.useState(state);
+  const [accessRequested, setAccessRequested] = React.useState(false);
+  const action = actions[resolvedState];
 
   return (
     <Stack gap="6" p="8" aria-busy={resolvedState === "loading"}>
       <Box>
         <Heading size="lg">State fixture</Heading>
-        <Text color="fg.muted" role={messageRole}>
-          {copy[resolvedState]}
+        <Text
+          color="fg.muted"
+          role={accessRequested ? "status" : roles[resolvedState]}
+        >
+          {accessRequested ? "Access request sent" : copy[resolvedState]}
         </Text>
       </Box>
-      {(resolvedState === "ready-edit" ||
-        resolvedState === "mutation-failure") && <Button>Save changes</Button>}
-      {resolvedState === "mutation-success" && <Button>Continue</Button>}
+      {action && (
+        <Button onClick={() => setResolvedState(action.next)}>
+          {action.label}
+        </Button>
+      )}
+      {resolvedState === "permission-denied" && !accessRequested && (
+        <Button onClick={() => setAccessRequested(true)}>Request access</Button>
+      )}
     </Stack>
   );
 }

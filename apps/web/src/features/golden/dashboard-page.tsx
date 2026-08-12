@@ -17,7 +17,7 @@ export function DashboardPage() {
         {[
           ["Contacts", goldenFixtures.contacts.length.toString()],
           ["Workspace", goldenFixtures.currentWorkspace.name],
-          ["Open tasks", "12"],
+          ["Open tasks", goldenFixtures.dashboard.openTasks.toString()],
         ].map(([label, value]) => (
           <Card.Root key={label} variant="subtle">
             <Card.Body>

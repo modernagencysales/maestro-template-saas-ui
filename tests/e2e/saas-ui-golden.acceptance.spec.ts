@@ -178,6 +178,9 @@ const stateCases = [
   ["ready-edit", "Edit mode is enabled"],
   ["mutation-success", "Changes saved successfully"],
   ["mutation-failure", "Changes could not be saved"],
+  ["error", "Something went wrong"],
+  ["not-found", "The requested record was not found"],
+  ["permission-denied", "You do not have permission to view this record"],
 ] as const;
 
 test.describe("required state coverage", () => {

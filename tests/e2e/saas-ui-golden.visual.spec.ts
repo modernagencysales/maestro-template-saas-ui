@@ -27,6 +27,9 @@ test.describe("paired Saas UI golden visual evidence", () => {
     "ready-edit",
     "mutation-success",
     "mutation-failure",
+    "error",
+    "not-found",
+    "permission-denied",
   ] as const) {
     for (const colorMode of ["light", "dark"] as const) {
       test(`states ${fixture} ${colorMode} captures both authorities`, async ({

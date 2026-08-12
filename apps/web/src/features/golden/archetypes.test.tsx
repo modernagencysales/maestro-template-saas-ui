@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { SuiProvider } from "@saas-ui/react";
 
@@ -24,7 +24,7 @@ describe("golden archetype states", () => {
   afterEach(cleanup);
 
   for (const state of states) {
-    it(`renders and operates the ${state} state`, () => {
+    it(`exposes the ${state} state with its operational semantics`, () => {
       render(
         <GoldenAdapterProvider initialState={state}>
           <SuiProvider value={system}>
@@ -48,6 +48,77 @@ describe("golden archetype states", () => {
           }[state],
         ),
       ).toBeTruthy();
+
+      if (state === "loading") {
+        expect(
+          screen
+            .getByText("State fixture")
+            .closest("[aria-busy]")
+            ?.getAttribute("aria-busy"),
+        ).toBe("true");
+      }
     });
   }
+
+  it("moves edit through success back to read", () => {
+    render(
+      <GoldenAdapterProvider initialState="ready-edit">
+        <SuiProvider value={system}>
+          <GoldenStatePage state="ready-edit" />
+        </SuiProvider>
+      </GoldenAdapterProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+    expect(screen.getByRole("status").textContent).toContain(
+      "Changes saved successfully",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
+    expect(screen.getByText("Records are ready to review")).toBeTruthy();
+  });
+
+  it("retries a failed mutation and reaches success", () => {
+    render(
+      <GoldenAdapterProvider initialState="mutation-failure">
+        <SuiProvider value={system}>
+          <GoldenStatePage state="mutation-failure" />
+        </SuiProvider>
+      </GoldenAdapterProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    expect(screen.getByRole("status").textContent).toContain(
+      "Changes saved successfully",
+    );
+  });
+
+  it("retries an error into a loading state", () => {
+    render(
+      <GoldenAdapterProvider initialState="error">
+        <SuiProvider value={system}>
+          <GoldenStatePage state="error" />
+        </SuiProvider>
+      </GoldenAdapterProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(screen.getByRole("status").textContent).toContain(
+      "Loading workspace data",
+    );
+  });
+
+  it("confirms a permission request", () => {
+    render(
+      <GoldenAdapterProvider initialState="permission-denied">
+        <SuiProvider value={system}>
+          <GoldenStatePage state="permission-denied" />
+        </SuiProvider>
+      </GoldenAdapterProvider>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Request access" }));
+    expect(screen.getByRole("status").textContent).toContain(
+      "Access request sent",
+    );
+  });
 });
