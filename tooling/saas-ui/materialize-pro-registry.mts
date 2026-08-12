@@ -1,0 +1,511 @@
+import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+import { mkdir, readFile, readdir, writeFile } from "node:fs/promises";
+import {
+  basename,
+  dirname,
+  extname,
+  join,
+  normalize,
+  relative,
+  resolve,
+} from "node:path";
+import prettier from "prettier";
+
+type JsonRecord = Record<string, unknown>;
+type FileRecord = Readonly<{ path: string; sha256: string }>;
+
+export type RegistryMaterialization = Readonly<{
+  installed: readonly string[];
+  items: readonly Readonly<{ name: string; sourceConfig: string }>[];
+  files: readonly FileRecord[];
+  plannedHashes: Readonly<Record<string, string>>;
+  externalDependencies: Readonly<Record<string, string>>;
+  conflicts: readonly string[];
+  unresolvedImports: readonly string[];
+}>;
+
+type MaterializeOptions = Readonly<{ proRoot: string; targetRoot: string }>;
+type SourceFile = Readonly<{
+  source: string;
+  destination: string;
+  content: string;
+}>;
+type PublicCatalogItem = Readonly<{
+  name: string;
+  type?: string;
+  dependencies?: readonly string[];
+  files?: readonly Readonly<{ path: string; content: string; type?: string }>[];
+}>;
+type PublicImportRequest = Readonly<{ specifier: string; from?: string }>;
+
+const sourceExtensions = new Set([
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mts",
+  ".cts",
+]);
+const ignoredNames = new Set([
+  "component.config.ts",
+  "attributes.json",
+  "package.json",
+  "tsconfig.json",
+  "vitest.config.ts",
+]);
+const knownVersions: Readonly<Record<string, string>> = {
+  "@dnd-kit/core": "^6.3.1",
+  "@dnd-kit/modifiers": "^9.0.0",
+  "@dnd-kit/sortable": "^10.0.0",
+  "@dnd-kit/utilities": "^3.2.2",
+  "@ark-ui/react": "5.30.0",
+  "@saas-ui/assets": "^2.0.0-next.0",
+  "@saas-ui/chakra-preset": "3.0.0-next.10",
+  "@saas-ui/hooks": "3.0.0-next.4",
+  "@tanstack/react-form": "^1.33.2",
+  "framer-motion": "^12.23.24",
+  "react-icons": "^5.5.0",
+  "next-themes": "0.4.6",
+  zod: "4.1.5",
+};
+
+function hash(content: string): string {
+  return createHash("sha256").update(content).digest("hex");
+}
+
+function packageName(specifier: string): string {
+  if (specifier.startsWith("@"))
+    return specifier.split("/").slice(0, 2).join("/");
+  return specifier.split("/")[0] ?? specifier;
+}
+
+function importedSpecifiers(source: string): readonly string[] {
+  return [
+    ...[
+      ...source.matchAll(/(?:from\s*|import\s*\()\s*['"]([^'"]+)['"]/g),
+    ].flatMap((match) => (match[1] ? [match[1]] : [])),
+    ...[...source.matchAll(/(?:^|\n)\s*import\s*['"]([^'"]+)['"]/g)].flatMap(
+      (match) => (match[1] ? [match[1]] : []),
+    ),
+  ];
+}
+
+function rewriteAliases(content: string): string {
+  return content
+    .replace(/#registry\/default\//g, "@/components/")
+    .replace(/@\/registry\/default\//g, "@/components/")
+    .replace(/#hooks\//g, "@/hooks/")
+    .replace(/#components\//g, "@/components/")
+    .replace(/#lib\//g, "@/lib/")
+    .replace(/#utils\//g, "@/lib/")
+    .replace(/(["'])((?:\.\.?\/|@\/|#)[^"']+)\.(?:tsx?|jsx?)(["'])/g, "$1$2$3");
+}
+
+function isSourceFile(name: string): boolean {
+  return (
+    sourceExtensions.has(extname(name)) &&
+    !name.endsWith(".stories.tsx") &&
+    !name.endsWith(".test.tsx") &&
+    !name.endsWith(".test.ts")
+  );
+}
+
+async function collectSourceFiles(
+  root: string,
+  destinationRoot: string,
+): Promise<SourceFile[]> {
+  const result: SourceFile[] = [];
+  const visit = async (directory: string) => {
+    for (const entry of (
+      await readdir(directory, { withFileTypes: true })
+    ).sort((a, b) => a.name.localeCompare(b.name, "en"))) {
+      if (entry.name === "node_modules" || ignoredNames.has(entry.name))
+        continue;
+      const source = join(directory, entry.name);
+      if (entry.isDirectory()) await visit(source);
+      else if (isSourceFile(entry.name)) {
+        const content = rewriteAliases(await readFile(source, "utf8"));
+        result.push({
+          source,
+          destination: join(destinationRoot, relative(root, source)),
+          content,
+        });
+      }
+    }
+  };
+  await visit(root);
+  return result;
+}
+
+export async function discoverComponentConfigs(
+  blocksRoot: string,
+): Promise<readonly string[]> {
+  const result: string[] = [];
+  const visit = async (directory: string) => {
+    for (const entry of (
+      await readdir(directory, { withFileTypes: true })
+    ).sort((a, b) => a.name.localeCompare(b.name, "en"))) {
+      if (entry.name === "node_modules") continue;
+      const source = join(directory, entry.name);
+      if (entry.isDirectory()) await visit(source);
+      else if (entry.name === "component.config.ts") result.push(source);
+    }
+  };
+  await visit(resolve(blocksRoot));
+  return result.sort((a, b) => a.localeCompare(b, "en"));
+}
+
+async function readCatalog(
+  proRoot: string,
+): Promise<readonly PublicCatalogItem[]> {
+  const catalogPath = join(
+    proRoot,
+    "packages/registry/public/public-catalog.json",
+  );
+  const value = JSON.parse(await readFile(catalogPath, "utf8")) as unknown;
+  if (!Array.isArray(value))
+    throw new Error(`Pinned registry catalog is not an array: ${catalogPath}`);
+  return value as PublicCatalogItem[];
+}
+
+function publicFileStem(path: string): string {
+  return path.replace(/\.(?:tsx?|jsx?)$/, "");
+}
+
+function publicItemForImport(
+  catalog: readonly PublicCatalogItem[],
+  specifier: string,
+): PublicCatalogItem | undefined {
+  const suffix = specifier
+    .replace(/^#registry\/default\//, "")
+    .replace(/^@\/components\//, "");
+  const normalizedSuffix = publicFileStem(suffix);
+  return catalog.find((item) =>
+    item.files?.some((file) => publicFileStem(file.path) === normalizedSuffix),
+  );
+}
+
+function publicImportRequest(
+  specifier: string,
+  from: string | undefined,
+): PublicImportRequest | undefined {
+  if (
+    specifier.startsWith("#registry/default/") ||
+    specifier.startsWith("@/components/")
+  )
+    return { specifier };
+  if (!from || !specifier.startsWith(".")) return undefined;
+  const path = normalize(join(dirname(from), specifier)).replace(
+    /\.(?:tsx?|jsx?)$/,
+    "",
+  );
+  return { specifier: `@/components/${path}` };
+}
+
+async function collectPublicDependencies(
+  catalog: readonly PublicCatalogItem[],
+  roots: readonly SourceFile[],
+  targetRoot: string,
+): Promise<{ files: SourceFile[]; dependencies: Set<string> }> {
+  const files: SourceFile[] = [];
+  const dependencies = new Set<string>();
+  const queue = roots
+    .flatMap((file) => importedSpecifiers(file.content))
+    .map((specifier) => publicImportRequest(specifier, undefined))
+    .filter((request): request is PublicImportRequest => request !== undefined);
+  const seen = new Set<string>();
+  while (queue.length > 0) {
+    const request = queue.shift();
+    if (!request) break;
+    const item = publicItemForImport(catalog, request.specifier);
+    if (!item || seen.has(item.name)) continue;
+    seen.add(item.name);
+    for (const dependency of item.dependencies ?? [])
+      dependencies.add(dependency);
+    for (const file of item.files ?? []) {
+      const destination = join(targetRoot, "src/components", file.path);
+      const content = rewriteAliases(file.content);
+      files.push({
+        source: `registry:${item.name}/${file.path}`,
+        destination,
+        content,
+      });
+      queue.push(
+        ...importedSpecifiers(content)
+          .map((imported) => publicImportRequest(imported, file.path))
+          .filter(
+            (request): request is PublicImportRequest => request !== undefined,
+          ),
+      );
+    }
+  }
+  return { files, dependencies };
+}
+
+async function readProDependencies(
+  proRoot: string,
+): Promise<Readonly<Record<string, string>>> {
+  const packageFiles = [
+    join(proRoot, "packages/blocks/package.json"),
+    join(proRoot, "packages/react/package.json"),
+  ];
+  const versions: Record<string, string> = { ...knownVersions };
+  for (const file of packageFiles) {
+    if (!existsSync(file)) continue;
+    const value = JSON.parse(await readFile(file, "utf8")) as JsonRecord;
+    for (const section of ["dependencies", "devDependencies"]) {
+      const dependencies = value[section];
+      if (!dependencies || typeof dependencies !== "object") continue;
+      for (const [name, version] of Object.entries(
+        dependencies as JsonRecord,
+      )) {
+        if (typeof version === "string" && !version.startsWith("workspace:"))
+          versions[name] ??= version;
+      }
+    }
+  }
+  return versions;
+}
+
+async function updatePackageManifest(
+  targetRoot: string,
+  dependencies: Readonly<Record<string, string>>,
+): Promise<void> {
+  const packagePath = join(targetRoot, "package.json");
+  if (!existsSync(packagePath) || Object.keys(dependencies).length === 0)
+    return;
+  const manifest = JSON.parse(
+    await readFile(packagePath, "utf8"),
+  ) as JsonRecord;
+  const current = { ...(manifest.dependencies as JsonRecord | undefined) };
+  for (const [name, version] of Object.entries(dependencies))
+    if (!(name in current)) current[name] = version;
+  manifest.dependencies = Object.fromEntries(
+    Object.entries(current).sort(([left], [right]) =>
+      left.localeCompare(right, "en"),
+    ),
+  );
+  await writeFile(packagePath, `${JSON.stringify(manifest, null, 2)}\n`);
+}
+
+function localImportExists(targetRoot: string, specifier: string): boolean {
+  const base = join(targetRoot, "src", specifier.slice(2));
+  return [
+    base,
+    `${base}.ts`,
+    `${base}.tsx`,
+    `${base}.js`,
+    `${base}.jsx`,
+    join(base, "index.ts"),
+    join(base, "index.tsx"),
+  ].some(existsSync);
+}
+
+async function writeFiles(
+  files: readonly SourceFile[],
+  targetRoot: string,
+): Promise<{ hashes: Record<string, string>; records: FileRecord[] }> {
+  const hashes: Record<string, string> = {};
+  const records: FileRecord[] = [];
+  for (const file of files) {
+    await mkdir(dirname(file.destination), { recursive: true });
+    const formatted = await prettier.format(file.content, {
+      filepath: file.destination,
+    });
+    await writeFile(file.destination, formatted);
+    const path = relative(targetRoot, file.destination).split("/").join("/");
+    const sha256 = hash(formatted);
+    hashes[path] = sha256;
+    records.push({ path, sha256 });
+  }
+  return {
+    hashes,
+    records: records.sort((left, right) =>
+      left.path.localeCompare(right.path, "en"),
+    ),
+  };
+}
+
+export async function snapshotMaterializedTarget(
+  targetRoot: string,
+): Promise<Readonly<Record<string, string>>> {
+  const result: Record<string, string> = {};
+  const visit = async (directory: string) => {
+    for (const entry of (
+      await readdir(directory, { withFileTypes: true })
+    ).sort((a, b) => a.name.localeCompare(b.name, "en"))) {
+      if (entry.name === "node_modules") continue;
+      const target = join(directory, entry.name);
+      if (entry.isDirectory()) await visit(target);
+      else
+        result[relative(targetRoot, target).split("/").join("/")] = hash(
+          await readFile(target, "utf8"),
+        );
+    }
+  };
+  await visit(targetRoot);
+  return result;
+}
+
+export async function materializeProRegistry({
+  proRoot,
+  targetRoot,
+}: MaterializeOptions): Promise<RegistryMaterialization> {
+  const resolvedProRoot = resolve(proRoot);
+  const resolvedTargetRoot = resolve(targetRoot);
+  const configPaths = await discoverComponentConfigs(
+    join(resolvedProRoot, "packages/blocks"),
+  );
+  if (configPaths.length === 0)
+    throw new Error(
+      `Pinned Pro registry has no component.config.ts files: ${resolvedProRoot}`,
+    );
+  const installed = configPaths
+    .map((config) => basename(dirname(config)))
+    .sort((left, right) => left.localeCompare(right, "en"));
+  const items = configPaths
+    .map((sourceConfig) => ({
+      name: basename(dirname(sourceConfig)),
+      sourceConfig,
+    }))
+    .sort((left, right) => left.name.localeCompare(right.name, "en"));
+  const conflicts = [
+    ...new Set(
+      installed.filter((name, index) => installed.indexOf(name) !== index),
+    ),
+  ].map((name) => `duplicate registry root: ${name}`);
+  if (conflicts.length > 0) throw new Error(conflicts.join("\n"));
+
+  const sourceFiles: SourceFile[] = [];
+  for (const config of configPaths) {
+    const blockRoot = dirname(config);
+    sourceFiles.push(
+      ...(await collectSourceFiles(
+        blockRoot,
+        join(resolvedTargetRoot, "src/components", basename(blockRoot)),
+      )),
+    );
+  }
+  const hooksRoot = join(resolvedProRoot, "packages/blocks/hooks");
+  if (existsSync(hooksRoot))
+    sourceFiles.push(
+      ...(await collectSourceFiles(
+        hooksRoot,
+        join(resolvedTargetRoot, "src/hooks"),
+      )),
+    );
+  const publicDependencies = await collectPublicDependencies(
+    await readCatalog(resolvedProRoot),
+    sourceFiles,
+    resolvedTargetRoot,
+  );
+  sourceFiles.push(...publicDependencies.files);
+
+  const externalDependencies = new Set<string>(publicDependencies.dependencies);
+  for (const file of sourceFiles) {
+    for (const specifier of importedSpecifiers(file.content)) {
+      if (
+        specifier.startsWith(".") ||
+        specifier.startsWith("@/") ||
+        specifier.startsWith("#")
+      )
+        continue;
+      const name = packageName(specifier);
+      if (name !== "react" && name !== "react-dom")
+        externalDependencies.add(name);
+    }
+  }
+  const versions = await readProDependencies(resolvedProRoot);
+  const declarations: Record<string, string> = {};
+  for (const name of [...externalDependencies].sort((left, right) =>
+    left.localeCompare(right, "en"),
+  )) {
+    const version = versions[name];
+    if (version && !version.startsWith("workspace:"))
+      declarations[name] = version;
+  }
+  await updatePackageManifest(resolvedTargetRoot, declarations);
+
+  const config = {
+    system: "chakra",
+    style: "default",
+    rsc: false,
+    tsx: true,
+    aliases: {
+      components: "@/components",
+      ui: "@/components/ui",
+      lib: "@/lib",
+      utils: "@/lib/utils",
+      hooks: "@/hooks",
+      icons: "@/components/icons",
+    },
+    installed,
+  };
+  await mkdir(resolvedTargetRoot, { recursive: true });
+  await writeFile(
+    join(resolvedTargetRoot, "components.json"),
+    `${JSON.stringify(config, null, 2)}\n`,
+  );
+  const written = await writeFiles(sourceFiles, resolvedTargetRoot);
+  const unresolvedImports: string[] = [];
+  for (const file of sourceFiles) {
+    for (const specifier of importedSpecifiers(file.content)) {
+      if (
+        specifier.startsWith("@/") &&
+        !localImportExists(resolvedTargetRoot, specifier)
+      )
+        unresolvedImports.push(
+          `${relative(resolvedTargetRoot, file.destination)} -> ${specifier}`,
+        );
+      if (specifier.startsWith("#"))
+        unresolvedImports.push(
+          `${relative(resolvedTargetRoot, file.destination)} -> ${specifier}`,
+        );
+    }
+  }
+  const uniqueUnresolved = [...new Set(unresolvedImports)].sort((left, right) =>
+    left.localeCompare(right, "en"),
+  );
+  const projectRoot = resolve(resolvedTargetRoot, "../..");
+  const manifestPath = join(projectRoot, "docs/template/saas-ui-upstream.json");
+  if (existsSync(manifestPath)) {
+    const manifest = JSON.parse(
+      await readFile(manifestPath, "utf8"),
+    ) as JsonRecord;
+    const registry = { ...(manifest.registry as JsonRecord), installed };
+    manifest.registry = registry;
+    await writeFile(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+  }
+  return {
+    installed,
+    items,
+    files: written.records,
+    plannedHashes: written.hashes,
+    externalDependencies: declarations,
+    conflicts,
+    unresolvedImports: uniqueUnresolved,
+  };
+}
+
+async function main() {
+  const proIndex = process.argv.indexOf("--pro-root");
+  const proRoot = proIndex >= 0 ? process.argv[proIndex + 1] : undefined;
+  if (!proRoot)
+    throw new Error(
+      "Usage: pnpm saas-ui:materialize -- --pro-root /absolute/path/to/saas-ui-pro",
+    );
+  const result = await materializeProRegistry({
+    proRoot,
+    targetRoot: resolve(process.cwd(), "apps/web"),
+  });
+  if (result.unresolvedImports.length > 0)
+    throw new Error(
+      `Unresolved local registry imports:\n${result.unresolvedImports.join("\n")}`,
+    );
+  console.log(
+    `Materialized ${result.installed.length} Pro registry roots and ${result.files.length} files.`,
+  );
+}
+
+if (process.argv[1]?.endsWith("materialize-pro-registry.mts")) await main();

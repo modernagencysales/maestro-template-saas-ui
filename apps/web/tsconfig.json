@@ -3,6 +3,10 @@
   "compilerOptions": {
     "composite": true,
     "jsx": "react-jsx",
+    "exactOptionalPropertyTypes": false,
+    "noUncheckedIndexedAccess": false,
+    "baseUrl": ".",
+    "paths": { "@/*": ["./src/*"] },
     "rootDir": ".",
     "outDir": "dist"
   },

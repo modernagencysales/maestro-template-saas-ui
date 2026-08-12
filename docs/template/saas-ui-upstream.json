@@ -10,7 +10,36 @@
     "config": "apps/web/components.json",
     "installRoot": "apps/web/src/components",
     "sourceRoot": "packages/blocks",
-    "sourceCommit": "ac3a40c8dc05e403f9d501a87c092646891d3c40"
+    "sourceCommit": "ac3a40c8dc05e403f9d501a87c092646891d3c40",
+    "installed": [
+      "add-contact-drawer",
+      "chat-details",
+      "feedback-modal",
+      "file-cards",
+      "files-list-card",
+      "integration-card",
+      "invite-people-modal",
+      "latest-messages-card",
+      "manage-tags-modal",
+      "metric-card-simple",
+      "metric-card-with-button",
+      "metric-card-with-icon",
+      "navbar-branded",
+      "navbar-tabs",
+      "notification-settings",
+      "organization-menu",
+      "roles-menu",
+      "select-users-modal",
+      "sidebar1",
+      "sidebar2",
+      "sidebar3",
+      "sidebar4",
+      "sortable-task-list",
+      "task-card-with-labels",
+      "task-card-with-properties",
+      "user-menu",
+      "workspace-members-settings"
+    ]
   },
   "compositions": [
     {
