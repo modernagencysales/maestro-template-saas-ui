@@ -62,6 +62,7 @@ describe("TanStack Start runtime contract", () => {
     expect(source).toContain("ConvexProviderWithAuth");
     expect(source).toContain("PostHogWebProvider");
     expect(source).toContain("WorkspaceProvider");
+    expect(source).toContain("GoldenAdapterProvider");
     expect(source).toContain("HeadContent");
     expect(source).toContain("Outlet");
     expect(source).toContain("Scripts");

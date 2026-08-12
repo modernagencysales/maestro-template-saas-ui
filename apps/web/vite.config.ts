@@ -54,6 +54,13 @@ export default defineConfig({
           includeDependenciesRecursively: false,
           groups: [
             {
+              name: "vendor-backend",
+              priority: 100,
+              test: (moduleId: string) =>
+                dependencyChunkName(moduleId) === "vendor-backend",
+              includeDependenciesRecursively: true,
+            },
+            {
               name: dependencyChunkName,
             },
           ],

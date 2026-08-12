@@ -11,6 +11,7 @@ import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import { AppProvider } from "../features/common/providers/app-provider";
+import { GoldenAdapterProvider } from "../features/golden/adapters";
 import {
   createBrowserWorkspaceStorage,
   WorkspaceProvider,
@@ -67,14 +68,16 @@ function RootComponent() {
             {(analyticsConsent) => (
               <PostHogWebProvider analyticsConsent={analyticsConsent}>
                 <RootDocument>
-                  <AppProvider>
-                    <WebRouteUxBoundary
-                      href={location.href}
-                      pathname={location.pathname}
-                    >
-                      <Outlet />
-                    </WebRouteUxBoundary>
-                  </AppProvider>
+                  <GoldenAdapterProvider>
+                    <AppProvider>
+                      <WebRouteUxBoundary
+                        href={location.href}
+                        pathname={location.pathname}
+                      >
+                        <Outlet />
+                      </WebRouteUxBoundary>
+                    </AppProvider>
+                  </GoldenAdapterProvider>
                 </RootDocument>
               </PostHogWebProvider>
             )}

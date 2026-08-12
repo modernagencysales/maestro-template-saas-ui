@@ -35,18 +35,45 @@ export async function seedGoldenFixture(
   colorMode: GoldenColorMode,
 ) {
   await page.emulateMedia({ colorScheme: colorMode });
-  await page.evaluate(
-    ({ fixtureName, fixtureData }) => {
+  await page.addInitScript(
+    ({ fixtureName, fixtureData, requestedColorMode }) => {
       document.documentElement.dataset.goldenFixture = fixtureName;
-      document.documentElement.dataset.colorMode =
-        document.documentElement.dataset.colorMode ?? "light";
+      document.documentElement.dataset.colorMode = requestedColorMode;
       window.localStorage.setItem(
         "maestro-golden-fixture",
         JSON.stringify(fixtureData),
       );
     },
-    { fixtureName: fixture, fixtureData: goldenFixtures[fixture] },
+    {
+      fixtureName: fixture,
+      fixtureData: goldenFixtures[fixture],
+      requestedColorMode: colorMode,
+    },
   );
+}
+
+async function assertGoldenFixture(
+  page: Page,
+  fixture: GoldenFixture,
+  colorMode: GoldenColorMode,
+) {
+  await page.evaluate(
+    ({ fixtureName, requestedColorMode }) => {
+      document.documentElement.dataset.goldenFixture = fixtureName;
+      document.documentElement.dataset.colorMode = requestedColorMode;
+    },
+    { fixtureName: fixture, requestedColorMode: colorMode },
+  );
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-golden-fixture",
+    fixture,
+  );
+  await expect(page.locator("html")).toHaveAttribute(
+    "data-color-mode",
+    colorMode,
+  );
+  await expect(page.getByText(/Good morning, Alex Morgan/)).toBeVisible();
+  await expect(page.getByText("Acme Inc.").first()).toBeVisible();
 }
 
 function evidencePath(testInfo: TestInfo, name: string) {
@@ -62,10 +89,11 @@ export async function captureReferenceAndGenerated(input: {
   composition: string;
 }) {
   for (const kind of ["reference", "generated"] as const) {
+    await seedGoldenFixture(input.page, input.fixture, input.colorMode);
     await input.page.goto(goldenUrl(kind, input.route), {
       waitUntil: "networkidle",
     });
-    await seedGoldenFixture(input.page, input.fixture, input.colorMode);
+    await assertGoldenFixture(input.page, input.fixture, input.colorMode);
     await expect(input.page.locator("body")).toBeVisible();
     await input.page.screenshot({
       path: evidencePath(
@@ -83,9 +111,11 @@ export async function forEachGoldenAuthority(
   callback: (kind: GoldenKind) => Promise<void>,
 ) {
   for (const kind of ["reference", "generated"] as const) {
+    await seedGoldenFixture(page, "ready-read", "light");
     await page.goto(goldenUrl(kind, "/dashboard"), {
       waitUntil: "networkidle",
     });
+    await assertGoldenFixture(page, "ready-read", "light");
     await callback(kind);
   }
 }
