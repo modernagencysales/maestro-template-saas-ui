@@ -18,6 +18,9 @@ describe("upstream theme foundation", () => {
     expect(read("src/features/common/providers/app-provider.tsx")).toContain(
       "linkComponent={LinkComponent}",
     );
+    expect(read("src/features/common/providers/app-provider.tsx")).toContain(
+      "<FeaturesProvider value={segments}>",
+    );
     expect(read("src/index.css")).not.toMatch(/--(?:chakra|saas)-colors-/u);
   });
 });

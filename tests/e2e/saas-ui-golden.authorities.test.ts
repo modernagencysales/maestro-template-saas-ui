@@ -1,7 +1,15 @@
-import { readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { previewCommand } from "../../tooling/saas-ui/golden-authority-command";
+import { buildSaasApplicationTargetPlan } from "../../tooling/generators/src/blueprints/saasApplication";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
@@ -27,6 +35,33 @@ describe("golden browser authority startup", () => {
     );
     expect(authorityScript).toContain("must have a distinct root and digest");
     expect(authorityScript).toContain("buildSaasApplicationTargetPlan");
+    expect(authorityScript).not.toContain("copyTrackedScaffold");
+    expect(authorityScript).toContain('["install", "--frozen-lockfile"]');
+  });
+
+  it("does not materialize factory-only route sentinels into the generated target", () => {
+    const plan = buildSaasApplicationTargetPlan({ name: "Authority absence" });
+    const targetRoot = join(root, ".tmp-golden-authority-test");
+    rmSync(targetRoot, { recursive: true, force: true });
+    try {
+      for (const entry of plan.entries) {
+        const target = join(targetRoot, entry.path);
+        mkdirSync(dirname(target), { recursive: true });
+        writeFileSync(target, entry.content);
+      }
+      expect(
+        existsSync(
+          join(targetRoot, "apps/web/src/routes/_workspace.admin.tsx"),
+        ),
+      ).toBe(false);
+      expect(
+        existsSync(
+          join(targetRoot, "apps/web/src/routes/_workspace.agents.tsx"),
+        ),
+      ).toBe(false);
+    } finally {
+      rmSync(targetRoot, { recursive: true, force: true });
+    }
   });
 
   it("previews the generated target app rather than the factory app", () => {

@@ -2,6 +2,7 @@
 
 import * as React from "react";
 
+import { FeaturesProvider } from "@saas-ui-pro/feature-flags";
 import { SuiProvider } from "@saas-ui/react";
 import {
   Link as TanstackLink,
@@ -10,6 +11,7 @@ import {
 
 import { appHotkeys } from "#config/hotkeys.config";
 import { system } from "#theme/preset";
+import { segments } from "@workspace/config";
 
 import { Hotkeys } from "../components/hotkeys";
 
@@ -17,13 +19,13 @@ const LinkComponent = React.forwardRef<
   HTMLAnchorElement,
   TanstackLinkProps & { href: TanstackLinkProps["to"] }
 >(function LinkComponent(props, ref) {
-  const { href, to: _to, ...rest } = props;
+  const { href, ...rest } = props;
   const linkProps = { ...rest, to: href } as TanstackLinkProps;
   return <TanstackLink ref={ref} {...linkProps} />;
 });
 
 export interface AppProviderProps {
-  onError?: (error: Error, info: any) => void;
+  onError?: (error: Error, info: React.ErrorInfo) => void;
   children: React.ReactNode;
 }
 
@@ -36,7 +38,9 @@ export const AppProvider: React.FC<AppProviderProps> = (props) => {
       {...(onError ? { onError } : {})}
       value={system}
     >
-      <Hotkeys hotkeys={appHotkeys}>{children}</Hotkeys>
+      <FeaturesProvider value={segments}>
+        <Hotkeys hotkeys={appHotkeys}>{children}</Hotkeys>
+      </FeaturesProvider>
     </SuiProvider>
   );
 };

@@ -25,6 +25,18 @@ for (const kind of ["reference", "generated"] as const) {
       );
     });
 
+    test("opens the workspace and user menus", async ({ page }) => {
+      await page.getByRole("button", { name: /Current workspace is/ }).click();
+      await expect(
+        page.getByRole("menuitem", { name: "Create a workspace" }),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: "User menu" }).click();
+      await expect(
+        page.getByRole("menuitem", { name: "Profile" }),
+      ).toBeVisible();
+    });
+
     test("reaches global search by keyboard and accepts a query", async ({
       page,
     }) => {

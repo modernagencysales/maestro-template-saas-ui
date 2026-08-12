@@ -1,4 +1,6 @@
-export const segments = {} as const;
+import type { FeaturesOptions } from "@saas-ui-pro/feature-flags";
+
+export const segments = { segments: [] } satisfies FeaturesOptions;
 export const config = {
   appName: "Maestro Template",
   billing: { enabled: false },
