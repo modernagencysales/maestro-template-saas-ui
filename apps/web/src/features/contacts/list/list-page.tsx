@@ -40,6 +40,7 @@ import { useHotkeys, useHotkeysShortcut } from "@saas-ui/use-hotkeys";
 import { TableState } from "@tanstack/react-table";
 import { format } from "date-fns";
 import { LuSlidersHorizontal, LuSquareUser } from "react-icons/lu";
+import type { UniqueIdentifier } from "@dnd-kit/core";
 import { z } from "zod";
 
 import { ContactDTO } from "@workspace/api/types";
@@ -94,7 +95,7 @@ function inferredNextContact(
   contacts: readonly BoardContact[],
   previous: BoardContact | undefined,
   next: BoardContact | undefined,
-  previousId: string | undefined,
+  previousId: UniqueIdentifier | undefined,
 ) {
   if (previous && !next)
     return contacts[contacts.findIndex(({ id }) => id === previousId) + 1];
@@ -105,7 +106,7 @@ function inferredPreviousContact(
   contacts: readonly BoardContact[],
   previous: BoardContact | undefined,
   next: BoardContact | undefined,
-  previousId: string | undefined,
+  previousId: UniqueIdentifier | undefined,
 ) {
   if (!previous && !next)
     return contacts[contacts.findIndex(({ id }) => id === previousId) - 1];
