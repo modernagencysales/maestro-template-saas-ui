@@ -67,13 +67,19 @@ describe("TanStack Start runtime contract", () => {
     expect(source).toContain("Scripts");
   });
 
-  it("keeps the Saas UI business dashboard as a Start route", () => {
+  it("keeps the golden dashboard as a Start route", () => {
     const source = read("src/routes/index.tsx");
     const dashboard = read("src/routes/dashboard.tsx");
 
     expect(source).toContain('createFileRoute("/")');
     expect(source).toContain("AppIdeaLanding");
-    expect(dashboard).toContain("BusinessDashboardRoute");
+    expect(dashboard).toContain('from "../features/golden/dashboard-page"');
+    expect(dashboard).toContain(
+      'from "../features/common/layouts/dashboard-layout"',
+    );
+    expect(dashboard).toContain("DashboardPage");
+    expect(dashboard).not.toContain("BusinessDashboardRoute");
+    expect(dashboard).not.toContain("business-shell");
     expect(source).not.toContain("TemplateReferenceApp");
   });
 

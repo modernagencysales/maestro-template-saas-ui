@@ -3,6 +3,7 @@ import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
   saasUiRegistryReceiptConfig,
+  saasUiStarterReceiptConfig,
   saasUiRegistryStandardRuleOverrides,
 } from "../../eslint.config.mjs";
 
@@ -32,6 +33,24 @@ describe("Saas UI registry ESLint overrides", () => {
     const config = saasUiRegistryReceiptConfig(receiptPath);
     expect(config.files).not.toContain(
       "apps/web/src/components/add-contact-drawer/custom-wrapper.tsx",
+    );
+    expect(config.files.some((file) => file.includes("**"))).toBe(false);
+  });
+});
+
+describe("Saas UI starter ESLint overrides", () => {
+  it("targets exactly receipt-listed starter files", () => {
+    const receiptPath = resolve(
+      dirname(fileURLToPath(import.meta.url)),
+      "../../docs/template/saas-ui-starter-files.json",
+    );
+    const config = saasUiStarterReceiptConfig(receiptPath);
+    expect(config.files.length).toBeGreaterThan(1);
+    expect(config.files).toContain(
+      "apps/web/src/features/common/layouts/app-layout.tsx",
+    );
+    expect(config.files).not.toContain(
+      "apps/web/src/features/common/layouts/custom-layout.tsx",
     );
     expect(config.files.some((file) => file.includes("**"))).toBe(false);
   });

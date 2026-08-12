@@ -1,7 +1,13 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL =
-  process.env.TEMPLATE_HOSTED_URL ?? "https://maestro-template.pages.dev";
+const baseURL = process.env.TEMPLATE_HOSTED_URL ?? "http://127.0.0.1:4173";
+
+// Until customer projection is available, both loopback authorities use the
+// current factory app and the same neutral fixtures. The paired harness keeps
+// the integration input finite and makes the generated-target substitution
+// explicit instead of silently using a hosted URL.
+process.env.UPSTREAM_REFERENCE_URL ??= "http://127.0.0.1:4173";
+process.env.GOLDEN_GENERATED_URL ??= "http://127.0.0.1:4174";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -16,6 +22,20 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
   },
+  webServer: [
+    {
+      command: "pnpm --dir apps/web preview --host 127.0.0.1 --port 4173",
+      url: "http://127.0.0.1:4173",
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+    {
+      command: "pnpm --dir apps/web preview --host 127.0.0.1 --port 4174",
+      url: "http://127.0.0.1:4174",
+      reuseExistingServer: true,
+      timeout: 120_000,
+    },
+  ],
   projects: [
     {
       name: "desktop-chromium",

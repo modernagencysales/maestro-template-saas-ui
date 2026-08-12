@@ -1,4 +1,5 @@
 import {
+  isSaasUiStarterReceiptFile,
   isSaasUiRegistryReceiptFile,
   receiptOption,
 } from "../saas-ui-registry-receipt.mjs";
@@ -82,6 +83,7 @@ export default {
     if (
       !inGuardedScope(filename) ||
       isSaasUiRegistryReceiptFile(filename, receiptOption(context)) ||
+      isSaasUiStarterReceiptFile(filename, receiptOption(context)) ||
       isAuthorizedRoot(filename) ||
       isFixtureOrTest(filename)
     ) {

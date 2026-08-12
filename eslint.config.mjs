@@ -1,6 +1,9 @@
 import js from "@eslint/js";
 import templatePlugin from "./tooling/eslint-plugin-template/index.mjs";
-import { saasUiRegistryReceiptFiles } from "./tooling/eslint-plugin-template/saas-ui-registry-receipt.mjs";
+import {
+  saasUiRegistryReceiptFiles,
+  saasUiStarterReceiptFiles,
+} from "./tooling/eslint-plugin-template/saas-ui-registry-receipt.mjs";
 import tseslint from "typescript-eslint";
 
 export const saasUiRegistryStandardRuleOverrides = Object.freeze({
@@ -20,7 +23,18 @@ export function saasUiRegistryReceiptConfig(receiptPath) {
       };
 }
 
+export function saasUiStarterReceiptConfig(receiptPath) {
+  const files = saasUiStarterReceiptFiles(receiptPath);
+  return files.length === 0
+    ? null
+    : {
+        files,
+        rules: saasUiRegistryStandardRuleOverrides,
+      };
+}
+
 const saasUiRegistryConfig = saasUiRegistryReceiptConfig();
+const saasUiStarterConfig = saasUiStarterReceiptConfig();
 
 const shiftLeft =
   globalThis.process.env.ESLINT_SHIFT_LEFT === "1" ? "error" : "off";
@@ -145,4 +159,5 @@ export default [
     },
   },
   ...(saasUiRegistryConfig ? [saasUiRegistryConfig] : []),
+  ...(saasUiStarterConfig ? [saasUiStarterConfig] : []),
 ];

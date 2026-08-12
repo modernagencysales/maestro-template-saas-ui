@@ -7,9 +7,9 @@ import {
   HStack,
   Icon,
   Stack,
-  Table,
   Text,
 } from "@saas-ui/react";
+import * as Sui from "@saas-ui/react";
 import {
   Activity,
   AlertTriangle,
@@ -50,7 +50,7 @@ export function LiveWorkflowRunsPanel() {
         >
           <Box>
             <Heading size="md">Live workflow runs</Heading>
-            <Text color="gray.600" fontSize="sm">
+            <Text color="fg.muted" fontSize="sm">
               Convex subscription data normalized through the Confect adapter.
             </Text>
           </Box>
@@ -154,37 +154,39 @@ function ReadyLiveRuns({
   return (
     <Stack gap="4">
       <HStack align="flex-start" gap="3">
-        <Icon as={CheckCircle2} boxSize="5" color="green.500" mt="0.5" />
-        <Text color="gray.700" fontSize="sm">
+        <Icon as={CheckCircle2} boxSize="5" color="fg.success" mt="0.5" />
+        <Text color="fg" fontSize="sm">
           Streaming from workspace <strong>{view.workspaceName}</strong>. These
           rows come from the live backend, not bundled fixture data.
         </Text>
       </HStack>
       <Box aria-label="Live workflow runs table" overflowX="auto" tabIndex={0}>
-        <Table.Root minW="620px">
-          <Table.Header>
-            <Table.Row>
-              <Table.ColumnHeader>Workflow</Table.ColumnHeader>
-              <Table.ColumnHeader>Version</Table.ColumnHeader>
-              <Table.ColumnHeader>Status</Table.ColumnHeader>
-              <Table.ColumnHeader>Started</Table.ColumnHeader>
-            </Table.Row>
-          </Table.Header>
-          <Table.Body>
+        <Sui.Table.Root minW="620px">
+          <Sui.Table.Header>
+            <Sui.Table.Row>
+              <Sui.Table.ColumnHeader>Workflow</Sui.Table.ColumnHeader>
+              <Sui.Table.ColumnHeader>Version</Sui.Table.ColumnHeader>
+              <Sui.Table.ColumnHeader>Status</Sui.Table.ColumnHeader>
+              <Sui.Table.ColumnHeader>Started</Sui.Table.ColumnHeader>
+            </Sui.Table.Row>
+          </Sui.Table.Header>
+          <Sui.Table.Body>
             {view.rows.map((row) => (
-              <Table.Row key={row.key}>
-                <Table.Cell fontWeight="medium">{row.workflowId}</Table.Cell>
-                <Table.Cell>v{row.workflowVersion}</Table.Cell>
-                <Table.Cell>
+              <Sui.Table.Row key={row.key}>
+                <Sui.Table.Cell fontWeight="medium">
+                  {row.workflowId}
+                </Sui.Table.Cell>
+                <Sui.Table.Cell>v{row.workflowVersion}</Sui.Table.Cell>
+                <Sui.Table.Cell>
                   <Badge colorPalette={statusTone(row.status)}>
                     {row.status}
                   </Badge>
-                </Table.Cell>
-                <Table.Cell>{row.startedAtLabel}</Table.Cell>
-              </Table.Row>
+                </Sui.Table.Cell>
+                <Sui.Table.Cell>{row.startedAtLabel}</Sui.Table.Cell>
+              </Sui.Table.Row>
             ))}
-          </Table.Body>
-        </Table.Root>
+          </Sui.Table.Body>
+        </Sui.Table.Root>
       </Box>
     </Stack>
   );

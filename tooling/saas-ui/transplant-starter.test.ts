@@ -1,17 +1,19 @@
 import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, relative } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import { transplantStarter } from "./transplant-starter.mts";
 
+const starterRoot = "/Users/headless/.tmp/saas-ui-tanstack-pro";
+
 describe("pinned starter transplant", () => {
-  it("rejects a checkout whose HEAD is not the manifest pin", async () => {
+  it("rejects a checkout whose HEAD is not the source pin", async () => {
     const targetRoot = await mkdtemp(join(tmpdir(), "saas-ui-target-"));
 
     await expect(
       transplantStarter({
-        starterRoot: "/Users/headless/.tmp/saas-ui-tanstack-pro",
+        starterRoot,
         targetRoot,
         ids: ["theme"],
         expectedCommit: "definitely-not-the-pinned-commit",
@@ -19,22 +21,33 @@ describe("pinned starter transplant", () => {
     ).rejects.toThrow(/expected definitely-not-the-pinned-commit/);
   });
 
-  it("copies the selected source bytes and reports their digests", async () => {
+  it("writes a deterministic hash receipt for every copied starter file", async () => {
     const targetRoot = await mkdtemp(join(tmpdir(), "saas-ui-target-"));
+    const receiptPath = join(targetRoot, "starter-files.json");
     const files = await transplantStarter({
-      starterRoot: "/Users/headless/.tmp/saas-ui-tanstack-pro",
+      starterRoot,
       targetRoot,
-      ids: ["theme"],
+      ids: ["theme", "provider"],
+      receiptPath,
     });
 
-    expect(files.map((file) => file.destination)).toContain(
-      join(targetRoot, "src/theme/preset.ts"),
+    const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
+      sourceCommit: string;
+      files: Array<{ destination: string; sha256: string }>;
+    };
+    expect(receipt.sourceCommit).toBe(
+      "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
     );
-    expect(
-      await readFile(join(targetRoot, "src/theme/preset.ts"), "utf8"),
-    ).toContain("createSystem(defaultConfig, config)");
-    expect(files.every((file) => /^[a-f0-9]{64}$/u.test(file.sha256))).toBe(
-      true,
-    );
+    expect(receipt.files).toHaveLength(files.length);
+    for (const file of files) {
+      expect(receipt.files).toContainEqual(
+        expect.objectContaining({
+          destination: expect.stringContaining(
+            relative(targetRoot, file.destination),
+          ),
+          sha256: file.sha256,
+        }),
+      );
+    }
   });
 });

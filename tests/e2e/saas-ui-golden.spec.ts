@@ -24,7 +24,7 @@ test.describe("paired Saas UI golden behavior", () => {
     page,
   }) => {
     await forEachGoldenAuthority(page, async () => {
-      await expect(page.getByRole("navigation")).toBeVisible();
+      await expect(page.getByRole("complementary")).toBeVisible();
       await expect(page.getByRole("main")).toBeVisible();
       await expect(
         page.getByRole("link", { name: /Overview|Dashboard/i }),

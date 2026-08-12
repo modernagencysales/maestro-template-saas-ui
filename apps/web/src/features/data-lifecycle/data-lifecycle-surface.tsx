@@ -4,7 +4,6 @@ import type { Ref } from "@confect/core";
 import {
   Badge,
   Box,
-  Button,
   Card,
   Flex,
   Heading,
@@ -14,6 +13,7 @@ import {
   Stack,
   Text,
 } from "@saas-ui/react";
+import * as Sui from "@saas-ui/react";
 import { AlertTriangle, FileDown, ShieldCheck, Trash2 } from "lucide-react";
 import {
   templateConfectRefs,
@@ -443,17 +443,17 @@ export function DataLifecycleSurface() {
       >
         <Box>
           <Heading size="md">DSAR request plans</Heading>
-          <Text color="gray.600" fontSize="sm">
+          <Text color="fg.muted" fontSize="sm">
             Dry-run export and delete plans stay auditable before a client fork
             enables destructive fulfillment.
           </Text>
         </Box>
         <HStack gap="2">
-          <Button onClick={() => requestDryRun("export")} type="button">
+          <Sui.Button onClick={() => requestDryRun("export")} type="button">
             <Icon as={FileDown} boxSize="4" />
             Plan export
-          </Button>
-          <Button
+          </Sui.Button>
+          <Sui.Button
             colorPalette="red"
             onClick={() => requestDryRun("delete")}
             type="button"
@@ -461,7 +461,7 @@ export function DataLifecycleSurface() {
           >
             <Icon as={Trash2} boxSize="4" />
             Plan delete
-          </Button>
+          </Sui.Button>
         </HStack>
       </Flex>
 
@@ -479,12 +479,12 @@ export function DataLifecycleSurface() {
         <Card.Root borderRadius="md">
           <Card.Body>
             <HStack align="flex-start" gap="3">
-              <Icon as={ShieldCheck} boxSize="5" color="green.500" mt="0.5" />
+              <Icon as={ShieldCheck} boxSize="5" color="fg.success" mt="0.5" />
               <Box>
                 <Text fontWeight="semibold">
                   No DSAR request plans recorded
                 </Text>
-                <Text color="gray.600" fontSize="sm">
+                <Text color="fg.muted" fontSize="sm">
                   Use Plan export or Plan delete to exercise the mutation path
                   in fake mode or against a configured Convex deployment.
                 </Text>
@@ -514,7 +514,7 @@ export function DataLifecycleSurface() {
                         {request.kind}
                       </Badge>
                     </HStack>
-                    <Text color="gray.600" fontSize="sm">
+                    <Text color="fg.muted" fontSize="sm">
                       Subject: {request.subject}
                     </Text>
                   </Box>
@@ -621,7 +621,7 @@ function LifecycleMetric({
   return (
     <Card.Root borderRadius="md">
       <Card.Body gap="2">
-        <Text color="gray.600" fontSize="sm" fontWeight="medium">
+        <Text color="fg.muted" fontSize="sm" fontWeight="medium">
           {label}
         </Text>
         <Heading size="xl">{value}</Heading>
@@ -639,13 +639,13 @@ function LifecycleDetail({
 }) {
   return (
     <Box
-      bg="gray.50"
-      borderColor="gray.200"
+      bg="bg.subtle"
+      borderColor="border.muted"
       borderRadius="md"
       borderWidth="1px"
       p="3"
     >
-      <Text color="gray.600" fontSize="xs" fontWeight="medium">
+      <Text color="fg.muted" fontSize="xs" fontWeight="medium">
         {label}
       </Text>
       <Text fontSize="sm" fontWeight="semibold" mt="1">

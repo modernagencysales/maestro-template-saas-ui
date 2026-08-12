@@ -1,8 +1,10 @@
 import { existsSync, readFileSync } from "node:fs";
-import { dirname, join, relative, resolve } from "node:path";
+import { basename, dirname, join, relative, resolve } from "node:path";
 import process from "node:process";
 
 const RECEIPT_RELATIVE_PATH = "docs/template/saas-ui-registry-files.json";
+const STARTER_RECEIPT_RELATIVE_PATH =
+  "docs/template/saas-ui-starter-files.json";
 const receiptCache = new Map();
 
 function normalize(path) {
@@ -13,6 +15,17 @@ function defaultReceiptPath() {
   let directory = resolve(process.cwd());
   while (true) {
     const candidate = join(directory, RECEIPT_RELATIVE_PATH);
+    if (existsSync(candidate)) return candidate;
+    const parent = dirname(directory);
+    if (parent === directory) return candidate;
+    directory = parent;
+  }
+}
+
+function defaultStarterReceiptPath() {
+  let directory = resolve(process.cwd());
+  while (true) {
+    const candidate = join(directory, STARTER_RECEIPT_RELATIVE_PATH);
     if (existsSync(candidate)) return candidate;
     const parent = dirname(directory);
     if (parent === directory) return candidate;
@@ -52,6 +65,12 @@ export function saasUiRegistryReceiptFiles(receiptPath) {
   );
 }
 
+export function saasUiStarterReceiptFiles(receiptPath) {
+  return [...receiptEntries(receiptPath ?? defaultStarterReceiptPath())].sort(
+    (left, right) => left.localeCompare(right, "en"),
+  );
+}
+
 export function isSaasUiRegistryReceiptFile(filename, receiptPath) {
   const normalizedFilename = normalize(filename);
   if (!normalizedFilename.startsWith("/")) {
@@ -59,6 +78,19 @@ export function isSaasUiRegistryReceiptFile(filename, receiptPath) {
   }
   const root = resolve(dirname(receiptPath ?? defaultReceiptPath()), "../..");
   return receiptEntries(receiptPath).has(
+    normalize(relative(root, normalizedFilename)),
+  );
+}
+
+export function isSaasUiStarterReceiptFile(filename, receiptPath) {
+  const normalizedFilename = normalize(filename);
+  const path = receiptPath ?? defaultStarterReceiptPath();
+  if (basename(path) !== "saas-ui-starter-files.json") return false;
+  if (!normalizedFilename.startsWith("/")) {
+    return receiptEntries(path).has(normalizedFilename);
+  }
+  const root = resolve(dirname(path), "../..");
+  return receiptEntries(path).has(
     normalize(relative(root, normalizedFilename)),
   );
 }

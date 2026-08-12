@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Button, Card, Stack, Text } from "@saas-ui/react";
+import { Card, Stack, Text } from "@saas-ui/react";
 import {
   templateConfectRefs,
   type TemplateConfectRefs,
@@ -56,7 +56,8 @@ type TemplateToastApi = Readonly<{
     title: string;
     description?: string;
     tone?: string;
-    announcement?: string | { message: string; priority?: "assertive" | "polite" };
+    announcement?:
+      string | { message: string; priority?: "assertive" | "polite" };
   }): string;
 }>;
 const useTemplateToast = (): TemplateToastApi => ({
@@ -66,7 +67,6 @@ const useTemplateToast = (): TemplateToastApi => ({
 function TemplateNotificationCenter({
   notifications,
   onMarkRead,
-  preferences: _preferences,
   summary,
 }: {
   notifications: readonly PlatformNotification[];

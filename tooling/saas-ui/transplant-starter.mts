@@ -1,7 +1,7 @@
 import { createHash } from "node:crypto";
-import { copyFileSync, mkdirSync, readFileSync } from "node:fs";
+import { copyFile, mkdir, readFile, writeFile } from "node:fs/promises";
 import { execFileSync } from "node:child_process";
-import { dirname, resolve } from "node:path";
+import { dirname, relative, resolve } from "node:path";
 
 import { STARTER_COMMIT, starterFiles } from "./manifest.ts";
 
@@ -10,19 +10,43 @@ export type TransplantOptions = Readonly<{
   targetRoot: string;
   ids: readonly string[];
   expectedCommit?: string;
+  receiptPath?: string;
+  receiptOnly?: boolean;
 }>;
 
 export type TransplantedFile = Readonly<{
   source: string;
   destination: string;
+  sourceSha256: string;
   sha256: string;
+  adapted: boolean;
 }>;
+
+type StarterReceipt = Readonly<{
+  schemaVersion: 1;
+  sourceCommit: string;
+  files: readonly Readonly<{
+    source: string;
+    destination: string;
+    sourceSha256: string;
+    sha256: string;
+    adapted: boolean;
+  }>[];
+}>;
+
+const digest = (contents: Buffer) =>
+  createHash("sha256").update(contents).digest("hex");
 
 export async function transplantStarter({
   starterRoot,
   targetRoot,
   ids,
   expectedCommit = STARTER_COMMIT,
+  receiptPath = resolve(
+    targetRoot,
+    "../../docs/template/saas-ui-starter-files.json",
+  ),
+  receiptOnly = false,
 }: TransplantOptions): Promise<readonly TransplantedFile[]> {
   const actual = execFileSync("git", ["rev-parse", "HEAD"], {
     cwd: starterRoot,
@@ -32,31 +56,65 @@ export async function transplantStarter({
     throw new Error(`Starter checkout ${actual}; expected ${expectedCommit}`);
   }
 
-  return starterFiles(ids).map((file) => {
+  const files: TransplantedFile[] = [];
+  for (const file of starterFiles(ids)) {
     const source = resolve(starterRoot, file.source);
     const destination = resolve(targetRoot, file.destination);
-    mkdirSync(dirname(destination), { recursive: true });
-    copyFileSync(source, destination);
-    return {
-      ...file,
+    const sourceContents = await readFile(source);
+    if (!receiptOnly) {
+      await mkdir(dirname(destination), { recursive: true });
+      await copyFile(source, destination);
+    }
+    const destinationContents = await readFile(destination);
+    files.push({
       source,
       destination,
-      sha256: createHash("sha256")
-        .update(readFileSync(destination))
-        .digest("hex"),
-    };
-  });
+      sourceSha256: digest(sourceContents),
+      sha256: digest(destinationContents),
+      adapted: digest(sourceContents) !== digest(destinationContents),
+    });
+  }
+
+  const receipt: StarterReceipt = {
+    schemaVersion: 1,
+    sourceCommit: actual,
+    files: files
+      .map((file) => ({
+        source: relative(resolve(dirname(receiptPath), "../.."), file.source),
+        destination: relative(
+          resolve(dirname(receiptPath), "../.."),
+          file.destination,
+        ),
+        sourceSha256: file.sourceSha256,
+        sha256: file.sha256,
+        adapted: file.adapted,
+      }))
+      .sort((left, right) =>
+        left.destination.localeCompare(right.destination, "en"),
+      ),
+  };
+  await mkdir(dirname(receiptPath), { recursive: true });
+  await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`, "utf8");
+  return files;
 }
 
 if (process.argv[1]?.endsWith("transplant-starter.mts")) {
-  const starterRoot = process.argv[process.argv.indexOf("--starter-root") + 1];
-  const ids = process.argv[process.argv.indexOf("--ids") + 1]?.split(",") ?? [];
-  if (!starterRoot || ids.length === 0) {
+  const starterIndex = process.argv.indexOf("--starter-root");
+  const idsIndex = process.argv.indexOf("--ids");
+  const starterRoot =
+    starterIndex >= 0 ? process.argv[starterIndex + 1] : undefined;
+  const ids =
+    idsIndex >= 0 ? process.argv[idsIndex + 1]?.split(",") : undefined;
+  if (!starterRoot || !ids?.length) {
     throw new Error(
       "Usage: transplant-starter.mts --starter-root <path> --ids <id,...>",
     );
   }
-  const targetRoot = resolve(process.cwd(), "apps/web");
-  const result = await transplantStarter({ starterRoot, targetRoot, ids });
-  for (const file of result) console.log(`${file.destination}\t${file.sha256}`);
+  const result = await transplantStarter({
+    starterRoot,
+    targetRoot: resolve(process.cwd(), "apps/web"),
+    ids,
+    receiptOnly: process.argv.includes("--receipt-only"),
+  });
+  console.log(`Recorded ${result.length} starter files.`);
 }
