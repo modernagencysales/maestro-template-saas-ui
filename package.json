@@ -76,6 +76,7 @@
     "check:recipes": "tsx tooling/quality/check-recipes.mts",
     "check:docs-freshness": "tsx tooling/quality/check-docs-freshness.mts",
     "check:saas-ui-foundation": "tsx tooling/quality/check-saas-ui-foundation.mts",
+    "check:saas-ui-artifact-safety": "tsx tooling/quality/check-saas-ui-artifact-safety.mts",
     "saas-ui:materialize": "tsx tooling/saas-ui/materialize-pro-registry.mts",
     "check:generated-files": "tsx tooling/quality/check-generated-files.mts",
     "check:confect-effect-compat": "tsx tooling/quality/check-confect-effect-compat.mts",

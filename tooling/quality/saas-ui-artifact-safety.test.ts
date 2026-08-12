@@ -1,0 +1,189 @@
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { mkdirSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { dirname, join } from "node:path";
+import { describe, expect, it } from "vitest";
+
+import { assertSaasUiArtifactSafety } from "./check-saas-ui-artifact-safety.mts";
+
+const pins = {
+  template: "acf0bc4be38dea842f321831387fc77cf7242439",
+  starter: "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+  pro: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
+} as const;
+
+const createFixture = (
+  options: {
+    readonly destination?: string;
+    readonly packagePatch?: Record<string, unknown>;
+    readonly starterReceiptDestination?: string;
+  } = {},
+) => {
+  const root = mkdtempSync(join(tmpdir(), "saas-ui-artifact-safety-"));
+  const destination = options.destination ?? "src/paid.ts";
+  mkdirSync(join(root, "docs/template"), { recursive: true });
+  mkdirSync(dirname(join(root, destination)), { recursive: true });
+  mkdirSync(join(root, "docs/licenses/saas-ui"), { recursive: true });
+  writeFileSync(join(root, destination), "paid source\n");
+  writeFileSync(
+    join(root, "docs/licenses/saas-ui/starter-NOTICE.md"),
+    "starter notice\n",
+  );
+  writeFileSync(
+    join(root, "docs/licenses/saas-ui/pro-NOTICE.md"),
+    "pro notice\n",
+  );
+  writeFileSync(
+    join(root, "package.json"),
+    JSON.stringify({
+      name: "private-fixture",
+      private: true,
+      ...options.packagePatch,
+    }),
+  );
+  writeFileSync(
+    join(root, "docs/template/saas-ui-upstream.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      pins,
+      registry: {
+        catalog: "apps/web/components.json",
+        config: "apps/web/components.json",
+        installRoot: "apps/web/src/components",
+      },
+      compositions: [
+        {
+          id: "fixture",
+          source: "starter/apps/web/src/fixture.tsx",
+          factoryDestination: destination,
+          generatedDestination: destination,
+          files: [
+            {
+              source: "apps/web/src/fixture.tsx",
+              destination,
+            },
+          ],
+        },
+      ],
+      licenses: [
+        {
+          source: "starter",
+          path: "LICENSE",
+          destination: "docs/licenses/saas-ui/starter-NOTICE.md",
+        },
+        {
+          source: "pro",
+          path: "LICENSE",
+          destination: "docs/licenses/saas-ui/pro-NOTICE.md",
+        },
+      ],
+    }),
+  );
+  writeFileSync(
+    join(root, "docs/template/saas-ui-registry-files.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      sourceCommit: pins.pro,
+      files: [{ destination, sha256: "0".repeat(64) }],
+    }),
+  );
+  if (options.starterReceiptDestination) {
+    writeFileSync(
+      join(root, "docs/template/saas-ui-starter-files.json"),
+      JSON.stringify({
+        schemaVersion: 1,
+        sourceCommit: pins.starter,
+        files: [{ destination: options.starterReceiptDestination }],
+      }),
+    );
+    mkdirSync(dirname(join(root, options.starterReceiptDestination)), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(root, options.starterReceiptDestination),
+      "starter paid source\n",
+    );
+  }
+  return root;
+};
+
+describe("Saas UI artifact safety", () => {
+  it("allows paid source only in a private repository with preserved notices", () => {
+    const root = createFixture();
+    try {
+      expect(assertSaasUiArtifactSafety(root)).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects paid source owned by a non-private package", () => {
+    const root = createFixture({
+      destination: "packages/public-paid/src/index.ts",
+    });
+    try {
+      mkdirSync(join(root, "packages/public-paid"), { recursive: true });
+      writeFileSync(
+        join(root, "packages/public-paid/package.json"),
+        JSON.stringify({ name: "public-paid", version: "1.0.0" }),
+      );
+      expect(assertSaasUiArtifactSafety(root)).toContain(
+        "paid source package packages/public-paid/package.json must be private: packages/public-paid/src/index.ts",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects paid source included by npm files or a public artifact path", () => {
+    const npmRoot = createFixture({
+      packagePatch: {
+        version: "1.0.0",
+        files: ["src/paid.ts"],
+      },
+    });
+    const publicRoot = createFixture({
+      destination: "apps/web/dist/client/paid.ts",
+    });
+    try {
+      expect(assertSaasUiArtifactSafety(npmRoot)).toContain(
+        "paid source enters npm packlist: src/paid.ts",
+      );
+      expect(assertSaasUiArtifactSafety(publicRoot)).toContain(
+        "paid source enters public artifact: apps/web/dist/client/paid.ts",
+      );
+    } finally {
+      rmSync(npmRoot, { recursive: true, force: true });
+      rmSync(publicRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("reads an optional starter receipt without requiring one", () => {
+    const root = createFixture({
+      starterReceiptDestination: "src/starter-paid.ts",
+      packagePatch: {
+        version: "1.0.0",
+        files: ["src/starter-paid.ts"],
+      },
+    });
+    try {
+      expect(assertSaasUiArtifactSafety(root)).toContain(
+        "paid source enters npm packlist: src/starter-paid.ts",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects missing upstream license notices", () => {
+    const root = createFixture();
+    try {
+      rmSync(join(root, "docs/licenses/saas-ui/pro-NOTICE.md"));
+      expect(assertSaasUiArtifactSafety(root)).toContain(
+        "missing paid source license notice: docs/licenses/saas-ui/pro-NOTICE.md",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+});

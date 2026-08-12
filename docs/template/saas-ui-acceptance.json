@@ -12,7 +12,10 @@
       "generatedDestination": "apps/web/src/features/common",
       "route": "/dashboard",
       "behaviorCheck": "shell controls and navigation",
-      "evidence": ["dashboard-ready-read-desktop-light"]
+      "evidence": [
+        "dashboard-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "dashboard-report",
@@ -25,7 +28,10 @@
       "generatedDestination": "apps/web/src/features/reports",
       "route": "/dashboard",
       "behaviorCheck": "dashboard report renders",
-      "evidence": ["dashboard-ready-read-desktop-light"]
+      "evidence": [
+        "dashboard-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "data-grid",
@@ -38,7 +44,10 @@
       "generatedDestination": "apps/web/src/features/contacts/list",
       "route": "/contacts",
       "behaviorCheck": "filter sort pagination selection",
-      "evidence": ["contacts-ready-read-desktop-light"]
+      "evidence": [
+        "contacts-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "filterable-collection",
@@ -51,7 +60,7 @@
       "generatedDestination": "apps/web/src/features/contacts/list",
       "route": "/contacts",
       "behaviorCheck": "active filter removal",
-      "evidence": ["contacts-filtered-desktop-light"]
+      "evidence": ["contacts-filtered-desktop-light", "paid-artifact-boundary"]
     },
     {
       "id": "list-detail",
@@ -64,7 +73,7 @@
       "generatedDestination": "apps/web/src/features/contacts/view",
       "route": "/contacts/:contactId",
       "behaviorCheck": "list to detail navigation",
-      "evidence": ["contact-ready-read-desktop-light"]
+      "evidence": ["contact-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
       "id": "split-inbox",
@@ -77,7 +86,7 @@
       "generatedDestination": "apps/web/src/features/contacts/inbox",
       "route": "/inbox",
       "behaviorCheck": "split selection",
-      "evidence": ["inbox-ready-read-desktop-light"]
+      "evidence": ["inbox-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
       "id": "record-aside",
@@ -90,7 +99,7 @@
       "generatedDestination": "apps/web/src/features/contacts/view",
       "route": "/contacts/:contactId",
       "behaviorCheck": "record aside opens and restores focus",
-      "evidence": ["contact-ready-read-mobile-light"]
+      "evidence": ["contact-ready-read-mobile-light", "paid-artifact-boundary"]
     },
     {
       "id": "settings",
@@ -103,7 +112,10 @@
       "generatedDestination": "apps/web/src/features/settings",
       "route": "/settings",
       "behaviorCheck": "settings navigation",
-      "evidence": ["settings-ready-read-desktop-light"]
+      "evidence": [
+        "settings-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "form",
@@ -116,7 +128,10 @@
       "generatedDestination": "apps/web/src/features/getting-started",
       "route": "/onboarding",
       "behaviorCheck": "form validation and submit",
-      "evidence": ["onboarding-ready-edit-desktop-light"]
+      "evidence": [
+        "onboarding-ready-edit-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "onboarding",
@@ -129,7 +144,10 @@
       "generatedDestination": "apps/web/src/features/getting-started",
       "route": "/onboarding",
       "behaviorCheck": "onboarding steps",
-      "evidence": ["onboarding-ready-read-desktop-light"]
+      "evidence": [
+        "onboarding-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "kanban",
@@ -142,7 +160,7 @@
       "generatedDestination": "apps/web/src/features/contacts/list",
       "route": "/kanban",
       "behaviorCheck": "kanban drag",
-      "evidence": ["kanban-ready-read-desktop-light"]
+      "evidence": ["kanban-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
       "id": "auth",
@@ -155,7 +173,7 @@
       "generatedDestination": "apps/web/src/features/auth",
       "route": "/login",
       "behaviorCheck": "auth form state",
-      "evidence": ["auth-ready-read-desktop-light"]
+      "evidence": ["auth-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
       "id": "billing",
@@ -168,7 +186,7 @@
       "generatedDestination": "apps/web/src/features/settings/billing",
       "route": "/settings/billing",
       "behaviorCheck": "billing presentation",
-      "evidence": ["billing-ready-read-desktop-light"]
+      "evidence": ["billing-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
       "id": "search-command",
@@ -181,7 +199,7 @@
       "generatedDestination": "apps/web/src/features/search",
       "route": "/search",
       "behaviorCheck": "search shortcut and commands",
-      "evidence": ["search-ready-read-desktop-light"]
+      "evidence": ["search-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
       "id": "states",
@@ -194,7 +212,7 @@
       "generatedDestination": "apps/web/src/features/workspaces",
       "route": "/states",
       "behaviorCheck": "loading empty success failure",
-      "evidence": ["states-all-desktop-light"]
+      "evidence": ["states-all-desktop-light", "paid-artifact-boundary"]
     }
   ]
 }

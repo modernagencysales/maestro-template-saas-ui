@@ -24,6 +24,12 @@ import { createFactoryCliComposition } from "./composition";
 import { CURRENT_PUBLIC_SOURCE } from "./createComposition";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+const generatedTargetFixturesAvailable = existsSync(
+  join(
+    repoRoot,
+    "releases/v0.2.0-alpha.1/blueprints/saas-application/base/packages/ui/src/visualize/visualize.test.tsx.txt",
+  ),
+);
 const execFileAsync = promisify(execFile);
 const generatedCommandTimeoutMs = 90_000;
 const temporaryRoots: string[] = [];
@@ -259,6 +265,31 @@ afterEach(async () => {
 }, 120_000);
 
 describe("create root integration", () => {
+  it.skipIf(!generatedTargetFixturesAvailable)(
+    "keeps generated frontend packages private and excludes public artifacts",
+    () => {
+      const plan = buildSaasApplicationTargetPlan({
+        name: "Artifact Boundary",
+      });
+      const entries = new Map(plan.entries.map((entry) => [entry.path, entry]));
+      const rootPackage = JSON.parse(
+        entries.get("package.json")?.content ?? "{}",
+      ) as {
+        readonly private?: boolean;
+      };
+      const webPackage = JSON.parse(
+        entries.get("apps/web/package.json")?.content ?? "{}",
+      ) as { readonly private?: boolean };
+      expect(rootPackage.private).toBe(true);
+      expect(webPackage.private).toBe(true);
+      expect(
+        [...entries.keys()].some((path) =>
+          path.startsWith("apps/web/dist/client/"),
+        ),
+      ).toBe(false);
+    },
+  );
+
   it("preserves immutable alpha.1 and binds the current blueprint manifest", () => {
     const digest = (path: string) =>
       `sha256:${createHash("sha256").update(readFileSync(path)).digest("hex")}`;

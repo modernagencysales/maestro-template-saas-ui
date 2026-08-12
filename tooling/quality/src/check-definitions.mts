@@ -694,6 +694,18 @@ const checkDescriptorDefinitions = {
         includes: ["Do not edit generated Confect or Convex files by hand"],
         message: "agent instructions must protect generated files",
       },
+      {
+        file: "tooling/quality/check-saas-ui-artifact-safety.mts",
+        includes: ["assertSaasUiArtifactSafety", "PUBLIC_ARTIFACT_ROOT"],
+        message:
+          "generated-file checks must retain the paid Saas UI artifact boundary",
+      },
+      {
+        file: "docs/template/saas-ui-upstream.json",
+        includes: ['"licenses"', '"registry"'],
+        message:
+          "generated-file checks must consume the upstream Saas UI authority",
+      },
     ],
   },
   "confect-contracts": {
@@ -882,6 +894,12 @@ const checkDescriptorDefinitions = {
         file: "docs/template/extraction/dependency-license-inventory.md",
         includes: ["Dependency And License Inventory", "Private Artifact Rule"],
         message: "dependency/license inventory must exist",
+      },
+      {
+        file: "tooling/quality/check-sbom-license.mts",
+        includes: ["assertSaasUiArtifactSafety", "check:sbom-license"],
+        message:
+          "SBOM/license verification must run the paid Saas UI artifact safety assertion",
       },
     ],
   },
