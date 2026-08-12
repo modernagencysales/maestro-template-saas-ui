@@ -246,7 +246,6 @@ export const CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE = [
 
 export const CURRENT_EMAIL_CLOSURE = [
   ".env.example",
-  "apps/web/src/features/setup/setup-surface.ts",
   "apps/web/src/sample/templateData.test.ts",
   "docs/template/client-handoff-packet.md",
   "docs/template/client-intake-wizard.md",
@@ -301,7 +300,6 @@ export const CURRENT_EMAIL_CLOSURE = [
 
 export const CURRENT_EMAIL_BASE_COPY_REPLACEMENTS = [
   ".env.example",
-  "apps/web/src/features/setup/setup-surface.ts",
   "apps/web/src/sample/templateData.test.ts",
   "docs/template/client-handoff-packet.md",
   "docs/template/client-intake-wizard.md",

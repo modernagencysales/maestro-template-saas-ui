@@ -33,6 +33,11 @@ const registryReceipt = readJson<RegistryReceipt>(
 // lintable, private, and reviewable in a generated target.
 const FRONTEND_SUPPORT_PATHS = [
   "tsconfig.base.json",
+  "apps/web/src/vite-env.d.ts",
+  "apps/web/src/router.tsx",
+  "apps/web/src/env.ts",
+  "apps/web/src/routes/__root.tsx",
+  "apps/web/src/navigation/route-ux-boundary.tsx",
   "apps/web/package.json",
   "apps/web/tsconfig.json",
   "apps/web/vite.config.ts",
