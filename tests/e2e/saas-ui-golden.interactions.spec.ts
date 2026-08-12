@@ -294,6 +294,29 @@ test.describe("paired Saas UI golden interactions", () => {
       );
     });
 
+    test(`${kind} moves the exact Kanban card by keyboard and reports the mutation`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("kanban").route });
+      const origin = page.locator('[data-column="status:active"]');
+      const destination = page.locator('[data-column="status:inactive"]');
+      const card = origin.locator('[data-id="contact-1"]');
+      await expect(card).toContainText("Jordan Lee");
+
+      await card.focus();
+      await page.keyboard.press("Space");
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("Space");
+
+      await expect(origin.locator('[data-id="contact-1"]')).toHaveCount(0);
+      await expect(destination.locator('[data-id="contact-1"]')).toContainText(
+        "Jordan Lee",
+      );
+      await expect(page.getByRole("status")).toHaveText(
+        "Moved Jordan Lee to inactive",
+      );
+    });
+
     test(`${kind} auth form validates credentials and preserves input`, async ({
       page,
     }) => {
