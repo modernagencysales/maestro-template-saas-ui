@@ -796,6 +796,7 @@ export default {
     const reportedCreateRequireAliases = new Set();
     const invalidFixtureBindings = new Set();
     const moduleAliases = new Set();
+    const scenarioFixtureAliases = new Set();
     let canonicalFixtureExport = false;
     let invalidCanonicalFixtureExport = false;
     const reportImport = (node, source) => {
@@ -860,48 +861,74 @@ export default {
       const sourceRoot = memberRoot(objectPatternSource(pattern));
       for (const property of pattern.properties) {
         if (property.type !== "Property") continue;
+        const name = staticString(property.key, property.computed);
+        if (
+          name === "getBuiltinModule" &&
+          isProcessObject(objectPatternSource(pattern))
+        ) {
+          context.report({ node: property, messageId: "import" });
+          continue;
+        }
         if (property.computed) {
           context.report({ node: property, messageId: "network" });
           continue;
         }
         const key = property.key;
-        const name =
+        const propertyName =
           key.type === "Identifier"
             ? key.name
             : key.type === "Literal" && typeof key.value === "string"
               ? key.value
               : undefined;
-        if (name === undefined) continue;
-        if (scenarioFixturePattern && !SCENARIO_FIXTURES.has(name))
+        if (propertyName === undefined) continue;
+        if (scenarioFixturePattern && SCENARIO_FIXTURES.has(propertyName)) {
+          const value = property.value;
+          if (value.type === "Identifier")
+            scenarioFixtureAliases.add(value.name);
+          else if (
+            value.type === "AssignmentPattern" &&
+            value.left.type === "Identifier"
+          )
+            scenarioFixtureAliases.add(value.left.name);
+        } else if (
+          scenarioFixturePattern &&
+          !SCENARIO_FIXTURES.has(propertyName)
+        )
           context.report({ node: property, messageId: "fixture" });
-        else if (name === "extend")
+        else if (propertyName === "extend")
           context.report({ node: property, messageId: "fixture" });
-        else if (name === "describe" && testAliases.has(sourceRoot))
+        else if (propertyName === "describe" && testAliases.has(sourceRoot))
           context.report({ node: property, messageId: "annotation" });
-        else if (PAGE_CREATION_APIS.has(name))
+        else if (PAGE_CREATION_APIS.has(propertyName))
           context.report({ node: property, messageId: "browser" });
-        else if (name === "use")
+        else if (propertyName === "use")
           context.report({ node: property, messageId: "browser" });
         else if (
-          DYNAMIC_CODE_NAMES.has(name) &&
+          DYNAMIC_CODE_NAMES.has(propertyName) &&
           property.key.type !== "Identifier"
         )
           context.report({ node: property, messageId: "import" });
-        else if (ANNOTATIONS.has(name))
+        else if (ANNOTATIONS.has(propertyName))
           context.report({ node: property, messageId: "annotation" });
-        else if (name === "mock")
+        else if (propertyName === "mock")
           context.report({ node: property, messageId: "mock" });
         else if (
-          NETWORK_APIS.has(name) ||
-          name === "fulfill" ||
-          name === "fetch"
+          NETWORK_APIS.has(propertyName) ||
+          propertyName === "fulfill" ||
+          propertyName === "fetch"
         )
           context.report({ node: property, messageId: "network" });
-        else if (BROWSER_APIS.has(name))
+        else if (BROWSER_APIS.has(propertyName))
           context.report({ node: property, messageId: "browser" });
-        else if (name === "goto")
+        else if (propertyName === "goto")
           context.report({ node: property, messageId: "browser" });
       }
+    };
+    const isScenarioFixtureTarget = (node) =>
+      isScenarioSpec(info) && scenarioFixtureAliases.has(memberRoot(node));
+    const reportFixtureMutation = (node, target) => {
+      if (isScenarioFixtureTarget(target))
+        context.report({ node, messageId: "fixture" });
     };
     return {
       ImportDeclaration(node) {
@@ -1045,6 +1072,11 @@ export default {
         if (node.init?.type === "Identifier") {
           if (
             node.id.type === "Identifier" &&
+            scenarioFixtureAliases.has(node.init.name)
+          )
+            scenarioFixtureAliases.add(node.id.name);
+          if (
+            node.id.type === "Identifier" &&
             (isGlobalRoot(node.init) || globalAliases.has(node.init.name))
           )
             globalAliases.add(node.id.name);
@@ -1102,9 +1134,15 @@ export default {
         }
       },
       AssignmentExpression(node) {
+        reportFixtureMutation(node, node.left);
         if (node.left.type === "Identifier" && isProcessObject(node.right))
           processAliases.add(node.left.name);
         if (node.right.type === "Identifier") {
+          if (
+            node.left.type === "Identifier" &&
+            scenarioFixtureAliases.has(node.right.name)
+          )
+            scenarioFixtureAliases.add(node.left.name);
           if (
             node.left.type === "Identifier" &&
             (isGlobalRoot(node.right) || globalAliases.has(node.right.name))
@@ -1127,6 +1165,13 @@ export default {
       },
       ObjectPattern(node) {
         reportObjectPattern(node);
+      },
+      UnaryExpression(node) {
+        if (node.operator === "delete")
+          reportFixtureMutation(node, node.argument);
+      },
+      UpdateExpression(node) {
+        reportFixtureMutation(node, node.argument);
       },
       Identifier(node) {
         if (!configFile && DYNAMIC_CODE_NAMES.has(node.name)) {
@@ -1213,6 +1258,20 @@ export default {
       },
       CallExpression(node) {
         if (configFile) return;
+        if (
+          node.callee.type === "MemberExpression" &&
+          node.callee.object.type === "Identifier" &&
+          node.callee.object.name === "Object" &&
+          [
+            "assign",
+            "defineProperty",
+            "defineProperties",
+            "setPrototypeOf",
+          ].includes(staticString(node.callee.property, node.callee.computed))
+        ) {
+          reportFixtureMutation(node, node.arguments[0]);
+          return;
+        }
         if (
           node.callee.type === "MemberExpression" &&
           isProcessObject(node.callee.object) &&

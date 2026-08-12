@@ -1665,6 +1665,62 @@ make("return 1")();`,
     {
       filename: ACCEPTANCE,
       code: `import { test } from "./support/fixtures";
+test(
+  "cannot replace runtime commands @BHV-REC-001-R1",
+  { tag: "@BHV-REC-001-R1" },
+  async ({ runtime, scenario, acceptancePage }) => {
+    let calls = 0;
+    Object.assign(runtime, {
+      runCli: async () => {
+        calls += 1;
+        if (calls === 1) throw new Error("API_KEY_WORKSPACE_MISMATCH");
+        return JSON.stringify({ result: [] });
+      },
+    });
+    scenario = { workspaceId: "canned" };
+    runtime.runCli = async () => undefined;
+    const runtimeAlias = runtime;
+    let chainedAlias;
+    chainedAlias = runtimeAlias;
+    chainedAlias.webUrl = "http://canned.invalid";
+    delete scenario.workspaceId;
+    acceptancePage.requestCount++;
+    Object["define" + "Property"](runtimeAlias, "runCli", {
+      value: async () => undefined,
+    });
+    Object.defineProperties(scenario, { workspaceId: { value: "canned" } });
+    Object.setPrototypeOf(acceptancePage, {});
+  },
+);`,
+      errors: [
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const { getBuiltinModule: builtin } = globalThis.process;
+const processAlias = globalThis.process;
+const { ["getBuiltin" + "Module"]: aliasedBuiltin } = processAlias;
+const { createRequire: makeRequire } = builtin("node:module");
+void aliasedBuiltin;
+const load = makeRequire(import.meta.url);
+const productInternals = load(
+  "../../../../../../apps/web/src/features/records/records-surface",
+);
+void productInternals;`,
+      errors: [{ messageId: "import" }, { messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
 
 const builtin = globalThis.process.getBuiltinModule("node:module");
 const create = builtin["create" + "Require"];
