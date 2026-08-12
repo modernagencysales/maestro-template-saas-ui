@@ -1,10 +1,11 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { copyFileSync, mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSaasApplicationTargetPlan } from "../../tooling/generators/src/blueprints/saasApplication";
+import { previewCommand } from "./golden-authority-command";
 
 const repositoryRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -44,6 +45,26 @@ function hashEntries(entries: readonly { path: string; content: string }[]) {
   return hash.digest("hex");
 }
 
+function copyTrackedScaffold(targetRoot: string) {
+  const paths = execFileSync("git", ["ls-files", "-z"], {
+    cwd: repositoryRoot,
+    encoding: "utf8",
+  })
+    .split("\0")
+    .filter(Boolean);
+  for (const path of paths) {
+    // TanStack scans this directory to build the route tree. Only projected
+    // route files may enter the generated authority; copying factory routes
+    // here would silently reintroduce public-funnel routes that the plan
+    // intentionally omits.
+    if (path.startsWith("apps/web/src/routes/")) continue;
+    const source = join(repositoryRoot, path);
+    const target = join(targetRoot, path);
+    mkdirSync(dirname(target), { recursive: true });
+    copyFileSync(source, target);
+  }
+}
+
 function materializeGeneratedTarget() {
   const targetRoot = mkdtempSync(
     join(tmpdir(), "maestro-saas-ui-golden-generated-"),
@@ -53,6 +74,7 @@ function materializeGeneratedTarget() {
     firstOutcome: "Review the generated SaaS workspace",
   });
   const digest = hashEntries(plan.entries);
+  copyTrackedScaffold(targetRoot);
   for (const entry of plan.entries) {
     const target = join(targetRoot, entry.path);
     mkdirSync(dirname(target), { recursive: true });
@@ -102,26 +124,38 @@ writeFileSync(
   `${JSON.stringify({ authority, root: targetRoot, digest }, null, 2)}\n`,
 );
 
-const child = spawn(
-  "pnpm",
-  [
-    "--dir",
-    resolve(repositoryRoot, "apps/web"),
-    "preview",
-    "--host",
-    "127.0.0.1",
-    "--port",
-    port,
-  ],
-  {
-    env: {
-      ...process.env,
-      GOLDEN_AUTHORITY: authority,
-      GOLDEN_AUTHORITY_ROOT: targetRoot,
+if (authority === "generated") {
+  execFileSync(
+    "pnpm",
+    ["install", "--no-frozen-lockfile", "--offline", "--ignore-scripts"],
+    {
+      cwd: targetRoot,
+      stdio: "inherit",
     },
+  );
+  execFileSync("pnpm", ["--dir", resolve(targetRoot, "apps/web"), "build"], {
+    cwd: targetRoot,
+    env: { ...process.env, REFERENCE_SOURCE_MODE: "0" },
     stdio: "inherit",
+  });
+}
+
+const command = previewCommand({
+  repositoryRoot,
+  targetRoot,
+  authority,
+  port,
+});
+const child = spawn(command.command, command.args, {
+  cwd: command.cwd,
+  env: {
+    ...process.env,
+    GOLDEN_AUTHORITY: authority,
+    GOLDEN_AUTHORITY_ROOT: targetRoot,
+    REFERENCE_SOURCE_MODE: authority === "reference" ? "1" : "0",
   },
-);
+  stdio: "inherit",
+});
 
 const stop = (signal: NodeJS.Signals) => child.kill(signal);
 process.on("SIGINT", () => stop("SIGINT"));
