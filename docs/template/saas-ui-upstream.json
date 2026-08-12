@@ -211,6 +211,14 @@
         {
           "source": "apps/web/src/features/getting-started/create-workspace.tsx",
           "destination": "apps/web/src/features/getting-started/create-workspace.tsx"
+        },
+        {
+          "source": "apps/web/public/img/onboarding/light.svg",
+          "destination": "apps/web/public/img/onboarding/light.svg"
+        },
+        {
+          "source": "apps/web/public/img/onboarding/dark.svg",
+          "destination": "apps/web/public/img/onboarding/dark.svg"
         }
       ]
     },

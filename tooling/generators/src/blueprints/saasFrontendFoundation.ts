@@ -106,6 +106,8 @@ const FRONTEND_SUPPORT_PATHS = [
   "apps/web/src/features/common/util/get-base-url.ts",
   "apps/web/src/features/public-funnel/legal-page.tsx",
   "apps/web/src/features/public-funnel/public-shell.tsx",
+  "apps/web/public/img/onboarding/light.svg",
+  "apps/web/public/img/onboarding/dark.svg",
   "apps/web/scripts/check-client-bundle-budget.mjs",
   "apps/web/scripts/check-client-bundle-budget.test.mjs",
   "eslint.config.mjs",

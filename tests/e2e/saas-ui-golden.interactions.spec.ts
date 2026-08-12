@@ -192,7 +192,7 @@ test.describe("paired Saas UI golden interactions", () => {
       await name.fill("Northstar launch");
       await page.getByRole("button", { name: "Save project" }).click();
       await expect(
-        page.getByRole("status", { name: "Changes saved successfully" }),
+        page.getByText("Changes saved successfully", { exact: true }),
       ).toBeVisible();
 
       await gotoGolden({
@@ -211,17 +211,21 @@ test.describe("paired Saas UI golden interactions", () => {
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("onboarding").route });
-      await page.getByRole("button", { name: "Create workspace" }).click();
-      await expect(
-        page.getByRole("alert").or(page.getByText(/required/i)),
-      ).toBeVisible();
+      const createWorkspace = page.getByRole("button", {
+        name: "Create workspace",
+      });
+      await page.getByRole("textbox", { name: "Workspace name" }).focus();
+      await page.keyboard.press("Tab");
+      await page.keyboard.press("Tab");
+      await expect(createWorkspace).toBeDisabled();
       await page
         .getByRole("textbox", { name: "Workspace name" })
         .fill("Golden workspace");
       await page
         .getByRole("textbox", { name: "Workspace URL" })
         .fill("golden-workspace");
-      await page.getByRole("button", { name: "Create workspace" }).click();
+      await expect(createWorkspace).toBeEnabled();
+      await createWorkspace.click();
       await expect(
         page.getByRole("heading", {
           name: /Choose your style|Create a new workspace/i,

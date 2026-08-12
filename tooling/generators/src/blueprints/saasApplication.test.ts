@@ -1287,6 +1287,21 @@ Feature: Reconcile disputed invoices
     }
   });
 
+  it("projects the pinned onboarding preview assets into generated targets", () => {
+    const plan = buildSaasApplicationTargetPlan();
+    for (const path of [
+      "apps/web/public/img/onboarding/light.svg",
+      "apps/web/public/img/onboarding/dark.svg",
+    ]) {
+      const entry = plan.entries.find((candidate) => candidate.path === path);
+      expect(
+        entry,
+        `missing generated onboarding asset: ${path}`,
+      ).toBeDefined();
+      expect(entry?.content).toBe(readFileSync(join(repoRoot, path), "utf8"));
+    }
+  });
+
   it("keeps current contracts and support files out of frozen alpha.1", () => {
     const historicalEntries = new Map(
       buildSaasApplicationAlpha1TargetPlan().entries.map((entry) => [
