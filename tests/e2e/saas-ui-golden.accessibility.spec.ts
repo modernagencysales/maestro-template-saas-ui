@@ -103,7 +103,12 @@ test.describe("paired Saas UI golden accessibility", () => {
 
   test("split-inbox activity editor and timeline use valid semantics", async ({
     page,
-  }) => {
+  }, testInfo) => {
+    testInfo.skip(
+      testInfo.project.name !== "desktop-chromium",
+      "Split-inbox mobile intentionally renders one list pane without the activity editor or timeline.",
+    );
+
     const splitInbox = acceptanceEntries.find(
       (entry) => entry.id === "split-inbox",
     );
