@@ -50,7 +50,7 @@ const compositionAssertions: Record<
     ).toBeVisible();
     await expect(page.getByRole("tab", { name: /Activity/i })).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /contact details/i }),
+      page.getByRole("button", { name: "Hide contact details", exact: true }),
     ).toBeVisible();
   },
   "split-inbox": async (page) => {
@@ -64,7 +64,7 @@ const compositionAssertions: Record<
         .getByText("Jordan Lee", { exact: true }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: /contact details/i }),
+      page.getByRole("button", { name: "Hide contact details", exact: true }),
     ).toBeVisible();
     await expect(page.getByText("Details", { exact: true })).toBeVisible();
   },
