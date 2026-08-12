@@ -274,7 +274,20 @@ test.describe("paired Saas UI golden interactions", () => {
       const destination = page.locator('[data-column="status:inactive"]');
       const card = origin.locator('[data-id="contact-1"]');
       await expect(card).toContainText("Jordan Lee");
-      await card.dragTo(destination);
+      const sourceBox = await card.boundingBox();
+      const targetBox = await destination.boundingBox();
+      if (!sourceBox || !targetBox) throw new Error("Kanban card not visible");
+      await page.mouse.move(
+        sourceBox.x + sourceBox.width / 2,
+        sourceBox.y + sourceBox.height / 2,
+      );
+      await page.mouse.down();
+      await page.mouse.move(
+        targetBox.x + targetBox.width / 2,
+        targetBox.y + targetBox.height / 2,
+        { steps: 20 },
+      );
+      await page.mouse.up();
       await expect(origin.locator('[data-id="contact-1"]')).toHaveCount(0);
       await expect(destination.locator('[data-id="contact-1"]')).toContainText(
         "Jordan Lee",
