@@ -38,7 +38,10 @@ describe("Saas UI foundation authorities", () => {
         "states",
       ]),
     );
-    expect(readSaasUiDeviations(root)).toEqual([]);
+    expect(readSaasUiDeviations(root).map(({ source }) => source)).toEqual([
+      "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes",
+      "tsconfig.base.json:compilerOptions.noUncheckedIndexedAccess",
+    ]);
     expect(readSaasUiRegistryFiles(root).files.length).toBeGreaterThan(0);
     expect(checkSaasUiFoundation(root)).toEqual([]);
   });

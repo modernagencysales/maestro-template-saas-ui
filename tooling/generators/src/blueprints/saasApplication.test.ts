@@ -2487,6 +2487,7 @@ Feature: Reconcile disputed invoices
         "check:headless-surface-contract",
         "check:posthog-readiness",
         "check:auth-demo-bypass",
+        "check:saas-ui-artifact-safety",
         "maestro -- contracts test --required",
       ]
         .map((name) => `pnpm ${name}`)

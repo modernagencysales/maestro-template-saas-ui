@@ -32,6 +32,7 @@ const registryReceipt = readJson<RegistryReceipt>(
 // source; this list only covers the files that make that source installable,
 // lintable, private, and reviewable in a generated target.
 const FRONTEND_SUPPORT_PATHS = [
+  "tsconfig.base.json",
   "apps/web/package.json",
   "apps/web/tsconfig.json",
   "apps/web/vite.config.ts",

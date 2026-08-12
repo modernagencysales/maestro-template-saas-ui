@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "source": "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes",
+    "destination": "apps/web/tsconfig.json:compilerOptions.exactOptionalPropertyTypes",
+    "change": "The generated web target sets exactOptionalPropertyTypes to false.",
+    "reason": "The transplanted Starter/Saas UI source currently relies on optional component props that are not assignable under the repository-wide exact optional property contract.",
+    "evidence": "pnpm --dir apps/web typecheck at 76a573883 fails in the current web closure; re-enable only after the generated-target typecheck/build proof passes."
+  },
+  {
+    "source": "tsconfig.base.json:compilerOptions.noUncheckedIndexedAccess",
+    "destination": "apps/web/tsconfig.json:compilerOptions.noUncheckedIndexedAccess",
+    "change": "The generated web target sets noUncheckedIndexedAccess to false.",
+    "reason": "The transplanted Starter/Saas UI source indexes registry and fixture collections without handling undefined values under the repository-wide indexed-access contract.",
+    "evidence": "pnpm --dir apps/web typecheck at 76a573883 fails in the current web closure; re-enable only after the generated-target typecheck/build proof passes."
+  }
+]

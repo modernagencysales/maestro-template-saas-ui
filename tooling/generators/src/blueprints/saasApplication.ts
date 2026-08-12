@@ -654,6 +654,7 @@ const SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS = [
   [".npmrc", "copy"],
   [".prettierignore", "copy"],
   ["apps/web/tsconfig.json", "copy"],
+  ["tsconfig.base.json", "copy"],
   ["agent-patterns/effect-confect.md", "copy"],
   ["AGENTS.md", "copy"],
   ["README.md", "copy"],
