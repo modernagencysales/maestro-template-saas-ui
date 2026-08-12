@@ -1,5 +1,8 @@
 import { expect, test as base } from "@playwright/test";
-import { assertNoNewGoldenServerErrors } from "./saas-ui-golden";
+import {
+  assertNoNewGoldenServerErrors,
+  isExpectedGoldenNavigationAbort,
+} from "./saas-ui-golden";
 
 function errorMessage(error: unknown) {
   return error instanceof Error ? error.message : String(error);
@@ -24,7 +27,13 @@ export const test = base.extend({
       }) => {
         if (
           request.resourceType() === "document" ||
-          request.resourceType() === "script"
+          (request.resourceType() === "script" &&
+            !isExpectedGoldenNavigationAbort({
+              resourceType: request.resourceType(),
+              url: request.url(),
+              errorText: request.failure()?.errorText,
+              pageUrl: page.url(),
+            }))
         ) {
           failures.push(
             `failed ${request.resourceType()} request: ${request.url()} (${request.failure()?.errorText ?? "unknown error"})`,
@@ -37,7 +46,8 @@ export const test = base.extend({
         url(): string;
       }) => {
         if (
-          response.request().resourceType() === "document" &&
+          (response.request().resourceType() === "document" ||
+            response.request().resourceType() === "script") &&
           response.status() >= 400
         ) {
           failures.push(

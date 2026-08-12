@@ -19,6 +19,34 @@ export type GoldenKind = "reference" | "generated";
 export type GoldenColorMode = "light" | "dark";
 export type GoldenViewport = "desktop" | "mobile";
 
+const goldenAuthorityOrigins = new Set(
+  [
+    process.env.UPSTREAM_REFERENCE_URL ?? "http://127.0.0.1:4173",
+    process.env.GOLDEN_GENERATED_URL ?? "http://127.0.0.1:4174",
+  ].map((url) => new URL(url).origin),
+);
+
+export function isExpectedGoldenNavigationAbort(input: {
+  resourceType: string;
+  url: string;
+  errorText: string | undefined;
+  pageUrl: string;
+}) {
+  if (
+    input.resourceType !== "script" ||
+    input.errorText !== "net::ERR_ABORTED"
+  ) {
+    return false;
+  }
+  const requestOrigin = new URL(input.url).origin;
+  const pageOrigin = new URL(input.pageUrl).origin;
+  return (
+    requestOrigin !== pageOrigin &&
+    goldenAuthorityOrigins.has(requestOrigin) &&
+    goldenAuthorityOrigins.has(pageOrigin)
+  );
+}
+
 const serverErrorEvidenceRoot = resolve(
   process.cwd(),
   "artifacts",

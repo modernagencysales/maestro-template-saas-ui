@@ -10,10 +10,54 @@ import { dirname, join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { previewCommand } from "../../tooling/saas-ui/golden-authority-command";
 import { buildSaasApplicationTargetPlan } from "../../tooling/generators/src/blueprints/saasApplication";
+import { isExpectedGoldenNavigationAbort } from "./fixtures/saas-ui-golden";
 
 const root = fileURLToPath(new URL("../..", import.meta.url));
 
 describe("golden browser authority startup", () => {
+  it("allows only aborted lazy scripts from the outgoing authority navigation", () => {
+    expect(
+      isExpectedGoldenNavigationAbort({
+        resourceType: "script",
+        url: "http://127.0.0.1:4173/assets/_workspace._dashboard.tag._tag.js",
+        errorText: "net::ERR_ABORTED",
+        pageUrl: "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
+      }),
+    ).toBe(true);
+    expect(
+      isExpectedGoldenNavigationAbort({
+        resourceType: "script",
+        url: "http://127.0.0.1:4173/assets/_workspace._dashboard.tag._tag.js",
+        errorText: "net::ERR_FAILED",
+        pageUrl: "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
+      }),
+    ).toBe(false);
+    expect(
+      isExpectedGoldenNavigationAbort({
+        resourceType: "document",
+        url: "http://127.0.0.1:4173/contacts",
+        errorText: "net::ERR_ABORTED",
+        pageUrl: "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
+      }),
+    ).toBe(false);
+    expect(
+      isExpectedGoldenNavigationAbort({
+        resourceType: "script",
+        url: "http://127.0.0.1:4174/assets/_workspace._dashboard.tag._tag.js",
+        errorText: "net::ERR_ABORTED",
+        pageUrl: "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
+      }),
+    ).toBe(false);
+    expect(
+      isExpectedGoldenNavigationAbort({
+        resourceType: "script",
+        url: "https://example.test/assets/chunk.js",
+        errorText: "net::ERR_ABORTED",
+        pageUrl: "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
+      }),
+    ).toBe(false);
+  });
+
   it("registers one browser gate that runs every behavioral golden spec", () => {
     const packageJson = JSON.parse(
       readFileSync(`${root}/package.json`, "utf8"),
