@@ -66,6 +66,7 @@ describe("Saas UI foundation authorities", () => {
       "@saas-ui/react:Steps.List dots recipe",
       "@saas-ui/react:BackButtonPrimitive",
       "@chakra-ui/react semantic token fg.error",
+      "@saas-ui-pro/react@1.0.0-next.4:components/split-page/SplitPage",
     ]);
     expect(readSaasUiRegistryFiles(root).files.length).toBeGreaterThan(0);
     expect(checkSaasUiFoundation(root)).toEqual([]);

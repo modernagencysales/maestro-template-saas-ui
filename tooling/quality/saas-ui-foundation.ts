@@ -13,7 +13,7 @@ const PINS = {
   pro: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
 } as const;
 export const SAAS_UI_DEVIATIONS_DIGEST =
-  "23267716380058328650dfb9c784c29d10c4088085cafae27b1b75a70f0cabc0";
+  "fbb326a6be7b49a26cac3f8f1a3f21c5c51938372374a00d7fd66d7e29cdf519";
 
 export function hasExecutableEvidenceDeclaration(
   source: string,
@@ -538,6 +538,9 @@ const FACTORY_SUPPORT_DESTINATIONS = new Set([
   "apps/web/src/lib/trpc/react.tsx",
   "apps/web/src/components/back-button.tsx",
   "apps/web/src/features/contacts/list/list-page.tsx",
+  "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
+  "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
+  "apps/web/src/routes/_workspace.inbox.$id.tsx",
   "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
 ]);
 const DEVIATION_EVIDENCE_AUTHORITY = new Map<string, string>([
@@ -604,6 +607,10 @@ const DEVIATION_EVIDENCE_AUTHORITY = new Map<string, string>([
   [
     "@chakra-ui/react semantic token fg.error|apps/web/src/theme/semantic-tokens/colors.ts",
     "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} has no serious or critical dark-mode axe violations`, async ({",
+  ],
+  [
+    "@saas-ui-pro/react@1.0.0-next.4:components/split-page/SplitPage|apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/contacts/inbox/inbox-view-page.tsx; apps/web/src/routes/_workspace.inbox.$id.tsx",
+    "tests/e2e/saas-ui-golden.interactions.spec.ts#test(`${kind} switches between one inbox pane at a time`, async ({",
   ],
 ]);
 

@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "authorityDigest": "23267716380058328650dfb9c784c29d10c4088085cafae27b1b75a70f0cabc0",
+  "authorityDigest": "fbb326a6be7b49a26cac3f8f1a3f21c5c51938372374a00d7fd66d7e29cdf519",
   "deviations": [
     {
       "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
@@ -193,6 +193,23 @@
         "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} has no serious or critical dark-mode axe violations`, async ({"
       ],
       "sourceAuthority": "starter-receipt"
+    },
+    {
+      "source": "@saas-ui-pro/react@1.0.0-next.4:components/split-page/SplitPage",
+      "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/contacts/inbox/inbox-view-page.tsx; apps/web/src/routes/_workspace.inbox.$id.tsx",
+      "change": "The generated inbox adapter supplies the SplitPage root layout semantics, renders exactly one list/detail pane on mobile, waits for the resolved mobile breakpoint before desktop auto-selection, and wires the detail toolbar back to the inbox route.",
+      "reason": "The factory route/outlet composition otherwise leaves both inbox panes mounted at 320px and the preserved detail route has no back callback; the structural adapter is required for one-pane mobile navigation and focusable return behavior while retaining the upstream desktop split.",
+      "evidence": "The paired mobile interaction test asserts the reference authority's pinned redirect as a negative authority expectation and verifies generated list/detail exclusivity, <=320px document reflow, back navigation, and focus visibility.",
+      "evidencePaths": [
+        "tests/e2e/saas-ui-golden.interactions.spec.ts",
+        "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
+        "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
+        "apps/web/src/routes/_workspace.inbox.$id.tsx"
+      ],
+      "evidenceChecks": [
+        "tests/e2e/saas-ui-golden.interactions.spec.ts#test(`${kind} switches between one inbox pane at a time`, async ({"
+      ],
+      "sourceAuthority": "factory-support"
     }
   ]
 }

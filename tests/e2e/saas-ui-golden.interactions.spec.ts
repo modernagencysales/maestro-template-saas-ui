@@ -295,6 +295,35 @@ test.describe("paired Saas UI golden interactions", () => {
       ).toContainText("Jordan Lee");
     });
 
+    test(`${kind} moves the exact Kanban card by keyboard through the adapter`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("kanban").route });
+      const origin = page.locator('[data-column="status:active"]');
+      const destination = page.locator('[data-column="status:inactive"]');
+      const card = origin.locator('[data-id="contact-1"]');
+      await expect(card).toContainText("Jordan Lee");
+
+      await card.focus();
+      await page.keyboard.press("Space");
+      await expect(card).toHaveAttribute("data-dragging", "");
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("Space");
+
+      await expect(origin.locator('[data-id="contact-1"]')).toHaveCount(0);
+      await expect(destination.locator('[data-id="contact-1"]')).toContainText(
+        "Jordan Lee",
+      );
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(
+        page.locator('[data-column="status:active"] [data-id="contact-1"]'),
+      ).toHaveCount(0);
+      await expect(
+        page.locator('[data-column="status:inactive"] [data-id="contact-1"]'),
+      ).toContainText("Jordan Lee");
+    });
+
     test(`${kind} auth form validates credentials and preserves input`, async ({
       page,
     }) => {
@@ -361,11 +390,22 @@ test.describe("paired mobile shell behavior", () => {
 test.describe("paired mobile inbox behavior", () => {
   test.use({ viewport: { width: 320, height: 800 } });
 
-  for (const kind of ["generated"] as const) {
+  for (const kind of authorities) {
     test(`${kind} switches between one inbox pane at a time`, async ({
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("split-inbox").route });
+
+      if (kind === "reference") {
+        await expect(page).toHaveURL(/contacts\/view\/contact-1/);
+        await expect(
+          page.getByRole("complementary", { name: "Contact details" }),
+        ).toContainText("Jordan Lee");
+        expect(
+          await page.evaluate(() => document.documentElement.scrollWidth),
+        ).toBeLessThanOrEqual(320);
+        return;
+      }
 
       const inboxHeading = page.getByRole("heading", {
         name: "Inbox",
@@ -377,11 +417,17 @@ test.describe("paired mobile inbox behavior", () => {
       const item = page.getByRole("row", { name: /Sam Rivera/ });
 
       await expect(inboxHeading).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(320);
       await expect(details).toHaveCount(0);
       await item.click();
 
       await expect(details).toContainText("Sam Rivera");
       await expect(inboxHeading).toBeHidden();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(320);
 
       const back = page.getByRole("button", { name: "All notifications" });
       await expect(back).toBeVisible();
