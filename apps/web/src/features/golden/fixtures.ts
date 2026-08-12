@@ -89,7 +89,7 @@ const workspace = {
       id: "user-1",
       name: "Alex Morgan",
       email: "alex@example.com",
-      roles: ["owner"],
+      roles: ["admin"],
       status: "active",
     },
   ],

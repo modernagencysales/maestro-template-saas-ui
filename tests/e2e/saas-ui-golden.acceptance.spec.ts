@@ -39,11 +39,15 @@ const compositionAssertions: Record<
   "filterable-collection": async (page) => {
     await expect(page.getByRole("button", { name: /filter/i })).toBeVisible();
     await expect(
-      page.getByText("Northstar Labs", { exact: true }),
+      page.getByRole("link", { name: "Jordan Lee", exact: true }),
     ).toBeVisible();
   },
   "list-detail": async (page) => {
-    await expect(page.getByText("Jordan Lee", { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole("complementary", { name: "Contact details" })
+        .getByText("Jordan Lee", { exact: true }),
+    ).toBeVisible();
     await expect(page.getByRole("tab", { name: /Activity/i })).toBeVisible();
     await expect(
       page.getByRole("button", { name: /contact details/i }),
@@ -51,10 +55,14 @@ const compositionAssertions: Record<
   },
   "split-inbox": async (page) => {
     await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible();
-    await expect(page.getByText("Jordan Lee", { exact: true })).toBeVisible();
+    await expect(page.getByRole("row", { name: /Jordan Lee/ })).toBeVisible();
   },
   "record-aside": async (page) => {
-    await expect(page.getByText("Jordan Lee", { exact: true })).toBeVisible();
+    await expect(
+      page
+        .getByRole("complementary", { name: "Contact details" })
+        .getByText("Jordan Lee", { exact: true }),
+    ).toBeVisible();
     await expect(
       page.getByRole("button", { name: /contact details/i }),
     ).toBeVisible();
@@ -101,11 +109,15 @@ const compositionAssertions: Record<
   auth: async (page) => {
     await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
-    await expect(page.getByLabel("Password")).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Password", exact: true }),
+    ).toBeVisible();
     await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
   },
   billing: async (page) => {
-    await expect(page.getByRole("heading", { name: "Billing" })).toBeVisible();
+    await expect(
+      page.getByRole("heading", { name: "Billing", exact: true }),
+    ).toBeVisible();
     await expect(page.getByText("Billing plan", { exact: true })).toBeVisible();
     await expect(page.getByText("Invoices", { exact: true })).toBeVisible();
   },
@@ -133,6 +145,14 @@ function assertionFor(entry: AcceptanceEntry) {
   return assertion;
 }
 
+function renderedRouteFor(entry: AcceptanceEntry) {
+  // The starter's inbox route selects the first item and intentionally masks
+  // the nested inbox URL as the selected contact route.
+  return entry.id === "split-inbox"
+    ? "/contacts/view/contact-1"
+    : concreteRoute(entry.route);
+}
+
 test.describe("paired acceptance-map compositions", () => {
   for (const entry of acceptanceEntries) {
     test(`${entry.id} renders its mapped composition on both authorities`, async ({
@@ -142,7 +162,7 @@ test.describe("paired acceptance-map compositions", () => {
         await gotoGolden({ page, kind, route: entry.route });
         await expect(page).toHaveURL(
           new RegExp(
-            `${concreteRoute(entry.route).split("?")[0].replaceAll("/", "\\/")}(?:\\?|$)`,
+            `${renderedRouteFor(entry).split("?")[0].replaceAll("/", "\\/")}(?:\\?|$)`,
           ),
         );
         await assertionFor(entry)(page, entry);
