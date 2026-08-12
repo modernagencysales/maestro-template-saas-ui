@@ -119,6 +119,7 @@
     "smoke:hosted:a11y": "playwright test tests/e2e/hosted-reference-app.accessibility.spec.ts",
     "smoke:hosted:visual": "playwright test tests/e2e/hosted-reference-app.visual.spec.ts",
     "smoke:golden": "pnpm smoke:golden:browser",
+    "saas-ui:write-summaries": "tsx tooling/saas-ui/write-golden-summaries.mts",
     "smoke:golden:browser": "pnpm --dir apps/web build && playwright test tests/e2e/saas-ui-golden.spec.ts tests/e2e/saas-ui-golden.acceptance.spec.ts tests/e2e/saas-ui-golden.interactions.spec.ts",
     "smoke:golden:a11y": "pnpm --dir apps/web build && playwright test tests/e2e/saas-ui-golden.accessibility.spec.ts",
     "smoke:golden:visual": "pnpm --dir apps/web build && playwright test tests/e2e/saas-ui-golden.visual.spec.ts",

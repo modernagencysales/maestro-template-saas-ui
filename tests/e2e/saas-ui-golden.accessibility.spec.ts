@@ -6,6 +6,45 @@ const authorities = ["reference", "generated"] as const;
 const wcagTags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"] as const;
 
 test.describe("paired Saas UI golden accessibility", () => {
+  test("reduced motion is honored by both authorities", async ({ page }) => {
+    for (const kind of authorities) {
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await gotoGolden({ page, kind, route: "/dashboard" });
+
+      const reducedMotionContract = await page.evaluate(() => {
+        const hasContract = (rules: CSSRuleList): boolean =>
+          Array.from(rules).some((rule) => {
+            const cssText = rule.cssText.replaceAll(/\s+/gu, " ");
+            if (
+              /prefers-reduced-motion\s*:\s*reduce/iu.test(cssText) &&
+              /(transition-duration|animation-duration|animation\s*:\s*none)/iu.test(
+                cssText,
+              )
+            ) {
+              return true;
+            }
+            return "cssRules" in rule && hasContract(rule.cssRules);
+          });
+
+        return (
+          window.matchMedia("(prefers-reduced-motion: reduce)").matches &&
+          Array.from(document.styleSheets).some((sheet) => {
+            try {
+              return hasContract(sheet.cssRules);
+            } catch {
+              return false;
+            }
+          })
+        );
+      });
+
+      expect(
+        reducedMotionContract,
+        `${kind} must expose a reduced-motion CSS contract`,
+      ).toBe(true);
+    }
+  });
+
   for (const entry of acceptanceEntries) {
     for (const kind of authorities) {
       test(`${entry.id} ${kind} has no serious or critical axe violations`, async ({

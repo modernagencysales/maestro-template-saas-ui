@@ -1,10 +1,16 @@
-import { mkdtempSync, readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
+import { resolve } from "node:path";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { describe, expect, it } from "vitest";
 
-import { writeGoldenSummaries } from "./golden-summaries";
+import {
+  buildGoldenSummaryInput,
+  writeGoldenSummaries,
+} from "./golden-summaries";
+import { main as writeGoldenSummariesCli } from "./write-golden-summaries.mts";
 
 const input = {
   generatedAt: "2026-08-12T12:00:00.000Z",
@@ -95,5 +101,122 @@ describe("golden Task 12 summaries", () => {
         evidencePaths: ["/Users/alice/private-capture.png"],
       }),
     ).toThrow(/repository-relative|absolute|temporary/u);
+  });
+
+  it("binds receipt summaries to the current head and authority metadata", () => {
+    const repositoryRoot = process.cwd();
+    const finalHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+    }).trim();
+    const pins = JSON.parse(
+      readFileSync(
+        resolve(repositoryRoot, "docs/template/saas-ui-upstream.json"),
+        "utf8",
+      ),
+    ).pins as typeof input.pins;
+    const generatedDigest = (
+      JSON.parse(
+        readFileSync(
+          resolve(
+            repositoryRoot,
+            "artifacts/saas-ui-golden/authority-generated.json",
+          ),
+          "utf8",
+        ),
+      ) as { digest: string }
+    ).digest;
+
+    const summary = buildGoldenSummaryInput({
+      repositoryRoot,
+      receipt: {
+        schemaVersion: 1,
+        generatedAt: input.generatedAt,
+        finalHead,
+        pins,
+        generatedDigest,
+        deviations: [],
+        evidencePaths: input.evidencePaths,
+        commands: input.commands,
+      },
+    });
+
+    expect(summary.finalHead).toBe(finalHead);
+    expect(summary.pins).toEqual(pins);
+    expect(summary.generatedDigest).toBe(generatedDigest);
+    expect(summary.commands).toEqual(input.commands);
+  });
+
+  it("fails closed for a stale receipt head", () => {
+    expect(() =>
+      buildGoldenSummaryInput({
+        repositoryRoot: process.cwd(),
+        receipt: {
+          schemaVersion: 1,
+          generatedAt: input.generatedAt,
+          finalHead: "0".repeat(40),
+          pins: input.pins,
+          generatedDigest: input.generatedDigest,
+          deviations: [],
+          evidencePaths: input.evidencePaths,
+          commands: input.commands,
+        },
+      }),
+    ).toThrow(/head|stale|receipt/u);
+  });
+
+  it("has an executable caller that writes only the four required summaries", () => {
+    const repositoryRoot = process.cwd();
+    const root = mkdtempSync(join(tmpdir(), "golden-summary-cli-"));
+    const outputRoot = join(root, "artifacts/saas-ui-golden");
+    const finalHead = execFileSync("git", ["rev-parse", "HEAD"], {
+      cwd: repositoryRoot,
+      encoding: "utf8",
+    }).trim();
+    const pins = JSON.parse(
+      readFileSync(
+        join(repositoryRoot, "docs/template/saas-ui-upstream.json"),
+        "utf8",
+      ),
+    ).pins as typeof input.pins;
+    const generatedDigest = (
+      JSON.parse(
+        readFileSync(
+          join(
+            repositoryRoot,
+            "artifacts/saas-ui-golden/authority-generated.json",
+          ),
+          "utf8",
+        ),
+      ) as { digest: string }
+    ).digest;
+    const receiptPath = join(root, "receipt.json");
+    writeFileSync(
+      receiptPath,
+      `${JSON.stringify({
+        schemaVersion: 1,
+        generatedAt: input.generatedAt,
+        finalHead,
+        pins,
+        generatedDigest,
+        deviations: [],
+        evidencePaths: input.evidencePaths,
+        commands: input.commands,
+      })}\n`,
+    );
+
+    writeGoldenSummariesCli([
+      "--receipt",
+      receiptPath,
+      "--output-root",
+      outputRoot,
+    ]);
+
+    expect(readdirSync(outputRoot).sort()).toEqual([
+      "acceptance-summary.json",
+      "accessibility-summary.json",
+      "deviation-summary.json",
+      "interaction-summary.json",
+    ]);
   });
 });
