@@ -106,7 +106,6 @@ const ActivityTimelineItem: React.FC<ActivityTimelineItem> = (props) => {
   return (
     <Timeline.Item
       id={id}
-      role="group"
       css={{
         "&:last-of-type .chakra-timeline__separator": { opacity: 0 },
       }}
@@ -345,6 +344,7 @@ const ActivityTimelineAddComment: React.FC<ActivityTimelineAddCommentProps> = (
               <field.EditorField
                 border="0"
                 padding="0"
+                aria-label="Write your comment..."
                 placeholder="Write your comment..."
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && e.metaKey) {

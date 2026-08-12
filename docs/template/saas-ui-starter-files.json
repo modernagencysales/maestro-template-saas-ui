@@ -405,7 +405,7 @@
       "source": "apps/web/src/features/contacts/view/activity-timeline.tsx",
       "destination": "apps/web/src/features/contacts/view/activity-timeline.tsx",
       "sourceSha256": "a12f4433e9e4e28d70b8451a3e1102019236494abd295b5cd979de485b897c00",
-      "sha256": "ef7fd58e7b81ba31576f7adf4930244fbb3a8f83af29e7d2e081f1675a6ed483",
+      "sha256": "9637d86e15ad58f530b284c2622aa81f3584fdcb83fdca4439aa1b5a1b9cfea1",
       "adapted": true
     },
     {

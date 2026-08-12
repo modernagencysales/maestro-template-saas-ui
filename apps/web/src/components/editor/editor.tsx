@@ -40,6 +40,7 @@ export const Editor = React.forwardRef<HTMLDivElement, EditorProps>(
       placeholder,
       editorRef,
       minHeight = "60px",
+      "aria-label": ariaLabel,
       ...rest
     } = props;
 
@@ -67,6 +68,11 @@ export const Editor = React.forwardRef<HTMLDivElement, EditorProps>(
     }) as TipTapEditor;
 
     React.useImperativeHandle(editorRef, () => editor);
+
+    React.useEffect(() => {
+      if (editor && ariaLabel)
+        editor.view.dom.setAttribute("aria-label", ariaLabel);
+    }, [ariaLabel, editor]);
 
     React.useEffect(() => {
       if (!editor) return;

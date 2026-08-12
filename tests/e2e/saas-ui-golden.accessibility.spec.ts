@@ -100,6 +100,29 @@ test.describe("paired Saas UI golden accessibility", () => {
       }
     });
   }
+
+  test("split-inbox activity editor and timeline use valid semantics", async ({
+    page,
+  }) => {
+    const splitInbox = acceptanceEntries.find(
+      (entry) => entry.id === "split-inbox",
+    );
+    if (!splitInbox) throw new Error("Missing split-inbox acceptance entry");
+
+    for (const kind of authorities) {
+      await gotoGolden({ page, kind, route: splitInbox.route });
+
+      await expect(
+        page.locator('[contenteditable="true"][role="textbox"]'),
+      ).toHaveAccessibleName("Write your comment...");
+      await expect(
+        page.getByRole("list").locator('[role="listitem"]'),
+      ).toHaveCount(1);
+      await expect(
+        page.getByRole("list").locator('[role="group"]'),
+      ).toHaveCount(0);
+    }
+  });
 });
 
 test.describe("paired Saas UI golden data-grid semantics", () => {
