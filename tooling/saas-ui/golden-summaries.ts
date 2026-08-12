@@ -10,6 +10,7 @@ import {
 import { dirname, join, relative, resolve } from "node:path";
 
 import type { SaasUiDeviation } from "../quality/saas-ui-foundation";
+import { readSaasUiDeviations } from "../quality/saas-ui-foundation";
 
 const ABSOLUTE_PATH = /(?:^|[\s"':=])\/(?!\/)[^\s"`]+/u;
 
@@ -383,6 +384,7 @@ export function runGoldenSummaryCommands(
   const root = resolve(repositoryRoot);
   const finalHead = exactHead(root);
   const manifest = readJson(join(root, "docs/template/saas-ui-upstream.json"));
+  const deviations = readSaasUiDeviations(root);
   const authority = readJson(
     join(root, "artifacts/saas-ui-golden/authority-generated.json"),
   );
@@ -418,7 +420,7 @@ export function runGoldenSummaryCommands(
     finalHead,
     pins: exactPins(manifest.pins),
     generatedDigest: authority.digest,
-    deviations: [],
+    deviations,
     evidencePaths: [
       "artifacts/saas-ui-golden/authority-generated.json",
       "artifacts/saas-ui-golden/authority-reference.json",

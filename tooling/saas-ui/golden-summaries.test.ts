@@ -247,6 +247,7 @@ describe("golden Task 12 summaries", () => {
     expect(calls[0]?.argv).toEqual(["check:saas-ui-foundation"]);
     expect(receipt.commands[0]?.exitCode).toBe(7);
     expect(receipt.commands).toHaveLength(REQUIRED_GOLDEN_COMMANDS.length);
+    expect(receipt.deviations).toHaveLength(16);
   });
 
   it("rejects garbage and out-of-bounds timestamps", () => {

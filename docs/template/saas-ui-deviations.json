@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "authorityDigest": "3eba3e00c8e109455b4da584fe436159a75580af563f414e202370ab2f7648f5",
+  "authorityDigest": "23267716380058328650dfb9c784c29d10c4088085cafae27b1b75a70f0cabc0",
   "deviations": [
     {
       "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
@@ -10,7 +10,7 @@
       "evidence": "Generated-target SSR reproduced the error in @saas-ui-pro/react useResize while rendering AppSidebar; client-resizer.test.tsx renders the fallback with renderToString without throwing.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "apps/web/src/features/common/components/client-resizer.test.tsx#renders its fallback during SSR"
+        "apps/web/src/features/common/components/client-resizer.test.tsx#renders its fallback during SSR without evaluating the browser-only resizer"
       ],
       "sourceAuthority": "factory-support"
     },
@@ -22,7 +22,7 @@
       "evidence": "Paired axe run reported serious aria-prohibited-attr on .sui-resize-handle; shell.test.tsx asserts the generated sidebar source includes the separator role and orientation.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "apps/web/src/features/common/shell.test.tsx#guards the upstream resizer from SSR"
+        "apps/web/src/features/common/shell.test.tsx#guards the upstream resizer from SSR and exposes an accessible separator"
       ],
       "sourceAuthority": "starter-receipt"
     },
@@ -34,7 +34,7 @@
       "evidence": "At generated-target proof commit acbced929, enabling exactOptionalPropertyTypes=true after the production build produces 34 web type errors (28 TS2375 and 6 TS2379), primarily optional component props receiving undefined; the relaxed override remains required.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target"
+        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target with frozen dependencies"
       ],
       "sourceAuthority": "factory-support"
     },
@@ -46,7 +46,7 @@
       "evidence": "At generated-target proof commit acbced929, enabling noUncheckedIndexedAccess=true after the production build produces 13 web type errors (8 TS18048, 1 TS2322, 2 TS2345, and 2 TS2532), from unchecked collection/indexed values; the relaxed override remains required.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target"
+        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target with frozen dependencies"
       ],
       "sourceAuthority": "factory-support"
     },
@@ -58,7 +58,7 @@
       "evidence": "The pinned desktop authority artifact and generated desktop authority artifact both reported axe rule definition-list (serious) on <dl class=\"chakra-stat__root css-1pbhjgj\"> with direct chart div and legend ul children; focused generated axe passed after the seam, and the pinned reference source was synchronized with the same minimal semantic change.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "apps/web/src/features/reports/reports-page.test.tsx#does not expose the chart legend"
+        "apps/web/src/features/reports/reports-page.test.tsx#does not expose the chart legend as an invalid definition-list item"
       ],
       "sourceAuthority": "starter-receipt"
     },
@@ -70,7 +70,7 @@
       "evidence": "app-provider.test.tsx verifies the provider composition with a real QueryClient and the reference authority launcher reaches Vite preview after the provider seam.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "apps/web/src/features/common/providers/app-provider.test.tsx#closes the generated auth"
+        "apps/web/src/features/common/providers/app-provider.test.tsx#closes the generated auth and React Query provider boundary"
       ],
       "sourceAuthority": "starter-receipt"
     },
@@ -82,7 +82,7 @@
       "evidence": "The receipt-backed adapted-file test hashes both served call sites, and the existing client-resizer SSR evidence covers renderToString without a document global.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider"
+        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider and resizer seams for upstream screens"
       ],
       "sourceAuthority": "starter-receipt"
     },
@@ -94,7 +94,7 @@
       "evidence": "The generated-target SSR provider test exercises the root composition and the reference authority launcher reaches preview startup.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider"
+        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider and resizer seams for upstream screens"
       ],
       "sourceAuthority": "factory-support"
     },
@@ -105,7 +105,9 @@
       "reason": "Starter-specific tRPC credentials and client construction are not available in the factory; the facade keeps transplanted screens runnable with fake fixtures.",
       "evidence": "react.test.tsx verifies nested query/mutation access remains fake-safe, and the generated-target proof reaches the web build without a live tRPC client.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
-      "evidenceChecks": ["apps/web/src/lib/trpc/react.test.tsx#"],
+      "evidenceChecks": [
+        "apps/web/src/lib/trpc/react.test.tsx#serves the shared neutral fixtures required by projected SaaS UI screens"
+      ],
       "sourceAuthority": "factory-support"
     },
     {
@@ -116,7 +118,7 @@
       "evidence": "The paired golden interaction spec closes the contact details aside with Escape and asserts focus returns to the named trigger.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "tests/e2e/saas-ui-golden.interactions.spec.ts#contact details"
+        "tests/e2e/saas-ui-golden.interactions.spec.ts#test(`${kind} navigates list to detail and switches the record aside`, async ({"
       ],
       "sourceAuthority": "starter-receipt"
     },
@@ -128,7 +130,7 @@
       "evidence": "data-grid.ssr.test.tsx reproduces ReferenceError: document is not defined for the vendor DataGrid with resizing enabled; the ContactsListPage SSR regression and paired desktop golden subset prove the boundary and hydrated grid.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "apps/web/src/features/contacts/list/list-page.ssr.test.tsx#renders the data-grid route"
+        "apps/web/src/features/contacts/list/list-page.ssr.test.tsx#renders the data-grid route during SSR without browser globals"
       ],
       "sourceAuthority": "starter-receipt"
     },
@@ -140,7 +142,7 @@
       "evidence": "The paired data-grid accessibility test fails on both authorities before the seam; frozen generated-target installation includes the patch, and paired axe coverage verifies the repaired DOM without rule exclusions.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "tests/e2e/saas-ui-golden.accessibility.spec.ts#data-grid semantics"
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} keeps sorting semantics on column headers and names row actions`, async ({"
       ],
       "sourceAuthority": "factory-support"
     },
@@ -151,7 +153,9 @@
       "reason": "The preserved screens used invalid autocomplete=\"password\" and overrode a named button to role=group, producing serious and critical WCAG failures.",
       "evidence": "Focused paired axe coverage passes both auth and billing routes on the reference and generated authorities without rule exclusions.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
-      "evidenceChecks": ["tests/e2e/saas-ui-golden.accessibility.spec.ts#auth"],
+      "evidenceChecks": [
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${entry.id} ${kind} has no serious or critical axe violations`, async ({"
+      ],
       "sourceAuthority": "starter-receipt"
     },
     {
@@ -162,7 +166,7 @@
       "evidence": "Paired reference/generated regression asserts the named progressbar, current value, and absence of a tablist.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "tests/e2e/saas-ui-golden.accessibility.spec.ts#onboarding progress semantics"
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} exposes the visual step indicator as named progress`, async ({"
       ],
       "sourceAuthority": "starter-receipt"
     },
@@ -174,7 +178,7 @@
       "evidence": "The reusable application back control now renders exactly one named navigation link; focused onboarding axe covers the served route.",
       "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
       "evidenceChecks": [
-        "tests/e2e/saas-ui-golden.accessibility.spec.ts#onboarding"
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${entry.id} exposes names and visible keyboard focus on both authorities`, async ({"
       ],
       "sourceAuthority": "factory-support"
     },
@@ -186,7 +190,7 @@
       "evidence": "Paired onboarding dark-mode accessibility coverage executes the validation flow on reference and generated authorities; the dark token remains red.300 and the route has no serious or critical axe violations.",
       "evidencePaths": ["tests/e2e/saas-ui-golden.accessibility.spec.ts"],
       "evidenceChecks": [
-        "tests/e2e/saas-ui-golden.accessibility.spec.ts#paired onboarding dark-mode accessibility"
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} has no serious or critical dark-mode axe violations`, async ({"
       ],
       "sourceAuthority": "starter-receipt"
     }
