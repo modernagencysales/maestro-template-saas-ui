@@ -32,6 +32,7 @@ const starterPin = "b76cb4514b9ab47f7db87901cb9b593b4adc3129";
 const referenceCompatibilityPaths = new Set([
   "apps/web/src/features/auth/auth-provider.tsx",
   "apps/web/src/features/common/components/app-sidebar.tsx",
+  "apps/web/src/features/common/components/billing-status.tsx",
   "apps/web/src/features/common/hooks/use-current-user.ts",
   "apps/web/src/features/common/hooks/use-current-workspace.ts",
   "apps/web/src/features/common/hooks/use-tags.ts",
@@ -40,6 +41,13 @@ const referenceCompatibilityPaths = new Set([
   "apps/web/src/features/common/layouts/app-layout.tsx",
   "apps/web/src/features/common/layouts/dashboard-layout.tsx",
   "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
+  "apps/web/src/features/contacts/inbox/inbox-list.tsx",
+  "apps/web/src/features/contacts/list/list-page.tsx",
+  "apps/web/src/features/contacts/view/activities-panel.tsx",
+  "apps/web/src/features/contacts/view/activity-timeline.tsx",
+  "apps/web/src/features/contacts/view/contact-page.tsx",
+  "apps/web/src/features/contacts/view/contact-sidebar.tsx",
+  "apps/web/src/features/search/search-page.tsx",
   "apps/web/src/features/settings/common/settings-sidebar.tsx",
 ]);
 const port = process.env.PORT ?? process.argv[3] ?? "4173";

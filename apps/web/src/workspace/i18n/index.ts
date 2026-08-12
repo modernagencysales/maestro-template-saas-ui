@@ -6,11 +6,11 @@ export const DateTime = ({
   style,
 }: {
   children?: ReactNode;
-  date?: Date;
+  date?: Date | string | number;
   style?: "short" | "long" | "narrow";
 }) => {
   void style;
-  return children ?? (date ? date.toLocaleDateString() : null);
+  return children ?? (date ? new Date(date).toLocaleDateString() : null);
 };
 export const RelativeTime = DateTime;
 export const DateTimeSince = DateTime;
