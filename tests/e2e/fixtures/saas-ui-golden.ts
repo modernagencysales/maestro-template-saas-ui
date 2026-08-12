@@ -149,6 +149,30 @@ export async function gotoGolden(input: {
   assertNoNewGoldenServerErrors(input.page);
 }
 
+export async function reducedMotionBehavior(page: Page) {
+  return page.evaluate(() => {
+    const motion = Array.from(document.querySelectorAll<HTMLElement>("*"))
+      .map((element) => {
+        const style = getComputedStyle(element);
+        const animated =
+          style.animationName !== "none" || style.transitionProperty !== "none";
+        if (!animated) return undefined;
+        const durations = [
+          ...style.transitionDuration.split(","),
+          ...style.animationDuration.split(","),
+        ].map((value) => Number.parseFloat(value) || 0);
+        return { durations };
+      })
+      .filter((value): value is { durations: number[] } => value !== undefined);
+    return {
+      matched: motion.length,
+      reduced: motion.every(({ durations }) =>
+        durations.every((duration) => duration <= 0.01),
+      ),
+    };
+  });
+}
+
 function viewportName(page: Page): GoldenViewport {
   return (page.viewportSize()?.width ?? 1440) <= 600 ? "mobile" : "desktop";
 }
