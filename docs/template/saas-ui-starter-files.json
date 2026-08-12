@@ -405,7 +405,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/contacts/view/contact-sidebar.tsx",
       "destination": "apps/web/src/features/contacts/view/contact-sidebar.tsx",
       "sourceSha256": "57759ed08ad8e910c0cfd49ff65c89f4a30c91fc3e282488e2874554ad77d9c8",
-      "sha256": "4b8a05c6a32e55b6ab0707b9cac577a05d42df4359bc2ec18f6678faaee2afa0",
+      "sha256": "49b0ac0c6fe9bbf15f27e25b6be6da4a8e6b01d6fffada6c1ae29aff320c51cc",
       "adapted": true
     },
     {
