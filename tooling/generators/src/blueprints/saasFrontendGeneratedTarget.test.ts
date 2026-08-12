@@ -34,6 +34,29 @@ vi.mock("node:fs", async (importOriginal) => {
 const { buildSaasApplicationTargetPlan } = await import("./saasApplication");
 
 describe("SaaS UI generated target artifact boundary", () => {
+  it("projects SSR-safe provider and resizer seams for upstream screens", () => {
+    const sources = new Map(
+      buildSaasApplicationTargetPlan({ name: "SSR Closure" }).entries.map(
+        ({ path, content }) => [path, content],
+      ),
+    );
+
+    expect(
+      sources.get("apps/web/src/features/common/providers/app-provider.tsx"),
+    ).toContain("QueryClientProvider");
+    expect(
+      sources.get("apps/web/src/features/common/providers/app-provider.tsx"),
+    ).toContain("<AuthProvider>");
+    for (const path of [
+      "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
+      "apps/web/src/features/settings/common/settings-sidebar.tsx",
+    ]) {
+      const source = sources.get(path) ?? "";
+      expect(source).toContain("<ClientResizer");
+      expect(source).not.toContain("<Resizer");
+    }
+  });
+
   it("keeps the mandatory frontend authority and private package boundary in the current target plan", () => {
     const plan = buildSaasApplicationTargetPlan({
       name: "Artifact Boundary",

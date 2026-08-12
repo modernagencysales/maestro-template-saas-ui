@@ -54,7 +54,7 @@ function ConvexProviderWithAuth({
 }
 
 function RootComponent() {
-  const { convexClient } = Route.useRouteContext();
+  const { convexClient, queryClient } = Route.useRouteContext();
   const location = useRouterState({ select: (state) => state.location });
 
   return (
@@ -69,7 +69,7 @@ function RootComponent() {
               <PostHogWebProvider analyticsConsent={analyticsConsent}>
                 <RootDocument>
                   <GoldenAdapterProvider>
-                    <AppProvider>
+                    <AppProvider queryClient={queryClient}>
                       <WebRouteUxBoundary
                         href={location.href}
                         pathname={location.pathname}

@@ -1,15 +1,11 @@
 "use client";
 
 import * as React from "react";
+import * as Sui from "@saas-ui/react";
 
-import { ResizeHandle, Resizer, SplitPage } from "@saas-ui-pro/react";
+import { ResizeHandle, SplitPage } from "@saas-ui-pro/react";
 import { useLocalStorage } from "@saas-ui/hooks";
-import {
-  ButtonGroup,
-  EmptyState,
-  Page,
-  useBreakpointValue,
-} from "@saas-ui/react";
+import { ButtonGroup, useBreakpointValue } from "@saas-ui/react";
 import { useNavigate } from "@tanstack/react-router";
 import { LuInbox } from "react-icons/lu";
 
@@ -18,6 +14,7 @@ import { useOpenState } from "#hooks/use-open-state";
 import { api } from "#lib/trpc/react";
 
 import { InboxList } from "./inbox-list";
+import { ClientResizer } from "../../common/components/client-resizer";
 
 export function InboxLayout({
   params,
@@ -144,7 +141,7 @@ export function InboxLayout({
   );
 
   const emptyState = (
-    <EmptyState
+    <Sui.EmptyState
       icon={<LuInbox />}
       title="Inbox zero"
       description="Nothing to do here"
@@ -158,12 +155,12 @@ export function InboxLayout({
       onOpen={() => setOpen(true)}
       onClose={() => setOpen(false)}
     >
-      <Resizer
+      <ClientResizer
         defaultWidth={width}
         onResize={({ width }) => setWidth(width)}
         enabled={!isMobile}
       >
-        <Page.Root
+        <Sui.Page.Root
           as="div"
           borderRightWidth={{ base: 0, lg: "1px" }}
           minWidth="280px"
@@ -172,17 +169,17 @@ export function InboxLayout({
           loading={isLoading}
           flex={{ base: "1", lg: "unset" }}
         >
-          <Page.Header title="Inbox" actions={toolbar} />
-          <Page.Body p="0">
+          <Sui.Page.Header title="Inbox" actions={toolbar} />
+          <Sui.Page.Body p="0">
             {!notificationCount && !open ? (
               emptyState
             ) : (
               <InboxList items={data?.notifications || []} />
             )}
-          </Page.Body>
+          </Sui.Page.Body>
           <ResizeHandle />
-        </Page.Root>
-      </Resizer>
+        </Sui.Page.Root>
+      </ClientResizer>
       <>{children}</>
     </SplitPage>
   );

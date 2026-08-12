@@ -1,9 +1,9 @@
 import * as React from "react";
+import * as Sui from "@saas-ui/react";
 
 import { Icon, useBreakpointValue } from "@chakra-ui/react";
 import { Has } from "@saas-ui-pro/feature-flags";
-import { ResizeHandle, ResizeHandler, Resizer } from "@saas-ui-pro/react";
-import { Sidebar } from "@saas-ui/react";
+import { ResizeHandle, ResizeHandler } from "@saas-ui-pro/react";
 import { useHotkeysShortcut } from "@saas-ui/use-hotkeys";
 import { createLink, linkOptions, useNavigate } from "@tanstack/react-router";
 import {
@@ -20,25 +20,24 @@ import {
 import { useHelpCenter } from "@workspace/ui/help-center";
 
 import { LinkButton } from "#components/link-button";
-import { useWorkspaceSlug } from "#features/common/hooks/use-workspace-slug";
 import { useUserSettings } from "#lib/user-settings/use-user-settings";
+
+import { ClientResizer } from "../../common/components/client-resizer";
 
 const SettingsLinkBase = React.forwardRef<
   HTMLButtonElement,
-  Sidebar.NavButtonProps
+  Sui.Sidebar.NavButtonProps
 >(function SettingsLinkBase(props, ref) {
   return (
-    <Sidebar.NavItem>
-      <Sidebar.NavButton as="a" ref={ref} {...props} />
-    </Sidebar.NavItem>
+    <Sui.Sidebar.NavItem>
+      <Sui.Sidebar.NavButton as="a" ref={ref} {...props} />
+    </Sui.Sidebar.NavItem>
   );
 });
 
 const SettingsLink = createLink(SettingsLinkBase);
 
 export const SettingsSidebar = () => {
-  const workspace = useWorkspaceSlug();
-
   const navigate = useNavigate();
 
   const help = useHelpCenter();
@@ -50,8 +49,7 @@ export const SettingsSidebar = () => {
   useHotkeysShortcut("settings.close", () => {
     navigate({
       to: "/",
-      params: {
-      },
+      params: {},
     });
   });
 
@@ -73,7 +71,7 @@ export const SettingsSidebar = () => {
   };
 
   return (
-    <Resizer
+    <ClientResizer
       defaultWidth={sidebarWidth}
       onResize={onResize}
       enabled={useBreakpointValue(
@@ -81,8 +79,8 @@ export const SettingsSidebar = () => {
         { fallback: "lg" },
       )}
     >
-      <Sidebar.Root borderRightWidth="1px">
-        <Sidebar.Header>
+      <Sui.Sidebar.Root borderRightWidth="1px">
+        <Sui.Sidebar.Header>
           <LinkButton
             to="/"
             variant="ghost"
@@ -103,13 +101,13 @@ export const SettingsSidebar = () => {
             />
             Back to app
           </LinkButton>
-        </Sidebar.Header>
-        <Sidebar.Body>
-          <Sidebar.Group>
-            <Sidebar.GroupHeader>
-              <Sidebar.GroupTitle gap="2">Account</Sidebar.GroupTitle>
-            </Sidebar.GroupHeader>
-            <Sidebar.GroupContent>
+        </Sui.Sidebar.Header>
+        <Sui.Sidebar.Body>
+          <Sui.Sidebar.Group>
+            <Sui.Sidebar.GroupHeader>
+              <Sui.Sidebar.GroupTitle gap="2">Account</Sui.Sidebar.GroupTitle>
+            </Sui.Sidebar.GroupHeader>
+            <Sui.Sidebar.GroupContent>
               <SettingsLink {...getLinkOptions("/account/profile")}>
                 <LuUser /> Profile
               </SettingsLink>
@@ -117,15 +115,17 @@ export const SettingsSidebar = () => {
                 <LuShieldCheck />
                 Security
               </SettingsLink>
-            </Sidebar.GroupContent>
-          </Sidebar.Group>
+            </Sui.Sidebar.GroupContent>
+          </Sui.Sidebar.Group>
 
           <Has feature="settings">
-            <Sidebar.Group>
-              <Sidebar.GroupHeader>
-                <Sidebar.GroupTitle gap="2">Workspace</Sidebar.GroupTitle>
-              </Sidebar.GroupHeader>
-              <Sidebar.GroupContent>
+            <Sui.Sidebar.Group>
+              <Sui.Sidebar.GroupHeader>
+                <Sui.Sidebar.GroupTitle gap="2">
+                  Workspace
+                </Sui.Sidebar.GroupTitle>
+              </Sui.Sidebar.GroupHeader>
+              <Sui.Sidebar.GroupContent>
                 <SettingsLink {...getLinkOptions("/workspace")}>
                   <LuBuilding /> Workspace
                 </SettingsLink>
@@ -142,14 +142,14 @@ export const SettingsSidebar = () => {
                   <LuCreditCard />
                   Billing
                 </SettingsLink>
-              </Sidebar.GroupContent>
-            </Sidebar.Group>
+              </Sui.Sidebar.GroupContent>
+            </Sui.Sidebar.Group>
           </Has>
-        </Sidebar.Body>
-        <Sidebar.Footer>
+        </Sui.Sidebar.Body>
+        <Sui.Sidebar.Footer>
           <ResizeHandle />
-        </Sidebar.Footer>
-      </Sidebar.Root>
-    </Resizer>
+        </Sui.Sidebar.Footer>
+      </Sui.Sidebar.Root>
+    </ClientResizer>
   );
 };
