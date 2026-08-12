@@ -145,17 +145,32 @@ describe("SaaS UI generated target artifact boundary", () => {
         "apps/web/src/routes/_auth.signup.tsx",
         "apps/web/src/routes/_auth.forgot-password.tsx",
         "apps/web/src/routes/_auth.reset-password.tsx",
-        "apps/web/src/routes/_workspace.forms.tsx",
-        "apps/web/src/routes/_workspace.kanban.tsx",
+        "apps/web/src/routes/_workspace._dashboard.forms.tsx",
+        "apps/web/src/routes/_workspace._dashboard.kanban.tsx",
         "apps/web/src/routes/_workspace.onboarding.tsx",
-        "apps/web/src/routes/_workspace.reports.tsx",
-        "apps/web/src/routes/_workspace.contacts.index.tsx",
+        "apps/web/src/routes/_workspace._dashboard.reports.tsx",
+        "apps/web/src/routes/_workspace._dashboard.contacts.index.tsx",
         "apps/web/src/routes/_workspace.settings.plans.tsx",
-        "apps/web/src/routes/_workspace.states.tsx",
+        "apps/web/src/routes/_workspace._dashboard.states.tsx",
         "apps/web/src/routes/privacy.tsx",
         "apps/web/src/routes/terms.tsx",
       ]) {
         expect(paths.has(path)).toBe(true);
+      }
+      for (const path of [
+        "apps/web/src/routes/_workspace._dashboard.tsx",
+        "apps/web/src/routes/_workspace._dashboard.contacts.index.tsx",
+        "apps/web/src/routes/_workspace._dashboard.inbox.$id.tsx",
+        "apps/web/src/routes/_workspace._dashboard.search.tsx",
+      ]) {
+        expect(paths.has(path)).toBe(true);
+      }
+      for (const path of [
+        "apps/web/src/routes/_workspace.contacts.index.tsx",
+        "apps/web/src/routes/_workspace.inbox.$id.tsx",
+        "apps/web/src/routes/_workspace.search.tsx",
+      ]) {
+        expect(paths.has(path)).toBe(false);
       }
       expect(
         paths.has("apps/web/src/features/common/components/client-resizer.tsx"),

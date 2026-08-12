@@ -111,12 +111,18 @@ describe("golden browser authority startup", () => {
       }
       expect(
         existsSync(
-          join(targetRoot, "apps/web/src/routes/_workspace.admin.tsx"),
+          join(
+            targetRoot,
+            "apps/web/src/routes/_workspace._dashboard.admin.tsx",
+          ),
         ),
       ).toBe(false);
       expect(
         existsSync(
-          join(targetRoot, "apps/web/src/routes/_workspace.agents.tsx"),
+          join(
+            targetRoot,
+            "apps/web/src/routes/_workspace._dashboard.agents.tsx",
+          ),
         ),
       ).toBe(false);
     } finally {

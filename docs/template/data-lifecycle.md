@@ -12,7 +12,7 @@ Authoritative implementation:
 - `packages/convex/confect/ops/dataLifecycle.spec.ts`
 - `packages/convex/confect/ops/dataLifecycle.impl.ts`
 - `packages/convex/confect/tables/dsarRequests.ts`
-- `apps/web/src/routes/_workspace.data-lifecycle.tsx`
+- `apps/web/src/routes/_workspace._dashboard.data-lifecycle.tsx`
 - `apps/web/src/features/data-lifecycle/data-lifecycle-surface.tsx`
 - `packages/convex/test/data-lifecycle.test.ts`
 - `packages/convex/test/data-lifecycle-ops.test.ts`
