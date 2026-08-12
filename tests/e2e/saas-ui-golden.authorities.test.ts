@@ -159,4 +159,17 @@ describe("golden browser authority startup", () => {
     expect(fixture).not.toContain("document.documentElement.dataset.golden");
     expect(fixture).not.toContain('toHaveAttribute(\n    "data-golden');
   });
+
+  it("clears persisted mutations once per seed but preserves them on reload", () => {
+    const fixture = readFileSync(
+      `${root}/tests/e2e/fixtures/saas-ui-golden.ts`,
+      "utf8",
+    );
+
+    expect(fixture).toContain("window.sessionStorage.getItem(markerKey)");
+    expect(fixture).toContain('window.sessionStorage.setItem(markerKey, "1")');
+    expect(fixture).toMatch(
+      /if \(!window\.sessionStorage\.getItem\(markerKey\)\) \{[\s\S]*?removeItem\("maestro-golden-contacts"\)/,
+    );
+  });
 });

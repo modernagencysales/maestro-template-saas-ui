@@ -119,16 +119,22 @@ export async function seedGoldenFixture(
   colorMode: GoldenColorMode,
 ) {
   await page.emulateMedia({ colorScheme: colorMode });
+  const seedKey = `maestro-golden-seed-${Date.now()}-${Math.random()}`;
   await page.addInitScript(
-    ({ fixtureData }) => {
+    ({ fixtureData, seedKey }) => {
       window.localStorage.setItem(
         "maestro-golden-fixture",
         JSON.stringify(fixtureData),
       );
-      window.localStorage.removeItem("maestro-golden-contacts");
+      const markerKey = `maestro-golden-seed:${seedKey}`;
+      if (!window.sessionStorage.getItem(markerKey)) {
+        window.localStorage.removeItem("maestro-golden-contacts");
+        window.sessionStorage.setItem(markerKey, "1");
+      }
     },
     {
       fixtureData: goldenFixtures[fixture],
+      seedKey,
     },
   );
 }
