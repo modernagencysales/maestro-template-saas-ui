@@ -150,7 +150,7 @@ function renderedRouteFor(entry: AcceptanceEntry) {
   return entry.id === "split-inbox"
     ? "/contacts/view/contact-1"
     : entry.id === "settings"
-      ? "/settings/account"
+      ? "/settings/account/profile"
       : concreteRoute(entry.route);
 }
 
