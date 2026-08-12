@@ -666,7 +666,17 @@ export function ContactsListPage({
           },
         }}
       >
-        <Page.Header title="Contacts" actions={toolbar} footer={tabbar} />
+        <Page.Header
+          gridTemplateAreas={{
+            base: '"heading" "actions" "footer"',
+            md: "none",
+          }}
+          gridTemplateColumns={{ base: "minmax(0, 1fr)", md: "none" }}
+          gridTemplateRows={{ base: "auto auto auto", md: "none" }}
+          title="Contacts"
+          actions={toolbar}
+          footer={tabbar}
+        />
         <ActionBar.Root open={selections.length > 0}>
           <ActionBar.Content portalled>
             <Group

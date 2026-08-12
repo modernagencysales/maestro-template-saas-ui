@@ -391,7 +391,7 @@
       "source": "apps/web/src/features/contacts/list/list-page.tsx",
       "destination": "apps/web/src/features/contacts/list/list-page.tsx",
       "sourceSha256": "9f3d5186cd1b1c06ac7b5c80d68123ff78025d7ac6f4179cef9baae69b8c0a57",
-      "sha256": "1689299d5a0b2791c5d6453f49ca0ce938317c5b8cb4ff8ebddbcfc8d618106a",
+      "sha256": "50fcc4c33b3d842eed3e202b6e73724d3794065bd34114af7c899d1f6eeebebb",
       "adapted": true
     },
     {
