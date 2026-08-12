@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-08-12T22:32:01.311Z",
+  "status": "passed",
+  "finalHead": "c86205ecaa9a517181901f8b52440dad872c1aa2",
+  "pins": {
+    "template": "acf0bc4be38dea842f321831387fc77cf7242439",
+    "starter": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+    "pro": "ac3a40c8dc05e403f9d501a87c092646891d3c40"
+  },
+  "generatedDigest": "d9e0f8ae0639d514a5ebeb74fe6d267343c6f511fef1cc3947b8879498ff0f24",
+  "evidencePaths": [
+    "artifacts/saas-ui-golden/authority-generated.json",
+    "artifacts/saas-ui-golden/authority-reference.json"
+  ],
+  "commands": [
+    {
+      "command": "pnpm check:saas-ui-foundation",
+      "startedAt": "2026-08-12T22:25:27.253Z",
+      "finishedAt": "2026-08-12T22:25:28.222Z",
+      "completedAt": "2026-08-12T22:25:28.222Z",
+      "exitCode": 0,
+      "result": "exitCode=0"
+    },
+    {
+      "command": "pnpm check:saas-ui-artifact-safety",
+      "startedAt": "2026-08-12T22:25:28.222Z",
+      "finishedAt": "2026-08-12T22:25:29.109Z",
+      "completedAt": "2026-08-12T22:25:29.109Z",
+      "exitCode": 0,
+      "result": "exitCode=0"
+    },
+    {
+      "command": "pnpm --dir tooling/generators test -- saasFrontendFoundation.test.ts saasFrontendGeneratedTarget.test.ts",
+      "startedAt": "2026-08-12T22:25:29.109Z",
+      "finishedAt": "2026-08-12T22:26:36.050Z",
+      "completedAt": "2026-08-12T22:26:36.050Z",
+      "exitCode": 0,
+      "result": "exitCode=0"
+    },
+    {
+      "command": "pnpm smoke:golden:browser",
+      "startedAt": "2026-08-12T22:26:36.051Z",
+      "finishedAt": "2026-08-12T22:27:56.088Z",
+      "completedAt": "2026-08-12T22:27:56.088Z",
+      "exitCode": 0,
+      "result": "exitCode=0"
+    },
+    {
+      "command": "pnpm smoke:golden:a11y",
+      "startedAt": "2026-08-12T22:27:56.088Z",
+      "finishedAt": "2026-08-12T22:30:02.702Z",
+      "completedAt": "2026-08-12T22:30:02.702Z",
+      "exitCode": 0,
+      "result": "exitCode=0"
+    },
+    {
+      "command": "pnpm smoke:golden:visual",
+      "startedAt": "2026-08-12T22:30:02.702Z",
+      "finishedAt": "2026-08-12T22:32:01.277Z",
+      "completedAt": "2026-08-12T22:32:01.277Z",
+      "exitCode": 0,
+      "result": "exitCode=0"
+    }
+  ],
+  "kind": "acceptance"
+}

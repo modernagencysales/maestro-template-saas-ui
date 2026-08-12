@@ -1,0 +1,11 @@
+{
+  "schemaVersion": 1,
+  "authority": "generated",
+  "root": "materialized-generated-target",
+  "digest": "d9e0f8ae0639d514a5ebeb74fe6d267343c6f511fef1cc3947b8879498ff0f24",
+  "provenance": {
+    "repository": "generated-target",
+    "source": "buildSaasApplicationTargetPlan",
+    "contentDigest": "d9e0f8ae0639d514a5ebeb74fe6d267343c6f511fef1cc3947b8879498ff0f24"
+  }
+}
