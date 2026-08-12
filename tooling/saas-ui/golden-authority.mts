@@ -1,14 +1,15 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
+import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSaasApplicationTargetPlan } from "../../tooling/generators/src/blueprints/saasApplication";
+import { checkSaasUiFoundation } from "../quality/saas-ui-foundation";
 import { previewCommand } from "./golden-authority-command";
 import {
   createGeneratedAuthorityMetadata,
-  createReferenceAuthorityMetadata,
+  proveReferenceServedFiles,
   serializeAuthorityMetadata,
 } from "./golden-authority-runtime";
 
@@ -45,6 +46,68 @@ function readPinnedStarterContentDigest() {
     cwd: starterRoot,
   });
   return createHash("sha256").update(archive).digest("hex");
+}
+
+function readReferenceReceipt() {
+  const receiptPath = resolve(
+    repositoryRoot,
+    "docs/template/saas-ui-starter-files.json",
+  );
+  const receipt = JSON.parse(readFileSync(receiptPath, "utf8")) as {
+    sourceCommit?: unknown;
+    files?: unknown;
+  };
+  if (receipt.sourceCommit !== starterPin || !Array.isArray(receipt.files))
+    throw new Error("Saas UI starter receipt is not bound to the starter pin");
+  const files = receipt.files.map((value, index) => {
+    if (!value || typeof value !== "object" || Array.isArray(value))
+      throw new Error(`Saas UI starter receipt entry ${index} is invalid`);
+    const file = value as Record<string, unknown>;
+    const receiptString = (key: string) => {
+      const entry = file[key];
+      if (typeof entry !== "string")
+        throw new Error(`Saas UI starter receipt entry ${index} is invalid`);
+      return entry;
+    };
+    const destination = receiptString("destination");
+    const source = receiptString("source");
+    const sourceSha256 = receiptString("sourceSha256");
+    const sha256 = receiptString("sha256");
+    const adapted = file.adapted;
+    if (typeof adapted !== "boolean")
+      throw new Error(`Saas UI starter receipt entry ${index} is invalid`);
+    const sourceMarker = "apps/web/";
+    const sourceMarkerIndex = source.lastIndexOf(sourceMarker);
+    if (sourceMarkerIndex < 0)
+      throw new Error(`Saas UI starter receipt source is invalid: ${source}`);
+    const starterPath = source.slice(sourceMarkerIndex);
+    const pinnedSource = execFileSync(
+      "git",
+      ["show", `${starterPin}:${starterPath}`],
+      { cwd: starterRoot },
+    );
+    const actualSourceSha256 = createHash("sha256")
+      .update(pinnedSource)
+      .digest("hex");
+    if (actualSourceSha256 !== sourceSha256)
+      throw new Error(
+        `Saas UI starter receipt source hash mismatch: ${starterPath}`,
+      );
+    return {
+      destination,
+      content: readFileSync(resolve(repositoryRoot, destination)),
+      sourceSha256,
+      sha256,
+      adapted,
+    };
+  });
+  return {
+    receiptPath: "docs/template/saas-ui-starter-files.json" as const,
+    receiptDigest: createHash("sha256")
+      .update(readFileSync(receiptPath))
+      .digest("hex"),
+    files,
+  };
 }
 
 function hashEntries(entries: readonly { path: string; content: string }[]) {
@@ -91,7 +154,7 @@ function materializeGeneratedTarget() {
 
 const generated =
   authority === "generated" ? materializeGeneratedTarget() : undefined;
-const targetRoot = generated?.targetRoot ?? starterRoot;
+const targetRoot = generated?.targetRoot ?? repositoryRoot;
 const starterContentDigest =
   authority === "reference"
     ? verifyStarterPin()
@@ -112,11 +175,17 @@ if (
 }
 const evidenceRoot = resolve(repositoryRoot, "artifacts/saas-ui-golden");
 mkdirSync(evidenceRoot, { recursive: true });
+const foundationErrors = checkSaasUiFoundation(repositoryRoot);
+if (foundationErrors.length > 0)
+  throw new Error(
+    `Saas UI foundation check failed:\n${foundationErrors.join("\n")}`,
+  );
 const metadata =
   authority === "reference"
-    ? createReferenceAuthorityMetadata({
+    ? proveReferenceServedFiles({
         starterPin,
         starterContentDigest: digest,
+        ...readReferenceReceipt(),
       })
     : createGeneratedAuthorityMetadata({ generatedDigest: digest });
 writeFileSync(

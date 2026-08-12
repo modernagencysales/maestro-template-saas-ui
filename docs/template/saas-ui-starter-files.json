@@ -258,7 +258,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/common/providers/app-provider.tsx",
       "destination": "apps/web/src/features/common/providers/app-provider.tsx",
       "sourceSha256": "a78bcee5a0c86efdf4ba869c8ec15b73bbc82921c56973f677329bb547cbee1b",
-      "sha256": "c6f0ebe5673bdc4767d95fd2f412dc85a4fd331738aa2ec84f273816dd542c29",
+      "sha256": "f3ff79696e840b11608257b976a0849163deb8ee679a040826ddb2cb60ad9cc2",
       "adapted": true
     },
     {
@@ -300,7 +300,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "sourceSha256": "bc5baf32043a6d9e67b10b79e01f7efcae44120ea12b3fd54fee9bb6e60fb56f",
-      "sha256": "cc8d94a73545ffe50c751dad788c73d0d5c943c2a1ea258eca9219b35a795552",
+      "sha256": "b4f5ff4c65a13b860ac8c3fa08229de462c7991417d78664ecd0b99ba100de1a",
       "adapted": true
     },
     {
@@ -552,7 +552,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/reports/reports-page.tsx",
       "destination": "apps/web/src/features/reports/reports-page.tsx",
       "sourceSha256": "fe804d3873917ad8e7cc615f205a59c6bbbabac9e6ed221fca503a9569734d58",
-      "sha256": "10d4eee8e6902adc82f28dca055ea17f2957ea4edc77331954ef407f4d064d4b",
+      "sha256": "bc6c32133b9873d39b39fe0ece899a840c55cb30fb815c713549ecad4c046b9b",
       "adapted": true
     },
     {
@@ -664,7 +664,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/settings/common/settings-sidebar.tsx",
       "destination": "apps/web/src/features/settings/common/settings-sidebar.tsx",
       "sourceSha256": "bea225dd07d211543d8445a918f192c7bde6cdcacf42fdc9280be96315f90a84",
-      "sha256": "e8581031446b06cd46352a6b7d4b412f43f138e58276d562be2d99e0bc9ef512",
+      "sha256": "0f4181eb9cace55b2a404c2a614043583702ed7835747fd2889c765d1292291b",
       "adapted": true
     },
     {

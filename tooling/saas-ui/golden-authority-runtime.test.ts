@@ -7,6 +7,7 @@ import {
   createGeneratedAuthorityMetadata,
   createReferenceAuthorityMetadata,
   assertDistinctAuthorities,
+  proveReferenceServedFiles,
   serializeAuthorityMetadata,
 } from "./golden-authority-runtime";
 
@@ -33,26 +34,67 @@ describe("golden runtime authority provenance", () => {
     expect(referenceUrl.hostname).toBe("127.0.0.1");
     expect(generatedUrl.hostname).toBe("127.0.0.1");
     expect(referenceUrl.origin).not.toBe(generatedUrl.origin);
+    expect(reference.cwd).toBe("/workspace/factory/apps/web");
+    expect(generated.cwd).toBe("/tmp/generated/apps/web");
   });
 
   it("binds reference metadata to the pinned starter content digest", () => {
     const starterContentDigest = createHash("sha256")
       .update("pinned starter apps/web tree")
       .digest("hex");
+    const servedContentDigest = createHash("sha256")
+      .update("served factory apps/web files")
+      .digest("hex");
     const metadata = createReferenceAuthorityMetadata({
       starterPin,
       starterContentDigest,
+      servedContentDigest,
+      receiptDigest: "a".repeat(64),
+      receiptPath: "docs/template/saas-ui-starter-files.json",
+      mappedFileCount: 1,
+      adaptedFileCount: 1,
     });
 
-    expect(metadata.provenance).toEqual({
+    expect(metadata.provenance).toMatchObject({
       repository: "starter",
       commit: starterPin,
       path: "apps/web",
-      contentDigest: starterContentDigest,
+      contentDigest: servedContentDigest,
+      sourceContentDigest: starterContentDigest,
+      receiptPath: "docs/template/saas-ui-starter-files.json",
+      receiptDigest: "a".repeat(64),
+      mappedFileCount: 1,
+      adaptedFileCount: 1,
     });
-    expect(metadata.digest).toBe(starterContentDigest);
+    expect(metadata.digest).toBe(servedContentDigest);
     expect(metadata.digest).not.toBe(
       createHash("sha256").update(`reference:${starterPin}`).digest("hex"),
+    );
+  });
+
+  it("rejects a modified served factory file while the starter source is unchanged", () => {
+    const original = Buffer.from("pinned starter content\n");
+    const served = Buffer.from("modified factory content\n");
+    const sourceSha256 = createHash("sha256").update(original).digest("hex");
+
+    expect(() =>
+      proveReferenceServedFiles({
+        starterPin,
+        starterContentDigest: "a".repeat(64),
+        receiptDigest: "b".repeat(64),
+        receiptPath: "docs/template/saas-ui-starter-files.json",
+        files: [
+          {
+            destination: "apps/web/src/features/common/layouts/app-layout.tsx",
+            content: served,
+            sourceSha256,
+            sha256: sourceSha256,
+            adapted: false,
+          },
+        ],
+      }),
+    ).toThrow(
+      "Reference served file hash mismatch: apps/web/src/features/common/layouts/app-layout.tsx",
     );
   });
 
@@ -60,6 +102,11 @@ describe("golden runtime authority provenance", () => {
     const reference = createReferenceAuthorityMetadata({
       starterPin,
       starterContentDigest: "a".repeat(64),
+      servedContentDigest: "a".repeat(64),
+      receiptDigest: "a".repeat(64),
+      receiptPath: "docs/template/saas-ui-starter-files.json",
+      mappedFileCount: 1,
+      adaptedFileCount: 0,
     });
     const generated = createGeneratedAuthorityMetadata({
       generatedDigest: "b".repeat(64),

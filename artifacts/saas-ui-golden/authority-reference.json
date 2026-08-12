@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "authority": "reference",
+  "root": "factory-reference",
+  "digest": "35742c0ed2a09641626476b29cbd46a78423b46f07e4f65855d6b028d47cb9b0",
+  "provenance": {
+    "repository": "starter",
+    "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+    "path": "apps/web",
+    "contentDigest": "35742c0ed2a09641626476b29cbd46a78423b46f07e4f65855d6b028d47cb9b0",
+    "sourceContentDigest": "e78a61c871b03c7865cd3734bfbea9009ea5297fc520e0e48c598f4a99795069",
+    "receiptPath": "docs/template/saas-ui-starter-files.json",
+    "receiptDigest": "a0588d8bca474cc399baaf4c542e9a82314f2a99ac4a00c57a63e18caa907a20",
+    "mappedFileCount": 107,
+    "adaptedFileCount": 107
+  }
+}
