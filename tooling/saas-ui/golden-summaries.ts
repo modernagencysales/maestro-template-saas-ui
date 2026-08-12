@@ -187,9 +187,19 @@ function validateInput(input: GoldenSummaryInput): void {
     if (command.result !== undefined)
       assertSafeMetadata(command.result, "command.result");
   }
-  for (const deviation of input.deviations)
-    for (const value of Object.values(deviation))
+  for (const deviation of input.deviations) {
+    for (const value of [
+      deviation.source,
+      deviation.destination,
+      deviation.change,
+      deviation.reason,
+      deviation.evidence,
+      deviation.sourceAuthority,
+      ...deviation.evidencePaths,
+      ...deviation.evidenceChecks,
+    ])
       assertSafeMetadata(value, "deviation");
+  }
 }
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>

@@ -1,3 +1,12 @@
+import {
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -77,4 +86,35 @@ describe("Saas UI foundation authorities", () => {
       ),
     ).toBe(true);
   });
+
+  it.each(["destination", "change", "reason", "evidence"] as const)(
+    "rejects a tampered deviation %s",
+    (field) => {
+      const temporaryRoot = mkdtempSync(join(tmpdir(), "saas-ui-deviation-"));
+      try {
+        mkdirSync(join(temporaryRoot, "docs/template"), { recursive: true });
+        const authority = JSON.parse(
+          readFileSync(
+            join(root, "docs/template/saas-ui-deviations.json"),
+            "utf8",
+          ),
+        ) as {
+          deviations: Array<Record<string, unknown>>;
+          authorityDigest: string;
+        };
+        const first = authority.deviations[0];
+        if (!first) throw new Error("missing deviation fixture");
+        first[field] = `${String(first[field])} tampered`;
+        writeFileSync(
+          join(temporaryRoot, "docs/template/saas-ui-deviations.json"),
+          JSON.stringify(authority),
+        );
+        expect(() => readSaasUiDeviations(temporaryRoot)).toThrow(
+          /authority|digest/,
+        );
+      } finally {
+        rmSync(temporaryRoot, { recursive: true, force: true });
+      }
+    },
+  );
 });

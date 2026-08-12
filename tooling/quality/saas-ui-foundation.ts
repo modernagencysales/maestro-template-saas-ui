@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const MANIFEST_PATH = "docs/template/saas-ui-upstream.json";
@@ -62,6 +62,9 @@ export type SaasUiDeviation = Readonly<{
   change: string;
   reason: string;
   evidence: string;
+  evidencePaths: readonly string[];
+  evidenceChecks: readonly string[];
+  sourceAuthority: "starter-receipt" | "factory-support";
 }>;
 
 export type SaasUiAcceptanceMap = Readonly<{
@@ -200,10 +203,17 @@ export function readSaasUiManifest(root: string): SaasUiManifest {
   return readManifestValue(readJson(root, MANIFEST_PATH));
 }
 
+// eslint-disable-next-line complexity -- validates the fixed deviation authority schema.
 export function readSaasUiDeviations(root: string): readonly SaasUiDeviation[] {
   const value = readJson(root, DEVIATIONS_PATH);
-  if (!Array.isArray(value)) throw new Error("deviations must be an array");
-  return value.map((itemValue, index) => {
+  const authority = record(value, DEVIATIONS_PATH);
+  if (authority.schemaVersion !== 1)
+    throw new Error("deviations schemaVersion must be 1");
+  if (typeof authority.authorityDigest !== "string")
+    throw new Error("deviations authorityDigest must be a string");
+  if (!Array.isArray(authority.deviations))
+    throw new Error("deviations.deviations must be an array");
+  const deviations = authority.deviations.map((itemValue, index) => {
     const item = record(itemValue, `deviation[${index}]`);
     return {
       source: string(item.source, "deviation.source"),
@@ -211,8 +221,45 @@ export function readSaasUiDeviations(root: string): readonly SaasUiDeviation[] {
       change: string(item.change, "deviation.change"),
       reason: string(item.reason, "deviation.reason"),
       evidence: string(item.evidence, "deviation.evidence"),
+      evidencePaths: stringArray(item.evidencePaths, "deviation.evidencePaths"),
+      evidenceChecks: stringArray(
+        item.evidenceChecks,
+        "deviation.evidenceChecks",
+      ),
+      sourceAuthority: (() => {
+        const value = string(item.sourceAuthority, "deviation.sourceAuthority");
+        if (value !== "starter-receipt" && value !== "factory-support")
+          throw new Error(`unsupported deviation source authority: ${value}`);
+        return value;
+      })(),
     };
   });
+  const digest = createHash("sha256")
+    .update(JSON.stringify(deviations))
+    .digest("hex");
+  if (digest !== authority.authorityDigest)
+    throw new Error("deviations authority digest mismatch");
+  for (const deviation of deviations) {
+    for (const path of deviation.evidencePaths) {
+      if (
+        path.includes("..") ||
+        path.startsWith("/") ||
+        !existsSync(resolve(root, path))
+      )
+        throw new Error(`deviation evidence path is missing: ${path}`);
+    }
+    for (const check of deviation.evidenceChecks) {
+      const [path, ...name] = check.split("#");
+      if (!existsSync(resolve(root, path)))
+        throw new Error(`deviation evidence check file is missing: ${path}`);
+      if (
+        name.length > 0 &&
+        !readFileSync(resolve(root, path), "utf8").includes(name.join("#"))
+      )
+        throw new Error(`deviation evidence check is not present: ${check}`);
+    }
+  }
+  return deviations;
 }
 
 function readAcceptanceValue(value: unknown): SaasUiAcceptanceMap {
@@ -383,6 +430,82 @@ function validateRegistryFiles(
   return errors;
 }
 
+const FACTORY_SUPPORT_DESTINATIONS = new Set([
+  "tsconfig.base.json",
+  "apps/web/tsconfig.json",
+  "apps/web/src/features/common/components/client-resizer.tsx",
+  "apps/web/src/routes/__root.tsx",
+  "apps/web/src/lib/trpc/react.tsx",
+  "apps/web/src/components/back-button.tsx",
+  "apps/web/src/features/contacts/list/list-page.tsx",
+  "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
+]);
+
+function deviationDestinationPaths(destination: string): readonly string[] {
+  return destination.split(";").flatMap((entry) => {
+    const path = entry.trim().split(":", 1)[0];
+    return path === undefined ? [] : [path];
+  });
+}
+
+// eslint-disable-next-line complexity -- validates the bounded deviation authority fields.
+function validateDeviations(
+  deviations: readonly SaasUiDeviation[],
+  root: string,
+): readonly string[] {
+  const errors: string[] = [];
+  const receipt = readJson(root, "docs/template/saas-ui-starter-files.json");
+  const receiptFiles = Array.isArray(record(receipt, "starter receipt").files)
+    ? (record(receipt, "starter receipt").files as readonly unknown[])
+    : [];
+  const adaptedDestinations = new Set(
+    receiptFiles.flatMap((value) => {
+      const item = record(value, "starter receipt file");
+      return item.adapted === true && typeof item.destination === "string"
+        ? [item.destination]
+        : [];
+    }),
+  );
+  for (const deviation of deviations) {
+    for (const path of deviation.evidencePaths) {
+      if (
+        path.includes("..") ||
+        path.startsWith("/") ||
+        !existsSync(resolve(root, path))
+      )
+        errors.push(`deviation evidence path is missing: ${path}`);
+    }
+    for (const check of deviation.evidenceChecks) {
+      const [path, ...name] = check.split("#");
+      if (!existsSync(resolve(root, path)))
+        errors.push(`deviation evidence check file is missing: ${path}`);
+      else if (
+        name.length > 0 &&
+        !readFileSync(resolve(root, path), "utf8").includes(name.join("#"))
+      )
+        errors.push(`deviation evidence check is not present: ${check}`);
+    }
+    const paths = deviationDestinationPaths(deviation.destination);
+    for (const path of paths) {
+      if (deviation.sourceAuthority === "factory-support") {
+        if (!FACTORY_SUPPORT_DESTINATIONS.has(path))
+          errors.push(
+            `factory-support deviation destination is not approved: ${path}`,
+          );
+      } else if (
+        !existsSync(resolve(root, "docs/template/saas-ui-starter-files.json"))
+      ) {
+        errors.push("starter-receipt deviation authority is missing");
+      } else if (!adaptedDestinations.has(path)) {
+        errors.push(
+          `starter-receipt deviation destination is not adapted: ${path}`,
+        );
+      }
+    }
+  }
+  return errors;
+}
+
 export function checkSaasUiFoundation(root: string): readonly string[] {
   const errors: string[] = [];
   const manifest = readAuthority(() => readSaasUiManifest(root), errors);
@@ -404,6 +527,7 @@ export function checkSaasUiFoundation(root: string): readonly string[] {
     ),
   );
   errors.push(...validateRegistryFiles(registryFiles, manifest, root));
+  errors.push(...validateDeviations(deviations ?? [], root));
   return errors;
 }
 

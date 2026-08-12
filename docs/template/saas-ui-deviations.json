@@ -1,114 +1,194 @@
-[
-  {
-    "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
-    "destination": "apps/web/src/features/common/components/client-resizer.tsx",
-    "change": "The upstream Resizer is mounted through ClientOnly and its fallback renders the sidebar child during SSR; the resizer attaches after hydration.",
-    "reason": "The pinned upstream hook evaluates the browser-only document global during render, causing generated TanStack Start SSR to throw ReferenceError: document is not defined.",
-    "evidence": "Generated-target SSR reproduced the error in @saas-ui-pro/react useResize while rendering AppSidebar; client-resizer.test.tsx renders the fallback with renderToString without throwing."
-  },
-  {
-    "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/resize-handle.tsx:ResizeHandle",
-    "destination": "apps/web/src/features/common/components/app-sidebar.tsx:ResizeHandle",
-    "change": "The resize handle receives role=separator and aria-orientation=vertical alongside its existing accessible label.",
-    "reason": "The upstream component renders a div; aria-label on that div is prohibited without a valid role.",
-    "evidence": "Paired axe run reported serious aria-prohibited-attr on .sui-resize-handle; shell.test.tsx asserts the generated sidebar source includes the separator role and orientation."
-  },
-  {
-    "source": "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes",
-    "destination": "apps/web/tsconfig.json:compilerOptions.exactOptionalPropertyTypes",
-    "change": "The generated web target sets exactOptionalPropertyTypes to false.",
-    "reason": "The transplanted Starter/Saas UI source currently relies on optional component props that are not assignable under the repository-wide exact optional property contract.",
-    "evidence": "At generated-target proof commit acbced929, enabling exactOptionalPropertyTypes=true after the production build produces 34 web type errors (28 TS2375 and 6 TS2379), primarily optional component props receiving undefined; the relaxed override remains required."
-  },
-  {
-    "source": "tsconfig.base.json:compilerOptions.noUncheckedIndexedAccess",
-    "destination": "apps/web/tsconfig.json:compilerOptions.noUncheckedIndexedAccess",
-    "change": "The generated web target sets noUncheckedIndexedAccess to false.",
-    "reason": "The transplanted Starter/Saas UI source indexes registry and fixture collections without handling undefined values under the repository-wide indexed-access contract.",
-    "evidence": "At generated-target proof commit acbced929, enabling noUncheckedIndexedAccess=true after the production build produces 13 web type errors (8 TS18048, 1 TS2322, 2 TS2345, and 2 TS2532), from unchecked collection/indexed values; the relaxed override remains required."
-  },
-  {
-    "source": "@chakra-ui/react@3.30.0:components/stat:StatRoot",
-    "destination": "apps/web/src/features/reports/reports-page.tsx:Churn by tier metric",
-    "change": "The upstream Stat.Root and Stat.Label for the chart/legend block render as div elements while retaining the upstream Stat styles and layout props.",
-    "reason": "Chakra Stat.Root defaults to dl, but this block contains a chart div and legend ul rather than a dt/dd pair; the default markup triggers axe definition-list serious violations.",
-    "evidence": "The pinned desktop authority artifact and generated desktop authority artifact both reported axe rule definition-list (serious) on <dl class=\"chakra-stat__root css-1pbhjgj\"> with direct chart div and legend ul children; focused generated axe passed after the seam, and the pinned reference source was synchronized with the same minimal semantic change."
-  },
-  {
-    "source": "apps/web/src/features/common/providers/app-provider.tsx:QueryClientProvider/AuthProvider",
-    "destination": "apps/web/src/features/common/providers/app-provider.tsx",
-    "change": "The factory provider composition supplies the generated QueryClient and fake-safe AuthProvider around the preserved Saas UI provider.",
-    "reason": "The pinned Starter provider imports starter-owned auth and query clients; the factory must close those providers at the neutral adapter boundary so generated SSR and browser fixtures render without starter credentials.",
-    "evidence": "app-provider.test.tsx verifies the provider composition with a real QueryClient and the reference authority launcher reaches Vite preview after the provider seam."
-  },
-  {
-    "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/Resizer",
-    "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/settings/common/settings-sidebar.tsx",
-    "change": "The browser-only upstream Resizer is replaced at both served factory call sites by the shared ClientResizer seam while preserving the upstream layout and resize-handle structure.",
-    "reason": "The upstream Resizer evaluates browser globals during SSR; ClientResizer defers that behavior behind ClientOnly for generated TanStack Start SSR.",
-    "evidence": "The receipt-backed adapted-file test hashes both served call sites, and the existing client-resizer SSR evidence covers renderToString without a document global."
-  },
-  {
-    "source": "apps/web/src/routes/__root.tsx:AppProvider",
-    "destination": "apps/web/src/routes/__root.tsx",
-    "change": "The root route passes its route-context QueryClient into the adapted AppProvider.",
-    "reason": "The factory provider seam requires the route-owned query client while preserving the upstream root document and shell composition.",
-    "evidence": "The generated-target SSR provider test exercises the root composition and the reference authority launcher reaches preview startup."
-  },
-  {
-    "source": "apps/web/src/lib/trpc/react.tsx:fake procedure facade",
-    "destination": "apps/web/src/lib/trpc/react.tsx",
-    "change": "The starter tRPC client is represented by a neutral recursive fake facade until generated refs replace it.",
-    "reason": "Starter-specific tRPC credentials and client construction are not available in the factory; the facade keeps transplanted screens runnable with fake fixtures.",
-    "evidence": "react.test.tsx verifies nested query/mutation access remains fake-safe, and the generated-target proof reaches the web build without a live tRPC client."
-  },
-  {
-    "source": "@saas-ui-pro/react@1.0.0-next.4:Aside.Root",
-    "destination": "apps/web/src/features/contacts/view/contact-page.tsx; apps/web/src/features/contacts/view/contact-sidebar.tsx",
-    "change": "The preserved aside gains named open/close controls and restores focus to its trigger after close or Escape.",
-    "reason": "The upstream Aside primitive exposes controlled open state but no close control or trigger relationship; the acceptance contract requires keyboard-close and focus restoration.",
-    "evidence": "The paired golden interaction spec closes the contact details aside with Escape and asserts focus returns to the named trigger."
-  },
-  {
-    "source": "@saas-ui-pro/react@1.0.0-next.4:DataGridColumnResizer",
-    "destination": "apps/web/src/features/contacts/list/list-page.tsx",
-    "change": "The upstream DataGrid is mounted through ClientOnly while retaining its original client-side JSX and styles.",
-    "reason": "The column-resizer EnvironmentContext evaluates document during SSR, which crashes both reference and generated golden authorities.",
-    "evidence": "data-grid.ssr.test.tsx reproduces ReferenceError: document is not defined for the vendor DataGrid with resizing enabled; the ContactsListPage SSR regression and paired desktop golden subset prove the boundary and hydrated grid."
-  },
-  {
-    "source": "@saas-ui-pro/react@1.0.0-next.4:DataGridSort and DataGridHeaderCell",
-    "destination": "patches/@saas-ui-pro__react@1.0.0-next.4.patch; apps/web/src/features/contacts/list/list-page.tsx",
-    "change": "Sortable grid headers retain their interactive title while aria-sort moves to the native column header, decorative sort icons are hidden from assistive technology, and contact action menus receive a name.",
-    "reason": "The pinned package writes aria-sort to a div and aria-label to a presentational span, while the preserved contact list creates unnamed icon-only action triggers; both are serious or critical WCAG failures.",
-    "evidence": "The paired data-grid accessibility test fails on both authorities before the seam; frozen generated-target installation includes the patch, and paired axe coverage verifies the repaired DOM without rule exclusions."
-  },
-  {
-    "source": "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
-    "destination": "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
-    "change": "The login password field identifies a current credential to browsers, and the text-bearing billing action retains its native button role.",
-    "reason": "The preserved screens used invalid autocomplete=\"password\" and overrode a named button to role=group, producing serious and critical WCAG failures.",
-    "evidence": "Focused paired axe coverage passes both auth and billing routes on the reference and generated authorities without rule exclusions."
-  },
-  {
-    "source": "@saas-ui/react:Steps.List dots recipe",
-    "destination": "apps/web/src/features/getting-started/getting-started-page.tsx:OnboardingProgress",
-    "change": "The non-interactive visual dots are represented as one named progressbar with hidden decorative dots and step value 1–4.",
-    "reason": "The upstream dots recipe exposes a tablist whose direct wrapper children are not tabs, and hides the only tab titles; progression is form-driven, so it must not promise tab keyboard behavior.",
-    "evidence": "Paired reference/generated regression asserts the named progressbar, current value, and absence of a tablist."
-  },
-  {
-    "source": "@saas-ui/react:BackButtonPrimitive",
-    "destination": "apps/web/src/components/back-button.tsx",
-    "change": "The nested button-and-link primitive is replaced with the application LinkButton and an aria-hidden back-arrow icon.",
-    "reason": "The upstream composition produces an interactive link inside an interactive button, violating nested-interactive semantics and leaving the link unnamed.",
-    "evidence": "The reusable application back control now renders exactly one named navigation link; focused onboarding axe covers the served route."
-  },
-  {
-    "source": "@chakra-ui/react semantic token fg.error",
-    "destination": "apps/web/src/theme/semantic-tokens/colors.ts",
-    "change": "The semantic error foreground uses the existing red.700 light token and red.300 dark token through defineSemanticTokens.colors.",
-    "reason": "The inherited light red.500 foreground rendered at 3.23:1 on #fdfdfd for 12px field errors. Red.600 remained below AA (4.07–4.18:1); red.700 is the first existing darker red step that clears the 4.5:1 normal-text requirement.",
-    "evidence": "Fresh paired light-mode axe on reference and generated passes the onboarding validation error without rule exclusions. The dark token remains red.300; dark visual/axe evidence is pending the interaction stream."
-  }
-]
+{
+  "schemaVersion": 1,
+  "authorityDigest": "3eba3e00c8e109455b4da584fe436159a75580af563f414e202370ab2f7648f5",
+  "deviations": [
+    {
+      "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
+      "destination": "apps/web/src/features/common/components/client-resizer.tsx",
+      "change": "The upstream Resizer is mounted through ClientOnly and its fallback renders the sidebar child during SSR; the resizer attaches after hydration.",
+      "reason": "The pinned upstream hook evaluates the browser-only document global during render, causing generated TanStack Start SSR to throw ReferenceError: document is not defined.",
+      "evidence": "Generated-target SSR reproduced the error in @saas-ui-pro/react useResize while rendering AppSidebar; client-resizer.test.tsx renders the fallback with renderToString without throwing.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "apps/web/src/features/common/components/client-resizer.test.tsx#renders its fallback during SSR"
+      ],
+      "sourceAuthority": "factory-support"
+    },
+    {
+      "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/resize-handle.tsx:ResizeHandle",
+      "destination": "apps/web/src/features/common/components/app-sidebar.tsx:ResizeHandle",
+      "change": "The resize handle receives role=separator and aria-orientation=vertical alongside its existing accessible label.",
+      "reason": "The upstream component renders a div; aria-label on that div is prohibited without a valid role.",
+      "evidence": "Paired axe run reported serious aria-prohibited-attr on .sui-resize-handle; shell.test.tsx asserts the generated sidebar source includes the separator role and orientation.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "apps/web/src/features/common/shell.test.tsx#guards the upstream resizer from SSR"
+      ],
+      "sourceAuthority": "starter-receipt"
+    },
+    {
+      "source": "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes",
+      "destination": "apps/web/tsconfig.json:compilerOptions.exactOptionalPropertyTypes",
+      "change": "The generated web target sets exactOptionalPropertyTypes to false.",
+      "reason": "The transplanted Starter/Saas UI source currently relies on optional component props that are not assignable under the repository-wide exact optional property contract.",
+      "evidence": "At generated-target proof commit acbced929, enabling exactOptionalPropertyTypes=true after the production build produces 34 web type errors (28 TS2375 and 6 TS2379), primarily optional component props receiving undefined; the relaxed override remains required.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target"
+      ],
+      "sourceAuthority": "factory-support"
+    },
+    {
+      "source": "tsconfig.base.json:compilerOptions.noUncheckedIndexedAccess",
+      "destination": "apps/web/tsconfig.json:compilerOptions.noUncheckedIndexedAccess",
+      "change": "The generated web target sets noUncheckedIndexedAccess to false.",
+      "reason": "The transplanted Starter/Saas UI source indexes registry and fixture collections without handling undefined values under the repository-wide indexed-access contract.",
+      "evidence": "At generated-target proof commit acbced929, enabling noUncheckedIndexedAccess=true after the production build produces 13 web type errors (8 TS18048, 1 TS2322, 2 TS2345, and 2 TS2532), from unchecked collection/indexed values; the relaxed override remains required.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target"
+      ],
+      "sourceAuthority": "factory-support"
+    },
+    {
+      "source": "@chakra-ui/react@3.30.0:components/stat:StatRoot",
+      "destination": "apps/web/src/features/reports/reports-page.tsx:Churn by tier metric",
+      "change": "The upstream Stat.Root and Stat.Label for the chart/legend block render as div elements while retaining the upstream Stat styles and layout props.",
+      "reason": "Chakra Stat.Root defaults to dl, but this block contains a chart div and legend ul rather than a dt/dd pair; the default markup triggers axe definition-list serious violations.",
+      "evidence": "The pinned desktop authority artifact and generated desktop authority artifact both reported axe rule definition-list (serious) on <dl class=\"chakra-stat__root css-1pbhjgj\"> with direct chart div and legend ul children; focused generated axe passed after the seam, and the pinned reference source was synchronized with the same minimal semantic change.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "apps/web/src/features/reports/reports-page.test.tsx#does not expose the chart legend"
+      ],
+      "sourceAuthority": "starter-receipt"
+    },
+    {
+      "source": "apps/web/src/features/common/providers/app-provider.tsx:QueryClientProvider/AuthProvider",
+      "destination": "apps/web/src/features/common/providers/app-provider.tsx",
+      "change": "The factory provider composition supplies the generated QueryClient and fake-safe AuthProvider around the preserved Saas UI provider.",
+      "reason": "The pinned Starter provider imports starter-owned auth and query clients; the factory must close those providers at the neutral adapter boundary so generated SSR and browser fixtures render without starter credentials.",
+      "evidence": "app-provider.test.tsx verifies the provider composition with a real QueryClient and the reference authority launcher reaches Vite preview after the provider seam.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "apps/web/src/features/common/providers/app-provider.test.tsx#closes the generated auth"
+      ],
+      "sourceAuthority": "starter-receipt"
+    },
+    {
+      "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/Resizer",
+      "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/settings/common/settings-sidebar.tsx",
+      "change": "The browser-only upstream Resizer is replaced at both served factory call sites by the shared ClientResizer seam while preserving the upstream layout and resize-handle structure.",
+      "reason": "The upstream Resizer evaluates browser globals during SSR; ClientResizer defers that behavior behind ClientOnly for generated TanStack Start SSR.",
+      "evidence": "The receipt-backed adapted-file test hashes both served call sites, and the existing client-resizer SSR evidence covers renderToString without a document global.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider"
+      ],
+      "sourceAuthority": "starter-receipt"
+    },
+    {
+      "source": "apps/web/src/routes/__root.tsx:AppProvider",
+      "destination": "apps/web/src/routes/__root.tsx",
+      "change": "The root route passes its route-context QueryClient into the adapted AppProvider.",
+      "reason": "The factory provider seam requires the route-owned query client while preserving the upstream root document and shell composition.",
+      "evidence": "The generated-target SSR provider test exercises the root composition and the reference authority launcher reaches preview startup.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider"
+      ],
+      "sourceAuthority": "factory-support"
+    },
+    {
+      "source": "apps/web/src/lib/trpc/react.tsx:fake procedure facade",
+      "destination": "apps/web/src/lib/trpc/react.tsx",
+      "change": "The starter tRPC client is represented by a neutral recursive fake facade until generated refs replace it.",
+      "reason": "Starter-specific tRPC credentials and client construction are not available in the factory; the facade keeps transplanted screens runnable with fake fixtures.",
+      "evidence": "react.test.tsx verifies nested query/mutation access remains fake-safe, and the generated-target proof reaches the web build without a live tRPC client.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": ["apps/web/src/lib/trpc/react.test.tsx#"],
+      "sourceAuthority": "factory-support"
+    },
+    {
+      "source": "@saas-ui-pro/react@1.0.0-next.4:Aside.Root",
+      "destination": "apps/web/src/features/contacts/view/contact-page.tsx; apps/web/src/features/contacts/view/contact-sidebar.tsx",
+      "change": "The preserved aside gains named open/close controls and restores focus to its trigger after close or Escape.",
+      "reason": "The upstream Aside primitive exposes controlled open state but no close control or trigger relationship; the acceptance contract requires keyboard-close and focus restoration.",
+      "evidence": "The paired golden interaction spec closes the contact details aside with Escape and asserts focus returns to the named trigger.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "tests/e2e/saas-ui-golden.interactions.spec.ts#contact details"
+      ],
+      "sourceAuthority": "starter-receipt"
+    },
+    {
+      "source": "@saas-ui-pro/react@1.0.0-next.4:DataGridColumnResizer",
+      "destination": "apps/web/src/features/contacts/list/list-page.tsx",
+      "change": "The upstream DataGrid is mounted through ClientOnly while retaining its original client-side JSX and styles.",
+      "reason": "The column-resizer EnvironmentContext evaluates document during SSR, which crashes both reference and generated golden authorities.",
+      "evidence": "data-grid.ssr.test.tsx reproduces ReferenceError: document is not defined for the vendor DataGrid with resizing enabled; the ContactsListPage SSR regression and paired desktop golden subset prove the boundary and hydrated grid.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "apps/web/src/features/contacts/list/list-page.ssr.test.tsx#renders the data-grid route"
+      ],
+      "sourceAuthority": "starter-receipt"
+    },
+    {
+      "source": "@saas-ui-pro/react@1.0.0-next.4:DataGridSort and DataGridHeaderCell",
+      "destination": "patches/@saas-ui-pro__react@1.0.0-next.4.patch; apps/web/src/features/contacts/list/list-page.tsx",
+      "change": "Sortable grid headers retain their interactive title while aria-sort moves to the native column header, decorative sort icons are hidden from assistive technology, and contact action menus receive a name.",
+      "reason": "The pinned package writes aria-sort to a div and aria-label to a presentational span, while the preserved contact list creates unnamed icon-only action triggers; both are serious or critical WCAG failures.",
+      "evidence": "The paired data-grid accessibility test fails on both authorities before the seam; frozen generated-target installation includes the patch, and paired axe coverage verifies the repaired DOM without rule exclusions.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts#data-grid semantics"
+      ],
+      "sourceAuthority": "factory-support"
+    },
+    {
+      "source": "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
+      "destination": "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
+      "change": "The login password field identifies a current credential to browsers, and the text-bearing billing action retains its native button role.",
+      "reason": "The preserved screens used invalid autocomplete=\"password\" and overrode a named button to role=group, producing serious and critical WCAG failures.",
+      "evidence": "Focused paired axe coverage passes both auth and billing routes on the reference and generated authorities without rule exclusions.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": ["tests/e2e/saas-ui-golden.accessibility.spec.ts#auth"],
+      "sourceAuthority": "starter-receipt"
+    },
+    {
+      "source": "@saas-ui/react:Steps.List dots recipe",
+      "destination": "apps/web/src/features/getting-started/getting-started-page.tsx:OnboardingProgress",
+      "change": "The non-interactive visual dots are represented as one named progressbar with hidden decorative dots and step value 1–4.",
+      "reason": "The upstream dots recipe exposes a tablist whose direct wrapper children are not tabs, and hides the only tab titles; progression is form-driven, so it must not promise tab keyboard behavior.",
+      "evidence": "Paired reference/generated regression asserts the named progressbar, current value, and absence of a tablist.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts#onboarding progress semantics"
+      ],
+      "sourceAuthority": "starter-receipt"
+    },
+    {
+      "source": "@saas-ui/react:BackButtonPrimitive",
+      "destination": "apps/web/src/components/back-button.tsx",
+      "change": "The nested button-and-link primitive is replaced with the application LinkButton and an aria-hidden back-arrow icon.",
+      "reason": "The upstream composition produces an interactive link inside an interactive button, violating nested-interactive semantics and leaving the link unnamed.",
+      "evidence": "The reusable application back control now renders exactly one named navigation link; focused onboarding axe covers the served route.",
+      "evidencePaths": ["tooling/quality/saas-ui-foundation.test.ts"],
+      "evidenceChecks": [
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts#onboarding"
+      ],
+      "sourceAuthority": "factory-support"
+    },
+    {
+      "source": "@chakra-ui/react semantic token fg.error",
+      "destination": "apps/web/src/theme/semantic-tokens/colors.ts",
+      "change": "The semantic error foreground uses the existing red.700 light token and red.300 dark token through defineSemanticTokens.colors.",
+      "reason": "The inherited light red.500 foreground rendered at 3.23:1 on #fdfdfd for 12px field errors. Red.600 remained below AA (4.07–4.18:1); red.700 is the first existing darker red step that clears the 4.5:1 normal-text requirement.",
+      "evidence": "Paired onboarding dark-mode accessibility coverage executes the validation flow on reference and generated authorities; the dark token remains red.300 and the route has no serious or critical axe violations.",
+      "evidencePaths": ["tests/e2e/saas-ui-golden.accessibility.spec.ts"],
+      "evidenceChecks": [
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts#paired onboarding dark-mode accessibility"
+      ],
+      "sourceAuthority": "starter-receipt"
+    }
+  ]
+}

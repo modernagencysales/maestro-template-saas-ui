@@ -36,6 +36,11 @@ const input = {
       change: "compatibility adjustment",
       reason: "runtime compatibility",
       evidence: "focused unit test",
+      evidencePaths: ["tooling/quality/saas-ui-foundation.test.ts"],
+      evidenceChecks: [
+        "tooling/quality/saas-ui-foundation.test.ts#checkSaasUiFoundation",
+      ],
+      sourceAuthority: "factory-support",
     },
   ],
   evidencePaths: [
