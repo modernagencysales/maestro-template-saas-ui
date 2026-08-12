@@ -6,6 +6,11 @@ import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { buildSaasApplicationTargetPlan } from "../../tooling/generators/src/blueprints/saasApplication";
 import { previewCommand } from "./golden-authority-command";
+import {
+  createGeneratedAuthorityMetadata,
+  createReferenceAuthorityMetadata,
+  serializeAuthorityMetadata,
+} from "./golden-authority-runtime";
 
 const repositoryRoot = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -32,6 +37,14 @@ function verifyStarterPin() {
       `Pinned Starter checkout is ${actual}; expected ${starterPin}`,
     );
   }
+  return readPinnedStarterContentDigest();
+}
+
+function readPinnedStarterContentDigest() {
+  const archive = execFileSync("git", ["archive", starterPin, "apps/web"], {
+    cwd: starterRoot,
+  });
+  return createHash("sha256").update(archive).digest("hex");
 }
 
 function hashEntries(entries: readonly { path: string; content: string }[]) {
@@ -76,21 +89,22 @@ function materializeGeneratedTarget() {
   return { digest, targetRoot };
 }
 
-const referenceDigest = createHash("sha256")
-  .update(`reference:${starterPin}`)
-  .digest("hex");
 const generated =
   authority === "generated" ? materializeGeneratedTarget() : undefined;
 const targetRoot = generated?.targetRoot ?? starterRoot;
-if (authority === "reference") verifyStarterPin();
+const starterContentDigest =
+  authority === "reference"
+    ? verifyStarterPin()
+    : readPinnedStarterContentDigest();
 
-const digest = authority === "reference" ? referenceDigest : generated?.digest;
+const digest =
+  authority === "reference" ? starterContentDigest : generated?.digest;
 if (!digest) {
   throw new Error("Generated golden authority did not produce a digest");
 }
 if (
   authority === "generated" &&
-  (targetRoot === starterRoot || digest === referenceDigest)
+  (targetRoot === starterRoot || digest === starterContentDigest)
 ) {
   throw new Error(
     "Generated golden authority must have a distinct root and digest",
@@ -98,9 +112,16 @@ if (
 }
 const evidenceRoot = resolve(repositoryRoot, "artifacts/saas-ui-golden");
 mkdirSync(evidenceRoot, { recursive: true });
+const metadata =
+  authority === "reference"
+    ? createReferenceAuthorityMetadata({
+        starterPin,
+        starterContentDigest: digest,
+      })
+    : createGeneratedAuthorityMetadata({ generatedDigest: digest });
 writeFileSync(
   join(evidenceRoot, `authority-${authority}.json`),
-  `${JSON.stringify({ authority, root: targetRoot, digest }, null, 2)}\n`,
+  serializeAuthorityMetadata(metadata),
 );
 
 if (authority === "generated") {
