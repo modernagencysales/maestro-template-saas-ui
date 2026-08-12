@@ -58,6 +58,12 @@ export function ContactPage({ params, toolbarItems }: ContactPageProps) {
   const sidebar = useOpenState({
     defaultOpen: true,
   });
+  const sidebarTriggerRef = React.useRef<HTMLButtonElement>(null);
+
+  const closeSidebar = () => {
+    sidebar.setOpen(false);
+    requestAnimationFrame(() => sidebarTriggerRef.current?.focus());
+  };
 
   React.useEffect(() => {
     if (isMobile === true) {
@@ -84,7 +90,16 @@ export function ContactPage({ params, toolbarItems }: ContactPageProps) {
       <Tooltip
         content={sidebar.open ? "Hide contact details" : "Show contact details"}
       >
-        <Button onClick={() => sidebar.setOpen(!sidebar.open)}>
+        <Button
+          ref={sidebarTriggerRef}
+          aria-label={
+            sidebar.open ? "Hide contact details" : "Show contact details"
+          }
+          onClick={() => {
+            if (sidebar.open) closeSidebar();
+            else sidebar.setOpen(true);
+          }}
+        >
           <LuPanelRightOpen />
         </Button>
       </Tooltip>
@@ -137,6 +152,7 @@ export function ContactPage({ params, toolbarItems }: ContactPageProps) {
             contact={data}
             {...(sidebar.open ? { open: true } : {})}
             onOpenChange={sidebar.onOpenChange}
+            onClose={closeSidebar}
           />
         </HStack>
       </Page.Body>

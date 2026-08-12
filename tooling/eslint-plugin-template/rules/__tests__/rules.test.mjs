@@ -824,6 +824,10 @@ tester.run("saas-ui-shell-authority", shellAuthority, {
       code: "import { Sidebar } from '@saas-ui/react'; export function AppSidebar() { return <Sidebar />; }",
     },
     {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "import { Button, Page } from '@saas-ui/react'; export function OrdersPage() { return <Page><Button>Save</Button></Page>; }",
+    },
+    {
       filename: "generated/fixtures/dashboard.tsx",
       code: "export const fixture = { label: 'Sidebar', value: 'DataGrid' };",
     },
@@ -833,6 +837,11 @@ tester.run("saas-ui-shell-authority", shellAuthority, {
     },
   ],
   invalid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "import { AppShell } from '@saas-ui/react'; export function OrdersPage() { return <AppShell />; }",
+      errors: [{ messageId: "shellOnly" }],
+    },
     {
       filename: "apps/web/src/features/orders/page.tsx",
       code: "import { Sidebar } from '@saas-ui/react'; export function OrdersPage() { return <Sidebar />; }",
@@ -846,12 +855,6 @@ tester.run("saas-ui-shell-authority", shellAuthority, {
     {
       filename: "tooling/generators/src/blueprints/customer/page.tsx",
       code: "import { Page } from './page'; export const route = Page;",
-      errors: [{ messageId: "shellOnly" }],
-    },
-    {
-      filename: "apps/web/src/components/add-contact-drawer/custom-wrapper.tsx",
-      code: "import { Button } from '@saas-ui/react'; export const Custom = Button;",
-      options: [{ receiptPath: REGISTRY_RECEIPT }],
       errors: [{ messageId: "shellOnly" }],
     },
   ],

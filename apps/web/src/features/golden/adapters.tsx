@@ -23,6 +23,37 @@ const GoldenAdapterContext = React.createContext<GoldenFrontendAdapter | null>(
   null,
 );
 const GoldenStateContext = React.createContext<GoldenState>("ready-read");
+const goldenFixtureStorageKey = "maestro-golden-fixture";
+
+function readGoldenFixtureState(): GoldenState {
+  if (typeof window === "undefined") return "ready-read";
+
+  try {
+    const fixture = JSON.parse(
+      window.localStorage.getItem(goldenFixtureStorageKey) ?? "{}",
+    ) as { state?: unknown };
+    return isGoldenState(fixture.state) ? fixture.state : "ready-read";
+  } catch {
+    return "ready-read";
+  }
+}
+
+function isGoldenState(value: unknown): value is GoldenState {
+  return (
+    typeof value === "string" &&
+    [
+      "loading",
+      "empty",
+      "ready-read",
+      "ready-edit",
+      "mutation-success",
+      "mutation-failure",
+      "error",
+      "not-found",
+      "permission-denied",
+    ].includes(value)
+  );
+}
 
 export function createGoldenAdapter(
   navigate: (to: string) => void = () => undefined,
@@ -45,16 +76,18 @@ export function createGoldenAdapter(
 
 export function GoldenAdapterProvider({
   children,
-  initialState = "ready-read",
+  initialState,
   adapter = createGoldenAdapter(),
 }: {
   children: React.ReactNode;
   initialState?: GoldenState;
   adapter?: GoldenFrontendAdapter;
 }) {
+  const state = initialState ?? readGoldenFixtureState();
+
   return (
     <GoldenAdapterContext.Provider value={adapter}>
-      <GoldenStateContext.Provider value={initialState}>
+      <GoldenStateContext.Provider value={state}>
         {children}
       </GoldenStateContext.Provider>
     </GoldenAdapterContext.Provider>

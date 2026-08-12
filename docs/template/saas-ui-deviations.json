@@ -61,5 +61,12 @@
     "change": "The starter tRPC client is represented by a neutral recursive fake facade until generated refs replace it.",
     "reason": "Starter-specific tRPC credentials and client construction are not available in the factory; the facade keeps transplanted screens runnable with fake fixtures.",
     "evidence": "react.test.tsx verifies nested query/mutation access remains fake-safe, and the generated-target proof reaches the web build without a live tRPC client."
+  },
+  {
+    "source": "@saas-ui-pro/react@1.0.0-next.4:Aside.Root",
+    "destination": "apps/web/src/features/contacts/view/contact-page.tsx; apps/web/src/features/contacts/view/contact-sidebar.tsx",
+    "change": "The preserved aside gains named open/close controls and restores focus to its trigger after close or Escape.",
+    "reason": "The upstream Aside primitive exposes controlled open state but no close control or trigger relationship; the acceptance contract requires keyboard-close and focus restoration.",
+    "evidence": "The paired golden interaction spec closes the contact details aside with Escape and asserts focus returns to the named trigger."
   }
 ]

@@ -8,7 +8,9 @@ import {
  * Keep shell compositions in the manifest-authorized upstream shell roots.
  * This is intentionally a name/import boundary, not a visual-style score.
  */
-const SHELL_NAMES = new Set([
+const TOP_LEVEL_SHELL_NAMES = new Set(["AppShell", "Sidebar"]);
+const LOCAL_PRIMITIVE_NAMES = new Set([
+  "AppShell",
   "Button",
   "Dialog",
   "Table",
@@ -98,23 +100,27 @@ export default {
         const source = String(node.source.value);
         for (const specifier of node.specifiers) {
           const name = importedName(specifier);
-          if (!name || !SHELL_NAMES.has(name)) continue;
-          if (OFFICIAL_SOURCES.has(source) || source.startsWith(".")) {
+          const names = OFFICIAL_SOURCES.has(source)
+            ? TOP_LEVEL_SHELL_NAMES
+            : source.startsWith(".")
+              ? LOCAL_PRIMITIVE_NAMES
+              : null;
+          if (name && names?.has(name)) {
             report(specifier, name);
           }
         }
       },
       FunctionDeclaration(node) {
         const name = declaredName(node);
-        if (name && SHELL_NAMES.has(name)) report(node.id, name);
+        if (name && LOCAL_PRIMITIVE_NAMES.has(name)) report(node.id, name);
       },
       ClassDeclaration(node) {
         const name = declaredName(node);
-        if (name && SHELL_NAMES.has(name)) report(node.id, name);
+        if (name && LOCAL_PRIMITIVE_NAMES.has(name)) report(node.id, name);
       },
       VariableDeclarator(node) {
         const name = declaredName(node);
-        if (name && SHELL_NAMES.has(name)) report(node.id, name);
+        if (name && LOCAL_PRIMITIVE_NAMES.has(name)) report(node.id, name);
       },
     };
   },

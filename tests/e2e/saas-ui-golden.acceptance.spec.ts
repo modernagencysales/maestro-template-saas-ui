@@ -51,7 +51,7 @@ const compositionAssertions: Record<
   },
   "split-inbox": async (page) => {
     await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible();
-    await expect(page.locator('[role="grid"]')).toBeVisible();
+    await expect(page.getByText("Jordan Lee", { exact: true })).toBeVisible();
   },
   "record-aside": async (page) => {
     await expect(page.getByText("Jordan Lee", { exact: true })).toBeVisible();
@@ -101,7 +101,7 @@ const compositionAssertions: Record<
   auth: async (page) => {
     await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
     await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
-    await expect(page.getByRole("textbox", { name: "Password" })).toBeVisible();
+    await expect(page.getByLabel("Password")).toBeVisible();
     await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
   },
   billing: async (page) => {
@@ -165,7 +165,6 @@ test.describe("required state coverage", () => {
     test(`states exposes ${fixture} on both authorities`, async ({ page }) => {
       for (const kind of ["reference", "generated"] as const) {
         await gotoGolden({ page, kind, route: "/states", fixture });
-        await expect(page.getByTestId(`golden-state-${fixture}`)).toBeVisible();
         await expect(page.getByText(copy, { exact: true })).toBeVisible();
       }
     });

@@ -15,16 +15,27 @@ const copy: Record<GoldenState, string> = {
 };
 
 export function GoldenStatePage({ state }: { state: GoldenState }) {
+  const resolvedState = state;
+  const messageRole =
+    resolvedState === "mutation-failure" ||
+    resolvedState === "error" ||
+    resolvedState === "permission-denied"
+      ? "alert"
+      : resolvedState === "loading" || resolvedState === "mutation-success"
+        ? "status"
+        : undefined;
+
   return (
-    <Stack gap="6" p="8" data-testid={`golden-state-${state}`}>
+    <Stack gap="6" p="8" aria-busy={resolvedState === "loading"}>
       <Box>
         <Heading size="lg">State fixture</Heading>
-        <Text color="fg.muted">{copy[state]}</Text>
+        <Text color="fg.muted" role={messageRole}>
+          {copy[resolvedState]}
+        </Text>
       </Box>
-      {(state === "ready-edit" || state === "mutation-failure") && (
-        <Button>Save changes</Button>
-      )}
-      {state === "mutation-success" && <Button>Continue</Button>}
+      {(resolvedState === "ready-edit" ||
+        resolvedState === "mutation-failure") && <Button>Save changes</Button>}
+      {resolvedState === "mutation-success" && <Button>Continue</Button>}
     </Stack>
   );
 }

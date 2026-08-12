@@ -1,6 +1,7 @@
 import { Button, Field, Heading, Input, Stack, Text } from "@saas-ui/react";
 import * as React from "react";
 
+import { useGoldenState } from "./adapters";
 import type { GoldenState } from "./fixtures";
 
 export function GoldenFormPage({
@@ -8,7 +9,25 @@ export function GoldenFormPage({
 }: {
   state?: GoldenState;
 }) {
-  const [saved, setSaved] = React.useState(state === "mutation-success");
+  const fixtureState = useGoldenState();
+  const resolvedState = state ?? fixtureState;
+  const [name, setName] = React.useState("Northstar launch");
+  const [message, setMessage] = React.useState<"success" | "failure" | null>(
+    resolvedState === "mutation-success"
+      ? "success"
+      : resolvedState === "mutation-failure"
+        ? "failure"
+        : null,
+  );
+
+  const save = () => {
+    if (!name.trim()) {
+      setMessage("failure");
+      return;
+    }
+    setMessage(resolvedState === "mutation-failure" ? "failure" : "success");
+  };
+
   return (
     <Stack gap="6" p={{ base: "5", md: "8" }} maxW="xl">
       <Heading size="lg">Form archetype</Heading>
@@ -17,14 +36,22 @@ export function GoldenFormPage({
       </Text>
       <Field.Root required>
         <Field.Label>Project name</Field.Label>
-        <Input defaultValue="Northstar launch" aria-label="Project name" />
+        <Input
+          aria-label="Project name"
+          value={name}
+          onChange={(event) => setName(event.currentTarget.value)}
+        />
       </Field.Root>
-      <Button onClick={() => setSaved(state !== "mutation-failure")}>
-        Save project
-      </Button>
-      {saved && <Text role="status">Changes saved successfully</Text>}
-      {state === "mutation-failure" && !saved && (
-        <Text role="alert">Changes could not be saved</Text>
+      <Button onClick={save}>Save project</Button>
+      {message === "success" && (
+        <Text role="status">Changes saved successfully</Text>
+      )}
+      {message === "failure" && (
+        <Text role="alert">
+          {name.trim()
+            ? "Changes could not be saved"
+            : "Project name is required"}
+        </Text>
       )}
     </Stack>
   );

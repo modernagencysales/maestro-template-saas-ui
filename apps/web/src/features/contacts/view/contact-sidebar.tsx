@@ -11,7 +11,7 @@ import {
   Stack,
 } from "@saas-ui/react";
 import { useMutation } from "@tanstack/react-query";
-import { LuChevronRight } from "react-icons/lu";
+import { LuChevronRight, LuX } from "react-icons/lu";
 
 import type { ContactDTO } from "@workspace/api/types";
 import { DateTime } from "@workspace/i18n";
@@ -31,10 +31,11 @@ import { ContactType } from "../common/contact-type";
 
 export interface ContactSidebarProps extends Aside.RootProps {
   contact?: ContactDTO | null;
+  onClose?: () => void;
 }
 
 export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
-  const { contact, ...rest } = props;
+  const { contact, onClose, ...rest } = props;
 
   return (
     <Aside.Root
@@ -49,6 +50,11 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
       boxShadow="md"
       bg="bg.panel"
       borderLeftWidth="1px"
+      role="complementary"
+      aria-label="Contact details"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") onClose?.();
+      }}
       {...rest}
     >
       {contact ? (
@@ -67,6 +73,14 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
               <OverflowMenu.Root>
                 <OverflowMenu.Item value="delete">Delete</OverflowMenu.Item>
               </OverflowMenu.Root>
+              <Button
+                aria-label="Close contact details"
+                variant="ghost"
+                size="sm"
+                onClick={onClose}
+              >
+                <LuX />
+              </Button>
             </Stack>
           </Aside.Header>
           <ContactDetails contact={contact} />
@@ -130,10 +144,7 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
             }}
           >
             Details
-            <Icon
-              transitionProperty="transform"
-              transitionDuration="fast"
-            >
+            <Icon transitionProperty="transform" transitionDuration="fast">
               <LuChevronRight />
             </Icon>
           </Button>
@@ -181,13 +192,13 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
                       placement: "left-start",
                       getAnchorRect: () => {
                         const rect =
-                          tagsAnchor.current!.getBoundingClientRect();
+                          tagsAnchor.current?.getBoundingClientRect();
 
                         return {
-                          x: rect?.x,
-                          y: rect?.y,
-                          width: rect?.width,
-                          height: rect?.height,
+                          x: rect?.x ?? 0,
+                          y: rect?.y ?? 0,
+                          width: rect?.width ?? 0,
+                          height: rect?.height ?? 0,
                         };
                       },
                     }}

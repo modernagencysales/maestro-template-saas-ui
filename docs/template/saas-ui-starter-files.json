@@ -398,14 +398,14 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/contacts/view/contact-page.tsx",
       "destination": "apps/web/src/features/contacts/view/contact-page.tsx",
       "sourceSha256": "3b257938b6133818f25b80a1d56d1f432606bdee1b8f203217338e2b895d8a18",
-      "sha256": "ddd87f784e78b86f32a3f2437ed9f8849ff4a41f34d31ec586d45f9b52f2a224",
+      "sha256": "f31c40a85ab06998398c8546b3b493e08ae5e42bed494b55801b7bae71716938",
       "adapted": true
     },
     {
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/contacts/view/contact-sidebar.tsx",
       "destination": "apps/web/src/features/contacts/view/contact-sidebar.tsx",
       "sourceSha256": "57759ed08ad8e910c0cfd49ff65c89f4a30c91fc3e282488e2874554ad77d9c8",
-      "sha256": "af61f2e4ead19b7ec880dd148eaa2ccb8e82c66b2ef7059ab43868cb13aae0f1",
+      "sha256": "4b8a05c6a32e55b6ab0707b9cac577a05d42df4359bc2ec18f6678faaee2afa0",
       "adapted": true
     },
     {
