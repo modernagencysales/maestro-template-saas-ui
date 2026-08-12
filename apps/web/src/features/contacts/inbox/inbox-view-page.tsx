@@ -1,5 +1,8 @@
 "use client";
 
+import * as React from "react";
+
+import { useSplitPage } from "@saas-ui-pro/react";
 import { ButtonGroup, IconButton, Spacer } from "@saas-ui/react";
 import { LuChevronLeft, LuClock, LuTrash } from "react-icons/lu";
 
@@ -15,12 +18,21 @@ export function InboxViewPage(props: {
   };
   onBack?: () => void;
 }) {
+  const { onClose, onOpen } = useSplitPage();
+
+  React.useEffect(() => {
+    onOpen();
+  }, [onOpen]);
+
   const toolbar = (
     <ButtonGroup>
       <IconButton
         display={{ base: "inline-flex", lg: "none" }}
         aria-label="All notifications"
-        onClick={props.onBack}
+        onClick={() => {
+          onClose();
+          props.onBack?.();
+        }}
         variant="ghost"
       >
         <LuChevronLeft />

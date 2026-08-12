@@ -314,7 +314,7 @@
       "source": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "sourceSha256": "bc5baf32043a6d9e67b10b79e01f7efcae44120ea12b3fd54fee9bb6e60fb56f",
-      "sha256": "3d79fa763842215926ccc23553a197ceb4a8257970c3ef752d12ac7eb6a2b62c",
+      "sha256": "e7b0d509b9b57c1663c22c3dcbe33a497696e39e3a58ddd4aab6b4654c117ce1",
       "adapted": true
     },
     {
@@ -328,7 +328,7 @@
       "source": "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
       "destination": "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
       "sourceSha256": "813208fd9502e9c5c134f9af8503b5d64e6be4bee75843c4369500edfe311bf8",
-      "sha256": "1aa38d69bfd0ba4da132440f1c49e3fe6b0852b780266a351ebd10ded51a5340",
+      "sha256": "423a609201d60a74be031f1b3eea1d2feedbc6692a6a6dd10291a8eb869610b4",
       "adapted": true
     },
     {

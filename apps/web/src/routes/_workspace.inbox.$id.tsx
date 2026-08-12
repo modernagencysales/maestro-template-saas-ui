@@ -10,5 +10,11 @@ export const Route = createFileRoute("/_workspace/inbox/$id")({
 
 function InboxDetailRoute() {
   const { contactId } = Route.useSearch();
-  return <InboxViewPage params={{ workspace: "acme", id: contactId }} />;
+  const navigate = Route.useNavigate();
+  return (
+    <InboxViewPage
+      params={{ workspace: "acme", id: contactId }}
+      onBack={() => navigate({ to: "/inbox" })}
+    />
+  );
 }

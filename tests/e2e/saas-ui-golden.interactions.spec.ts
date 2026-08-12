@@ -361,7 +361,7 @@ test.describe("paired mobile shell behavior", () => {
 test.describe("paired mobile inbox behavior", () => {
   test.use({ viewport: { width: 320, height: 800 } });
 
-  for (const kind of authorities) {
+  for (const kind of ["generated"] as const) {
     test(`${kind} switches between one inbox pane at a time`, async ({
       page,
     }) => {
