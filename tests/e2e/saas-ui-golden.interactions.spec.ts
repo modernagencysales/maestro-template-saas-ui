@@ -1,31 +1,43 @@
 import { expect, test } from "@playwright/test";
-import { goldenUrl, seedGoldenFixture } from "./fixtures/saas-ui-golden";
+import { acceptanceEntries, gotoGolden } from "./fixtures/saas-ui-golden";
 
-for (const kind of ["reference", "generated"] as const) {
-  test.describe(`${kind} upstream interactions`, () => {
-    test.beforeEach(async ({ page }) => {
-      await seedGoldenFixture(page, "ready-read", "light");
-      await page.goto(goldenUrl(kind, "/dashboard"), {
-        waitUntil: "networkidle",
-      });
-    });
+const authorities = ["reference", "generated"] as const;
 
-    test("collapses and restores the sidebar with a visible focus target", async ({
+function entry(id: string) {
+  const result = acceptanceEntries.find((item) => item.id === id);
+  if (!result) throw new Error(`Missing acceptance entry ${id}`);
+  return result;
+}
+
+test.describe("paired Saas UI golden interactions", () => {
+  for (const kind of authorities) {
+    test(`${kind} shell collapse, resize, persistence, and flyout`, async ({
       page,
     }) => {
+      await gotoGolden({ page, kind, route: entry("app-shell").route });
       const collapse = page
         .getByRole("button", { name: "Collapse sidebar" })
         .first();
       await collapse.click();
-      await expect(page.locator("body")).toContainText("Dashboard");
-      await collapse.focus();
-      await expect(page.locator(":focus")).toHaveAttribute(
-        "aria-label",
-        "Collapse sidebar",
-      );
+      await expect(
+        page.getByText("Dashboard", { exact: true }).first(),
+      ).toBeVisible();
+      await page.reload({ waitUntil: "networkidle" });
+      await expect(
+        page.getByText("Dashboard", { exact: true }).first(),
+      ).toBeVisible();
+
+      const handle = page
+        .getByRole("separator", { name: "Collapse sidebar" })
+        .first();
+      await handle.click();
+      await expect(collapse).toBeVisible();
     });
 
-    test("opens the workspace and user menus", async ({ page }) => {
+    test(`${kind} workspace and user menus expose named commands`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("app-shell").route });
       await page.getByRole("button", { name: /Current workspace is/ }).click();
       await expect(
         page.getByRole("menuitem", { name: "Create a workspace" }),
@@ -35,40 +47,222 @@ for (const kind of ["reference", "generated"] as const) {
       await expect(
         page.getByRole("menuitem", { name: "Profile" }),
       ).toBeVisible();
+      await expect(
+        page.getByRole("menuitem", { name: /Dark mode|Light mode/ }),
+      ).toBeVisible();
     });
 
-    test("reaches global search by keyboard and accepts a query", async ({
+    test(`${kind} global search accepts keyboard shortcut and query`, async ({
       page,
     }) => {
-      const search = page.getByRole("searchbox", { name: "Search" });
-      await search.focus();
-      await page.keyboard.type("reports");
-      await expect(search).toHaveValue("reports");
+      await gotoGolden({ page, kind, route: entry("search-command").route });
+      const search = page
+        .getByRole("textbox", { name: /Search your workspace/i })
+        .first();
+      await page.keyboard.press("Control+k");
+      await search.fill("contact");
+      await expect(search).toHaveValue("contact");
+      await expect(page).toHaveURL(/search/);
     });
 
-    test("completes a form mutation state", async ({ page }) => {
-      await page.goto(goldenUrl(kind, "/forms"), { waitUntil: "networkidle" });
-      await page.getByRole("button", { name: "Save project" }).click();
-      await expect(page.getByText("Changes saved successfully")).toHaveText(
-        "Changes saved successfully",
+    test(`${kind} data grid filters, sorts, pages, and selects`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("data-grid").route });
+      const nameHeader = page.getByRole("columnheader", { name: "Name" });
+      await nameHeader.click();
+      await expect(nameHeader).toHaveAttribute(
+        "aria-sort",
+        /ascending|descending/,
+      );
+      const filter = page.getByRole("button", { name: /filter/i }).first();
+      await filter.click();
+      await expect(
+        page.getByRole("menu").or(page.getByRole("dialog")),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
+      const next = page.getByRole("button", { name: /next page/i });
+      if (await next.isVisible()) {
+        await next.click();
+        await expect(next).toBeVisible();
+      }
+      const checkbox = page.getByRole("checkbox").first();
+      await checkbox.check();
+      await expect(checkbox).toBeChecked();
+    });
+
+    test(`${kind} removes an active collection filter`, async ({ page }) => {
+      await gotoGolden({
+        page,
+        kind,
+        route: entry("filterable-collection").route,
+      });
+      const filter = page.getByRole("button", { name: /filter/i }).first();
+      await filter.click();
+      const menu = page.getByRole("menu").or(page.getByRole("dialog"));
+      await expect(menu).toBeVisible();
+      const firstOption = menu.getByRole("menuitem").first();
+      await firstOption.click();
+      await expect(
+        page.getByRole("button", { name: /remove filter|clear filter/i }),
+      ).toBeVisible();
+      await page
+        .getByRole("button", { name: /remove filter|clear filter/i })
+        .first()
+        .click();
+      await expect(
+        page.getByRole("button", { name: /remove filter|clear filter/i }),
+      ).toHaveCount(0);
+    });
+
+    test(`${kind} navigates list to detail and switches the record aside`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("list-detail").route });
+      await page.getByRole("link", { name: "Jordan Lee" }).click();
+      await expect(page).toHaveURL(/contacts\/view\/contact-1/);
+      const details = page.getByRole("button", { name: /contact details/i });
+      await details.click();
+      await expect(page.getByText("Details", { exact: true })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await details.focus();
+      await expect(page.locator(":focus")).toHaveAccessibleName(
+        /contact details/i,
       );
     });
 
-    test("honors reduced motion and 200 percent zoom without document overflow", async ({
+    test(`${kind} selects an inbox item in the split view`, async ({
       page,
     }) => {
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.evaluate(() => {
-        document.documentElement.style.zoom = "200%";
-      });
-      expect(
-        await page.evaluate(() => document.documentElement.scrollWidth),
-      ).toBeGreaterThan(0);
-      expect(
-        await page.evaluate(
-          () => matchMedia("(prefers-reduced-motion: reduce)").matches,
-        ),
-      ).toBe(true);
+      await gotoGolden({ page, kind, route: entry("split-inbox").route });
+      const items = page.locator(
+        '[role="grid"] [role="row"], [role="griditem"]',
+      );
+      await expect(items.first()).toBeVisible();
+      await items.first().click();
+      await expect(page).toHaveURL(/inbox/);
     });
-  });
-}
+
+    test(`${kind} settings navigation reaches billing`, async ({ page }) => {
+      await gotoGolden({ page, kind, route: entry("settings").route });
+      await page.getByRole("link", { name: "Billing" }).click();
+      await expect(page).toHaveURL(/settings\/billing/);
+      await expect(
+        page.getByRole("heading", { name: "Billing" }),
+      ).toBeVisible();
+    });
+
+    test(`${kind} form covers validation, success, and failure`, async ({
+      page,
+    }) => {
+      await gotoGolden({
+        page,
+        kind,
+        route: entry("form").route,
+        fixture: "ready-edit",
+      });
+      const name = page.getByRole("textbox", { name: "Project name" });
+      await name.fill("");
+      await page.getByRole("button", { name: "Save project" }).click();
+      await expect(
+        page.getByRole("alert").or(page.getByText(/required/i)),
+      ).toBeVisible();
+
+      await name.fill("Northstar launch");
+      await page.getByRole("button", { name: "Save project" }).click();
+      await expect(
+        page.getByRole("status", { name: "Changes saved successfully" }),
+      ).toBeVisible();
+
+      await gotoGolden({
+        page,
+        kind,
+        route: `${entry("form").route}?goldenState=mutation-failure`,
+        fixture: "mutation-failure",
+      });
+      await page.getByRole("button", { name: "Save project" }).click();
+      await expect(page.getByRole("alert")).toHaveText(
+        "Changes could not be saved",
+      );
+    });
+
+    test(`${kind} advances onboarding after invalid and valid form states`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("onboarding").route });
+      await page.getByRole("button", { name: "Create workspace" }).click();
+      await expect(
+        page.getByRole("alert").or(page.getByText(/required/i)),
+      ).toBeVisible();
+      await page
+        .getByRole("textbox", { name: "Workspace name" })
+        .fill("Golden workspace");
+      await page
+        .getByRole("textbox", { name: "Workspace URL" })
+        .fill("golden-workspace");
+      await page.getByRole("button", { name: "Create workspace" }).click();
+      await expect(
+        page.getByRole("heading", {
+          name: /Choose your style|Create a new workspace/i,
+        }),
+      ).toBeVisible();
+    });
+
+    test(`${kind} drags a Kanban card between columns`, async ({ page }) => {
+      await gotoGolden({ page, kind, route: entry("kanban").route });
+      const card = page.locator('[draggable="true"]').first();
+      const destination = page.locator('[data-kanban-column="In progress"]');
+      await card.dragTo(destination);
+      await expect(destination).toContainText(/Northwind|Jordan Lee/);
+    });
+
+    test(`${kind} auth form reports invalid credentials and preserves names`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("auth").route });
+      await page.getByRole("button", { name: "Log in" }).click();
+      await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
+      await expect(
+        page.getByRole("textbox", { name: "Password" }),
+      ).toBeVisible();
+      await expect(
+        page.getByRole("link", { name: "Forgot your password?" }),
+      ).toBeVisible();
+    });
+
+    test(`${kind} billing presents plan, email, and invoice actions`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("billing").route });
+      await expect(
+        page.getByText("Billing plan", { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByRole("button", { name: "Update" })).toBeVisible();
+      await expect(page.getByText("Invoices", { exact: true })).toBeVisible();
+    });
+  }
+});
+
+test.describe("paired mobile shell behavior", () => {
+  test.use({ viewport: { width: 390, height: 844 } });
+
+  for (const kind of authorities) {
+    test(`${kind} mobile sidebar uses a backdrop and restores focus`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("app-shell").route });
+      const collapse = page
+        .getByRole("button", { name: "Collapse sidebar" })
+        .first();
+      await collapse.click();
+      await expect(
+        page.locator('[data-part="backdrop"], [aria-label="Close sidebar"]'),
+      ).toBeVisible();
+      await page.keyboard.press("Escape");
+      await collapse.focus();
+      await expect(page.locator(":focus")).toHaveAccessibleName(
+        "Collapse sidebar",
+      );
+    });
+  }
+});

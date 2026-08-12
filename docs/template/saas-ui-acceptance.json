@@ -26,7 +26,7 @@
       },
       "factoryDestination": "apps/web/src/features/reports",
       "generatedDestination": "apps/web/src/features/reports",
-      "route": "/dashboard",
+      "route": "/reports",
       "behaviorCheck": "dashboard report renders",
       "evidence": [
         "dashboard-ready-read-desktop-light",
@@ -71,7 +71,7 @@
       },
       "factoryDestination": "apps/web/src/features/contacts/view",
       "generatedDestination": "apps/web/src/features/contacts/view",
-      "route": "/contacts/:contactId",
+      "route": "/contacts/view/contact-1",
       "behaviorCheck": "list to detail navigation",
       "evidence": ["contact-ready-read-desktop-light", "paid-artifact-boundary"]
     },
@@ -97,7 +97,7 @@
       },
       "factoryDestination": "apps/web/src/features/contacts/view",
       "generatedDestination": "apps/web/src/features/contacts/view",
-      "route": "/contacts/:contactId",
+      "route": "/contacts/view/contact-1",
       "behaviorCheck": "record aside opens and restores focus",
       "evidence": ["contact-ready-read-mobile-light", "paid-artifact-boundary"]
     },
@@ -126,7 +126,7 @@
       },
       "factoryDestination": "apps/web/src/features/getting-started",
       "generatedDestination": "apps/web/src/features/getting-started",
-      "route": "/onboarding",
+      "route": "/forms",
       "behaviorCheck": "form validation and submit",
       "evidence": [
         "onboarding-ready-edit-desktop-light",
@@ -142,7 +142,7 @@
       },
       "factoryDestination": "apps/web/src/features/getting-started",
       "generatedDestination": "apps/web/src/features/getting-started",
-      "route": "/onboarding",
+      "route": "/getting-started",
       "behaviorCheck": "onboarding steps",
       "evidence": [
         "onboarding-ready-read-desktop-light",

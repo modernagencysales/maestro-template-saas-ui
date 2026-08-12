@@ -1,19 +1,45 @@
 import { test } from "@playwright/test";
-import { captureReferenceAndGenerated } from "./fixtures/saas-ui-golden";
+import {
+  acceptanceEntries,
+  captureReferenceAndGenerated,
+} from "./fixtures/saas-ui-golden";
 
 test.describe("paired Saas UI golden visual evidence", () => {
   for (const colorMode of ["light", "dark"] as const) {
-    for (const viewport of ["shell", "reports"] as const) {
-      test(`${viewport} ${colorMode} captures both authorities`, async ({
+    for (const entry of acceptanceEntries) {
+      test(`${entry.id} ready-read ${colorMode} captures both authorities`, async ({
         page,
       }, testInfo) => {
         await captureReferenceAndGenerated({
           page,
           testInfo,
-          route: viewport === "shell" ? "/dashboard" : "/reports",
+          route: entry.route,
           fixture: "ready-read",
           colorMode,
-          composition: viewport,
+          composition: entry.id,
+        });
+      });
+    }
+  }
+
+  for (const fixture of [
+    "loading",
+    "empty",
+    "ready-edit",
+    "mutation-success",
+    "mutation-failure",
+  ] as const) {
+    for (const colorMode of ["light", "dark"] as const) {
+      test(`states ${fixture} ${colorMode} captures both authorities`, async ({
+        page,
+      }, testInfo) => {
+        await captureReferenceAndGenerated({
+          page,
+          testInfo,
+          route: "/states",
+          fixture,
+          colorMode,
+          composition: "states",
         });
       });
     }

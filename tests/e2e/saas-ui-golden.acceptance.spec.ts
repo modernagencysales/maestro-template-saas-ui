@@ -1,39 +1,169 @@
-import { expect, test } from "@playwright/test";
-import { goldenUrl, seedGoldenFixture } from "./fixtures/saas-ui-golden";
+import { expect, test, type Page } from "@playwright/test";
+import {
+  acceptanceEntries,
+  concreteRoute,
+  gotoGolden,
+  type AcceptanceEntry,
+} from "./fixtures/saas-ui-golden";
 
-const routes = [
-  ["app-shell", "/dashboard"],
-  ["dashboard-report", "/reports"],
-  ["data-grid", "/contacts"],
-  ["filterable-collection", "/contacts"],
-  ["list-detail", "/contacts/view/contact-1"],
-  ["split-inbox", "/inbox"],
-  ["record-aside", "/contacts/view/contact-1"],
-  ["settings", "/settings"],
-  ["form", "/forms"],
-  ["onboarding", "/getting-started"],
-  ["kanban", "/kanban"],
-  ["auth", "/login"],
-  ["billing", "/settings/billing"],
-  ["search-command", "/search?q=contact"],
-  ["states", "/states"],
-] as const satisfies readonly [string, string][];
+const compositionAssertions: Record<
+  string,
+  (page: Page, entry: AcceptanceEntry) => Promise<void>
+> = {
+  "app-shell": async (page) => {
+    await expect(
+      page.getByRole("heading", { name: /Good morning, Alex Morgan/i }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Collapse sidebar" }),
+    ).toBeVisible();
+    await expect(page.getByRole("searchbox", { name: "Search" })).toBeVisible();
+  },
+  "dashboard-report": async (page) => {
+    await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
+    await expect(page.getByText("Revenue", { exact: true })).toBeVisible();
+    await expect(
+      page.getByText("Customer metrics", { exact: true }),
+    ).toBeVisible();
+  },
+  "data-grid": async (page) => {
+    await expect(page.getByRole("table")).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: "Name" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("columnheader", { name: "Status" }),
+    ).toBeVisible();
+  },
+  "filterable-collection": async (page) => {
+    await expect(page.getByRole("button", { name: /filter/i })).toBeVisible();
+    await expect(
+      page.getByText("Northstar Labs", { exact: true }),
+    ).toBeVisible();
+  },
+  "list-detail": async (page) => {
+    await expect(page.getByText("Jordan Lee", { exact: true })).toBeVisible();
+    await expect(page.getByRole("tab", { name: /Activity/i })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /contact details/i }),
+    ).toBeVisible();
+  },
+  "split-inbox": async (page) => {
+    await expect(page.getByRole("heading", { name: /Inbox/i })).toBeVisible();
+    await expect(page.locator('[role="grid"]')).toBeVisible();
+  },
+  "record-aside": async (page) => {
+    await expect(page.getByText("Jordan Lee", { exact: true })).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: /contact details/i }),
+    ).toBeVisible();
+    await expect(page.getByText("Details", { exact: true })).toBeVisible();
+  },
+  settings: async (page) => {
+    await expect(page.getByRole("link", { name: "Back to app" })).toBeVisible();
+    await expect(page.getByText("Account", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Billing" })).toBeVisible();
+  },
+  form: async (page) => {
+    await expect(
+      page.getByRole("heading", { name: "Form archetype" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Project name" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Save project" }),
+    ).toBeVisible();
+  },
+  onboarding: async (page) => {
+    await expect(
+      page.getByRole("heading", { name: "Create a new workspace" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("textbox", { name: "Workspace name" }),
+    ).toBeVisible();
+    await expect(
+      page.getByRole("button", { name: "Create workspace" }),
+    ).toBeVisible();
+  },
+  kanban: async (page) => {
+    await expect(
+      page.getByRole("heading", { name: "Kanban archetype" }),
+    ).toBeVisible();
+    for (const column of ["Backlog", "In progress", "Done"]) {
+      await expect(page.getByRole("heading", { name: column })).toBeVisible();
+      await expect(
+        page.locator(`[data-kanban-column="${column}"]`),
+      ).toBeVisible();
+    }
+  },
+  auth: async (page) => {
+    await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Email" })).toBeVisible();
+    await expect(page.getByRole("textbox", { name: "Password" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Log in" })).toBeVisible();
+  },
+  billing: async (page) => {
+    await expect(page.getByRole("heading", { name: "Billing" })).toBeVisible();
+    await expect(page.getByText("Billing plan", { exact: true })).toBeVisible();
+    await expect(page.getByText("Invoices", { exact: true })).toBeVisible();
+  },
+  "search-command": async (page) => {
+    await expect(
+      page.getByRole("textbox", { name: /Search your workspace/i }),
+    ).toBeVisible();
+    await expect(page.getByText(/No results for query/i)).toBeVisible();
+  },
+  states: async (page) => {
+    await expect(
+      page.getByRole("heading", { name: "State fixture" }),
+    ).toBeVisible();
+    await expect(
+      page.getByText("Records are ready to review", { exact: true }),
+    ).toBeVisible();
+  },
+};
 
-async function assertAuthority(page: Parameters<typeof seedGoldenFixture>[0]) {
-  await expect(page.locator("body")).toBeVisible();
+function assertionFor(entry: AcceptanceEntry) {
+  const assertion = compositionAssertions[entry.id];
+  if (!assertion) throw new Error(`Missing rendered assertion for ${entry.id}`);
+  return assertion;
 }
 
 test.describe("paired acceptance-map compositions", () => {
-  for (const [id, route] of routes) {
-    test(`${id} renders on both authorities`, async ({ page }) => {
+  for (const entry of acceptanceEntries) {
+    test(`${entry.id} renders its mapped composition on both authorities`, async ({
+      page,
+    }) => {
       for (const kind of ["reference", "generated"] as const) {
-        await seedGoldenFixture(page, "ready-read", "light");
-        await page.goto(goldenUrl(kind, route), { waitUntil: "networkidle" });
-        await assertAuthority(page);
+        await gotoGolden({ page, kind, route: entry.route });
         await expect(page).toHaveURL(
-          new RegExp(`${route.split("?")[0].replaceAll("/", "\\/")}`),
+          new RegExp(
+            `${concreteRoute(entry.route).split("?")[0].replaceAll("/", "\\/")}(?:\\?|$)`,
+          ),
         );
-        await expect(page.locator("body")).not.toHaveText("");
+        await assertionFor(entry)(page, entry);
+      }
+    });
+  }
+});
+
+const stateCases = [
+  ["loading", "Loading workspace data"],
+  ["empty", "No records yet"],
+  ["ready-read", "Records are ready to review"],
+  ["ready-edit", "Edit mode is enabled"],
+  ["mutation-success", "Changes saved successfully"],
+  ["mutation-failure", "Changes could not be saved"],
+] as const;
+
+test.describe("required state coverage", () => {
+  for (const [fixture, copy] of stateCases) {
+    test(`states exposes ${fixture} on both authorities`, async ({ page }) => {
+      for (const kind of ["reference", "generated"] as const) {
+        await gotoGolden({ page, kind, route: "/states", fixture });
+        await expect(page.getByTestId(`golden-state-${fixture}`)).toBeVisible();
+        await expect(page.getByText(copy, { exact: true })).toBeVisible();
       }
     });
   }
