@@ -29,6 +29,14 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   return (
     <SaasSidebarProvider variant="inset">
       <Sidebar.FlyoutTrigger aria-label="Collapse sidebar" />
+      <Sidebar.Trigger
+        aria-label="Open sidebar"
+        display={{ base: "inline-flex", md: "none" }}
+        position="fixed"
+        top="4"
+        left="4"
+        zIndex="docked"
+      />
 
       <AppShell
         sidebar={sidebar}

@@ -309,6 +309,7 @@ test.describe("paired Saas UI golden interactions", () => {
       await expect(card).toHaveAttribute("data-dragging", "");
       await page.keyboard.press("ArrowRight");
       await page.keyboard.press("ArrowRight");
+      await page.keyboard.press("ArrowRight");
       await page.keyboard.press("Space");
 
       await expect(origin.locator('[data-id="contact-1"]')).toHaveCount(0);
@@ -383,6 +384,12 @@ test.describe("paired mobile shell behavior", () => {
       await expect(
         page.getByRole("searchbox", { name: "Search" }),
       ).toBeVisible();
+
+      const open = page.getByRole("button", { name: "Open sidebar" });
+      await open.click();
+      await expect(page.locator('[data-part="backdrop"]')).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(open).toBeFocused();
     });
   }
 });
