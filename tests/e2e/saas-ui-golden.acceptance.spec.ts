@@ -199,3 +199,40 @@ test.describe("required state coverage", () => {
     });
   }
 });
+
+test.describe("golden capture preconditions", () => {
+  test("seeds dark mode and a consent decision before ready content", async ({
+    page,
+  }) => {
+    for (const kind of ["reference", "generated"] as const) {
+      await gotoGolden({
+        page,
+        kind,
+        route: "/contacts/view/contact-1",
+        colorMode: "dark",
+      });
+
+      await expect(
+        page.getByRole("region", { name: "Cookie consent" }),
+      ).toBeHidden();
+      await expect(
+        page
+          .getByRole("complementary", { name: "Contact details" })
+          .getByText("Jordan Lee", { exact: true }),
+      ).toBeVisible();
+      await expect(page.getByRole("tab", { name: /Activity/i })).toBeVisible();
+      await expect(
+        page.locator('[data-scope="suiLoadingOverlay"]'),
+      ).toHaveCount(0);
+
+      await expect
+        .poll(() =>
+          page.evaluate(() => ({
+            colorScheme: getComputedStyle(document.documentElement).colorScheme,
+            themeClass: document.documentElement.className,
+          })),
+        )
+        .toEqual({ colorScheme: "dark", themeClass: "dark" });
+    }
+  });
+});

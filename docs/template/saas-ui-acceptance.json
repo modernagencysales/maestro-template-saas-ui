@@ -13,7 +13,7 @@
       "route": "/dashboard",
       "behaviorCheck": "shell controls and navigation",
       "evidence": [
-        "dashboard-ready-read-desktop-light",
+        "app-shell-ready-read-desktop-light",
         "paid-artifact-boundary"
       ]
     },
@@ -29,7 +29,7 @@
       "route": "/reports",
       "behaviorCheck": "dashboard report renders and active period control changes",
       "evidence": [
-        "dashboard-ready-read-desktop-light",
+        "dashboard-report-ready-read-desktop-light",
         "paid-artifact-boundary"
       ]
     },
@@ -45,7 +45,7 @@
       "route": "/contacts",
       "behaviorCheck": "filter sort pagination changes content and selection exposes actions",
       "evidence": [
-        "contacts-ready-read-desktop-light",
+        "data-grid-ready-read-desktop-light",
         "paid-artifact-boundary"
       ]
     },
@@ -60,7 +60,10 @@
       "generatedDestination": "apps/web/src/features/contacts/list",
       "route": "/contacts",
       "behaviorCheck": "active filter removal",
-      "evidence": ["contacts-filtered-desktop-light", "paid-artifact-boundary"]
+      "evidence": [
+        "filterable-collection-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "list-detail",
@@ -73,7 +76,10 @@
       "generatedDestination": "apps/web/src/features/contacts/view",
       "route": "/contacts/view/contact-1",
       "behaviorCheck": "list to detail navigation",
-      "evidence": ["contact-ready-read-desktop-light", "paid-artifact-boundary"]
+      "evidence": [
+        "list-detail-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "split-inbox",
@@ -86,7 +92,10 @@
       "generatedDestination": "apps/web/src/features/contacts/inbox",
       "route": "/inbox",
       "behaviorCheck": "split selection",
-      "evidence": ["inbox-ready-read-desktop-light", "paid-artifact-boundary"]
+      "evidence": [
+        "split-inbox-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "record-aside",
@@ -99,7 +108,10 @@
       "generatedDestination": "apps/web/src/features/contacts/view",
       "route": "/contacts/view/contact-1",
       "behaviorCheck": "record aside opens and restores focus",
-      "evidence": ["contact-ready-read-mobile-light", "paid-artifact-boundary"]
+      "evidence": [
+        "record-aside-ready-read-mobile-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "settings",
@@ -128,10 +140,7 @@
       "generatedDestination": "apps/web/src/features/getting-started",
       "route": "/forms",
       "behaviorCheck": "form validation and submit",
-      "evidence": [
-        "onboarding-ready-edit-desktop-light",
-        "paid-artifact-boundary"
-      ]
+      "evidence": ["form-ready-read-desktop-light", "paid-artifact-boundary"]
     },
     {
       "id": "onboarding",
@@ -199,7 +208,10 @@
       "generatedDestination": "apps/web/src/features/search",
       "route": "/search",
       "behaviorCheck": "search shortcut, query result, and clear command",
-      "evidence": ["search-ready-read-desktop-light", "paid-artifact-boundary"]
+      "evidence": [
+        "search-command-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "states",
@@ -212,7 +224,7 @@
       "generatedDestination": "apps/web/src/features/workspaces",
       "route": "/states",
       "behaviorCheck": "loading empty ready read edit success failure error not-found permission and recovery transitions",
-      "evidence": ["states-all-desktop-light", "paid-artifact-boundary"]
+      "evidence": ["states-ready-read-desktop-light", "paid-artifact-boundary"]
     }
   ]
 }

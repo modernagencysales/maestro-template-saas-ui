@@ -1,4 +1,4 @@
-import { type Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
 import { mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
@@ -121,11 +121,28 @@ export async function seedGoldenFixture(
   await page.emulateMedia({ colorScheme: colorMode });
   const seedKey = `maestro-golden-seed-${Date.now()}-${Math.random()}`;
   await page.addInitScript(
-    ({ fixtureData, seedKey }) => {
+    ({ colorMode, fixtureData, seedKey }) => {
       window.localStorage.setItem(
         "maestro-golden-fixture",
         JSON.stringify(fixtureData),
       );
+      window.localStorage.setItem(
+        "maestro-template.cookie-consent",
+        "declined",
+      );
+      window.localStorage.setItem("theme", colorMode);
+      const applyThemeSeed = () => {
+        const root = document.documentElement;
+        if (!root) return;
+        root.classList.toggle("dark", colorMode === "dark");
+        root.classList.toggle("light", colorMode === "light");
+        root.style.colorScheme = colorMode;
+      };
+      if (document.documentElement) applyThemeSeed();
+      else
+        document.addEventListener("DOMContentLoaded", applyThemeSeed, {
+          once: true,
+        });
       const markerKey = `maestro-golden-seed:${seedKey}`;
       if (!window.sessionStorage.getItem(markerKey)) {
         window.localStorage.removeItem("maestro-golden-contacts");
@@ -133,6 +150,7 @@ export async function seedGoldenFixture(
       }
     },
     {
+      colorMode,
       fixtureData: goldenFixtures[fixture],
       seedKey,
     },
@@ -190,6 +208,61 @@ function evidencePath(name: string) {
   return join(evidenceRoot, `${name}.png`);
 }
 
+const meaningfulReadyLocators: Record<string, (page: Page) => Locator> = {
+  "app-shell": (page) =>
+    page.getByRole("heading", { name: /Good morning, Alex Morgan/i }),
+  "dashboard-report": (page) => page.getByRole("heading", { name: "Reports" }),
+  "data-grid": (page) => page.getByRole("table"),
+  "filterable-collection": (page) =>
+    page.getByRole("link", { name: "Jordan Lee", exact: true }),
+  "list-detail": (page) =>
+    page
+      .getByRole("complementary", { name: "Contact details" })
+      .getByText("Jordan Lee", { exact: true }),
+  "record-aside": (page) =>
+    page
+      .getByRole("complementary", { name: "Contact details" })
+      .getByText("Jordan Lee", { exact: true }),
+  "split-inbox": (page) => page.getByRole("row", { name: /Jordan Lee/ }),
+  settings: (page) => page.getByText("Account", { exact: true }),
+  form: (page) => page.getByRole("heading", { name: "Form archetype" }),
+  onboarding: (page) =>
+    page.getByRole("heading", { name: "Create a new workspace" }),
+  kanban: (page) => page.getByRole("heading", { name: "Contacts" }),
+  auth: (page) => page.getByRole("heading", { name: "Log in" }),
+  billing: (page) =>
+    page.getByRole("heading", { name: "Billing", exact: true }),
+  "search-command": (page) =>
+    page.getByRole("textbox", { name: /Search your workspace/i }),
+  states: (page) => page.getByRole("heading", { name: "State fixture" }),
+};
+
+function meaningfulReadyLocator(page: Page, composition: string) {
+  const createLocator = meaningfulReadyLocators[composition];
+  if (!createLocator) {
+    throw new Error(`Missing golden readiness marker for ${composition}`);
+  }
+  return createLocator(page);
+}
+
+export async function waitForGoldenCaptureReady(input: {
+  page: Page;
+  fixture: GoldenFixture;
+  composition: string;
+}) {
+  await expect(
+    input.page.getByRole("region", { name: "Cookie consent" }),
+  ).toBeHidden();
+  await expect(
+    meaningfulReadyLocator(input.page, input.composition),
+  ).toBeVisible();
+  if (input.fixture !== "loading") {
+    await expect(
+      input.page.locator('[data-scope="suiLoadingOverlay"]'),
+    ).toHaveCount(0);
+  }
+}
+
 export async function captureReferenceAndGenerated(input: {
   page: Page;
   route: string;
@@ -206,6 +279,7 @@ export async function captureReferenceAndGenerated(input: {
       fixture: input.fixture,
       colorMode: input.colorMode,
     });
+    await waitForGoldenCaptureReady(input);
     await input.page.screenshot({
       path: evidencePath(
         `${input.composition}-${goldenFixtures[input.fixture].state}-${kind}-${viewport}-${input.colorMode}`,
