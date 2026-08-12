@@ -19,12 +19,6 @@ import { system } from "../../theme/preset";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-vi.mock("./components/global-search-input", () => ({
-  GlobalSearchInput: (props: React.InputHTMLAttributes<HTMLInputElement>) => (
-    <input {...props} />
-  ),
-}));
-
 vi.mock("./components/app-sidebar", () => ({
   AppSidebar: () => (
     <aside>
@@ -78,7 +72,7 @@ describe("transplanted application shell", () => {
     expect(layout).toContain('<SaasSidebarProvider variant="inset">');
     expect(layout).toContain("sidebar={sidebar}");
     expect(layout).toContain("<PaymentOverdueBanner />");
-    expect(layout).toContain("GlobalSearchInput");
+    expect(layout).not.toContain("GlobalSearchInput");
     expect(sidebar).not.toContain("LuPanelLeftClose");
     expect(sidebar).toContain('<SaasCommand size="xs">');
     expect(invite).toContain("toast.promise");
@@ -118,7 +112,6 @@ describe("transplanted application shell", () => {
     ).toBeTruthy();
     expect(screen.getByRole("button", { name: /workspace/i })).toBeTruthy();
     expect(screen.getByRole("button", { name: /user menu/i })).toBeTruthy();
-    expect(screen.getByRole("searchbox", { name: /search/i })).toBeTruthy();
     expect(screen.getByText(goldenFixtures.currentWorkspace.name)).toBeTruthy();
   });
 });

@@ -63,17 +63,10 @@ test.describe("paired Saas UI golden interactions", () => {
       ).toBeVisible();
     });
 
-    test(`${kind} global search accepts keyboard shortcut and query`, async ({
+    test(`${kind} search route accepts a query and clear command`, async ({
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("search-command").route });
-      await page.keyboard.press("/");
-      const focusedGlobalSearch = page.locator(
-        'input[aria-label="Search"]:focus',
-      );
-      await expect(focusedGlobalSearch).toHaveCount(1);
-      await focusedGlobalSearch.fill("contact");
-      await expect(focusedGlobalSearch).toHaveValue("contact");
       const routeSearch = page.getByPlaceholder("Search your workspace...");
       await routeSearch.fill("contact");
       await expect(page).toHaveURL(/search\?q=contact/);
@@ -418,9 +411,6 @@ test.describe("paired mobile shell behavior", () => {
       await expect(
         page.getByRole("button", { name: "Collapse sidebar" }),
       ).toBeHidden();
-      await expect(
-        page.getByRole("searchbox", { name: "Search" }),
-      ).toBeVisible();
 
       const open = page.getByRole("button", { name: "Open sidebar" });
       await open.click();
