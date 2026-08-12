@@ -1,3 +1,8 @@
+import {
+  isSaasUiRegistryReceiptFile,
+  receiptOption,
+} from "../saas-ui-registry-receipt.mjs";
+
 /** Require visible primitive components to come from the official Saas UI stack. */
 const PRIMITIVE_NAMES = new Set([
   "Button",
@@ -56,7 +61,13 @@ export default {
   meta: {
     type: "problem",
     docs: { description: "Prefer official Saas UI primitives" },
-    schema: [],
+    schema: [
+      {
+        type: "object",
+        properties: { receiptPath: { type: "string" } },
+        additionalProperties: false,
+      },
+    ],
     messages: {
       officialPrimitive:
         "`{{name}}` must use the official Saas UI or Chakra primitive; local substitutes are not permitted.",
@@ -66,6 +77,7 @@ export default {
     const filename = normalizedFilename(context);
     if (
       !inGuardedScope(filename) ||
+      isSaasUiRegistryReceiptFile(filename, receiptOption(context)) ||
       isAuthorizedRoot(filename) ||
       isFixtureOrTest(filename)
     ) {

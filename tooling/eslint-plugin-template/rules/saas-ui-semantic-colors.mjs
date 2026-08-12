@@ -1,3 +1,8 @@
+import {
+  isSaasUiRegistryReceiptFile,
+  receiptOption,
+} from "../saas-ui-registry-receipt.mjs";
+
 /** Require semantic color roles in visible JSX instead of palette literals. */
 const COLOR_PROPERTIES = new Set([
   "bg",
@@ -77,7 +82,13 @@ export default {
   meta: {
     type: "problem",
     docs: { description: "Require semantic Saas UI color roles" },
-    schema: [],
+    schema: [
+      {
+        type: "object",
+        properties: { receiptPath: { type: "string" } },
+        additionalProperties: false,
+      },
+    ],
     messages: {
       semanticColor:
         "Use a semantic color role for visible UI; raw colors and palette slots are not permitted here.",
@@ -87,6 +98,7 @@ export default {
     const filename = normalizedFilename(context);
     if (
       !inGuardedScope(filename) ||
+      isSaasUiRegistryReceiptFile(filename, receiptOption(context)) ||
       isAuthorizedRoot(filename) ||
       isFixtureOrTest(filename)
     ) {

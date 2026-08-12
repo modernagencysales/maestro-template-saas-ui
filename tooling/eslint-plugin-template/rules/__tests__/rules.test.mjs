@@ -6,6 +6,8 @@
  * getPolicy/getPolicyVersion) are forward-guards — these tests are their proof.
  */
 import { RuleTester } from "eslint";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 import tseslint from "typescript-eslint";
 
 import typedConvexErrors from "../typed-convex-errors.mjs";
@@ -47,6 +49,10 @@ const DOMAIN = "packages/convex/confect/capabilities/batch.domain.ts";
 const DOMAIN_DIR = "packages/convex/confect/domain/batch.ts";
 const DOMAIN_TEST = "packages/convex/confect/capabilities/batch.domain.test.ts";
 const TEST_FILE = "packages/convex/confect/capabilities/x.test.ts";
+const REGISTRY_RECEIPT = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  "fixtures/saas-ui-registry-files.json",
+);
 
 tester.run("typed-convex-errors", typedConvexErrors, {
   valid: [
@@ -842,6 +848,12 @@ tester.run("saas-ui-shell-authority", shellAuthority, {
       code: "import { Page } from './page'; export const route = Page;",
       errors: [{ messageId: "shellOnly" }],
     },
+    {
+      filename: "apps/web/src/components/add-contact-drawer/custom-wrapper.tsx",
+      code: "import { Button } from '@saas-ui/react'; export const Custom = Button;",
+      options: [{ receiptPath: REGISTRY_RECEIPT }],
+      errors: [{ messageId: "shellOnly" }],
+    },
   ],
 });
 
@@ -869,6 +881,12 @@ tester.run("prefer-saas-ui-primitives", officialPrimitives, {
     {
       filename: "apps/web/src/features/orders/page.tsx",
       code: "const Dialog = () => null; export default Dialog;",
+      errors: [{ messageId: "officialPrimitive" }],
+    },
+    {
+      filename: "apps/web/src/components/add-contact-drawer/custom-wrapper.tsx",
+      code: "import { Button } from './button'; export const Custom = Button;",
+      options: [{ receiptPath: REGISTRY_RECEIPT }],
       errors: [{ messageId: "officialPrimitive" }],
     },
   ],
@@ -905,5 +923,51 @@ tester.run("saas-ui-semantic-colors", semanticColors, {
       code: "export function Orders() { return <Box color='#123456' />; }",
       errors: [{ messageId: "semanticColor" }],
     },
+    {
+      filename: "apps/web/src/components/add-contact-drawer/custom-wrapper.tsx",
+      code: "export function Custom() { return <Box color='#123456' />; }",
+      options: [{ receiptPath: REGISTRY_RECEIPT }],
+      errors: [{ messageId: "semanticColor" }],
+    },
   ],
+});
+
+tester.run("saas-ui-registry-receipt-exemptions", shellAuthority, {
+  valid: [
+    {
+      filename:
+        "apps/web/src/components/add-contact-drawer/add-contact-drawer.tsx",
+      code: "import { Button } from '@saas-ui/react'; export const Upstream = Button;",
+      options: [{ receiptPath: REGISTRY_RECEIPT }],
+    },
+  ],
+  invalid: [],
+});
+
+tester.run(
+  "saas-ui-registry-receipt-primitive-exemptions",
+  officialPrimitives,
+  {
+    valid: [
+      {
+        filename:
+          "apps/web/src/components/add-contact-drawer/add-contact-drawer.tsx",
+        code: "import { Button } from './button'; export const Upstream = Button;",
+        options: [{ receiptPath: REGISTRY_RECEIPT }],
+      },
+    ],
+    invalid: [],
+  },
+);
+
+tester.run("saas-ui-registry-receipt-color-exemptions", semanticColors, {
+  valid: [
+    {
+      filename:
+        "apps/web/src/components/add-contact-drawer/add-contact-drawer.tsx",
+      code: "export function Upstream() { return <Box color='#123456' />; }",
+      options: [{ receiptPath: REGISTRY_RECEIPT }],
+    },
+  ],
+  invalid: [],
 });

@@ -1,3 +1,8 @@
+import {
+  isSaasUiRegistryReceiptFile,
+  receiptOption,
+} from "../saas-ui-registry-receipt.mjs";
+
 /**
  * Keep shell compositions in the manifest-authorized upstream shell roots.
  * This is intentionally a name/import boundary, not a visual-style score.
@@ -60,7 +65,13 @@ export default {
   meta: {
     type: "problem",
     docs: { description: "Keep the Saas UI shell under its authority root" },
-    schema: [],
+    schema: [
+      {
+        type: "object",
+        properties: { receiptPath: { type: "string" } },
+        additionalProperties: false,
+      },
+    ],
     messages: {
       shellOnly:
         "`{{name}}` is shell-authority code and must stay in the manifest-authorized Saas UI shell root.",
@@ -70,6 +81,7 @@ export default {
     const filename = normalizedFilename(context);
     if (
       !inGuardedScope(filename) ||
+      isSaasUiRegistryReceiptFile(filename, receiptOption(context)) ||
       isAuthorizedRoot(filename) ||
       isFixtureOrTest(filename)
     ) {
