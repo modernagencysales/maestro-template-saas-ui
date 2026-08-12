@@ -49,6 +49,10 @@ const referenceCompatibilityPaths = new Set([
   "apps/web/src/features/contacts/view/activity-timeline.tsx",
   "apps/web/src/features/contacts/view/contact-page.tsx",
   "apps/web/src/features/contacts/view/contact-sidebar.tsx",
+  "apps/web/src/features/reports/reports-page.tsx",
+  "apps/web/src/features/getting-started/getting-started-page.tsx",
+  "apps/web/src/features/auth/login-page.tsx",
+  "apps/web/src/features/settings/billing/manage-billing-button.tsx",
   "apps/web/src/features/search/search-page.tsx",
   "apps/web/src/features/settings/common/settings-sidebar.tsx",
 ]);

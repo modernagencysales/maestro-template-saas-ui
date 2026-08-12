@@ -173,6 +173,10 @@ describe("golden browser authority startup", () => {
       "apps/web/src/features/common/hooks/use-tags.ts",
       "apps/web/src/features/common/hooks/use-workspaces.ts",
       "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
+      "apps/web/src/features/reports/reports-page.tsx",
+      "apps/web/src/features/getting-started/getting-started-page.tsx",
+      "apps/web/src/features/auth/login-page.tsx",
+      "apps/web/src/features/settings/billing/manage-billing-button.tsx",
     ]) {
       expect(authorityScript).toContain(`"${path}"`);
     }
