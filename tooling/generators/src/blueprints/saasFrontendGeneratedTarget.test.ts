@@ -88,11 +88,17 @@ describe("SaaS UI generated target artifact boundary", () => {
       ).toBe(false);
       expect(paths.has("apps/web/src/sample/templateData.test.ts")).toBe(false);
       for (const path of [
+        "apps/web/src/routes/dashboard.tsx",
         "apps/web/src/routes/_auth.login.tsx",
         "apps/web/src/routes/_auth.signup.tsx",
         "apps/web/src/routes/_auth.forgot-password.tsx",
         "apps/web/src/routes/_auth.reset-password.tsx",
+        "apps/web/src/routes/_workspace.forms.tsx",
+        "apps/web/src/routes/_workspace.kanban.tsx",
+        "apps/web/src/routes/_workspace.onboarding.tsx",
+        "apps/web/src/routes/_workspace.reports.tsx",
         "apps/web/src/routes/_workspace.settings.plans.tsx",
+        "apps/web/src/routes/_workspace.states.tsx",
         "apps/web/src/routes/privacy.tsx",
         "apps/web/src/routes/terms.tsx",
       ]) {
