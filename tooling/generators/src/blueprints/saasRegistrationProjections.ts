@@ -353,6 +353,10 @@ const currentCustomerRootTestExclusions = (): string =>
 
 export const CUSTOMER_ROOT_SCRIPTS = [
   "check:saas-ui-foundation",
+  "check:saas-ui-artifact-safety",
+  "smoke:golden",
+  "smoke:golden:a11y",
+  "smoke:golden:visual",
   "maestro",
   "acceptance:syntax",
   "acceptance:check",
@@ -515,6 +519,8 @@ const customerPackage = (
     `vitest run --coverage packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality${workflowSelected ? " tooling/workflow" : ""} tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts --update`;
   value.scripts["check:agent-pack"] =
     "tsx tooling/quality/check-agent-pack.mts";
+  value.scripts["check:saas-ui-artifact-safety"] =
+    "tsx tooling/quality/check-saas-ui-artifact-safety.mts";
   value.scripts["check:layer-boundaries"] =
     "depcruise --config dependency-cruiser.config.cjs apps packages tooling tests";
   value.scripts.prepare = "node tooling/quality/install-lefthook-if-git.mjs";
@@ -552,6 +558,7 @@ const customerPackage = (
     "check:headless-surface-contract",
     "check:posthog-readiness",
     "check:auth-demo-bypass",
+    "check:saas-ui-artifact-safety",
   ]
     .filter((name) => workflowSelected || !WORKFLOW_CUSTOMER_SCRIPTS.has(name))
     .map((name) => `pnpm ${name}`)
