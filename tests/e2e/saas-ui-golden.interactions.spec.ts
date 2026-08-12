@@ -56,14 +56,13 @@ test.describe("paired Saas UI golden interactions", () => {
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("search-command").route });
-      const search = page
-        .getByRole("textbox", { name: /Search your workspace/i })
-        .first();
-      const globalSearch = page.getByRole("searchbox", { name: "Search" });
-      await page.keyboard.press("Control+k");
-      await expect(globalSearch).toBeFocused();
-      await search.fill("contact");
-      await expect(search).toHaveValue("contact");
+      await page.keyboard.press("/");
+      const focusedGlobalSearch = page.locator(
+        'input[aria-label="Search"]:focus',
+      );
+      await expect(focusedGlobalSearch).toHaveCount(1);
+      await focusedGlobalSearch.fill("contact");
+      await expect(focusedGlobalSearch).toHaveValue("contact");
       await expect(page).toHaveURL(/search/);
     });
 
