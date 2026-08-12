@@ -1,7 +1,9 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { ContactPage } from "../features/contacts/view/contact-page";
 
-export const Route = createFileRoute("/_workspace/contacts/$contactId")({
+export const Route = createFileRoute(
+  "/_workspace/_dashboard/contacts/$contactId",
+)({
   component: ContactRoute,
 });
 

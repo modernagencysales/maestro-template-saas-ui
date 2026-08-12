@@ -3,7 +3,7 @@ import { z } from "zod";
 
 import { InboxViewPage } from "../features/contacts/inbox/inbox-view-page";
 
-export const Route = createFileRoute("/_workspace/inbox/$id")({
+export const Route = createFileRoute("/_workspace/_dashboard/inbox/$id")({
   validateSearch: z.object({ contactId: z.string() }),
   component: InboxDetailRoute,
 });

@@ -389,9 +389,9 @@ export function ContactsListPage({
   const displayProperties = <div />;
 
   const toolbar = (
-    <ButtonGroup>
+    <ButtonGroup flexWrap={{ base: "wrap", md: "nowrap" }} gap="2" w="full">
       <ContactTypes />
-      <Spacer />
+      <Spacer display={{ base: "none", md: "block" }} />
       {showSearch && (
         <InlineSearch
           ref={(el) => {
@@ -411,8 +411,19 @@ export function ContactsListPage({
   );
 
   const tabbar = (
-    <ButtonGroup py="2">
-      <Flex flex="1" flexWrap="wrap" gap="2" alignItems="center">
+    <ButtonGroup
+      py="2"
+      flexWrap={{ base: "wrap", md: "nowrap" }}
+      gap="2"
+      justifyContent={{ base: "flex-start", md: "space-between" }}
+      w="full"
+    >
+      <Flex
+        flex={{ base: "1 0 100%", md: "1" }}
+        flexWrap="wrap"
+        gap="2"
+        alignItems="center"
+      >
         <ActiveFiltersList size="xs" variant="surface" />
         <AddFilterButton />
       </Flex>

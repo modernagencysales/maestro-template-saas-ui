@@ -409,7 +409,7 @@ test.describe("paired mobile shell behavior", () => {
     );
   });
 
-  test.use({ viewport: { width: 390, height: 844 } });
+  test.use({ viewport: { width: 320, height: 800 } });
   for (const kind of authorities) {
     test(`${kind} mobile shell keeps the desktop flyout trigger hidden`, async ({
       page,
@@ -421,6 +421,12 @@ test.describe("paired mobile shell behavior", () => {
       await expect(
         page.getByRole("searchbox", { name: "Search" }),
       ).toBeVisible();
+      await expect(page.getByRole("searchbox", { name: "Search" })).toHaveCount(
+        1,
+      );
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(320);
 
       const open = page.getByRole("button", { name: "Open sidebar" });
       await open.click();
@@ -432,6 +438,56 @@ test.describe("paired mobile shell behavior", () => {
       await expect(backdrop).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(open).toBeFocused();
+    });
+  }
+});
+
+test.describe("paired mobile dashboard and data-grid reflow", () => {
+  test.beforeEach(({ page: _page }, testInfo) => {
+    void _page;
+    testInfo.skip(
+      testInfo.project.name !== "mobile-chromium",
+      "Reflow assertions are mobile-scoped.",
+    );
+  });
+
+  test.use({ viewport: { width: 320, height: 800 } });
+
+  for (const kind of authorities) {
+    test(`${kind} keeps report metrics and data-grid controls usable at 320px`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("dashboard-report").route });
+      await expect(
+        page.getByText("Customer metrics", { exact: true }),
+      ).toBeVisible();
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(320);
+
+      await gotoGolden({ page, kind, route: entry("data-grid").route });
+      const addPerson = page.getByRole("button", { name: "Add person" });
+      const display = page.getByRole("button", { name: "Display" });
+      await expect(addPerson).toBeVisible();
+      await expect(display).toBeVisible();
+      const [addPersonBox, displayBox] = await Promise.all([
+        addPerson.boundingBox(),
+        display.boundingBox(),
+      ]);
+      expect(addPersonBox).not.toBeNull();
+      expect(displayBox).not.toBeNull();
+      if (!addPersonBox || !displayBox) {
+        throw new Error("Expected mobile data-grid controls to have bounds");
+      }
+      expect(
+        addPersonBox.x + addPersonBox.width <= displayBox.x ||
+          displayBox.x + displayBox.width <= addPersonBox.x ||
+          addPersonBox.y + addPersonBox.height <= displayBox.y ||
+          displayBox.y + displayBox.height <= addPersonBox.y,
+      ).toBe(true);
+      expect(
+        await page.evaluate(() => document.documentElement.scrollWidth),
+      ).toBeLessThanOrEqual(320);
     });
   }
 });

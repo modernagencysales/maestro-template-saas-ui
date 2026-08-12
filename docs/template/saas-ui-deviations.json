@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "authorityDigest": "784cdaa8394ca3b1355c3537868ec5a6eecb9ea2c3d0b329f4371a8120d57800",
+  "authorityDigest": "3617279125481ab68f908c4ecf94d1b897c96eba7e4165f26742458849a42f4e",
   "deviations": [
     {
       "source": "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
@@ -196,7 +196,7 @@
     },
     {
       "source": "@saas-ui-pro/react@1.0.0-next.4:components/split-page/SplitPage",
-      "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/contacts/inbox/inbox-view-page.tsx; apps/web/src/routes/_workspace.inbox.$id.tsx",
+      "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/contacts/inbox/inbox-view-page.tsx; apps/web/src/routes/_workspace._dashboard.inbox.$id.tsx",
       "change": "The generated inbox adapter supplies the SplitPage root layout semantics, renders exactly one list/detail pane on mobile, waits for the resolved mobile breakpoint before desktop auto-selection, and wires the detail toolbar back to the inbox route.",
       "reason": "The factory route/outlet composition otherwise leaves both inbox panes mounted at 320px and the preserved detail route has no back callback; the structural adapter is required for one-pane mobile navigation and focusable return behavior while retaining the upstream desktop split.",
       "evidence": "The paired mobile interaction test verifies list/detail exclusivity, <=320px document reflow, back navigation, and focus visibility on both the receipt-backed reference and freshly generated authorities.",
@@ -204,7 +204,7 @@
         "tests/e2e/saas-ui-golden.interactions.spec.ts",
         "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
         "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
-        "apps/web/src/routes/_workspace.inbox.$id.tsx"
+        "apps/web/src/routes/_workspace._dashboard.inbox.$id.tsx"
       ],
       "evidenceChecks": [
         "tests/e2e/saas-ui-golden.interactions.spec.ts#test(`${kind} switches between one inbox pane at a time`, async ({"

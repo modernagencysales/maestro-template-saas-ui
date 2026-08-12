@@ -2,7 +2,7 @@ import * as React from "react";
 import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { InboxLayout } from "../features/contacts/inbox/inbox-layout";
 
-export const Route = createFileRoute("/_workspace/inbox")({
+export const Route = createFileRoute("/_workspace/_dashboard/inbox")({
   component: InboxRoute,
 });
 

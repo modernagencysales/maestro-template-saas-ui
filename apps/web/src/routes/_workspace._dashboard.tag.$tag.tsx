@@ -2,7 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 
 import { ContactsListPage } from "../features/contacts/list/list-page";
 
-export const Route = createFileRoute("/_workspace/tag/$tag")({
+export const Route = createFileRoute("/_workspace/_dashboard/tag/$tag")({
   component: TagRoute,
 });
 

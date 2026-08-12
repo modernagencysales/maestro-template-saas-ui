@@ -23,13 +23,12 @@ import type { ContactDTO } from "@workspace/api/types";
 import { SearchInput } from "@workspace/ui/search-input";
 
 import { LinkButton } from "#components/link-button";
-import { useWorkspaceSlug } from "#features/common/hooks/use-workspace-slug";
 
 export function SearchPage() {
   const navigate = useNavigate();
 
   const { q } = useSearch({
-    from: "/_workspace/search",
+    from: "/_workspace/_dashboard/search",
   });
 
   const setSearch = (q: string) => {
@@ -69,7 +68,11 @@ export function SearchPage() {
         }
       />
       <Page.Body p="0">
-        {q ? <SearchResults {...(data ? { data } : {})} search={q} /> : <RecentSearches />}
+        {q ? (
+          <SearchResults {...(data ? { data } : {})} search={q} />
+        ) : (
+          <RecentSearches />
+        )}
       </Page.Body>
     </Page.Root>
   );
@@ -77,8 +80,6 @@ export function SearchPage() {
 
 function RecentSearches() {
   const queryClient = useQueryClient();
-
-  const workspace = useWorkspaceSlug();
 
   const { data, isLoading } = useQuery({
     queryKey: ["recent-searches"],
@@ -96,8 +97,7 @@ function RecentSearches() {
   const getSearchLinkOptions = (q: string) =>
     linkOptions({
       to: "/search",
-      params: {
-      },
+      params: {},
       search: {
         q,
       },
@@ -151,8 +151,6 @@ function RecentSearches() {
 }
 
 function SearchResults(props: { data?: ContactDTO[]; search: string }) {
-  const workspace = useWorkspaceSlug();
-
   const getLinkOptions = (id: string) =>
     linkOptions({
       to: "/contacts/view/$id",

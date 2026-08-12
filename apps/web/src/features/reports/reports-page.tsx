@@ -7,14 +7,12 @@ import {
   Grid,
   HStack,
   Heading,
-  IconButton,
   List,
   Page,
   Stat,
   Text,
 } from "@saas-ui/react";
-import { SegmentedControl, Sidebar, useSidebar } from "@saas-ui/react";
-import { LuPanelLeftOpen } from "react-icons/lu";
+import { SegmentedControl } from "@saas-ui/react";
 import {
   Bar,
   BarChart,
@@ -27,20 +25,9 @@ import {
 } from "recharts";
 
 export function ReportsPage() {
-  const { open } = useSidebar();
-
   return (
     <Page.Root height="100%" gap="0">
       <Page.Header
-        nav={
-          !open && (
-            <Sidebar.Trigger asChild>
-              <IconButton variant="ghost">
-                <LuPanelLeftOpen />
-              </IconButton>
-            </Sidebar.Trigger>
-          )
-        }
         title="Reports"
         actions={
           <ButtonGroup>
@@ -53,8 +40,8 @@ export function ReportsPage() {
         }
       />
       <Page.Body>
-        <Grid templateColumns="repeat(3, 1fr)" gap="4">
-          <Card.Root gridColumn="span 2">
+        <Grid templateColumns={{ base: "1fr", lg: "repeat(3, 1fr)" }} gap="4">
+          <Card.Root gridColumn={{ base: "1", lg: "span 2" }}>
             <Card.Header gap="0" pb="2">
               <Heading as="h3" size="sm" fontWeight="medium" color="fg.muted">
                 Revenue
@@ -70,7 +57,7 @@ export function ReportsPage() {
               <RevenueChart />
             </Card.Body>
           </Card.Root>
-          <Card.Root gridColumn="span 1">
+          <Card.Root gridColumn={{ base: "1", lg: "span 1" }}>
             <Card.Header gap="0">
               <Heading as="h3" size="sm" fontWeight="medium" color="fg.subtle">
                 Customer metrics
@@ -110,7 +97,7 @@ export function ReportsPage() {
                 </Stat.Root>
                 <Stat.Root as="div" gridColumn="span 2" gap="2">
                   <Stat.Label as="div">Churn by tier</Stat.Label>
-                  <HStack fontSize="sm">
+                  <HStack fontSize="sm" flexWrap="wrap" gap="4">
                     <ChurnRateByTierChart />
 
                     <List.Root variant="plain">

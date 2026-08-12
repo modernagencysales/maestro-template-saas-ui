@@ -13,7 +13,7 @@ const PINS = {
   pro: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
 } as const;
 export const SAAS_UI_DEVIATIONS_DIGEST =
-  "784cdaa8394ca3b1355c3537868ec5a6eecb9ea2c3d0b329f4371a8120d57800";
+  "3617279125481ab68f908c4ecf94d1b897c96eba7e4165f26742458849a42f4e";
 
 export function hasExecutableEvidenceDeclaration(
   source: string,
@@ -540,7 +540,7 @@ const FACTORY_SUPPORT_DESTINATIONS = new Set([
   "apps/web/src/features/contacts/list/list-page.tsx",
   "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
   "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
-  "apps/web/src/routes/_workspace.inbox.$id.tsx",
+  "apps/web/src/routes/_workspace._dashboard.inbox.$id.tsx",
   "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
 ]);
 const DEVIATION_EVIDENCE_AUTHORITY = new Map<string, string>([
@@ -609,7 +609,7 @@ const DEVIATION_EVIDENCE_AUTHORITY = new Map<string, string>([
     "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} has no serious or critical dark-mode axe violations`, async ({",
   ],
   [
-    "@saas-ui-pro/react@1.0.0-next.4:components/split-page/SplitPage|apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/contacts/inbox/inbox-view-page.tsx; apps/web/src/routes/_workspace.inbox.$id.tsx",
+    "@saas-ui-pro/react@1.0.0-next.4:components/split-page/SplitPage|apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/contacts/inbox/inbox-view-page.tsx; apps/web/src/routes/_workspace._dashboard.inbox.$id.tsx",
     "tests/e2e/saas-ui-golden.interactions.spec.ts#test(`${kind} switches between one inbox pane at a time`, async ({",
   ],
 ]);

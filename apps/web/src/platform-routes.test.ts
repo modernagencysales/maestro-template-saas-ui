@@ -17,14 +17,29 @@ describe("frontend platform routes", () => {
       const route =
         item.path === "/"
           ? "src/routes/index.tsx"
-          : `src/routes/_workspace.${item.path.slice(1).replaceAll("/", ".")}.tsx`;
+          : item.path === "/onboarding" || item.path === "/settings"
+            ? `src/routes/_workspace.${item.path.slice(1).replaceAll("/", ".")}.tsx`
+            : `src/routes/_workspace._dashboard.${item.path.slice(1).replaceAll("/", ".")}.tsx`;
       expect(
         existsSync(resolve(appRoot, route)),
         `${item.path} should exist`,
       ).toBe(true);
     }
-    expect(read("src/routes/_workspace.tsx")).toContain("<AppLayout");
-    expect(read("src/routes/_workspace.tsx")).toContain("<DashboardLayout");
+    const workspaceRoute = read("src/routes/_workspace.tsx");
+    const dashboardLayout = read(
+      "src/features/common/layouts/dashboard-layout.tsx",
+    );
+    const appLayout = read("src/features/common/layouts/app-layout.tsx");
+    expect(workspaceRoute).not.toContain("AppLayout");
+    expect(workspaceRoute).not.toContain("DashboardLayout");
+    expect(read("src/routes/_workspace._dashboard.tsx")).toContain(
+      "<DashboardLayout",
+    );
+    expect(read("src/routes/_workspace.settings.tsx")).toContain(
+      "<SettingsLayout",
+    );
+    expect(dashboardLayout.match(/<AppLayout\s+sidebar=/g)).toHaveLength(1);
+    expect(appLayout.match(/<SaasSidebarProvider\s+variant=/g)).toHaveLength(1);
     expect(existsSync(resolve(appRoot, "src/saas-ui/business-shell.tsx"))).toBe(
       false,
     );
@@ -41,7 +56,9 @@ describe("frontend platform routes", () => {
       "states",
     ]) {
       expect(
-        existsSync(resolve(appRoot, `src/routes/_workspace.${route}.tsx`)),
+        existsSync(
+          resolve(appRoot, `src/routes/_workspace._dashboard.${route}.tsx`),
+        ),
       ).toBe(true);
     }
     expect(read("src/routes/dashboard.tsx")).toContain("DashboardPage");
