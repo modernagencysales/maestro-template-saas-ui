@@ -11,6 +11,10 @@
 - `docs/template/frontend-architecture.md`: frontend layer law, TanStack Start
   direction, Saas UI shell rules, data-loading rules, and deploy acceptance
   criteria.
+- `docs/template/saas-ui-frontend-authority.md`: the single pinned upstream
+  frontend source and adaptation boundary.
+- `docs/template/saas-ui-golden-review.md`: paired reference/generated owner
+  review and accessibility evidence.
 - `docs/template/knowledge-model.md`: source-backed Brain concepts, claims,
   citations, context packs, markdown codecs, and OKF export.
 - `docs/template/frontend-architecture.md`: shipped map from frontend primitives

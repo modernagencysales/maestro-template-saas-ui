@@ -628,6 +628,61 @@ const checkDescriptorDefinitions = {
         message:
           ".env.example must expose safe fake values for local quickstart",
       },
+      {
+        file: "AGENTS.md",
+        includes: [
+          "docs/template/saas-ui-frontend-authority.md",
+          "docs/template/saas-ui-golden-review.md",
+        ],
+        message:
+          "agent guidance must point to the upstream-derived frontend authority",
+      },
+      {
+        file: "docs/template/saas-ui-upstream-update.md",
+        includes: [
+          "Pin the reviewed template",
+          "Regenerate the Pro catalog",
+          "ci/woodpecker/pr/verify",
+        ],
+        message:
+          "upstream update docs must preserve the pinned evidence workflow",
+      },
+      {
+        file: "docs/template/saas-ui-golden-review.md",
+        includes: [
+          "UPSTREAM_REFERENCE_URL",
+          "GOLDEN_GENERATED_URL",
+          "keyboard-only",
+          "320 px",
+          "Approved: pinned reference and generated target",
+        ],
+        message:
+          "golden review docs must require paired browser evidence and owner approval",
+      },
+      {
+        file: ".github/pull_request_template.md",
+        includes: [
+          "Upstream source file or Pro block",
+          "Deviation ledger entry",
+          "Desktop/mobile light/dark evidence",
+          "Accessibility results",
+        ],
+        message:
+          "PRs must capture upstream mapping, deviations, and rendered evidence",
+      },
+      {
+        file: "docs/licenses/saas-ui/starter-NOTICE.md",
+        includes: [
+          "pinned TanStack Starter Kit Pro",
+          "must not enter a public npm package",
+        ],
+        message: "starter source must retain its private license notice",
+      },
+      {
+        file: "docs/licenses/saas-ui/pro-NOTICE.md",
+        includes: ["pinned Saas UI Pro", "must not enter a public npm package"],
+        message: "Pro source must retain its private license notice",
+      },
     ],
   },
   "generated-files": {

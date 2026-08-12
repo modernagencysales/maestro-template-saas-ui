@@ -94,6 +94,13 @@ layers, add the missing boundary instead.
 - Keep reusable UI in blocks and package UI primitives.
 - Use Saas UI primitives for the visible business-app shell when they cover the
   need.
+- The pinned upstream Starter Kit Pro and Saas UI Pro registry are the single
+  frontend authority; follow [the frontend authority guide](docs/template/saas-ui-frontend-authority.md).
+- Record structural or style compatibility changes in
+  `docs/template/saas-ui-deviations.json`; aesthetic preference is not a valid
+  deviation reason.
+- Review paired reference/generated desktop/mobile light/dark evidence with
+  [the golden-review runbook](docs/template/saas-ui-golden-review.md).
 - Feature components may use feature adapters; blocks may not import Convex,
   Confect refs, route modules, provider SDKs, or workspace auth internals.
 - React Flow belongs in workflow UI and workflow feature surfaces only.

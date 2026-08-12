@@ -77,7 +77,10 @@ atomic transaction.
 
 ## UI
 
-- Do not handroll primitives covered by Saas UI or the template UI package.
+- Do not handroll primitives covered by the pinned Saas UI sources. Use the
+  executable `template/saas-ui-shell-authority`,
+  `template/prefer-saas-ui-primitives`, and `template/saas-ui-semantic-colors`
+  rules.
 - Blocks are reusable and provider-free.
 - Feature components adapt data; blocks render data.
 

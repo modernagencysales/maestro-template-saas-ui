@@ -6,6 +6,16 @@
 
 -
 
+## Upstream-derived frontend evidence
+
+- Upstream source file or Pro block: `None` / exact path and pinned commit
+- Deviation ledger entry: `None` / exact `docs/template/saas-ui-deviations.json`
+  entry
+- Desktop/mobile light/dark evidence: `None` / artifact paths under
+  `artifacts/saas-ui-golden/`
+- Interaction results: command and pasted result
+- Accessibility results: axe, keyboard, focus, zoom, and reflow command/results
+
 ## Verification (paste evidence — do not assert)
 
 ```
