@@ -1,18 +1,28 @@
-import { readFileSync } from "node:fs";
-import { describe, expect, it } from "vitest";
+import type { Locator, Page } from "@playwright/test";
+import { describe, expect, it, vi } from "vitest";
 
-import { meaningfulMainContentTarget } from "./saas-ui-golden";
+import {
+  meaningfulMainContentTarget,
+  meaningfulReadyLocator,
+} from "./saas-ui-golden";
 
 describe("golden capture readiness targets", () => {
-  it("waits for profile content instead of the settings sidebar", () => {
-    const fixture = readFileSync(
-      new URL("./saas-ui-golden.ts", import.meta.url),
-      "utf8",
-    );
+  it("uses the exact profile heading for settings readiness", () => {
+    const locator = {} as Locator;
+    const getByRole = vi.fn(() => locator);
+    const getByText = vi.fn(() => ({}) as Locator);
 
-    expect(fixture).toContain(
-      'settings: (page) => page.getByRole("heading", { name: "Profile" })',
-    );
+    expect(
+      meaningfulReadyLocator(
+        { getByRole, getByText } as unknown as Page,
+        "settings",
+      ),
+    ).toBe(locator);
+    expect(getByRole).toHaveBeenCalledExactlyOnceWith("heading", {
+      name: "Profile",
+      exact: true,
+    });
+    expect(getByText).not.toHaveBeenCalled();
   });
 
   it("uses the visible inbox row on mobile and activity on desktop", () => {

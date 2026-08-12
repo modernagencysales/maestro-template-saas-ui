@@ -257,7 +257,8 @@ const meaningfulReadyLocators: Record<string, (page: Page) => Locator> = {
       .getByRole("complementary", { name: "Contact details" })
       .getByText("Jordan Lee", { exact: true }),
   "split-inbox": (page) => page.getByRole("row", { name: /Jordan Lee/ }),
-  settings: (page) => page.getByRole("heading", { name: "Profile" }),
+  settings: (page) =>
+    page.getByRole("heading", { name: "Profile", exact: true }),
   form: (page) => page.getByRole("heading", { name: "Form archetype" }),
   onboarding: (page) =>
     page.getByRole("heading", { name: "Create a new workspace" }),
@@ -305,7 +306,7 @@ function meaningfulMainContentLocator(
   return undefined;
 }
 
-function meaningfulReadyLocator(page: Page, composition: string) {
+export function meaningfulReadyLocator(page: Page, composition: string) {
   const createLocator = meaningfulReadyLocators[composition];
   if (!createLocator) {
     throw new Error(`Missing golden readiness marker for ${composition}`);

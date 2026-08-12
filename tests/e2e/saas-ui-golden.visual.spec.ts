@@ -131,6 +131,23 @@ test.describe("paired Saas UI golden visual evidence", () => {
     expect(darkScreenshot).not.toEqual(lightScreenshot);
   });
 
+  test("settings readiness reaches profile on both authorities", async ({
+    page,
+  }) => {
+    for (const kind of ["reference", "generated"] as const) {
+      await gotoGolden({ page, kind, route: "/settings" });
+      await waitForGoldenCaptureReady({
+        page,
+        fixture: "ready-read",
+        composition: "settings",
+      });
+      await expect(page).toHaveURL(/settings\/account\/profile(?:\?|$)/);
+      await expect(
+        page.getByRole("heading", { name: "Profile", exact: true }),
+      ).toBeVisible();
+    }
+  });
+
   for (const colorMode of ["light", "dark"] as const) {
     for (const entry of acceptanceEntries) {
       test(`${entry.id} ready-read ${colorMode} captures both authorities`, async ({
