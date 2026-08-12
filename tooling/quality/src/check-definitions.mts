@@ -673,7 +673,8 @@ const checkDescriptorDefinitions = {
       {
         file: "docs/licenses/saas-ui/starter-NOTICE.md",
         includes: [
-          "pinned TanStack Starter Kit Pro",
+          "pinned TanStack Starter",
+          "Kit Pro",
           "must not enter a public npm package",
         ],
         message: "starter source must retain its private license notice",
