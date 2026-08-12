@@ -108,8 +108,8 @@ export function ReportsPage() {
                     95.5%
                   </Stat.ValueText>
                 </Stat.Root>
-                <Stat.Root gridColumn="span 2" gap="2">
-                  <Stat.Label>Churn by tier</Stat.Label>
+                <Stat.Root as="div" gridColumn="span 2" gap="2">
+                  <Stat.Label as="div">Churn by tier</Stat.Label>
                   <HStack fontSize="sm">
                     <ChurnRateByTierChart />
 

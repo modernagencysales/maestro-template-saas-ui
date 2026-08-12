@@ -26,5 +26,12 @@
     "change": "The generated web target sets noUncheckedIndexedAccess to false.",
     "reason": "The transplanted Starter/Saas UI source indexes registry and fixture collections without handling undefined values under the repository-wide indexed-access contract.",
     "evidence": "At generated-target proof commit acbced929, enabling noUncheckedIndexedAccess=true after the production build produces 13 web type errors (8 TS18048, 1 TS2322, 2 TS2345, and 2 TS2532), from unchecked collection/indexed values; the relaxed override remains required."
+  },
+  {
+    "source": "@chakra-ui/react@3.30.0:components/stat:StatRoot",
+    "destination": "apps/web/src/features/reports/reports-page.tsx:Churn by tier metric",
+    "change": "The upstream Stat.Root and Stat.Label for the chart/legend block render as div elements while retaining the upstream Stat styles and layout props.",
+    "reason": "Chakra Stat.Root defaults to dl, but this block contains a chart div and legend ul rather than a dt/dd pair; the default markup triggers axe definition-list serious violations.",
+    "evidence": "The pinned desktop authority artifact and generated desktop authority artifact both reported axe rule definition-list (serious) on <dl class=\"chakra-stat__root css-1pbhjgj\"> with direct chart div and legend ul children; focused generated axe passed after the seam, and the pinned reference source was synchronized with the same minimal semantic change."
   }
 ]
