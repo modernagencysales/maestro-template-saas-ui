@@ -573,7 +573,7 @@
       "source": "apps/web/src/features/search/search-page.tsx",
       "destination": "apps/web/src/features/search/search-page.tsx",
       "sourceSha256": "9295a847ad0fed878189c40ca3ef92caabc405dccb10acb3b5922385e0de5ec2",
-      "sha256": "46003525a2785c9b7a067a4efd92a86aa74ebe41a7d4c31e60b602208bb07a06",
+      "sha256": "f8539d8865180b572d858afef11a03a6b7e3d3db6f470366cce5142443d095be",
       "adapted": true
     },
     {
