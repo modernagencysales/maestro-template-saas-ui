@@ -3,9 +3,10 @@
 import * as React from "react";
 
 import {
+  Box,
   Center,
   Container,
-  defineSlotRecipe,
+  HStack,
   useStepsContext,
 } from "@chakra-ui/react";
 import { useSessionStorageValue } from "@react-hookz/web";
@@ -18,38 +19,6 @@ import { InviteTeamMembersStep } from "./invite-team-members";
 import { OnboardingLayout } from "./onboarding-layout";
 import { SubscribeStep } from "./subscribe";
 
-// TODO move to theme
-const recipe = defineSlotRecipe({
-  className: "steps",
-  slots: ["root", "list", "item", "indicator", "title"],
-  variants: {
-    variant: {
-      dots: {
-        list: {
-          display: "flex",
-          gap: 2,
-          justifyContent: "center",
-        },
-        indicator: {
-          boxSize: 2,
-          overflow: "hidden",
-          bg: "colorPalette.subtle",
-          rounded: "full",
-          _current: {
-            bg: "colorPalette.solid",
-          },
-          "& *": {
-            display: "none",
-          },
-        },
-        title: {
-          display: "none",
-        },
-      },
-    },
-  },
-});
-
 export const GettingStartedPage: React.FC = () => {
   const workspace = useSessionStorageValue<string>("getting-started.workspace");
 
@@ -59,27 +28,45 @@ export const GettingStartedPage: React.FC = () => {
     <OnboardingLayout>
       <Container maxW="container.md">
         <Center minH="calc(100vh - 100px)">
-          <Steps.Root
-            variant={"dots" as any}
-            recipe={recipe}
-            defaultStep={defaultStep}
-            count={4}
-            width="full"
-          >
+          <Steps.Root defaultStep={defaultStep} count={4} width="full">
             <OnboardingSteps />
-
-            <Steps.List>
-              <Steps.Item index={0} title="Create organization" />
-              <Steps.Item index={1} title="Choose your style" />
-              <Steps.Item index={2} title="Invite team members" />
-              <Steps.Item index={3} title="Subscribe to updates" />
-            </Steps.List>
+            <OnboardingProgress />
           </Steps.Root>
         </Center>
       </Container>
     </OnboardingLayout>
   );
 };
+
+function OnboardingProgress() {
+  const stepper = useStepsContext();
+
+  return (
+    <HStack
+      aria-label={`Onboarding step ${stepper.value + 1} of 4`}
+      role="progressbar"
+      aria-valuemin={1}
+      aria-valuemax={4}
+      aria-valuenow={stepper.value + 1}
+      gap="2"
+      justifyContent="center"
+    >
+      {Array.from({ length: 4 }, (_, index) => (
+        <Box
+          key={index}
+          aria-hidden="true"
+          boxSize="2"
+          bg={
+            index === stepper.value
+              ? "colorPalette.solid"
+              : "colorPalette.subtle"
+          }
+          rounded="full"
+        />
+      ))}
+    </HStack>
+  );
+}
 
 function OnboardingSteps() {
   const stepper = useStepsContext();
@@ -108,8 +95,6 @@ function OnboardingSteps() {
 
 const OnboardingCompleted = () => {
   const navigate = useNavigate();
-
-  const workspace = useSessionStorageValue<string>("getting-started.workspace");
 
   return (
     <LoadingOverlay.Root

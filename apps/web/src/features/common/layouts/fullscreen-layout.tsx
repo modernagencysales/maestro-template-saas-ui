@@ -51,7 +51,7 @@ export const FullscreenLayout: React.FC<
         py="2"
         width="full"
       >
-        {!hideBackButton && <BackButton to="/" />}
+        {!hideBackButton && <BackButton />}
         {menu}
       </HStack>
       {children}

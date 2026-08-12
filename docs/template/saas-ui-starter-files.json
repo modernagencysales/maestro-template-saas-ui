@@ -3,6 +3,20 @@
   "sourceCommit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
   "files": [
     {
+      "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/public/img/onboarding/dark.svg",
+      "destination": "apps/web/public/img/onboarding/dark.svg",
+      "sourceSha256": "18f78135d107d585e2f92dce0d4be8f7db8d55e6cbb8280b461b90a73e91f79c",
+      "sha256": "18f78135d107d585e2f92dce0d4be8f7db8d55e6cbb8280b461b90a73e91f79c",
+      "adapted": false
+    },
+    {
+      "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/public/img/onboarding/light.svg",
+      "destination": "apps/web/public/img/onboarding/light.svg",
+      "sourceSha256": "e3dbad6215ae580dff7a35fc5d66996929d96c3468754cfeec2510fc1b9790ba",
+      "sha256": "e3dbad6215ae580dff7a35fc5d66996929d96c3468754cfeec2510fc1b9790ba",
+      "adapted": false
+    },
+    {
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/config/hotkeys.config.ts",
       "destination": "apps/web/src/config/hotkeys.config.ts",
       "sourceSha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",
@@ -62,7 +76,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/auth/login-page.tsx",
       "destination": "apps/web/src/features/auth/login-page.tsx",
       "sourceSha256": "206fafcdd95565cee4a2116a6fa0481c21f81e02b06e9be0fdf018b0ec8bff6d",
-      "sha256": "736efeac9eae4e6f7e0847e0c4a3bb771d87155483c957257ae9ff6e62ae31fa",
+      "sha256": "fd6f1cb89285647f494acef47a004064678869cf8f3604fe52ea953ddcc2bd58",
       "adapted": true
     },
     {
@@ -251,7 +265,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/common/layouts/fullscreen-layout.tsx",
       "destination": "apps/web/src/features/common/layouts/fullscreen-layout.tsx",
       "sourceSha256": "23acbe4b22f491f84cc19fb476aa2311273643da4eb3b94b365dca3b01055eef",
-      "sha256": "e646afb4f87eb30e18391b8c7c45944a40926bafb7f26cbab6c8c6675a536cce",
+      "sha256": "66de7430f45d4906ad364fd78350a236ec09cc847119a091aa575f7179ad8e3b",
       "adapted": true
     },
     {
@@ -447,7 +461,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/getting-started/getting-started-page.tsx",
       "destination": "apps/web/src/features/getting-started/getting-started-page.tsx",
       "sourceSha256": "62461fd9b4e54a0214ee53d24e60e10d2d8c8def52eb8f691077978fdcaa0b06",
-      "sha256": "067d2f0af011e244ecabace6f2e79d6fff43f1f732fd6703a804d93ffb835f63",
+      "sha256": "a899c435140ffd1552ad77dc654ce6b19a06cc99f703e417e4aa0e999791c408",
       "adapted": true
     },
     {
@@ -748,7 +762,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/theme/semantic-tokens/colors.ts",
       "destination": "apps/web/src/theme/semantic-tokens/colors.ts",
       "sourceSha256": "343f70533d1b8bcee515b01dcc4f68b1949f2b8e7a09852c18bd3cad536e1a9c",
-      "sha256": "b46bae0385931dd24aec65c0969925db3b3432decf7a4832492e085ce1fccba9",
+      "sha256": "4d9af662738ccb9e460f951eb08e2a6ece833117eab2770f33dfc2431c73224b",
       "adapted": true
     }
   ]

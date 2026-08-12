@@ -89,5 +89,26 @@
     "change": "The login password field identifies a current credential to browsers, and the text-bearing billing action retains its native button role.",
     "reason": "The preserved screens used invalid autocomplete=\"password\" and overrode a named button to role=group, producing serious and critical WCAG failures.",
     "evidence": "Focused paired axe coverage passes both auth and billing routes on the reference and generated authorities without rule exclusions."
+  },
+  {
+    "source": "@saas-ui/react:Steps.List dots recipe",
+    "destination": "apps/web/src/features/getting-started/getting-started-page.tsx:OnboardingProgress",
+    "change": "The non-interactive visual dots are represented as one named progressbar with hidden decorative dots and step value 1–4.",
+    "reason": "The upstream dots recipe exposes a tablist whose direct wrapper children are not tabs, and hides the only tab titles; progression is form-driven, so it must not promise tab keyboard behavior.",
+    "evidence": "Paired reference/generated regression asserts the named progressbar, current value, and absence of a tablist."
+  },
+  {
+    "source": "@saas-ui/react:BackButtonPrimitive",
+    "destination": "apps/web/src/components/back-button.tsx",
+    "change": "The nested button-and-link primitive is replaced with the application LinkButton and an aria-hidden back-arrow icon.",
+    "reason": "The upstream composition produces an interactive link inside an interactive button, violating nested-interactive semantics and leaving the link unnamed.",
+    "evidence": "The reusable application back control now renders exactly one named navigation link; focused onboarding axe covers the served route."
+  },
+  {
+    "source": "@chakra-ui/react semantic token fg.error",
+    "destination": "apps/web/src/theme/semantic-tokens/colors.ts",
+    "change": "The semantic error foreground uses the existing red.700 light token and red.300 dark token through defineSemanticTokens.colors.",
+    "reason": "The inherited light red.500 foreground rendered at 3.23:1 on #fdfdfd for 12px field errors. Red.600 remained below AA (4.07–4.18:1); red.700 is the first existing darker red step that clears the 4.5:1 normal-text requirement.",
+    "evidence": "Fresh paired light-mode axe on reference and generated passes the onboarding validation error without rule exclusions. The dark token remains red.300; dark visual/axe evidence is pending the interaction stream."
   }
 ]

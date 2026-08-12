@@ -95,6 +95,60 @@ test.describe("paired Saas UI golden data-grid semantics", () => {
   }
 });
 
+test.describe("paired onboarding progress semantics", () => {
+  const onboarding = acceptanceEntries.find(
+    (entry) => entry.id === "onboarding",
+  );
+
+  if (!onboarding) throw new Error("Missing onboarding acceptance entry");
+
+  for (const kind of authorities) {
+    test(`${kind} exposes the visual step indicator as named progress`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: onboarding.route });
+
+      await expect(
+        page.getByRole("progressbar", { name: "Onboarding step 1 of 4" }),
+      ).toHaveAttribute("aria-valuenow", "1");
+      await expect(page.getByRole("tablist")).toHaveCount(0);
+    });
+  }
+});
+
+test.describe("paired onboarding dark-mode accessibility", () => {
+  const onboarding = acceptanceEntries.find(
+    (entry) => entry.id === "onboarding",
+  );
+
+  if (!onboarding) throw new Error("Missing onboarding acceptance entry");
+
+  for (const kind of authorities) {
+    test(`${kind} has no serious or critical dark-mode axe violations`, async ({
+      page,
+    }) => {
+      await gotoGolden({
+        page,
+        kind,
+        route: onboarding.route,
+        colorMode: "dark",
+      });
+      await page.getByRole("button", { name: "Continue" }).click();
+      const results = await new AxeBuilder({ page })
+        .withTags(wcagTags)
+        .analyze();
+      const serious = results.violations.filter(
+        (violation) =>
+          violation.impact === "serious" || violation.impact === "critical",
+      );
+      expect(
+        serious,
+        `${kind} onboarding dark-mode serious/critical violations`,
+      ).toEqual([]);
+    });
+  }
+});
+
 test.describe("paired mobile 320px reflow", () => {
   test.use({ viewport: { width: 320, height: 800 } });
 
