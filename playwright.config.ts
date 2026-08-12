@@ -6,6 +6,9 @@ process.env.UPSTREAM_REFERENCE_URL ??= "http://127.0.0.1:4173";
 process.env.GOLDEN_GENERATED_URL ??= "http://127.0.0.1:4174";
 
 export default defineConfig({
+  reporter: process.env.GOLDEN_SUMMARY_PLAYWRIGHT_OUTPUT
+    ? [["json", { outputFile: process.env.GOLDEN_SUMMARY_PLAYWRIGHT_OUTPUT }]]
+    : "list",
   testDir: "./tests/e2e",
   outputDir: "./artifacts/saas-ui-golden/playwright",
   snapshotPathTemplate:

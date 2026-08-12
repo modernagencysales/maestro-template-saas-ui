@@ -204,7 +204,7 @@ export type GoldenAuthority = "reference" | "generated";
 export type GoldenAuthorityMetadata = Readonly<{
   schemaVersion: 1;
   authority: GoldenAuthority;
-  root: "factory-reference" | "materialized-generated-target";
+  root: "pinned-starter-reference" | "materialized-generated-target";
   digest: string;
   provenance:
     | Readonly<{
@@ -251,7 +251,7 @@ export function createReferenceAuthorityMetadata(input: {
   return {
     schemaVersion: 1,
     authority: "reference",
-    root: "factory-reference",
+    root: "pinned-starter-reference",
     digest: input.servedContentDigest,
     provenance: {
       repository: "starter",

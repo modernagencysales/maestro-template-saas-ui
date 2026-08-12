@@ -110,7 +110,7 @@ describe("golden runtime authority provenance", () => {
     expect(referenceUrl.hostname).toBe("127.0.0.1");
     expect(generatedUrl.hostname).toBe("127.0.0.1");
     expect(referenceUrl.origin).not.toBe(generatedUrl.origin);
-    expect(reference.cwd).toBe("/workspace/factory/apps/web");
+    expect(reference.cwd).toBe("/tmp/generated/apps/web");
     expect(generated.cwd).toBe("/tmp/generated/apps/web");
   });
 

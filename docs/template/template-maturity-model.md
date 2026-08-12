@@ -90,7 +90,7 @@ every future modal/popover adoption.
 
 **Required evidence:** `tooling/generators/src/index.ts`,
 `docs/template/quickstart.md`, `docs/template/generator-output-contract.md`,
-`apps/web/src/router.tsx`, `packages/ui/src/*`, `.buildkite/*`, and
+`apps/web/src/router.tsx`, `apps/web/src/components/*`, and
 `project.config.json`.
 
 **Required commands:** `pnpm check:generators`, `pnpm check:route-tree`,

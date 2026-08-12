@@ -100,39 +100,93 @@ const hasNpmPacklistInclusion = (
   );
 };
 
-const readOptionalReceipt = (
+type StarterReceiptEntry = Readonly<{
+  source: string;
+  destination: string;
+  sourceSha256: string;
+  sha256: string;
+  adapted: boolean;
+}>;
+
+export const readRequiredStarterReceipt = (
   root: string,
   errors: string[],
+  starterDestinations: readonly string[],
+  // eslint-disable-next-line complexity -- validates one fixed provenance receipt schema.
 ): readonly string[] => {
   const path = resolve(root, STARTER_RECEIPT);
-  if (!existsSync(path)) return [];
+  if (!existsSync(path)) {
+    errors.push(
+      `required Saas UI starter receipt is missing: ${STARTER_RECEIPT}`,
+    );
+    return [];
+  }
   try {
     const value: unknown = JSON.parse(readFileSync(path, "utf8"));
     if (!value || typeof value !== "object" || Array.isArray(value)) {
       errors.push(
-        `optional Saas UI starter receipt is invalid: ${STARTER_RECEIPT}`,
+        `required Saas UI starter receipt is invalid: ${STARTER_RECEIPT}`,
       );
       return [];
     }
-    const files = (value as { files?: unknown }).files;
-    if (!Array.isArray(files)) {
+    const receipt = value as {
+      schemaVersion?: unknown;
+      sourceCommit?: unknown;
+      files?: unknown;
+    };
+    if (
+      receipt.schemaVersion !== 1 ||
+      receipt.sourceCommit !== "b76cb4514b9ab47f7db87901cb9b593b4adc3129" ||
+      !Array.isArray(receipt.files)
+    ) {
       errors.push(
-        `optional Saas UI starter receipt is invalid: ${STARTER_RECEIPT}`,
+        `required Saas UI starter receipt is invalid: ${STARTER_RECEIPT}`,
       );
       return [];
     }
-    return files.flatMap((file) => {
-      if (!file || typeof file !== "object" || Array.isArray(file)) return [];
-      const destination = (file as { destination?: unknown }).destination;
-      return typeof destination === "string" ? [destination] : [];
-    });
+    const files: StarterReceiptEntry[] = [];
+    for (const [index, value] of receipt.files.entries()) {
+      if (!value || typeof value !== "object" || Array.isArray(value)) {
+        errors.push(
+          `required Saas UI starter receipt entry ${index} is invalid`,
+        );
+        continue;
+      }
+      const file = value as Record<string, unknown>;
+      if (
+        typeof file.source !== "string" ||
+        typeof file.destination !== "string" ||
+        typeof file.sourceSha256 !== "string" ||
+        typeof file.sha256 !== "string" ||
+        typeof file.adapted !== "boolean" ||
+        !SHA256.test(file.sourceSha256) ||
+        !SHA256.test(file.sha256) ||
+        normalizeRepositoryPath(file.destination) === undefined
+      ) {
+        errors.push(
+          `required Saas UI starter receipt entry ${index} is invalid`,
+        );
+        continue;
+      }
+      files.push(file as StarterReceiptEntry);
+    }
+    const destinations = new Set(files.map(({ destination }) => destination));
+    for (const destination of starterDestinations) {
+      if (!destinations.has(destination))
+        errors.push(
+          `starter receipt does not cover paid source: ${destination}`,
+        );
+    }
+    return files.map(({ destination }) => destination);
   } catch {
     errors.push(
-      `unable to read optional Saas UI starter receipt: ${STARTER_RECEIPT}`,
+      `unable to read required Saas UI starter receipt: ${STARTER_RECEIPT}`,
     );
     return [];
   }
 };
+
+const SHA256 = /^[a-f0-9]{64}$/u;
 
 const addPaidPath = (
   paths: Map<string, PaidPath>,
@@ -187,6 +241,17 @@ export function assertSaasUiArtifactSafety(root: string): readonly string[] {
         for (const file of composition.files)
           addPaidPath(paid, file.destination, "manifest", errors);
     }
+    const starterDestinations = manifest.compositions
+      .filter(
+        (composition) => acceptedSources.get(composition.id) === "starter",
+      )
+      .flatMap(({ files }) => files.map(({ destination }) => destination));
+    for (const destination of readRequiredStarterReceipt(
+      root,
+      errors,
+      starterDestinations,
+    ))
+      addPaidPath(paid, destination, "manifest", errors);
     for (const license of manifest.licenses)
       addPaidPath(paid, license.destination, "license", errors);
   }
@@ -199,9 +264,6 @@ export function assertSaasUiArtifactSafety(root: string): readonly string[] {
       `unable to read Saas UI registry receipt: ${error instanceof Error ? error.message : String(error)}`,
     );
   }
-  for (const destination of readOptionalReceipt(root, errors))
-    addPaidPath(paid, destination, "registry", errors);
-
   for (const { path } of paid.values()) {
     const fullPath = resolve(root, path);
     if (!existsSync(fullPath)) {

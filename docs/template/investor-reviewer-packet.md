@@ -137,11 +137,10 @@ Concrete files to inspect:
   source audit from Maestro into the template.
 - `docs/template/frontend-architecture.md`: frontend layer law, provider tree,
   Saas UI boundary, and TanStack Start acceptance criteria.
-- `tests/e2e/hosted-reference-app.spec.ts`: hosted desktop/mobile browser smoke.
-- `tests/e2e/hosted-reference-app.accessibility.spec.ts`: hosted desktop/mobile
-  landmark, route-announcement, and axe WCAG smoke.
-- `tests/e2e/hosted-reference-app.visual.spec.ts`: hosted desktop/mobile
-  screenshot-diff visual smoke.
+- `tests/e2e/saas-ui-golden.spec.ts`: paired local desktop/mobile browser smoke.
+- `tests/e2e/saas-ui-golden.accessibility.spec.ts`: paired local landmark,
+  route-announcement, and axe WCAG smoke.
+- `tests/e2e/saas-ui-golden.visual.spec.ts`: paired local screenshot-diff smoke.
 - `packages/template-core/src/index.ts`: canonical sample registry.
 - `packages/workflow-ui/src/index.tsx`: React Flow workflow canvas primitive.
 - `tooling/workflow/src/index.ts`: API/CLI/MCP/OpenAPI projection.

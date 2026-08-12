@@ -1,6 +1,7 @@
 import { execFileSync } from "node:child_process";
 import {
   mkdirSync,
+  existsSync,
   lstatSync,
   readFileSync,
   realpathSync,
@@ -57,6 +58,17 @@ export type GoldenRunReceipt = Readonly<{
   deviations: readonly SaasUiDeviation[];
   evidencePaths: readonly string[];
   commands: readonly GoldenCommandResult[];
+  resultInventories?: Readonly<{
+    interaction?: readonly GoldenResultInventoryEntry[];
+    accessibility?: readonly GoldenResultInventoryEntry[];
+  }>;
+}>;
+
+export type GoldenResultInventoryEntry = Readonly<{
+  file: string;
+  title: string;
+  project: string;
+  status: string;
 }>;
 
 export type GoldenCommandExecutor = (input: {
@@ -106,6 +118,10 @@ export type GoldenSummaryInput = Readonly<{
   deviations: readonly SaasUiDeviation[];
   evidencePaths: readonly string[];
   commands: readonly GoldenCommandResult[];
+  resultInventories?: Readonly<{
+    interaction?: readonly GoldenResultInventoryEntry[];
+    accessibility?: readonly GoldenResultInventoryEntry[];
+  }>;
 }>;
 
 function assertSafeMetadata(value: string, label: string): void {
@@ -365,14 +381,24 @@ export function buildGoldenSummaryInput(input: {
     deviations: receipt.deviations,
     evidencePaths: receipt.evidencePaths,
     commands: receipt.commands,
+    resultInventories: receipt.resultInventories,
   };
 }
 
 export function runGoldenSummaryCommands(
   repositoryRoot: string,
-  execute: GoldenCommandExecutor = ({ argv, cwd }) => {
+  execute: GoldenCommandExecutor = ({ command, argv, cwd }) => {
     try {
-      execFileSync("pnpm", argv, { cwd, stdio: "inherit" });
+      const kind = command.includes(":a11y") ? "accessibility" : "interaction";
+      const outputFile = resolve(
+        cwd,
+        `artifacts/saas-ui-golden/${kind}-results.json`,
+      );
+      execFileSync("pnpm", argv, {
+        cwd,
+        stdio: "inherit",
+        env: { ...process.env, GOLDEN_SUMMARY_PLAYWRIGHT_OUTPUT: outputFile },
+      });
       return 0;
     } catch (error) {
       return typeof error === "object" && error !== null && "status" in error
@@ -411,6 +437,51 @@ export function runGoldenSummaryCommands(
   if (exactHead(root) !== finalHead)
     throw new Error("Repository HEAD changed while golden commands ran");
   const finishedAt = new Date().toISOString();
+  const resultInventories = Object.fromEntries(
+    (["interaction", "accessibility"] as const).flatMap((kind) => {
+      const path = resolve(
+        root,
+        `artifacts/saas-ui-golden/${kind}-results.json`,
+      );
+      if (!existsSync(path)) return [];
+      const report = JSON.parse(readFileSync(path, "utf8")) as {
+        suites?: readonly unknown[];
+      };
+      const entries: GoldenResultInventoryEntry[] = [];
+      // eslint-disable-next-line complexity -- flattens the bounded Playwright JSON report schema.
+      const visit = (suite: unknown, parents: readonly string[] = []): void => {
+        if (!isRecord(suite)) return;
+        const title = typeof suite.title === "string" ? suite.title : "";
+        const file = typeof suite.file === "string" ? suite.file : "";
+        const project =
+          typeof suite.projectName === "string" ? suite.projectName : "";
+        const specs = Array.isArray(suite.specs) ? suite.specs : [];
+        for (const spec of specs) {
+          if (!isRecord(spec)) continue;
+          const specTitle = typeof spec.title === "string" ? spec.title : "";
+          const results = Array.isArray(spec.tests) ? spec.tests : [];
+          for (const test of results) {
+            if (!isRecord(test)) continue;
+            const status =
+              typeof test.status === "string" ? test.status : "unknown";
+            entries.push({
+              file,
+              title: [...parents, title, specTitle].filter(Boolean).join(" > "),
+              project,
+              status,
+            });
+          }
+        }
+        for (const child of Array.isArray(suite.suites) ? suite.suites : [])
+          visit(child, [...parents, title]);
+      };
+      for (const suite of report.suites ?? []) visit(suite);
+      return [[kind, entries] as const];
+    }),
+  ) as {
+    interaction?: readonly GoldenResultInventoryEntry[];
+    accessibility?: readonly GoldenResultInventoryEntry[];
+  };
   return {
     schemaVersion: 2,
     createdBy: "saas-ui:golden-summary-runner",
@@ -424,8 +495,15 @@ export function runGoldenSummaryCommands(
     evidencePaths: [
       "artifacts/saas-ui-golden/authority-generated.json",
       "artifacts/saas-ui-golden/authority-reference.json",
+      ...(resultInventories.interaction === undefined
+        ? []
+        : ["artifacts/saas-ui-golden/interaction-results.json"]),
+      ...(resultInventories.accessibility === undefined
+        ? []
+        : ["artifacts/saas-ui-golden/accessibility-results.json"]),
     ],
     commands,
+    resultInventories,
   };
 }
 
@@ -472,6 +550,9 @@ export function writeGoldenSummaries(
     generatedDigest: input.generatedDigest,
     evidencePaths: input.evidencePaths,
     commands: input.commands,
+    ...(input.resultInventories === undefined
+      ? {}
+      : { resultInventories: input.resultInventories }),
   } as const;
 
   for (const name of SUMMARY_NAMES) {

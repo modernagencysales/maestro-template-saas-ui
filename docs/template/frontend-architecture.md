@@ -80,8 +80,8 @@ The web shell should use Saas UI primitives where possible:
 - `SuiProvider` with the Saas UI Pro default system for the web app provider.
 - Saas UI layout, card, page, table, badge, button, input, and stack primitives
   for business-app surfaces.
-- Local `packages/ui` primitives for reusable template package components that
-  must stay independent of app-specific routes.
+- Installed Saas UI Pro components under `apps/web/src/components`; reuse the
+  manifest compositions and registry paths before adding a local seam.
 - lucide icons for commands and navigation affordances.
 
 CSS rules:
@@ -93,9 +93,9 @@ CSS rules:
 
 Block rules:
 
-- `packages/ui/src/blocks/*` contains reusable layout/state blocks.
-- `packages/ui/src/shell/*` contains reusable shell primitives.
-- Feature code composes blocks; it should not invent route-local layout systems.
+- `apps/web/src/components` contains the installed Pro registry components.
+- Feature code composes manifest compositions and installed Pro blocks; it
+  should not invent route-local layout systems.
 
 Saas UI package note: the app pins Saas UI, Saas UI Pro, Chakra, and Emotion as
 an aligned set. Do not loosen those pins independently; update them together
@@ -103,9 +103,8 @@ after a focused compatibility check against TanStack Start, React, and Confect.
 
 ## Platform Primitives
 
-Reusable frontend platform primitives live in `packages/ui/src/platform/*`. They
-are shared by client forks that need a serious B2B app shell before custom
-business logic is fully built.
+Reusable frontend platform primitives live in the installed Saas UI Pro paths
+under `apps/web/src/components` and the manifest compositions.
 
 - Command palette: route/action commands only. It must not import Convex,
   Confect refs, provider SDKs, or backend adapters.
@@ -121,9 +120,10 @@ business logic is fully built.
 
 ## Visualization Primitives
 
-Reusable B2B visualization components live in `packages/ui/src/visualize/*`.
-They consume plain view models and are intentionally generic enough for GTM,
-Brain, workflow, billing, operations, and support surfaces.
+Reusable B2B visualization components live in the installed Pro registry paths
+under `apps/web/src/components`. They consume plain view models and are
+intentionally generic enough for GTM, Brain, workflow, billing, operations, and
+support surfaces.
 
 - Data grid, Kanban, calendar, funnel, metric tiles, health board, lineage, and
   diff views render loading, empty, ready, and error states.

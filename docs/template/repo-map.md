@@ -72,8 +72,8 @@
 ## Packages
 
 - `packages/convex`: Confect specs/impls, Convex components, schema, and tests.
-- `packages/ui`: shared app shell, blocks, layout primitives, and settings-ready
-  controls, including the optional co-editing document shell.
+- `apps/web/src/components`: installed Saas UI Pro registry components and the
+  small compatibility seams required by the manifest compositions.
 - `packages/workflow-ui`: React Flow graph editor primitive and future command
   reducers.
 - `packages/template-core`: shared template registry and pure canonical-system

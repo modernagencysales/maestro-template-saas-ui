@@ -54,7 +54,8 @@ pnpm --dir apps/web dev -- --port 5184
 
 Open the reference app and inspect:
 
-- reusable app shell and navigation from `packages/ui`;
+- reusable app shell and navigation from the manifest compositions and installed
+  Saas UI Pro paths;
 - React Flow workflow primitive from `packages/workflow-ui`;
 - Brain/source/context/trust receipt model;
 - capabilities, agents, and workflow composition model;

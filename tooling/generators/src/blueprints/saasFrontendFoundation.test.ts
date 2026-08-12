@@ -91,6 +91,13 @@ describe("mandatory SaaS UI frontend foundation", () => {
       "docs/template/saas-ui-upstream.json",
       "docs/template/saas-ui-acceptance.json",
       "docs/template/saas-ui-deviations.json",
+      "docs/template/saas-ui-starter-files.json",
+      "tooling/quality/check-saas-ui-artifact-safety.mts",
+      "tooling/eslint-plugin-template/saas-ui-registry-receipt.mjs",
+      "playwright.config.ts",
+      "tests/e2e/saas-ui-golden.interactions.spec.ts",
+      "tests/e2e/saas-ui-golden.accessibility.spec.ts",
+      "tests/e2e/fixtures/saas-ui-golden.ts",
       ...manifest.licenses.map(({ destination }) => destination),
     ])
       expect(paths.has(path), path).toBe(true);

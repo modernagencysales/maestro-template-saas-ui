@@ -7,7 +7,7 @@ import {
 } from "node:fs";
 import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -19,7 +19,7 @@ import {
   hasExecutableEvidenceDeclaration,
 } from "./saas-ui-foundation.js";
 
-const root = process.cwd();
+const root = resolve(import.meta.dirname, "../..");
 
 describe("Saas UI foundation authorities", () => {
   it("pins every paid source and maps every accepted composition", () => {

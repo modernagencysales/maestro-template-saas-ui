@@ -12,10 +12,7 @@ export function previewCommand(input: {
   authority: "reference" | "generated";
   port: string;
 }): GoldenPreviewCommand {
-  const appRoot = resolve(
-    input.authority === "generated" ? input.targetRoot : input.repositoryRoot,
-    "apps/web",
-  );
+  const appRoot = resolve(input.targetRoot, "apps/web");
   return {
     cwd: appRoot,
     command: "pnpm",

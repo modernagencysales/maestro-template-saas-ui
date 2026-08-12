@@ -314,14 +314,10 @@ const customerDocumentationCommandReplacements: Readonly<
     ],
     [
       "deployment, require `pnpm smoke:hosted`, `pnpm smoke:hosted:browser`,\n   `pnpm smoke:hosted:a11y`, and `pnpm smoke:hosted:visual`. Upload the guarded",
-      "deployment, require the deployment owner's hosted liveness, browser,\n   accessibility, and visual canaries. Upload the guarded",
+      "deployment, require the deployment owner's hosted liveness and the\n   paired local golden browser, accessibility, and visual evidence. Upload the guarded",
     ],
   ],
   "docs/template/template-maturity-model.md": [
-    [
-      "**Required commands:** `pnpm check:format`, `pnpm smoke:web-static`,\n`pnpm smoke:hosted:browser`, `pnpm smoke:hosted:a11y`,\n`pnpm smoke:hosted:visual`.",
-      "**Required commands:** `pnpm check:format` plus deployment-owned static,\nbrowser, accessibility, and visual canaries.",
-    ],
     ["`pnpm review:completion`.", "`pnpm review:contract`."],
     ["`pnpm evals`.", "`pnpm test`."],
     ["`pnpm deploy:doctor`.", "`pnpm verify`."],

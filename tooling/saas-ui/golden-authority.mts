@@ -1,6 +1,13 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -49,7 +56,7 @@ function readPinnedStarterContentDigest() {
   return createHash("sha256").update(archive).digest("hex");
 }
 
-function readReferenceReceipt() {
+function readReferenceReceipt(servedRoot: string) {
   const receiptPath = resolve(
     repositoryRoot,
     "docs/template/saas-ui-starter-files.json",
@@ -60,6 +67,7 @@ function readReferenceReceipt() {
   };
   if (receipt.sourceCommit !== starterPin || !Array.isArray(receipt.files))
     throw new Error("Saas UI starter receipt is not bound to the starter pin");
+  // eslint-disable-next-line complexity -- validates each fixed receipt entry.
   const files = receipt.files.map((value, index) => {
     if (!value || typeof value !== "object" || Array.isArray(value))
       throw new Error(`Saas UI starter receipt entry ${index} is invalid`);
@@ -94,12 +102,16 @@ function readReferenceReceipt() {
       throw new Error(
         `Saas UI starter receipt source hash mismatch: ${starterPath}`,
       );
+    const content = readFileSync(resolve(servedRoot, destination));
+    const servedSha256 = createHash("sha256").update(content).digest("hex");
+    if (servedRoot !== repositoryRoot && servedSha256 !== sourceSha256)
+      throw new Error(`Pinned starter source mismatch: ${destination}`);
     return {
       destination,
-      content: readFileSync(resolve(repositoryRoot, destination)),
+      content,
       sourceSha256,
-      sha256,
-      adapted,
+      sha256: servedRoot === repositoryRoot ? sha256 : servedSha256,
+      adapted: servedRoot === repositoryRoot ? adapted : false,
     };
   });
   return {
@@ -153,16 +165,79 @@ function materializeGeneratedTarget() {
   return { digest, targetRoot };
 }
 
-const generated =
-  authority === "generated" ? materializeGeneratedTarget() : undefined;
-const targetRoot = generated?.targetRoot ?? repositoryRoot;
+function materializePinnedReferenceTarget() {
+  const targetRoot = mkdtempSync(
+    join(tmpdir(), "maestro-saas-ui-golden-reference-"),
+  );
+  const plan = buildSaasApplicationTargetPlan({
+    name: "Golden customer target",
+    firstOutcome: "Review the generated SaaS workspace",
+  });
+  for (const entry of plan.entries) {
+    const target = join(targetRoot, entry.path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, entry.content);
+  }
+  const receipt = JSON.parse(
+    readFileSync(
+      resolve(repositoryRoot, "docs/template/saas-ui-starter-files.json"),
+      "utf8",
+    ),
+  ) as { files: readonly { source: string; destination: string }[] };
+  cpSync(
+    resolve(starterRoot, "apps/web/src/lib"),
+    join(targetRoot, "apps/web/src/lib"),
+    { recursive: true, force: true },
+  );
+  const starterDestinations = new Set(
+    receipt.files.map(({ destination }) => destination),
+  );
+  for (const entry of plan.entries) {
+    if (starterDestinations.has(entry.path)) continue;
+    const target = join(targetRoot, entry.path);
+    mkdirSync(dirname(target), { recursive: true });
+    writeFileSync(target, entry.content);
+  }
+  for (const file of receipt.files) {
+    const target = join(targetRoot, file.destination);
+    if (!existsSync(target)) continue;
+    const source = execFileSync(
+      "git",
+      ["show", `${starterPin}:${file.source}`],
+      {
+        cwd: starterRoot,
+      },
+    );
+    writeFileSync(target, source);
+  }
+  writeFileSync(
+    join(targetRoot, ".golden-authority.json"),
+    `${JSON.stringify(
+      {
+        authority: "reference",
+        source: "pinned-starter-transplant",
+        sourceCommit: starterPin,
+        entries: receipt.files.length,
+      },
+      null,
+      2,
+    )}\n`,
+  );
+  return { targetRoot, digest: hashEntries(plan.entries) };
+}
+
+const materialized =
+  authority === "reference"
+    ? materializePinnedReferenceTarget()
+    : materializeGeneratedTarget();
+const targetRoot = materialized.targetRoot;
 const starterContentDigest =
   authority === "reference"
     ? verifyStarterPin()
     : readPinnedStarterContentDigest();
 
 const digest =
-  authority === "reference" ? starterContentDigest : generated?.digest;
+  authority === "reference" ? starterContentDigest : materialized.digest;
 if (!digest) {
   throw new Error("Generated golden authority did not produce a digest");
 }
@@ -186,7 +261,7 @@ const metadata =
     ? proveReferenceServedFiles({
         starterPin,
         starterContentDigest: digest,
-        ...readReferenceReceipt(),
+        ...readReferenceReceipt(targetRoot),
       })
     : createGeneratedAuthorityMetadata({ generatedDigest: digest });
 writeFileSync(
@@ -194,14 +269,17 @@ writeFileSync(
   serializeAuthorityMetadata(metadata),
 );
 
-if (authority === "generated") {
+if (authority === "reference" || authority === "generated") {
   execFileSync("pnpm", ["install", "--frozen-lockfile"], {
     cwd: targetRoot,
     stdio: "inherit",
   });
   execFileSync("pnpm", ["--dir", resolve(targetRoot, "apps/web"), "build"], {
     cwd: targetRoot,
-    env: { ...process.env, REFERENCE_SOURCE_MODE: "0" },
+    env: {
+      ...process.env,
+      REFERENCE_SOURCE_MODE: authority === "reference" ? "1" : "0",
+    },
     stdio: "inherit",
   });
 }

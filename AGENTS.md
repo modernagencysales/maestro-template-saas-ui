@@ -253,7 +253,7 @@ assuming success.
 - `apps/web`: reference app.
 - `apps/cli`: headless CLI.
 - `packages/convex`: Confect/Convex backend.
-- `packages/ui`: UI primitives and blocks.
+- `apps/web/src/components`: installed Saas UI Pro components and local UI seams.
 - `packages/workflow-ui`: React Flow workflow builder.
 - `packages/template-core`: shared template contracts.
 - `packages/integrations`: provider interfaces and adapters.
