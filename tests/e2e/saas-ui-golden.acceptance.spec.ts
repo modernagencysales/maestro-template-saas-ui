@@ -152,6 +152,14 @@ function renderedRouteFor(entry: AcceptanceEntry) {
 }
 
 test.describe("paired acceptance-map compositions", () => {
+  test.beforeEach(({ page: _page }, testInfo) => {
+    void _page;
+    testInfo.skip(
+      testInfo.project.name !== "desktop-chromium",
+      "Acceptance compositions are desktop-scoped; mobile reflow is covered separately.",
+    );
+  });
+
   for (const entry of acceptanceEntries) {
     test(`${entry.id} renders its mapped composition on both authorities`, async ({
       page,

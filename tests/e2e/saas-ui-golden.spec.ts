@@ -2,6 +2,14 @@ import { expect, test } from "./fixtures/saas-ui-golden-test";
 import { forEachGoldenAuthority } from "./fixtures/saas-ui-golden";
 
 test.describe("paired Saas UI golden behavior", () => {
+  test.beforeEach(({ page: _page }, testInfo) => {
+    void _page;
+    testInfo.skip(
+      testInfo.project.name !== "desktop-chromium",
+      "Shell keyboard assertions are desktop-scoped; mobile controls have dedicated coverage.",
+    );
+  });
+
   test("paired authorities expose the authenticated workspace shell", async ({
     page,
   }) => {

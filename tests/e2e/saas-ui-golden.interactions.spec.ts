@@ -379,6 +379,14 @@ test.describe("paired Saas UI golden interactions", () => {
 });
 
 test.describe("paired mobile shell behavior", () => {
+  test.beforeEach(({ page: _page }, testInfo) => {
+    void _page;
+    testInfo.skip(
+      testInfo.project.name !== "mobile-chromium",
+      "Mobile shell assertions are mobile-scoped.",
+    );
+  });
+
   test.use({ viewport: { width: 390, height: 844 } });
   for (const kind of authorities) {
     test(`${kind} mobile shell keeps the desktop flyout trigger hidden`, async ({
@@ -407,6 +415,14 @@ test.describe("paired mobile shell behavior", () => {
 });
 
 test.describe("paired mobile inbox behavior", () => {
+  test.beforeEach(({ page: _page }, testInfo) => {
+    void _page;
+    testInfo.skip(
+      testInfo.project.name !== "mobile-chromium",
+      "Mobile inbox assertions are mobile-scoped.",
+    );
+  });
+
   test.use({ viewport: { width: 320, height: 800 } });
 
   for (const kind of authorities) {
