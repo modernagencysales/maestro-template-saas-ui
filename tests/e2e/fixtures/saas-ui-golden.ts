@@ -39,12 +39,16 @@ export function isExpectedGoldenNavigationAbort(input: {
   ) {
     return false;
   }
+  if (!input.navigationUrl) return false;
   const requestOrigin = new URL(input.url).origin;
-  const pageOrigin = new URL(input.navigationUrl ?? input.pageUrl).origin;
+  const pageOrigin = new URL(input.pageUrl).origin;
+  const navigationOrigin = new URL(input.navigationUrl).origin;
   return (
-    requestOrigin !== pageOrigin &&
+    pageOrigin !== navigationOrigin &&
+    requestOrigin !== navigationOrigin &&
     goldenAuthorityOrigins.has(requestOrigin) &&
-    goldenAuthorityOrigins.has(pageOrigin)
+    goldenAuthorityOrigins.has(pageOrigin) &&
+    goldenAuthorityOrigins.has(navigationOrigin)
   );
 }
 

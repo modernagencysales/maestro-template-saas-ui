@@ -23,7 +23,17 @@ describe("golden browser authority startup", () => {
         errorText: "net::ERR_ABORTED",
         pageUrl: "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
       }),
-    ).toBe(true);
+    ).toBe(false);
+    expect(
+      isExpectedGoldenNavigationAbort({
+        resourceType: "script",
+        url: "http://127.0.0.1:4173/assets/_workspace._dashboard.tag._tag.js",
+        errorText: "net::ERR_ABORTED",
+        pageUrl: "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
+        navigationUrl:
+          "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
+      }),
+    ).toBe(false);
     expect(
       isExpectedGoldenNavigationAbort({
         resourceType: "script",
@@ -64,6 +74,16 @@ describe("golden browser authority startup", () => {
         url: "https://example.test/assets/chunk.js",
         errorText: "net::ERR_ABORTED",
         pageUrl: "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
+      }),
+    ).toBe(false);
+    expect(
+      isExpectedGoldenNavigationAbort({
+        resourceType: "script",
+        url: "http://127.0.0.1:4173/assets/chunk.js",
+        errorText: "net::ERR_ABORTED",
+        pageUrl: "https://example.test/contacts",
+        navigationUrl:
+          "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
       }),
     ).toBe(false);
   });

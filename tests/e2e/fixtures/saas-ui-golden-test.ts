@@ -12,7 +12,7 @@ export const test = base.extend({
   goldenRuntimeErrorGate: [
     async ({ page }, use) => {
       const failures: string[] = [];
-      let navigationUrl = page.url();
+      let navigationUrl: string | undefined;
       const onConsole = (message: { type(): string; text(): string }) => {
         if (message.type() === "error") {
           failures.push(`console.error: ${message.text()}`);
@@ -56,6 +56,9 @@ export const test = base.extend({
           navigationUrl = request.url();
         }
       };
+      const onFrameNavigated = (frame: unknown) => {
+        if (frame === page.mainFrame()) navigationUrl = undefined;
+      };
       const onResponse = (response: {
         request(): { resourceType(): string };
         status(): number;
@@ -76,6 +79,7 @@ export const test = base.extend({
       page.on("pageerror", onPageError);
       page.on("requestfailed", onRequestFailed);
       page.on("request", onRequest);
+      page.on("framenavigated", onFrameNavigated);
       page.on("response", onResponse);
 
       try {
@@ -85,6 +89,7 @@ export const test = base.extend({
         page.off("pageerror", onPageError);
         page.off("requestfailed", onRequestFailed);
         page.off("request", onRequest);
+        page.off("framenavigated", onFrameNavigated);
         page.off("response", onResponse);
         expect(failures, "browser runtime errors").toEqual([]);
         assertNoNewGoldenServerErrors(page);
