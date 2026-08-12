@@ -10,11 +10,21 @@ import { authClient } from "@workspace/better-auth/client";
 import { goldenFixtures } from "#features/golden/fixtures";
 
 export const client = authClient;
+
+function isGoldenEvidenceRoute() {
+  if (typeof window === "undefined") return false;
+  const authority = new URL(window.location.href).searchParams.get(
+    "goldenAuthority",
+  );
+  return authority === "reference" || authority === "generated";
+}
+
 export const authService: Pick<
   AuthProviderProps,
   "onLoadUser" | "onLogin" | "onSignup" | "onLogout"
 > = {
-  onLoadUser: async () => goldenFixtures.currentUser,
+  onLoadUser: async () =>
+    isGoldenEvidenceRoute() ? goldenFixtures.currentUser : null,
   onLogin: async () => null,
   onSignup: async () => null,
   onLogout: async () => undefined,

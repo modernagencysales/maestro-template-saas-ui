@@ -34,7 +34,7 @@
       "source": "apps/web/src/features/auth/auth-provider.tsx",
       "destination": "apps/web/src/features/auth/auth-provider.tsx",
       "sourceSha256": "9185809368d94f20e4ab16a5ba0a0c33760f8393c66e60bd316abdb69a3f9280",
-      "sha256": "5cefcef3ba766cffa7e602dc71e2eeb3b2227fc80d102d4294413b09e94a12c3",
+      "sha256": "29b5eb1cfabfc297a74ec1ad0388fc75f88449af2098b509bb07bc798de6ad16",
       "adapted": true
     },
     {
