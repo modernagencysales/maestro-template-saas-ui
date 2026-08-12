@@ -120,6 +120,10 @@ export const AddFilterButton: React.FC<Omit<FilterMenuProps, "items">> = (
       buttonProps={{ variant: "ghost", size: "xs" }}
       onSelect={onSelect}
       {...disclosure}
+      open={disclosure.open}
+      onOpenChange={({ open }) =>
+        open ? disclosure.onOpen() : disclosure.onClose()
+      }
       {...props}
     />
   );
