@@ -1,4 +1,7 @@
-import { dirname, resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import { dirname, join, resolve } from "node:path";
+import { tmpdir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import {
@@ -53,5 +56,36 @@ describe("Saas UI starter ESLint overrides", () => {
       "apps/web/src/features/common/layouts/custom-layout.tsx",
     );
     expect(config.files.some((file) => file.includes("**"))).toBe(false);
+  });
+});
+
+describe("Saas UI receipt integrity", () => {
+  it("does not exempt a receipt path when its content hash is stale", () => {
+    const root = mkdtempSync(join(tmpdir(), "saas-ui-receipt-integrity-"));
+    const receiptPath = join(root, "docs/template/saas-ui-registry-files.json");
+    const destination = "apps/web/src/components/paid.tsx";
+    try {
+      mkdirSync(dirname(join(root, destination)), { recursive: true });
+      mkdirSync(dirname(receiptPath), { recursive: true });
+      writeFileSync(join(root, destination), "current source\n");
+      writeFileSync(
+        receiptPath,
+        JSON.stringify({
+          schemaVersion: 1,
+          sourceCommit: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
+          files: [
+            {
+              destination,
+              sha256: createHash("sha256")
+                .update("stale source\n")
+                .digest("hex"),
+            },
+          ],
+        }),
+      );
+      expect(saasUiRegistryReceiptConfig(receiptPath)).toBeNull();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });

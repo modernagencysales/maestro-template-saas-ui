@@ -23,10 +23,10 @@ describe("Saas UI documentation contract", () => {
       "Approved: pinned reference and generated target",
     );
     expect(read("docs/licenses/saas-ui/starter-NOTICE.md")).toContain(
-      "must not enter a public npm package",
+      "This license is a legal agreement between you",
     );
     expect(read("docs/licenses/saas-ui/pro-NOTICE.md")).toContain(
-      "must not enter a public npm package",
+      "This license is a legal agreement between you",
     );
   });
 });

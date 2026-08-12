@@ -16,6 +16,9 @@ repos/
 packages/convex/confect/_generated/
 packages/convex/convex/_generated/
 packages/convex/convex/brain/pages.ts
+# Preserve upstream-authorized license text byte-for-byte for provenance checks.
+docs/licenses/saas-ui/pro-NOTICE.md
+docs/licenses/saas-ui/starter-NOTICE.md
 apps/web/src/routeTree.gen.ts
 .pnpm-store/
 AGENTS.md

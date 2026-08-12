@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { existsSync, readFileSync } from "node:fs";
 import { basename, dirname, join, relative, resolve } from "node:path";
 import process from "node:process";
@@ -9,6 +10,17 @@ const receiptCache = new Map();
 
 function normalize(path) {
   return path.replace(/\\/g, "/").replace(/^\.\//, "");
+}
+
+function sourceRootForReceipt(receiptPath, destination) {
+  let directory = dirname(receiptPath);
+  while (true) {
+    if (existsSync(resolve(directory, destination))) return directory;
+    const parent = dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+  return resolve(dirname(receiptPath), "../..");
 }
 
 function defaultReceiptPath() {
@@ -44,17 +56,24 @@ function receiptEntries(receiptPath) {
   } catch {
     return new Set();
   }
-  const entries = new Set(
-    Array.isArray(value?.files)
-      ? value.files
-          .filter(
-            (file) =>
-              typeof file?.destination === "string" &&
-              typeof file?.sha256 === "string",
-          )
-          .map((file) => normalize(file.destination))
-      : [],
-  );
+  const entries = new Set();
+  if (Array.isArray(value?.files)) {
+    for (const file of value.files) {
+      if (
+        typeof file?.destination !== "string" ||
+        !/^[a-f0-9]{64}$/u.test(String(file.sha256))
+      )
+        continue;
+      const destination = normalize(file.destination);
+      const root = sourceRootForReceipt(path, destination);
+      const absolute = resolve(root, destination);
+      if (!existsSync(absolute)) continue;
+      const actual = createHash("sha256")
+        .update(readFileSync(absolute))
+        .digest("hex");
+      if (actual === file.sha256) entries.add(destination);
+    }
+  }
   receiptCache.set(path, entries);
   return entries;
 }
