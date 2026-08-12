@@ -26,6 +26,13 @@ test.describe("paired Saas UI golden interactions", () => {
       await expect(
         page.getByText("Dashboard", { exact: true }).first(),
       ).toBeVisible();
+      const handle = page
+        .getByRole("separator", { name: "Collapse sidebar" })
+        .first();
+      await handle.click();
+      await expect(
+        page.locator('[data-part="root"][data-state="open"]'),
+      ).toBeVisible();
     });
 
     test(`${kind} workspace and user menus expose named commands`, async ({

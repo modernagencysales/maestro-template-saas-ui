@@ -1,22 +1,24 @@
 "use client";
 
-import type { ComponentProps, ComponentType } from "react";
+import * as React from "react";
 
-import { AppShell, AppShellProps, Sidebar } from "@saas-ui/react";
+import { AppShell, AppShellProps, Sidebar, useSidebar } from "@saas-ui/react";
 
 import { PaymentOverdueBanner } from "#features/billing/components/payment-overdue-banner";
 import { GlobalSearchInput } from "../components/global-search-input";
 
 export type AppLayoutProps = AppShellProps;
 
-type SaasSidebarProviderProps = ComponentProps<typeof Sidebar.Provider> & {
+type SaasSidebarProviderProps = React.ComponentProps<
+  typeof Sidebar.Provider
+> & {
   variant?: "sidebar" | "inset";
 };
 
 // The pinned @saas-ui/react declaration loses the slot-recipe variant even
 // though its runtime provider accepts and applies it.
 const SaasSidebarProvider =
-  Sidebar.Provider as ComponentType<SaasSidebarProviderProps>;
+  Sidebar.Provider as React.ComponentType<SaasSidebarProviderProps>;
 
 /**
  * Base layout for app pages.
@@ -28,20 +30,47 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
 }) => {
   return (
     <SaasSidebarProvider variant="inset">
+      <AppLayoutContent sidebar={sidebar} {...rest}>
+        {children}
+      </AppLayoutContent>
+    </SaasSidebarProvider>
+  );
+};
+
+const AppLayoutContent: React.FC<AppLayoutProps> = ({
+  children,
+  sidebar,
+  ...rest
+}) => {
+  const { isMobile, open, setOpen } = useSidebar();
+  const triggerRef = React.useRef<HTMLButtonElement>(null);
+
+  React.useEffect(() => {
+    if (!isMobile || !open) return;
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setOpen(false);
+      triggerRef.current?.focus();
+    };
+
+    document.addEventListener("keydown", onKeyDown);
+    return () => document.removeEventListener("keydown", onKeyDown);
+  }, [isMobile, open, setOpen]);
+
+  return (
+    <>
       <Sidebar.FlyoutTrigger aria-label="Collapse sidebar" />
-      <Sidebar.Trigger
-        aria-label="Open sidebar"
-        display={{ base: "inline-flex", md: "none" }}
-        position="fixed"
-        top="4"
-        left="4"
-        zIndex="docked"
-      />
 
       <AppShell
         sidebar={sidebar}
         header={
           <>
+            <Sidebar.Trigger
+              ref={triggerRef}
+              display={{ base: "inline-flex", md: "none" }}
+            />
             <PaymentOverdueBanner />
             <GlobalSearchInput aria-label="Search" role="searchbox" />
           </>
@@ -53,6 +82,6 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
       </AppShell>
 
       <Sidebar.Backdrop />
-    </SaasSidebarProvider>
+    </>
   );
 };
