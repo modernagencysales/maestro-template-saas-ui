@@ -81,7 +81,7 @@ const AppLayoutContent: React.FC<AppLayoutProps> = ({
         <Sidebar.Inset>{children}</Sidebar.Inset>
       </AppShell>
 
-      <Sidebar.Backdrop />
+      <Sidebar.Backdrop data-testid="sidebar-backdrop" />
     </>
   );
 };

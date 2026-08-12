@@ -31,7 +31,7 @@ test.describe("paired Saas UI golden interactions", () => {
         .first();
       await handle.click();
       await expect(
-        page.locator('[data-part="root"][data-state="open"]'),
+        page.locator('[data-mode="flyout"][data-state="open"]'),
       ).toBeVisible();
     });
 
@@ -394,7 +394,12 @@ test.describe("paired mobile shell behavior", () => {
 
       const open = page.getByRole("button", { name: "Open sidebar" });
       await open.click();
-      await expect(page.locator('[data-part="backdrop"]')).toBeVisible();
+      const backdrop = page.getByTestId("sidebar-backdrop");
+      await expect(backdrop).toBeVisible();
+      await backdrop.click({ position: { x: 10, y: 10 } });
+      await expect(open).toBeFocused();
+      await open.click();
+      await expect(backdrop).toBeVisible();
       await page.keyboard.press("Escape");
       await expect(open).toBeFocused();
     });
