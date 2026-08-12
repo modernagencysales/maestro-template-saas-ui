@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import type { ComponentProps, ComponentType } from "react";
 
 import { AppShell, AppShellProps, Sidebar, useSidebar } from "@saas-ui/react";
 
@@ -9,16 +10,14 @@ import { GlobalSearchInput } from "../components/global-search-input";
 
 export type AppLayoutProps = AppShellProps;
 
-type SaasSidebarProviderProps = React.ComponentProps<
-  typeof Sidebar.Provider
-> & {
+type SaasSidebarProviderProps = ComponentProps<typeof Sidebar.Provider> & {
   variant?: "sidebar" | "inset";
 };
 
 // The pinned @saas-ui/react declaration loses the slot-recipe variant even
 // though its runtime provider accepts and applies it.
 const SaasSidebarProvider =
-  Sidebar.Provider as React.ComponentType<SaasSidebarProviderProps>;
+  Sidebar.Provider as ComponentType<SaasSidebarProviderProps>;
 
 /**
  * Base layout for app pages.

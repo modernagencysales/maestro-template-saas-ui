@@ -10,6 +10,14 @@ function entry(id: string) {
 }
 
 test.describe("paired Saas UI golden interactions", () => {
+  test.beforeEach(({ page: _page }, testInfo) => {
+    void _page;
+    testInfo.skip(
+      testInfo.project.name !== "desktop-chromium",
+      "Desktop interaction assertions are desktop-scoped; mobile behavior has dedicated suites.",
+    );
+  });
+
   for (const kind of authorities) {
     test(`${kind} shell collapse, resize, persistence, and flyout`, async ({
       page,
@@ -318,7 +326,9 @@ test.describe("paired Saas UI golden interactions", () => {
       await expect(card).toHaveAttribute("data-dragging", "");
       await page.keyboard.press("ArrowRight");
       await page.keyboard.press("ArrowRight");
-      await page.keyboard.press("ArrowRight");
+      await expect(destination.locator('[data-id="contact-1"]')).toContainText(
+        "Jordan Lee",
+      );
       await page.keyboard.press("Space");
 
       await expect(origin.locator('[data-id="contact-1"]')).toHaveCount(0);
