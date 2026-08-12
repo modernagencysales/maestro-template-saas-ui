@@ -39,8 +39,22 @@ describe("Saas UI foundation authorities", () => {
       ]),
     );
     expect(readSaasUiDeviations(root).map(({ source }) => source)).toEqual([
+      "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
+      "@saas-ui-pro/react@1.0.0-next.4:components/resize/resize-handle.tsx:ResizeHandle",
       "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes",
       "tsconfig.base.json:compilerOptions.noUncheckedIndexedAccess",
+      "@chakra-ui/react@3.30.0:components/stat:StatRoot",
+      "apps/web/src/features/common/providers/app-provider.tsx:QueryClientProvider/AuthProvider",
+      "@saas-ui-pro/react@1.0.0-next.4:components/resize/Resizer",
+      "apps/web/src/routes/__root.tsx:AppProvider",
+      "apps/web/src/lib/trpc/react.tsx:fake procedure facade",
+      "@saas-ui-pro/react@1.0.0-next.4:Aside.Root",
+      "@saas-ui-pro/react@1.0.0-next.4:DataGridColumnResizer",
+      "@saas-ui-pro/react@1.0.0-next.4:DataGridSort and DataGridHeaderCell",
+      "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
+      "@saas-ui/react:Steps.List dots recipe",
+      "@saas-ui/react:BackButtonPrimitive",
+      "@chakra-ui/react semantic token fg.error",
     ]);
     expect(readSaasUiRegistryFiles(root).files.length).toBeGreaterThan(0);
     expect(checkSaasUiFoundation(root)).toEqual([]);
