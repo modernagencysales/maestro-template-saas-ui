@@ -153,6 +153,7 @@ describe("golden browser authority startup", () => {
 
     expect(config).toContain("tooling/saas-ui/golden-authority.mts reference");
     expect(config).toContain("tooling/saas-ui/golden-authority.mts generated");
+    expect(config).not.toContain("reuseExistingServer: true");
     expect(config).not.toMatch(/apps\/web preview/);
   });
 

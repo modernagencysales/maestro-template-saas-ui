@@ -23,14 +23,12 @@ export default defineConfig({
       command:
         "pnpm exec tsx tooling/saas-ui/golden-authority.mts reference 4173",
       url: "http://127.0.0.1:4173",
-      reuseExistingServer: true,
       timeout: 120_000,
     },
     {
       command:
         "pnpm exec tsx tooling/saas-ui/golden-authority.mts generated 4174",
       url: "http://127.0.0.1:4174",
-      reuseExistingServer: true,
       timeout: 180_000,
     },
   ],

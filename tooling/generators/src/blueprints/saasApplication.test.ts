@@ -2385,6 +2385,7 @@ Feature: Reconcile disputed invoices
       "check:workflow-version-immutability",
       "check:workflow-publication-generation",
       "saas-ui:materialize",
+      "saas-ui:write-summaries",
     ]);
     const factory = JSON.parse(
       readFileSync(join(repoRoot, "package.json"), "utf8"),
