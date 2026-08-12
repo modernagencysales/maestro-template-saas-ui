@@ -13,7 +13,7 @@ const PINS = {
   pro: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
 } as const;
 export const SAAS_UI_DEVIATIONS_DIGEST =
-  "fbb326a6be7b49a26cac3f8f1a3f21c5c51938372374a00d7fd66d7e29cdf519";
+  "784cdaa8394ca3b1355c3537868ec5a6eecb9ea2c3d0b329f4371a8120d57800";
 
 export function hasExecutableEvidenceDeclaration(
   source: string,

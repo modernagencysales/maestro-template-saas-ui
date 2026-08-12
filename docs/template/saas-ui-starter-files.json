@@ -251,7 +251,7 @@
       "source": "apps/web/src/features/common/layouts/app-layout.tsx",
       "destination": "apps/web/src/features/common/layouts/app-layout.tsx",
       "sourceSha256": "657ecb6d987d6177a7ec0410fc87f261d1aaffc87f1c8addd112be7f5141b57c",
-      "sha256": "412bef396cf201cb81bed028db251829666289622837087c56488350541ba5fa",
+      "sha256": "cdf6fef4042e68f780f2e0c0773424fb8324219815d0e47086a70271a01eb0fe",
       "adapted": true
     },
     {

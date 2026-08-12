@@ -3,7 +3,14 @@
 import * as React from "react";
 import type { ComponentProps, ComponentType } from "react";
 
-import { AppShell, AppShellProps, Sidebar, useSidebar } from "@saas-ui/react";
+import {
+  AppShell,
+  AppShellProps,
+  IconButton,
+  Sidebar,
+  useSidebar,
+} from "@saas-ui/react";
+import { LuPanelLeftOpen } from "react-icons/lu";
 
 import { PaymentOverdueBanner } from "#features/billing/components/payment-overdue-banner";
 import { GlobalSearchInput } from "../components/global-search-input";
@@ -43,6 +50,12 @@ const AppLayoutContent: React.FC<AppLayoutProps> = ({
 }) => {
   const { isMobile, open, setOpen } = useSidebar();
   const triggerRef = React.useRef<HTMLButtonElement>(null);
+  const wasOpenRef = React.useRef(false);
+
+  React.useEffect(() => {
+    if (isMobile && wasOpenRef.current && !open) triggerRef.current?.focus();
+    wasOpenRef.current = open;
+  }, [isMobile, open]);
 
   React.useEffect(() => {
     if (!isMobile || !open) return;
@@ -51,7 +64,6 @@ const AppLayoutContent: React.FC<AppLayoutProps> = ({
       if (event.key !== "Escape") return;
       event.preventDefault();
       setOpen(false);
-      triggerRef.current?.focus();
     };
 
     document.addEventListener("keydown", onKeyDown);
@@ -61,15 +73,25 @@ const AppLayoutContent: React.FC<AppLayoutProps> = ({
   return (
     <>
       <Sidebar.FlyoutTrigger aria-label="Collapse sidebar" />
+      <Sidebar.Trigger asChild>
+        <IconButton
+          ref={triggerRef}
+          aria-label="Open sidebar"
+          variant="ghost"
+          display={{ base: "inline-flex", md: "none" }}
+          position="fixed"
+          top="4"
+          left="4"
+          zIndex="docked"
+        >
+          <LuPanelLeftOpen />
+        </IconButton>
+      </Sidebar.Trigger>
 
       <AppShell
         sidebar={sidebar}
         header={
           <>
-            <Sidebar.Trigger
-              ref={triggerRef}
-              display={{ base: "inline-flex", md: "none" }}
-            />
             <PaymentOverdueBanner />
             <GlobalSearchInput aria-label="Search" role="searchbox" />
           </>

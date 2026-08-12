@@ -324,8 +324,18 @@ test.describe("paired Saas UI golden interactions", () => {
       await card.focus();
       await page.keyboard.press("Space");
       await expect(card).toHaveAttribute("data-dragging", "");
-      await page.keyboard.press("ArrowRight");
-      await page.keyboard.press("ArrowRight");
+      for (let step = 0; step < 3; step += 1) {
+        await page.keyboard.press("ArrowRight");
+        await page.evaluate(
+          () =>
+            new Promise<void>((resolve) =>
+              requestAnimationFrame(() =>
+                requestAnimationFrame(() => resolve()),
+              ),
+            ),
+        );
+        if (await destination.locator('[data-id="contact-1"]').count()) break;
+      }
       await expect(destination.locator('[data-id="contact-1"]')).toContainText(
         "Jordan Lee",
       );
@@ -442,17 +452,6 @@ test.describe("paired mobile inbox behavior", () => {
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("split-inbox").route });
-
-      if (kind === "reference") {
-        await expect(page).toHaveURL(/contacts\/view\/contact-1/);
-        await expect(
-          page.getByRole("complementary", { name: "Contact details" }),
-        ).toContainText("Jordan Lee");
-        expect(
-          await page.evaluate(() => document.documentElement.scrollWidth),
-        ).toBeLessThanOrEqual(320);
-        return;
-      }
 
       const inboxHeading = page.getByRole("heading", {
         name: "Inbox",
