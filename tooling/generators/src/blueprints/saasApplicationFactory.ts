@@ -18,7 +18,6 @@ import {
 } from "./saasRegistrationProjections";
 
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
-  "apps/web/src/adapters/confect-generated-refs.test.ts",
   "docs/template/env-manifest.json",
   "docs/template/env-manifest.md",
   "docs/template/operations-runbook.md",

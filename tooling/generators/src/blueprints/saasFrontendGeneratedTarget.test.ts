@@ -82,6 +82,11 @@ describe("SaaS UI generated target artifact boundary", () => {
       expect(
         readFileSync(join(target, "tsconfig.base.json"), "utf8"),
       ).toContain('"strict": true');
+      const paths = new Set(plan.entries.map(({ path }) => path));
+      expect(
+        paths.has("apps/web/src/adapters/confect-generated-refs.test.ts"),
+      ).toBe(false);
+      expect(paths.has("apps/web/src/sample/templateData.test.ts")).toBe(false);
 
       const packageJson = JSON.parse(
         readFileSync(join(target, "apps/web/package.json"), "utf8"),

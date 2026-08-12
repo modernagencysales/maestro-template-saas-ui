@@ -2201,10 +2201,7 @@ Feature: Reconcile disputed invoices
 
     const generatedRefsTest =
       files.get("apps/web/src/adapters/confect-generated-refs.test.ts") ?? "";
-    expect(generatedRefsTest).toContain("BrainPageListRef");
-    expect(generatedRefsTest).toContain("BrainPageCreateRef");
-    expect(generatedRefsTest).not.toContain("evaluateAppIdea");
-    expect(generatedRefsTest).not.toContain("useTemplateAction");
+    expect(generatedRefsTest).toBe("");
 
     for (const evaluatorSourcePath of [
       "apps/web/src/providers/posthog.test.tsx",

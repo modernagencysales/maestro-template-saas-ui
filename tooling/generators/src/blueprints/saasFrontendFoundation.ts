@@ -84,7 +84,7 @@ const currentWebSourcePaths = (directory: string): readonly string[] =>
     const path = `${directory}/${entry.name}`;
     if (entry.isDirectory()) return currentWebSourcePaths(path);
     return /\.(?:ts|tsx|mts|mjs)$/.test(entry.name) &&
-      !/(?:\/sample\/|\/settings-surface\.|\/setup-surface\.|\/posthog\.test\.)/.test(
+      !/(?:\/sample\/|\/settings-surface\.|\/setup-surface\.|\/posthog\.test\.|\/confect-generated-refs\.test\.|\/generated\/confectManifest\.ts$)/.test(
         path,
       )
       ? [path]
@@ -108,10 +108,6 @@ const STARTER_SOURCE_ROOTS = [
   "apps/web/src/features/settings",
   "apps/web/src/features/workspaces",
 ] as const;
-const CUSTOMER_FRONTEND_PACKAGE_ROOTS = [
-  "packages/template-core",
-  "packages/workflow-ui",
-] as const;
 
 const manifestCompositionPaths = (): readonly string[] =>
   manifest.compositions.flatMap((composition) =>
@@ -131,11 +127,6 @@ const foundationPaths = [
   ...manifest.licenses.map(({ destination }) => destination),
   ...FRONTEND_SUPPORT_PATHS,
   ...STARTER_SOURCE_ROOTS.flatMap(currentWebSourcePaths),
-  ...CUSTOMER_FRONTEND_PACKAGE_ROOTS.flatMap(currentWebSourcePaths),
-  ...CUSTOMER_FRONTEND_PACKAGE_ROOTS.flatMap((root) => [
-    `${root}/package.json`,
-    `${root}/tsconfig.json`,
-  ]),
 ];
 
 const UNIQUE_FOUNDATION_PATHS = Object.freeze(

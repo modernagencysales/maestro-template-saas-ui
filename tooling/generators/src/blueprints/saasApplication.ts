@@ -710,7 +710,6 @@ function buildTargetPlan(
           ...CURRENT_EMAIL_BASE_COPY_REPLACEMENTS.map(
             (path) => [path, "copy"] as const,
           ),
-          ["apps/web/src/adapters/confect-generated-refs.test.ts", "copy"],
           ["apps/web/src/providers/posthog.tsx", "copy"],
           ["apps/web/src/routes/index.tsx", "copy"],
           ["docs/template/env-manifest.json", "copy"],
@@ -914,7 +913,6 @@ function buildTargetPlan(
       : []),
     ...(current
       ? [
-          "apps/web/src/adapters/confect-generated-refs.test.ts",
           "docs/template/env-manifest.json",
           "docs/template/env-manifest.md",
           "docs/template/operations-runbook.md",
