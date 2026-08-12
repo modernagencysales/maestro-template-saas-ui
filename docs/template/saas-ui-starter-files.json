@@ -62,7 +62,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/auth/login-page.tsx",
       "destination": "apps/web/src/features/auth/login-page.tsx",
       "sourceSha256": "206fafcdd95565cee4a2116a6fa0481c21f81e02b06e9be0fdf018b0ec8bff6d",
-      "sha256": "cf12718b15ec2b420fd2d41d7c7e4adb4f6133d7edf580c915afcb9ffa5451c7",
+      "sha256": "736efeac9eae4e6f7e0847e0c4a3bb771d87155483c957257ae9ff6e62ae31fa",
       "adapted": true
     },
     {
@@ -636,7 +636,7 @@
       "source": "../../.tmp/saas-ui-tanstack-pro/apps/web/src/features/settings/billing/manage-billing-button.tsx",
       "destination": "apps/web/src/features/settings/billing/manage-billing-button.tsx",
       "sourceSha256": "780123acfc967786d4540e2ed6e89eb3d1949dacad858ecec15f2dd7bb38a55b",
-      "sha256": "87fbd4e77ab4714a85b199d0e1131fae9a1e1e71745d4021b9bcf4bb1a5e652a",
+      "sha256": "a36a11a4c2fa31f6751954dddc98f61a955b7b4aae4a5aa38ac210ed8476f2a5",
       "adapted": true
     },
     {

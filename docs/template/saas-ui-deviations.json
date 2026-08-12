@@ -82,5 +82,12 @@
     "change": "Sortable grid headers retain their interactive title while aria-sort moves to the native column header, decorative sort icons are hidden from assistive technology, and contact action menus receive a name.",
     "reason": "The pinned package writes aria-sort to a div and aria-label to a presentational span, while the preserved contact list creates unnamed icon-only action triggers; both are serious or critical WCAG failures.",
     "evidence": "The paired data-grid accessibility test fails on both authorities before the seam; frozen generated-target installation includes the patch, and paired axe coverage verifies the repaired DOM without rule exclusions."
+  },
+  {
+    "source": "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
+    "destination": "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
+    "change": "The login password field identifies a current credential to browsers, and the text-bearing billing action retains its native button role.",
+    "reason": "The preserved screens used invalid autocomplete=\"password\" and overrode a named button to role=group, producing serious and critical WCAG failures.",
+    "evidence": "Focused paired axe coverage passes both auth and billing routes on the reference and generated authorities without rule exclusions."
   }
 ]

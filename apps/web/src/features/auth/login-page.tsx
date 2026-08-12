@@ -87,7 +87,10 @@ export const LoginPage = () => {
             footer={
               <Text color="fg.muted">
                 Don&apos;t have an account yet?{" "}
-                <Link to="/signup" search={{ redirectTo: undefined }}>Sign up</Link>.
+                <Link to="/signup" search={{ redirectTo: undefined }}>
+                  Sign up
+                </Link>
+                .
               </Text>
             }
           >
@@ -124,7 +127,7 @@ export const LoginPage = () => {
                     <field.TextField
                       type="password"
                       label="Password"
-                      autoComplete="password"
+                      autoComplete="current-password"
                     />
                   )}
                 </form.AppField>
