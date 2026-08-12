@@ -1,0 +1,200 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "app-shell",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src"
+      },
+      "factoryDestination": "apps/web/src/features/common",
+      "generatedDestination": "apps/web/src/features/common",
+      "route": "/dashboard",
+      "behaviorCheck": "shell controls and navigation",
+      "evidence": ["dashboard-ready-read-desktop-light"]
+    },
+    {
+      "id": "dashboard-report",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/reports/reports-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/reports",
+      "generatedDestination": "apps/web/src/features/reports",
+      "route": "/dashboard",
+      "behaviorCheck": "dashboard report renders",
+      "evidence": ["dashboard-ready-read-desktop-light"]
+    },
+    {
+      "id": "data-grid",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/list/list-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/list",
+      "generatedDestination": "apps/web/src/features/contacts/list",
+      "route": "/contacts",
+      "behaviorCheck": "filter sort pagination selection",
+      "evidence": ["contacts-ready-read-desktop-light"]
+    },
+    {
+      "id": "filterable-collection",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/list/contact-filters.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/list",
+      "generatedDestination": "apps/web/src/features/contacts/list",
+      "route": "/contacts",
+      "behaviorCheck": "active filter removal",
+      "evidence": ["contacts-filtered-desktop-light"]
+    },
+    {
+      "id": "list-detail",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/view/contact-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/view",
+      "generatedDestination": "apps/web/src/features/contacts/view",
+      "route": "/contacts/:contactId",
+      "behaviorCheck": "list to detail navigation",
+      "evidence": ["contact-ready-read-desktop-light"]
+    },
+    {
+      "id": "split-inbox",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/inbox/inbox-layout.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/inbox",
+      "generatedDestination": "apps/web/src/features/contacts/inbox",
+      "route": "/inbox",
+      "behaviorCheck": "split selection",
+      "evidence": ["inbox-ready-read-desktop-light"]
+    },
+    {
+      "id": "record-aside",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/view/contact-sidebar.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/view",
+      "generatedDestination": "apps/web/src/features/contacts/view",
+      "route": "/contacts/:contactId",
+      "behaviorCheck": "record aside opens and restores focus",
+      "evidence": ["contact-ready-read-mobile-light"]
+    },
+    {
+      "id": "settings",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/settings/common/settings-layout.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/settings",
+      "generatedDestination": "apps/web/src/features/settings",
+      "route": "/settings",
+      "behaviorCheck": "settings navigation",
+      "evidence": ["settings-ready-read-desktop-light"]
+    },
+    {
+      "id": "form",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/getting-started/create-workspace.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/getting-started",
+      "generatedDestination": "apps/web/src/features/getting-started",
+      "route": "/onboarding",
+      "behaviorCheck": "form validation and submit",
+      "evidence": ["onboarding-ready-edit-desktop-light"]
+    },
+    {
+      "id": "onboarding",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/getting-started/getting-started-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/getting-started",
+      "generatedDestination": "apps/web/src/features/getting-started",
+      "route": "/onboarding",
+      "behaviorCheck": "onboarding steps",
+      "evidence": ["onboarding-ready-read-desktop-light"]
+    },
+    {
+      "id": "kanban",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/list/contact-card.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/list",
+      "generatedDestination": "apps/web/src/features/contacts/list",
+      "route": "/kanban",
+      "behaviorCheck": "kanban drag",
+      "evidence": ["kanban-ready-read-desktop-light"]
+    },
+    {
+      "id": "auth",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/auth"
+      },
+      "factoryDestination": "apps/web/src/features/auth",
+      "generatedDestination": "apps/web/src/features/auth",
+      "route": "/login",
+      "behaviorCheck": "auth form state",
+      "evidence": ["auth-ready-read-desktop-light"]
+    },
+    {
+      "id": "billing",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/settings/billing"
+      },
+      "factoryDestination": "apps/web/src/features/settings/billing",
+      "generatedDestination": "apps/web/src/features/settings/billing",
+      "route": "/settings/billing",
+      "behaviorCheck": "billing presentation",
+      "evidence": ["billing-ready-read-desktop-light"]
+    },
+    {
+      "id": "search-command",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/search/search-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/search",
+      "generatedDestination": "apps/web/src/features/search",
+      "route": "/search",
+      "behaviorCheck": "search shortcut and commands",
+      "evidence": ["search-ready-read-desktop-light"]
+    },
+    {
+      "id": "states",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/workspaces"
+      },
+      "factoryDestination": "apps/web/src/features/workspaces",
+      "generatedDestination": "apps/web/src/features/workspaces",
+      "route": "/states",
+      "behaviorCheck": "loading empty success failure",
+      "evidence": ["states-all-desktop-light"]
+    }
+  ]
+}

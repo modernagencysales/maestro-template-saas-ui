@@ -1,0 +1,301 @@
+{
+  "schemaVersion": 1,
+  "pins": {
+    "template": "acf0bc4be38dea842f321831387fc77cf7242439",
+    "starter": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+    "pro": "ac3a40c8dc05e403f9d501a87c092646891d3c40"
+  },
+  "registry": {
+    "catalog": "apps/web/components.json",
+    "config": "apps/web/components.json",
+    "installRoot": "apps/web/src/components",
+    "sourceRoot": "packages/blocks",
+    "sourceCommit": "ac3a40c8dc05e403f9d501a87c092646891d3c40"
+  },
+  "compositions": [
+    {
+      "id": "app-shell",
+      "source": "apps/web/src/features/common",
+      "factoryDestination": "apps/web/src/features/common",
+      "generatedDestination": "apps/web/src/features/common",
+      "files": [
+        {
+          "source": "apps/web/src/provider.tsx",
+          "destination": "apps/web/src/features/common/providers/app-provider.tsx"
+        },
+        {
+          "source": "apps/web/src/theme/preset.ts",
+          "destination": "apps/web/src/theme/preset.ts"
+        },
+        {
+          "source": "apps/web/src/theme/semantic-tokens/colors.ts",
+          "destination": "apps/web/src/theme/semantic-tokens/colors.ts"
+        },
+        {
+          "source": "apps/web/src/config/hotkeys.config.ts",
+          "destination": "apps/web/src/config/hotkeys.config.ts"
+        }
+      ]
+    },
+    {
+      "id": "dashboard-report",
+      "source": "apps/web/src/features/reports",
+      "factoryDestination": "apps/web/src/features/reports",
+      "generatedDestination": "apps/web/src/features/reports",
+      "files": [
+        {
+          "source": "apps/web/src/features/reports/reports-page.tsx",
+          "destination": "apps/web/src/features/reports/reports-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/reports/metrics/activity.tsx",
+          "destination": "apps/web/src/features/reports/metrics/activity.tsx"
+        },
+        {
+          "source": "apps/web/src/features/reports/metrics/metric.tsx",
+          "destination": "apps/web/src/features/reports/metrics/metric.tsx"
+        },
+        {
+          "source": "apps/web/src/features/reports/metrics/metrics-card.tsx",
+          "destination": "apps/web/src/features/reports/metrics/metrics-card.tsx"
+        },
+        {
+          "source": "apps/web/src/features/reports/metrics/revenue-chart.tsx",
+          "destination": "apps/web/src/features/reports/metrics/revenue-chart.tsx"
+        },
+        {
+          "source": "apps/web/src/features/reports/metrics/sales-by-country.tsx",
+          "destination": "apps/web/src/features/reports/metrics/sales-by-country.tsx"
+        }
+      ]
+    },
+    {
+      "id": "data-grid",
+      "source": "apps/web/src/features/contacts/list",
+      "factoryDestination": "apps/web/src/features/contacts/list",
+      "generatedDestination": "apps/web/src/features/contacts/list",
+      "files": [
+        {
+          "source": "apps/web/src/features/contacts/list/list-page.tsx",
+          "destination": "apps/web/src/features/contacts/list/list-page.tsx"
+        }
+      ]
+    },
+    {
+      "id": "filterable-collection",
+      "source": "apps/web/src/features/contacts/list/contact-filters.tsx",
+      "factoryDestination": "apps/web/src/features/contacts/list/contact-filters.tsx",
+      "generatedDestination": "apps/web/src/features/contacts/list/contact-filters.tsx",
+      "files": [
+        {
+          "source": "apps/web/src/features/contacts/list/contact-filters.tsx",
+          "destination": "apps/web/src/features/contacts/list/contact-filters.tsx"
+        }
+      ]
+    },
+    {
+      "id": "list-detail",
+      "source": "apps/web/src/features/contacts/view",
+      "factoryDestination": "apps/web/src/features/contacts/view",
+      "generatedDestination": "apps/web/src/features/contacts/view",
+      "files": [
+        {
+          "source": "apps/web/src/features/contacts/view/contact-page.tsx",
+          "destination": "apps/web/src/features/contacts/view/contact-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/contacts/view/contact-sidebar.tsx",
+          "destination": "apps/web/src/features/contacts/view/contact-sidebar.tsx"
+        }
+      ]
+    },
+    {
+      "id": "split-inbox",
+      "source": "apps/web/src/features/contacts/inbox",
+      "factoryDestination": "apps/web/src/features/contacts/inbox",
+      "generatedDestination": "apps/web/src/features/contacts/inbox",
+      "files": [
+        {
+          "source": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
+          "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx"
+        },
+        {
+          "source": "apps/web/src/features/contacts/inbox/inbox-list.tsx",
+          "destination": "apps/web/src/features/contacts/inbox/inbox-list.tsx"
+        },
+        {
+          "source": "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
+          "destination": "apps/web/src/features/contacts/inbox/inbox-view-page.tsx"
+        }
+      ]
+    },
+    {
+      "id": "record-aside",
+      "source": "apps/web/src/features/contacts/view/contact-sidebar.tsx",
+      "factoryDestination": "apps/web/src/features/contacts/view/contact-sidebar.tsx",
+      "generatedDestination": "apps/web/src/features/contacts/view/contact-sidebar.tsx",
+      "files": [
+        {
+          "source": "apps/web/src/features/contacts/view/contact-sidebar.tsx",
+          "destination": "apps/web/src/features/contacts/view/contact-sidebar.tsx"
+        }
+      ]
+    },
+    {
+      "id": "settings",
+      "source": "apps/web/src/features/settings",
+      "factoryDestination": "apps/web/src/features/settings",
+      "generatedDestination": "apps/web/src/features/settings",
+      "files": [
+        {
+          "source": "apps/web/src/features/settings/common/settings-layout.tsx",
+          "destination": "apps/web/src/features/settings/common/settings-layout.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/common/settings-sidebar.tsx",
+          "destination": "apps/web/src/features/settings/common/settings-sidebar.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/account/account-profile-page.tsx",
+          "destination": "apps/web/src/features/settings/account/account-profile-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/members/members-page.tsx",
+          "destination": "apps/web/src/features/settings/members/members-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/billing/billing-page.tsx",
+          "destination": "apps/web/src/features/settings/billing/billing-page.tsx"
+        }
+      ]
+    },
+    {
+      "id": "form",
+      "source": "apps/web/src/features/getting-started",
+      "factoryDestination": "apps/web/src/features/getting-started",
+      "generatedDestination": "apps/web/src/features/getting-started",
+      "files": [
+        {
+          "source": "apps/web/src/features/getting-started/appearance.tsx",
+          "destination": "apps/web/src/features/getting-started/appearance.tsx"
+        },
+        {
+          "source": "apps/web/src/features/getting-started/create-workspace.tsx",
+          "destination": "apps/web/src/features/getting-started/create-workspace.tsx"
+        }
+      ]
+    },
+    {
+      "id": "onboarding",
+      "source": "apps/web/src/features/getting-started/getting-started-page.tsx",
+      "factoryDestination": "apps/web/src/features/getting-started/getting-started-page.tsx",
+      "generatedDestination": "apps/web/src/features/getting-started/getting-started-page.tsx",
+      "files": [
+        {
+          "source": "apps/web/src/features/getting-started/getting-started-page.tsx",
+          "destination": "apps/web/src/features/getting-started/getting-started-page.tsx"
+        }
+      ]
+    },
+    {
+      "id": "kanban",
+      "source": "apps/web/src/features/contacts/list/contact-card.tsx",
+      "factoryDestination": "apps/web/src/features/contacts/list/contact-card.tsx",
+      "generatedDestination": "apps/web/src/features/contacts/list/contact-card.tsx",
+      "files": [
+        {
+          "source": "apps/web/src/features/contacts/list/contact-card.tsx",
+          "destination": "apps/web/src/features/contacts/list/contact-card.tsx"
+        }
+      ]
+    },
+    {
+      "id": "auth",
+      "source": "apps/web/src/features/auth",
+      "factoryDestination": "apps/web/src/features/auth",
+      "generatedDestination": "apps/web/src/features/auth",
+      "files": [
+        {
+          "source": "apps/web/src/features/auth/auth-layout.tsx",
+          "destination": "apps/web/src/features/auth/auth-layout.tsx"
+        },
+        {
+          "source": "apps/web/src/features/auth/login-page.tsx",
+          "destination": "apps/web/src/features/auth/login-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/auth/signup-page.tsx",
+          "destination": "apps/web/src/features/auth/signup-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/auth/forgot-password-page.tsx",
+          "destination": "apps/web/src/features/auth/forgot-password-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/auth/reset-password-page.tsx",
+          "destination": "apps/web/src/features/auth/reset-password-page.tsx"
+        }
+      ]
+    },
+    {
+      "id": "billing",
+      "source": "apps/web/src/features/settings/billing",
+      "factoryDestination": "apps/web/src/features/settings/billing",
+      "generatedDestination": "apps/web/src/features/settings/billing",
+      "files": [
+        {
+          "source": "apps/web/src/features/settings/billing/billing-page.tsx",
+          "destination": "apps/web/src/features/settings/billing/billing-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/billing/plans-page.tsx",
+          "destination": "apps/web/src/features/settings/billing/plans-page.tsx"
+        },
+        {
+          "source": "apps/web/src/features/settings/billing/manage-billing-button.tsx",
+          "destination": "apps/web/src/features/settings/billing/manage-billing-button.tsx"
+        }
+      ]
+    },
+    {
+      "id": "search-command",
+      "source": "apps/web/src/features/search/search-page.tsx",
+      "factoryDestination": "apps/web/src/features/search/search-page.tsx",
+      "generatedDestination": "apps/web/src/features/search/search-page.tsx",
+      "files": [
+        {
+          "source": "apps/web/src/features/search/search-page.tsx",
+          "destination": "apps/web/src/features/search/search-page.tsx"
+        }
+      ]
+    },
+    {
+      "id": "states",
+      "source": "apps/web/src/features/workspaces",
+      "factoryDestination": "apps/web/src/features/workspaces",
+      "generatedDestination": "apps/web/src/features/workspaces",
+      "files": [
+        {
+          "source": "apps/web/src/features/workspaces/workspace.loading.tsx",
+          "destination": "apps/web/src/features/workspaces/workspace.loading.tsx"
+        },
+        {
+          "source": "apps/web/src/features/workspaces/workspace.not-found.tsx",
+          "destination": "apps/web/src/features/workspaces/workspace.not-found.tsx"
+        }
+      ]
+    }
+  ],
+  "licenses": [
+    {
+      "source": "starter",
+      "path": "LICENSE",
+      "destination": "docs/licenses/saas-ui/starter-NOTICE.md"
+    },
+    {
+      "source": "pro",
+      "path": "LICENSE",
+      "destination": "docs/licenses/saas-ui/pro-NOTICE.md"
+    }
+  ]
+}
