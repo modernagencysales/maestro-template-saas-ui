@@ -1,81 +1,86 @@
-import {
-  Badge,
-  Button,
-  Card,
-  Heading,
-  SimpleGrid,
-  Stack,
-  Text,
-} from "@saas-ui/react";
-import * as React from "react";
+import { Box, Page } from "@saas-ui/react";
+import type { ColumnDef } from "@tanstack/react-table";
+import { useCallback, useMemo } from "react";
 
-import { goldenFixtures } from "./fixtures";
+import type { ContactDTO } from "@workspace/api/types";
+import { DataBoard, type DataBoardProps } from "@workspace/ui/data-board";
 
-const columns = ["Backlog", "In progress", "Done"] as const;
-type Column = (typeof columns)[number];
-type CardFixture = { id: string; name: string; column: Column };
+import { ContactBoardHeader } from "../contacts/list/contact-board-header";
+import { ContactCard } from "../contacts/list/contact-card";
+import { useGoldenAdapter } from "./adapters";
+
+type CardDragEnd = NonNullable<DataBoardProps<ContactDTO>["onCardDragEnd"]>;
+type CardDragEndEvent = Parameters<CardDragEnd>[0];
+
+const columns: ColumnDef<ContactDTO>[] = [
+  { accessorKey: "name", header: "Name" },
+  { accessorKey: "email", header: "Email" },
+  { accessorKey: "type", header: "Type" },
+  { accessorKey: "tags", header: "Tags" },
+  { accessorKey: "status", header: "Status" },
+];
+
+const visibleColumns = {
+  name: true,
+  email: true,
+  type: true,
+  tags: true,
+  status: true,
+};
+
+function statusFromDrop(event: CardDragEndEvent) {
+  const [, status] = String(event.to.columnId).split(":");
+  if (status !== "active" && status !== "inactive") {
+    throw new Error(`Unsupported contact status: ${status}`);
+  }
+  return status;
+}
+
+function contactIdFromDrop(event: CardDragEndEvent) {
+  const contactId = event.items[event.to.columnId]?.[event.to.index];
+  if (!contactId) throw new Error("Contact not found");
+  return String(contactId);
+}
 
 export function GoldenKanbanPage() {
-  const [cards, setCards] = React.useState<CardFixture[]>(
-    goldenFixtures.kanban.map((card) => ({ ...card })),
+  const adapter = useGoldenAdapter();
+  const contacts = useMemo(
+    () =>
+      adapter.contacts
+        .slice(0, 2)
+        .map((contact) => ({ ...contact, tags: [...contact.tags] })),
+    [adapter.contacts],
   );
-  const [draggedCard, setDraggedCard] = React.useState<string | null>(null);
-  const moveCard = (id: string, column: Column) => {
-    setCards((current) =>
-      current.map((card) => (card.id === id ? { ...card, column } : card)),
-    );
-  };
+
+  const onCardDragEnd = useCallback(
+    (event: CardDragEndEvent) => {
+      return adapter.updateContactStatus(
+        contactIdFromDrop(event),
+        statusFromDrop(event),
+      );
+    },
+    [adapter],
+  );
 
   return (
-    <Stack gap="6" p={{ base: "5", md: "8" }}>
-      <Heading size="lg">Kanban archetype</Heading>
-      <SimpleGrid columns={{ base: 1, md: 3 }} gap="4">
-        {columns.map((column) => (
-          <Stack
-            key={column}
-            gap="3"
-            minH="220px"
-            role="region"
-            aria-label={column}
-            data-kanban-column={column}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => {
-              if (draggedCard) moveCard(draggedCard, column);
-              setDraggedCard(null);
-            }}
-          >
-            <Heading size="sm">{column}</Heading>
-            {cards
-              .filter((card) => card.column === column)
-              .map((card) => {
-                const nextColumn =
-                  columns[(columns.indexOf(column) + 1) % columns.length];
-                return (
-                  <Card.Root
-                    key={card.id}
-                    draggable
-                    variant="subtle"
-                    onDragStart={() => setDraggedCard(card.id)}
-                  >
-                    <Card.Body>
-                      <Stack gap="2">
-                        <Text>{card.name}</Text>
-                        <Badge width="fit-content">{column}</Badge>
-                        <Button
-                          size="xs"
-                          variant="ghost"
-                          onClick={() => moveCard(card.id, nextColumn)}
-                        >
-                          Move {card.name} to {nextColumn}
-                        </Button>
-                      </Stack>
-                    </Card.Body>
-                  </Card.Root>
-                );
-              })}
-          </Stack>
-        ))}
-      </SimpleGrid>
-    </Stack>
+    <Page.Root>
+      <Page.Header title="Contacts" />
+      <Page.Body p="0" height="full">
+        <Box height="100%" width="100%" bg="page-body-bg-subtle">
+          <DataBoard<ContactDTO>
+            height="100%"
+            px="6"
+            columns={columns}
+            data={contacts}
+            renderHeader={(header) => <ContactBoardHeader {...header} />}
+            renderCard={(row) => <ContactCard contact={row.original} />}
+            groupBy="status"
+            onCardDragEnd={onCardDragEnd}
+            getRowId={(row) => row.id}
+            state={{ columnVisibility: visibleColumns }}
+          />
+        </Box>
+      </Page.Body>
+    </Page.Root>
   );
 }

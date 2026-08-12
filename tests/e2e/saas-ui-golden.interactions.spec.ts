@@ -115,7 +115,7 @@ test.describe("paired Saas UI golden interactions", () => {
       const action = page.waitForEvent("console", {
         predicate: (message) => message.text().startsWith("Add tags"),
       });
-      await page.getByRole("button", { name: "Add tags" }).click();
+      await page.getByRole("button", { name: "Add tags" }).press("Enter");
       const selectedIds = await (await action).args()[1]?.jsonValue();
       expect(selectedIds).toContain("contact-21");
       await checkbox.uncheck({ force: true });
@@ -270,10 +270,15 @@ test.describe("paired Saas UI golden interactions", () => {
 
     test(`${kind} drags a Kanban card between columns`, async ({ page }) => {
       await gotoGolden({ page, kind, route: entry("kanban").route });
-      const card = page.locator('[draggable="true"]').first();
-      const destination = page.locator('[data-kanban-column="In progress"]');
+      const origin = page.locator('[data-column="status:active"]');
+      const destination = page.locator('[data-column="status:inactive"]');
+      const card = origin.locator('[data-id="contact-1"]');
+      await expect(card).toContainText("Jordan Lee");
       await card.dragTo(destination);
-      await expect(destination).toContainText("Jordan Lee");
+      await expect(origin.locator('[data-id="contact-1"]')).toHaveCount(0);
+      await expect(destination.locator('[data-id="contact-1"]')).toContainText(
+        "Jordan Lee",
+      );
     });
 
     test(`${kind} auth form validates credentials and preserves input`, async ({

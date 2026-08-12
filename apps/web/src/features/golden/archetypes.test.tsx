@@ -1,6 +1,12 @@
 // @vitest-environment jsdom
 
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { afterEach, describe, expect, it } from "vitest";
 import { SuiProvider } from "@saas-ui/react";
 
@@ -32,22 +38,50 @@ describe("golden archetype states", () => {
           </SuiProvider>
         </GoldenAdapterProvider>,
       );
+      const stateMessage = {
+        loading: "Loading workspace data",
+        empty: "No records yet",
+        "ready-read": "Records are ready to review",
+        "ready-edit": "Edit mode is enabled",
+        "mutation-success": "Changes saved successfully",
+        "mutation-failure": "Changes could not be saved",
+        error: "Something went wrong",
+        "not-found": "The requested record was not found",
+        "permission-denied": "You do not have permission to view this record",
+      }[state];
+      const role: Partial<Record<(typeof states)[number], "alert" | "status">> =
+        {
+          loading: "status",
+          "mutation-success": "status",
+          "mutation-failure": "alert",
+          error: "alert",
+          "permission-denied": "alert",
+        };
+      const stateRole = role[state];
       expect(
-        screen.getByText(
-          {
-            loading: "Loading workspace data",
-            empty: "No records yet",
-            "ready-read": "Records are ready to review",
-            "ready-edit": "Edit mode is enabled",
-            "mutation-success": "Changes saved successfully",
-            "mutation-failure": "Changes could not be saved",
-            error: "Something went wrong",
-            "not-found": "The requested record was not found",
-            "permission-denied":
-              "You do not have permission to view this record",
-          }[state],
-        ),
+        stateRole
+          ? screen.getByRole(stateRole)
+          : screen.getByText(stateMessage, { exact: true }),
       ).toBeTruthy();
+      expect(screen.getByRole("main")).toBeTruthy();
+
+      if (state === "empty") {
+        expect(
+          screen.getByRole("heading", { name: "No records yet" }),
+        ).toBeTruthy();
+      }
+
+      if (state === "ready-read") {
+        expect(
+          screen.getByRole("button", { name: "Edit record" }),
+        ).toBeTruthy();
+      }
+
+      if (state === "not-found") {
+        expect(
+          screen.getByRole("heading", { name: "Record not found" }),
+        ).toBeTruthy();
+      }
 
       if (state === "loading") {
         expect(
@@ -60,7 +94,7 @@ describe("golden archetype states", () => {
     });
   }
 
-  it("moves edit through success back to read", () => {
+  it("moves edit through success back to read", async () => {
     render(
       <GoldenAdapterProvider initialState="ready-edit">
         <SuiProvider value={system}>
@@ -70,14 +104,18 @@ describe("golden archetype states", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
-    expect(screen.getByRole("status").textContent).toContain(
-      "Changes saved successfully",
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        "Changes saved successfully",
+      ),
     );
     fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    expect(screen.getByText("Records are ready to review")).toBeTruthy();
+    await waitFor(() =>
+      expect(screen.getByText("Records are ready to review")).toBeTruthy(),
+    );
   });
 
-  it("retries a failed mutation and reaches success", () => {
+  it("retries a failed mutation and reaches success", async () => {
     render(
       <GoldenAdapterProvider initialState="mutation-failure">
         <SuiProvider value={system}>
@@ -87,12 +125,14 @@ describe("golden archetype states", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Try again" }));
-    expect(screen.getByRole("status").textContent).toContain(
-      "Changes saved successfully",
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        "Changes saved successfully",
+      ),
     );
   });
 
-  it("retries an error into a loading state", () => {
+  it("retries an error into a loading state", async () => {
     render(
       <GoldenAdapterProvider initialState="error">
         <SuiProvider value={system}>
@@ -102,12 +142,14 @@ describe("golden archetype states", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Retry" }));
-    expect(screen.getByRole("status").textContent).toContain(
-      "Loading workspace data",
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        "Loading workspace data",
+      ),
     );
   });
 
-  it("confirms a permission request", () => {
+  it("confirms a permission request", async () => {
     render(
       <GoldenAdapterProvider initialState="permission-denied">
         <SuiProvider value={system}>
@@ -117,8 +159,10 @@ describe("golden archetype states", () => {
     );
 
     fireEvent.click(screen.getByRole("button", { name: "Request access" }));
-    expect(screen.getByRole("status").textContent).toContain(
-      "Access request sent",
+    await waitFor(() =>
+      expect(screen.getByRole("status").textContent).toContain(
+        "Access request sent",
+      ),
     );
   });
 });

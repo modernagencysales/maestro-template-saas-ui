@@ -1,9 +1,11 @@
-import * as React from "react";
+import { createContext, type ReactNode } from "react";
+import { useContext } from "react";
 import { ClientOnly } from "@saas-ui/react";
 
 import {
   goldenFixtures,
   goldenStates,
+  type ContactFixture,
   type GoldenState,
   type NavigationFixture,
   type SearchResultFixture,
@@ -16,15 +18,40 @@ export type GoldenFrontendAdapter = Readonly<{
   currentWorkspace: WorkspaceFixture;
   workspaces: readonly WorkspaceFixture[];
   navigation: readonly NavigationFixture[];
+  contacts: readonly ContactFixture[];
   search(query: string): readonly SearchResultFixture[];
   navigate(to: string): void;
   signOut(): Promise<void>;
+  transitionState(
+    state: GoldenState,
+    action: GoldenStateAction,
+  ): Promise<GoldenState | "access-requested">;
+  updateContactStatus(
+    id: string,
+    status: ContactFixture["status"],
+  ): Promise<void>;
 }>;
 
-const GoldenAdapterContext = React.createContext<GoldenFrontendAdapter | null>(
-  null,
-);
-const GoldenStateContext = React.createContext<GoldenState>("ready-read");
+export type GoldenStateAction =
+  "edit" | "save" | "continue" | "retry" | "back" | "request-access";
+
+const stateTransitions: Partial<
+  Record<
+    GoldenState,
+    Partial<Record<GoldenStateAction, GoldenState | "access-requested">>
+  >
+> = {
+  "ready-read": { edit: "ready-edit" },
+  "ready-edit": { save: "mutation-success" },
+  "mutation-success": { continue: "ready-read" },
+  "mutation-failure": { retry: "mutation-success" },
+  error: { retry: "loading" },
+  "not-found": { back: "ready-read" },
+  "permission-denied": { "request-access": "access-requested" },
+};
+
+const GoldenAdapterContext = createContext<GoldenFrontendAdapter | null>(null);
+const GoldenStateContext = createContext<GoldenState>("ready-read");
 const goldenFixtureStorageKey = "maestro-golden-fixture";
 
 function readGoldenFixtureState(): GoldenState {
@@ -54,6 +81,7 @@ export function createGoldenAdapter(
     currentWorkspace: goldenFixtures.currentWorkspace,
     workspaces: goldenFixtures.workspaces,
     navigation: goldenFixtures.navigation,
+    contacts: goldenFixtures.contacts,
     search(query) {
       const normalized = query.trim().toLowerCase();
       return goldenFixtures.navigation
@@ -62,6 +90,9 @@ export function createGoldenAdapter(
     },
     navigate,
     signOut: async () => undefined,
+    transitionState: async (state, action) =>
+      stateTransitions[state]?.[action] ?? state,
+    updateContactStatus: async () => undefined,
   };
 }
 
@@ -70,7 +101,7 @@ export function GoldenAdapterProvider({
   initialState,
   adapter = createGoldenAdapter(),
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   initialState?: GoldenState;
   adapter?: GoldenFrontendAdapter;
 }) {
@@ -95,7 +126,7 @@ function GoldenFixtureStateProvider({
   children,
   initialState,
 }: {
-  children: React.ReactNode;
+  children: ReactNode;
   initialState?: GoldenState;
 }) {
   const state = initialState ?? readGoldenFixtureState();
@@ -107,7 +138,7 @@ function GoldenFixtureStateProvider({
 }
 
 export function useGoldenAdapter(): GoldenFrontendAdapter {
-  const adapter = React.useContext(GoldenAdapterContext);
+  const adapter = useContext(GoldenAdapterContext);
   if (!adapter) {
     throw new Error("GoldenFrontendAdapter is required for this surface");
   }
@@ -115,5 +146,5 @@ export function useGoldenAdapter(): GoldenFrontendAdapter {
 }
 
 export function useGoldenState(): GoldenState {
-  return React.useContext(GoldenStateContext);
+  return useContext(GoldenStateContext);
 }

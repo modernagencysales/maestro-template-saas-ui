@@ -96,15 +96,13 @@ const compositionAssertions: Record<
     ).toBeVisible();
   },
   kanban: async (page) => {
-    await expect(
-      page.getByRole("heading", { name: "Kanban archetype" }),
-    ).toBeVisible();
-    for (const column of ["Backlog", "In progress", "Done"]) {
-      await expect(page.getByRole("heading", { name: column })).toBeVisible();
-      await expect(
-        page.locator(`[data-kanban-column="${column}"]`),
-      ).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Contacts" })).toBeVisible();
+    for (const column of ["Active", "Inactive"]) {
+      await expect(page.getByText(column, { exact: true })).toBeVisible();
     }
+    await expect(
+      page.locator('[data-column="status:active"] [data-id="contact-1"]'),
+    ).toContainText("Jordan Lee");
   },
   auth: async (page) => {
     await expect(page.getByRole("heading", { name: "Log in" })).toBeVisible();
