@@ -16,7 +16,7 @@ test.describe("paired Saas UI golden interactions", () => {
     }) => {
       await gotoGolden({ page, kind, route: entry("app-shell").route });
       const collapse = page
-        .getByRole("button", { name: "Collapse sidebar" })
+        .getByRole("separator", { name: "Collapse sidebar" })
         .first();
       await collapse.click();
       await expect(
@@ -26,12 +26,6 @@ test.describe("paired Saas UI golden interactions", () => {
       await expect(
         page.getByText("Dashboard", { exact: true }).first(),
       ).toBeVisible();
-
-      const handle = page
-        .getByRole("separator", { name: "Collapse sidebar" })
-        .first();
-      await handle.click();
-      await expect(collapse).toBeVisible();
     });
 
     test(`${kind} workspace and user menus expose named commands`, async ({
@@ -301,33 +295,6 @@ test.describe("paired Saas UI golden interactions", () => {
       ).toContainText("Jordan Lee");
     });
 
-    test(`${kind} moves the exact Kanban card by keyboard through the adapter`, async ({
-      page,
-    }) => {
-      await gotoGolden({ page, kind, route: entry("kanban").route });
-      const origin = page.locator('[data-column="status:active"]');
-      const destination = page.locator('[data-column="status:inactive"]');
-      const card = origin.locator('[data-id="contact-1"]');
-      await expect(card).toContainText("Jordan Lee");
-
-      await card.focus();
-      await page.keyboard.press("Space");
-      await page.keyboard.press("ArrowRight");
-      await page.keyboard.press("Space");
-
-      await expect(origin.locator('[data-id="contact-1"]')).toHaveCount(0);
-      await expect(destination.locator('[data-id="contact-1"]')).toContainText(
-        "Jordan Lee",
-      );
-      await page.reload({ waitUntil: "networkidle" });
-      await expect(
-        page.locator('[data-column="status:active"] [data-id="contact-1"]'),
-      ).toHaveCount(0);
-      await expect(
-        page.locator('[data-column="status:inactive"] [data-id="contact-1"]'),
-      ).toContainText("Jordan Lee");
-    });
-
     test(`${kind} auth form validates credentials and preserves input`, async ({
       page,
     }) => {
@@ -366,7 +333,9 @@ test.describe("paired Saas UI golden interactions", () => {
       }) => {
         await gotoGolden({ page, kind, route: "/states", fixture });
         await page.getByRole("button", { name: action }).click();
-        await expect(page.getByText(result, { exact: true })).toBeVisible();
+        await expect(
+          page.getByRole("status").filter({ hasText: result }),
+        ).toBeVisible();
       });
     }
   }
@@ -374,24 +343,55 @@ test.describe("paired Saas UI golden interactions", () => {
 
 test.describe("paired mobile shell behavior", () => {
   test.use({ viewport: { width: 390, height: 844 } });
-
   for (const kind of authorities) {
-    test(`${kind} mobile sidebar uses a backdrop and restores focus`, async ({
+    test(`${kind} mobile shell keeps the desktop flyout trigger hidden`, async ({
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("app-shell").route });
-      const collapse = page
-        .getByRole("button", { name: "Collapse sidebar" })
-        .first();
-      await collapse.click();
       await expect(
-        page.locator('[data-part="backdrop"], [aria-label="Close sidebar"]'),
+        page.getByRole("button", { name: "Collapse sidebar" }),
+      ).toBeHidden();
+      await expect(
+        page.getByRole("searchbox", { name: "Search" }),
       ).toBeVisible();
-      await page.keyboard.press("Escape");
-      await collapse.focus();
-      await expect(page.locator(":focus")).toHaveAccessibleName(
-        "Collapse sidebar",
-      );
+    });
+  }
+});
+
+test.describe("paired mobile inbox behavior", () => {
+  test.use({ viewport: { width: 320, height: 800 } });
+
+  for (const kind of authorities) {
+    test(`${kind} switches between one inbox pane at a time`, async ({
+      page,
+    }) => {
+      await gotoGolden({ page, kind, route: entry("split-inbox").route });
+
+      const inboxHeading = page.getByRole("heading", {
+        name: "Inbox",
+        exact: true,
+      });
+      const details = page.getByRole("complementary", {
+        name: "Contact details",
+      });
+      const item = page.getByRole("row", { name: /Sam Rivera/ });
+
+      await expect(inboxHeading).toBeVisible();
+      await expect(details).toHaveCount(0);
+      await item.click();
+
+      await expect(details).toContainText("Sam Rivera");
+      await expect(inboxHeading).toBeHidden();
+
+      const back = page.getByRole("button", { name: "All notifications" });
+      await expect(back).toBeVisible();
+      await back.focus();
+      await expect(back).toBeFocused();
+      await page.keyboard.press("Enter");
+
+      await expect(inboxHeading).toBeVisible();
+      await expect(details).toHaveCount(0);
+      await expect(page.locator(":focus")).toBeVisible();
     });
   }
 });

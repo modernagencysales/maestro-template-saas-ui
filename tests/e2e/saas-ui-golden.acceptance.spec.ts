@@ -16,7 +16,7 @@ const compositionAssertions: Record<
       page.getByRole("heading", { name: /Good morning, Alex Morgan/i }),
     ).toBeVisible();
     await expect(
-      page.getByRole("button", { name: "Collapse sidebar" }),
+      page.getByRole("separator", { name: "Collapse sidebar" }),
     ).toBeVisible();
     await expect(page.getByRole("searchbox", { name: "Search" })).toBeVisible();
   },
@@ -71,7 +71,7 @@ const compositionAssertions: Record<
   settings: async (page) => {
     await expect(page.getByRole("link", { name: "Back to app" })).toBeVisible();
     await expect(page.getByText("Account", { exact: true })).toBeVisible();
-    await expect(page.getByRole("link", { name: "Billing" })).toBeVisible();
+    await expect(page.getByRole("button", { name: "Billing" })).toBeVisible();
   },
   form: async (page) => {
     await expect(
@@ -188,7 +188,13 @@ test.describe("required state coverage", () => {
     }) => {
       for (const kind of ["reference", "generated"] as const) {
         await gotoGolden({ page, kind, route: "/states", fixture });
-        await expect(page.getByText(copy, { exact: true })).toBeVisible();
+        const status =
+          fixture === "mutation-failure" || fixture === "error"
+            ? page.getByRole("alert").filter({ hasText: copy })
+            : fixture === "mutation-success"
+              ? page.getByRole("status").filter({ hasText: copy })
+              : page.getByText(copy, { exact: true });
+        await expect(status).toBeVisible();
       }
     });
   }
