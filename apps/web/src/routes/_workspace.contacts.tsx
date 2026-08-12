@@ -1,10 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ContactsListPage } from "../features/contacts/list/list-page";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_workspace/contacts")({
   component: ContactsRoute,
 });
 
 function ContactsRoute() {
-  return <ContactsListPage params={{ workspace: "acme" }} />;
+  return <Outlet />;
 }

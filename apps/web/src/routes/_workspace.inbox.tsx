@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import * as React from "react";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 import { InboxLayout } from "../features/contacts/inbox/inbox-layout";
 
 export const Route = createFileRoute("/_workspace/inbox")({
@@ -6,9 +7,14 @@ export const Route = createFileRoute("/_workspace/inbox")({
 });
 
 function InboxRoute() {
+  const { id } = Route.useParams();
+  const params = React.useMemo(
+    () => ({ workspace: "acme", ...(id ? { id } : {}) }),
+    [id],
+  );
   return (
-    <InboxLayout params={{ workspace: "acme" }}>
-      {null}
+    <InboxLayout params={params}>
+      <Outlet />
     </InboxLayout>
   );
 }

@@ -5,6 +5,7 @@ import { Field } from "@saas-ui/react";
 import type { BaseFieldProps } from "./types";
 
 export interface FieldRootProps extends BaseFieldProps {
+  fieldId?: string;
   invalid: boolean;
   errorText?: string;
   children: React.ReactNode;
@@ -17,6 +18,7 @@ export interface FieldRootProps extends BaseFieldProps {
 export function FieldRoot(props: FieldRootProps) {
   const {
     label,
+    fieldId,
     help,
     orientation,
     required,
@@ -33,7 +35,7 @@ export function FieldRoot(props: FieldRootProps) {
       invalid={invalid}
       {...rootProps}
     >
-      {label && <Field.Label>{label}</Field.Label>}
+      {label && <Field.Label htmlFor={fieldId}>{label}</Field.Label>}
       {children}
       {help && !invalid && <Field.HelperText>{help}</Field.HelperText>}
       {invalid && errorText && <Field.ErrorText>{errorText}</Field.ErrorText>}

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 
-import { InboxLayout } from "../features/contacts/inbox/inbox-layout";
+import { InboxViewPage } from "../features/contacts/inbox/inbox-view-page";
 
 export const Route = createFileRoute("/_workspace/inbox/$id")({
   component: InboxDetailRoute,
@@ -8,9 +8,5 @@ export const Route = createFileRoute("/_workspace/inbox/$id")({
 
 function InboxDetailRoute() {
   const { id } = Route.useParams();
-  return (
-    <InboxLayout params={{ workspace: "acme", id }}>
-      {null}
-    </InboxLayout>
-  );
+  return <InboxViewPage params={{ workspace: "acme", id }} />;
 }
