@@ -104,19 +104,14 @@ export async function seedGoldenFixture(
 ) {
   await page.emulateMedia({ colorScheme: colorMode });
   await page.addInitScript(
-    ({ fixtureName, fixtureData, requestedColorMode }) => {
-      document.documentElement.dataset.goldenFixture = fixtureName;
-      document.documentElement.dataset.goldenState = fixtureData.state;
-      document.documentElement.dataset.colorMode = requestedColorMode;
+    ({ fixtureData }) => {
       window.localStorage.setItem(
         "maestro-golden-fixture",
         JSON.stringify(fixtureData),
       );
     },
     {
-      fixtureName: fixture,
       fixtureData: goldenFixtures[fixture],
-      requestedColorMode: colorMode,
     },
   );
 }
@@ -134,6 +129,18 @@ export async function gotoGolden(input: {
   await input.page.goto(goldenUrl(input.kind, input.route), {
     waitUntil: "networkidle",
   });
+  await input.page.evaluate(
+    ({ fixtureName, fixtureState, requestedColorMode }) => {
+      document.documentElement.dataset.goldenFixture = fixtureName;
+      document.documentElement.dataset.goldenState = fixtureState;
+      document.documentElement.dataset.colorMode = requestedColorMode;
+    },
+    {
+      fixtureName: fixture,
+      fixtureState: goldenFixtures[fixture].state,
+      requestedColorMode: colorMode,
+    },
+  );
   await expect(input.page.locator("html")).toHaveAttribute(
     "data-golden-fixture",
     fixture,

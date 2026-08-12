@@ -87,4 +87,21 @@ describe("golden browser authority startup", () => {
     expect(fixture).not.toContain("Good morning, Alex Morgan");
     expect(fixture).not.toContain('page.getByText("Acme Inc.")');
   });
+
+  it("stamps fixture metadata after navigation while seeding storage before it", () => {
+    const fixture = readFileSync(
+      `${root}/tests/e2e/fixtures/saas-ui-golden.ts`,
+      "utf8",
+    );
+    const navigation = fixture.indexOf("await input.page.goto");
+    const metadata = fixture.indexOf(
+      "document.documentElement.dataset.goldenFixture",
+    );
+
+    expect(fixture).toContain("window.localStorage.setItem");
+    expect(navigation).toBeGreaterThanOrEqual(0);
+    expect(metadata).toBeGreaterThan(navigation);
+    expect(fixture).toContain("data-golden-state");
+    expect(fixture).toContain("data-color-mode");
+  });
 });
