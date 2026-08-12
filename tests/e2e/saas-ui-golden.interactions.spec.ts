@@ -83,9 +83,16 @@ test.describe("paired Saas UI golden interactions", () => {
       ).toBeVisible();
       await page.keyboard.press("Escape");
       const pageNumber = page.getByRole("spinbutton", { name: "Page" });
-      await pageNumber.fill("1");
+      await expect(page.getByText("of 2", { exact: true })).toBeVisible();
+      await pageNumber.fill("2");
       await pageNumber.press("Enter");
-      await expect(pageNumber).toHaveValue("1");
+      await expect(pageNumber).toHaveValue("2");
+      await expect(
+        page.getByRole("link", { name: "ZZZ Pagination Contact 21" }),
+      ).toBeVisible();
+      await expect(page.getByRole("link", { name: "Jordan Lee" })).toHaveCount(
+        0,
+      );
       const checkbox = page.getByRole("checkbox", {
         name: "Select all rows",
       });

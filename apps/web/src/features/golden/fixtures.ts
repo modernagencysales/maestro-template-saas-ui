@@ -105,6 +105,26 @@ const workspace = {
   },
 } satisfies WorkspaceFixture;
 
+const paginationContacts: ContactFixture[] = Array.from(
+  { length: 19 },
+  (_, index) => {
+    const number = index + 3;
+    const suffix = String(number).padStart(2, "0");
+    return {
+      id: `contact-${number}`,
+      name: `ZZZ Pagination Contact ${suffix}`,
+      email: `pagination-${number}@example.com`,
+      company: "Pagination Labs",
+      status: "active",
+      type: "lead",
+      tags: [],
+      workspaceId: "workspace-1",
+      createdAt: "2026-01-01T09:00:00.000Z",
+      updatedAt: "2026-01-01T09:00:00.000Z",
+    };
+  },
+);
+
 export const goldenFixtures = {
   currentWorkspace: workspace,
   workspaces: [workspace],
@@ -139,6 +159,7 @@ export const goldenFixtures = {
       createdAt: "2026-01-10T09:00:00.000Z",
       updatedAt: "2026-01-14T09:00:00.000Z",
     },
+    ...paginationContacts,
   ] satisfies readonly ContactFixture[],
   notifications: [
     {
