@@ -580,13 +580,13 @@ async function bootContractsRuntime(
         }
       }
       const seeded = parseSeedResult(seedOutput);
-      const scenario: ContractsScenario = {
+      const scenario: ContractsScenario = Object.freeze({
         namespace,
         workspaceSlug: `${namespace}-primary`,
         observerWorkspaceSlug: `${namespace}-observer`,
-        primary: seeded.primary,
-        observer: seeded.observer,
-      };
+        primary: Object.freeze(seeded.primary),
+        observer: Object.freeze(seeded.observer),
+      });
       credentials.set(scenario, { primary: primaryKey, observer: observerKey });
       return scenario;
     };
@@ -620,7 +620,7 @@ async function bootContractsRuntime(
         });
       },
     };
-    return runtime;
+    return Object.freeze(runtime);
   } catch (error) {
     throw new Error(redact(error));
   }

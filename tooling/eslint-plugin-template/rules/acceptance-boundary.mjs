@@ -74,7 +74,7 @@ const sourceAllowed = (info, source) => {
   if (source.startsWith("."))
     return inside(info.supportRoot, relativeTarget(info.filename, source));
   return (
-    source.startsWith("node:") ||
+    (source.startsWith("node:") && !isScenarioSpec(info)) ||
     (ALLOWED_IMPORT.has(source) && inside(info.supportRoot, info.filename))
   );
 };
@@ -858,13 +858,33 @@ export default {
         info,
         context.sourceCode,
       );
-      const sourceRoot = memberRoot(objectPatternSource(pattern));
+      const source = objectPatternSource(pattern);
+      const sourceRoot = memberRoot(source);
+      const globalObject =
+        isGlobalRoot(source) || globalAliases.has(sourceRoot);
+      const processObject = isProcessObject(source);
       for (const property of pattern.properties) {
+        if (property.type === "RestElement") {
+          if (globalObject || processObject)
+            context.report({ node: property, messageId: "import" });
+          continue;
+        }
         if (property.type !== "Property") continue;
         const name = staticString(property.key, property.computed);
+        if (name === "process" && globalObject) {
+          const value = property.value;
+          if (value.type === "Identifier") processAliases.add(value.name);
+          else if (
+            value.type === "AssignmentPattern" &&
+            value.left.type === "Identifier"
+          )
+            processAliases.add(value.left.name);
+          continue;
+        }
         if (
-          name === "getBuiltinModule" &&
-          isProcessObject(objectPatternSource(pattern))
+          name === "getBuiltinModule" ||
+          name === "require" ||
+          name === "createRequire"
         ) {
           context.report({ node: property, messageId: "import" });
           continue;
@@ -934,11 +954,16 @@ export default {
       ImportDeclaration(node) {
         const source = String(node.source.value);
         if (configFile) return;
-        reportImport(node.source, source);
-        if (source === "node:vm")
+        const forbiddenNodeImport =
+          source.startsWith("node:") && isScenarioSpec(info);
+        if (forbiddenNodeImport)
+          context.report({ node: node.source, messageId: "import" });
+        else reportImport(node.source, source);
+        if (source === "node:vm" && !forbiddenNodeImport)
           context.report({ node: node.source, messageId: "import" });
         if (source === "node:module") {
           if (
+            !forbiddenNodeImport &&
             node.specifiers.some(
               (specifier) =>
                 specifier.type === "ImportDefaultSpecifier" ||
@@ -998,7 +1023,8 @@ export default {
           ) {
             createRequireAliases.add(specifier.local.name);
             reportedCreateRequireAliases.add(specifier.local.name);
-            context.report({ node: specifier, messageId: "import" });
+            if (!forbiddenNodeImport)
+              context.report({ node: specifier, messageId: "import" });
           }
         }
       },

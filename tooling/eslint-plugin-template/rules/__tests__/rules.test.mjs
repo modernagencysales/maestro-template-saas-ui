@@ -823,8 +823,11 @@ tester.run("acceptance-boundary", acceptanceBoundary, {
       filename: ACCEPTANCE,
       code: `import { test, expect } from "./support/fixtures";
 import { readFixture } from "./support/fixture";
-import { join } from "node:path";
-test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page, runtime }) => { await page.goto(\`\${runtime.webUrl}/records\`); expect(await readFixture(join("a", "b"))).toBeTruthy(); });`,
+test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page, runtime }) => { await page.goto(\`\${runtime.webUrl}/records\`); expect(await readFixture("fixture")).toBeTruthy(); });`,
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `import { join } from "node:path"; void join;`,
     },
     {
       filename: ACCEPTANCE,
@@ -1659,6 +1662,16 @@ make("return 1")();`,
     },
     {
       filename: ACCEPTANCE,
+      code: `import { writeFileSync } from "node:fs";
+import { test } from "./support/fixtures";
+writeFileSync("apps/web/src/routes/records.tsx", "/* canned product */");
+test("poisoned runtime @BHV-REC-001-R1", async ({ runtime }) => {
+  void runtime;
+});`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
       code: `import * as nodeModule from "node:module"; nodeModule["create" + "Require"](import.meta.url);`,
       errors: [{ messageId: "import" }, { messageId: "import" }],
     },
@@ -1716,7 +1729,28 @@ const productInternals = load(
   "../../../../../../apps/web/src/features/records/records-surface",
 );
 void productInternals;`,
-      errors: [{ messageId: "import" }, { messageId: "import" }],
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const { process: processAlias, ...globalRest } = globalThis;
+const { ["getBuiltin" + "Module"]: builtin, ...processRest } = processAlias;
+const { ["create" + "Require"]: makeRequire } = builtin("node:module");
+const load = makeRequire(import.meta.url);
+const product = load("../../../../apps/web/src/features/records/records-surface");
+void globalRest;
+void processRest;
+void product;`,
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
     },
     {
       filename: ACCEPTANCE,

@@ -165,6 +165,7 @@ describe("Playwright acceptance runtime support", () => {
     } as unknown as ContractsRuntimeDependencies;
     const controller = createContractsRuntimeController(dependencies);
     const activeRuntime = await controller.start();
+    assert.equal(Object.isFrozen(activeRuntime), true);
     expect(startupSteps.slice(0, 4)).toEqual([
       "init",
       "env:MAESTRO_CONTRACT_TEST",
@@ -197,6 +198,26 @@ describe("Playwright acceptance runtime support", () => {
       expect(environment.NO_COLOR).toBe("1");
     }
     const activeScenario = await activeRuntime.provisionScenario();
+    assert.equal(Object.isFrozen(activeScenario), true);
+    assert.equal(Object.isFrozen(activeScenario.primary), true);
+    assert.equal(Object.isFrozen(activeScenario.observer), true);
+    const originalRunCli = activeRuntime.runCli;
+    const runtimeAlias = activeRuntime;
+    assert.throws(
+      () =>
+        Object.assign(runtimeAlias, {
+          runCli: async () => "tampered",
+        }),
+      TypeError,
+    );
+    assert.equal(activeRuntime.runCli, originalRunCli);
+    const originalWorkspaceSlug = activeScenario.workspaceSlug;
+    const scenarioAlias = activeScenario;
+    assert.throws(
+      () => Object.assign(scenarioAlias, { workspaceSlug: "tampered" }),
+      TypeError,
+    );
+    assert.equal(activeScenario.workspaceSlug, originalWorkspaceSlug);
     let routeHandler: ((route: never) => Promise<void>) | undefined;
     await activeRuntime.authorizeBrowserContext(activeScenario, {
       route: async (
