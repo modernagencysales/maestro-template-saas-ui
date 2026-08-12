@@ -1,7 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-
-import { AccountProfilePage } from "../features/settings/account/account-profile-page";
+import { createFileRoute, Outlet } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/_workspace/settings/account")({
-  component: AccountProfilePage,
+  component: AccountRoute,
 });
+
+function AccountRoute() {
+  return <Outlet />;
+}

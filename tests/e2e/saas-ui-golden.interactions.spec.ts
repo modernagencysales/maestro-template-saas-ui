@@ -207,6 +207,25 @@ test.describe("paired Saas UI golden interactions", () => {
       ).toBeVisible();
     });
 
+    for (const [destination, content] of [
+      ["Profile", "Basic details"],
+      ["Security", "Signing in"],
+    ] as const) {
+      test(`${kind} settings navigation reaches ${destination.toLowerCase()}`, async ({
+        page,
+      }) => {
+        await gotoGolden({ page, kind, route: entry("settings").route });
+        await page.getByRole("button", { name: destination }).click();
+        await expect(page).toHaveURL(
+          new RegExp(`settings/account/${destination.toLowerCase()}`),
+        );
+        await expect(
+          page.getByRole("heading", { name: destination, exact: true }),
+        ).toBeVisible();
+        await expect(page.getByText(content, { exact: true })).toBeVisible();
+      });
+    }
+
     test(`${kind} report period selection changes the active period`, async ({
       page,
     }) => {

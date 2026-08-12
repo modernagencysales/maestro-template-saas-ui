@@ -67,7 +67,10 @@ import { Route as WorkspaceDashboardApiRouteImport } from './routes/_workspace._
 import { Route as WorkspaceDashboardAnalyticsRouteImport } from './routes/_workspace._dashboard.analytics'
 import { Route as WorkspaceDashboardAgentsRouteImport } from './routes/_workspace._dashboard.agents'
 import { Route as WorkspaceDashboardAdminRouteImport } from './routes/_workspace._dashboard.admin'
+import { Route as WorkspaceSettingsAccountIndexRouteImport } from './routes/_workspace.settings.account.index'
 import { Route as WorkspaceDashboardContactsIndexRouteImport } from './routes/_workspace._dashboard.contacts.index'
+import { Route as WorkspaceSettingsAccountSecurityRouteImport } from './routes/_workspace.settings.account.security'
+import { Route as WorkspaceSettingsAccountProfileRouteImport } from './routes/_workspace.settings.account.profile'
 import { Route as WorkspaceDashboardTagTagRouteImport } from './routes/_workspace._dashboard.tag.$tag'
 import { Route as WorkspaceDashboardInboxIdRouteImport } from './routes/_workspace._dashboard.inbox.$id'
 import { Route as WorkspaceDashboardContactsTypeRouteImport } from './routes/_workspace._dashboard.contacts.$type'
@@ -384,11 +387,29 @@ const WorkspaceDashboardAdminRoute = WorkspaceDashboardAdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => WorkspaceDashboardRoute,
 } as any)
+const WorkspaceSettingsAccountIndexRoute =
+  WorkspaceSettingsAccountIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => WorkspaceSettingsAccountRoute,
+  } as any)
 const WorkspaceDashboardContactsIndexRoute =
   WorkspaceDashboardContactsIndexRouteImport.update({
     id: '/',
     path: '/',
     getParentRoute: () => WorkspaceDashboardContactsRoute,
+  } as any)
+const WorkspaceSettingsAccountSecurityRoute =
+  WorkspaceSettingsAccountSecurityRouteImport.update({
+    id: '/security',
+    path: '/security',
+    getParentRoute: () => WorkspaceSettingsAccountRoute,
+  } as any)
+const WorkspaceSettingsAccountProfileRoute =
+  WorkspaceSettingsAccountProfileRouteImport.update({
+    id: '/profile',
+    path: '/profile',
+    getParentRoute: () => WorkspaceSettingsAccountRoute,
   } as any)
 const WorkspaceDashboardTagTagRoute =
   WorkspaceDashboardTagTagRouteImport.update({
@@ -467,7 +488,7 @@ export interface FileRoutesByFullPath {
   '/sources': typeof WorkspaceDashboardSourcesRoute
   '/states': typeof WorkspaceDashboardStatesRoute
   '/workflows': typeof WorkspaceDashboardWorkflowsRoute
-  '/settings/account': typeof WorkspaceSettingsAccountRoute
+  '/settings/account': typeof WorkspaceSettingsAccountRouteWithChildren
   '/settings/billing': typeof WorkspaceSettingsBillingRoute
   '/settings/members': typeof WorkspaceSettingsMembersRoute
   '/settings/plans': typeof WorkspaceSettingsPlansRoute
@@ -481,7 +502,10 @@ export interface FileRoutesByFullPath {
   '/contacts/$type': typeof WorkspaceDashboardContactsTypeRoute
   '/inbox/$id': typeof WorkspaceDashboardInboxIdRoute
   '/tag/$tag': typeof WorkspaceDashboardTagTagRoute
+  '/settings/account/profile': typeof WorkspaceSettingsAccountProfileRoute
+  '/settings/account/security': typeof WorkspaceSettingsAccountSecurityRoute
   '/contacts/': typeof WorkspaceDashboardContactsIndexRoute
+  '/settings/account/': typeof WorkspaceSettingsAccountIndexRoute
   '/contacts/view/$id': typeof WorkspaceDashboardContactsViewIdRoute
 }
 export interface FileRoutesByTo {
@@ -527,7 +551,6 @@ export interface FileRoutesByTo {
   '/sources': typeof WorkspaceDashboardSourcesRoute
   '/states': typeof WorkspaceDashboardStatesRoute
   '/workflows': typeof WorkspaceDashboardWorkflowsRoute
-  '/settings/account': typeof WorkspaceSettingsAccountRoute
   '/settings/billing': typeof WorkspaceSettingsBillingRoute
   '/settings/members': typeof WorkspaceSettingsMembersRoute
   '/settings/plans': typeof WorkspaceSettingsPlansRoute
@@ -541,7 +564,10 @@ export interface FileRoutesByTo {
   '/contacts/$type': typeof WorkspaceDashboardContactsTypeRoute
   '/inbox/$id': typeof WorkspaceDashboardInboxIdRoute
   '/tag/$tag': typeof WorkspaceDashboardTagTagRoute
+  '/settings/account/profile': typeof WorkspaceSettingsAccountProfileRoute
+  '/settings/account/security': typeof WorkspaceSettingsAccountSecurityRoute
   '/contacts': typeof WorkspaceDashboardContactsIndexRoute
+  '/settings/account': typeof WorkspaceSettingsAccountIndexRoute
   '/contacts/view/$id': typeof WorkspaceDashboardContactsViewIdRoute
 }
 export interface FileRoutesById {
@@ -594,7 +620,7 @@ export interface FileRoutesById {
   '/_workspace/_dashboard/sources': typeof WorkspaceDashboardSourcesRoute
   '/_workspace/_dashboard/states': typeof WorkspaceDashboardStatesRoute
   '/_workspace/_dashboard/workflows': typeof WorkspaceDashboardWorkflowsRoute
-  '/_workspace/settings/account': typeof WorkspaceSettingsAccountRoute
+  '/_workspace/settings/account': typeof WorkspaceSettingsAccountRouteWithChildren
   '/_workspace/settings/billing': typeof WorkspaceSettingsBillingRoute
   '/_workspace/settings/members': typeof WorkspaceSettingsMembersRoute
   '/_workspace/settings/plans': typeof WorkspaceSettingsPlansRoute
@@ -608,7 +634,10 @@ export interface FileRoutesById {
   '/_workspace/_dashboard/contacts/$type': typeof WorkspaceDashboardContactsTypeRoute
   '/_workspace/_dashboard/inbox/$id': typeof WorkspaceDashboardInboxIdRoute
   '/_workspace/_dashboard/tag/$tag': typeof WorkspaceDashboardTagTagRoute
+  '/_workspace/settings/account/profile': typeof WorkspaceSettingsAccountProfileRoute
+  '/_workspace/settings/account/security': typeof WorkspaceSettingsAccountSecurityRoute
   '/_workspace/_dashboard/contacts/': typeof WorkspaceDashboardContactsIndexRoute
+  '/_workspace/settings/account/': typeof WorkspaceSettingsAccountIndexRoute
   '/_workspace/_dashboard/contacts/view/$id': typeof WorkspaceDashboardContactsViewIdRoute
 }
 export interface FileRouteTypes {
@@ -673,7 +702,10 @@ export interface FileRouteTypes {
     | '/contacts/$type'
     | '/inbox/$id'
     | '/tag/$tag'
+    | '/settings/account/profile'
+    | '/settings/account/security'
     | '/contacts/'
+    | '/settings/account/'
     | '/contacts/view/$id'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -719,7 +751,6 @@ export interface FileRouteTypes {
     | '/sources'
     | '/states'
     | '/workflows'
-    | '/settings/account'
     | '/settings/billing'
     | '/settings/members'
     | '/settings/plans'
@@ -733,7 +764,10 @@ export interface FileRouteTypes {
     | '/contacts/$type'
     | '/inbox/$id'
     | '/tag/$tag'
+    | '/settings/account/profile'
+    | '/settings/account/security'
     | '/contacts'
+    | '/settings/account'
     | '/contacts/view/$id'
   id:
     | '__root__'
@@ -799,7 +833,10 @@ export interface FileRouteTypes {
     | '/_workspace/_dashboard/contacts/$type'
     | '/_workspace/_dashboard/inbox/$id'
     | '/_workspace/_dashboard/tag/$tag'
+    | '/_workspace/settings/account/profile'
+    | '/_workspace/settings/account/security'
     | '/_workspace/_dashboard/contacts/'
+    | '/_workspace/settings/account/'
     | '/_workspace/_dashboard/contacts/view/$id'
   fileRoutesById: FileRoutesById
 }
@@ -1231,12 +1268,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WorkspaceDashboardAdminRouteImport
       parentRoute: typeof WorkspaceDashboardRoute
     }
+    '/_workspace/settings/account/': {
+      id: '/_workspace/settings/account/'
+      path: '/'
+      fullPath: '/settings/account/'
+      preLoaderRoute: typeof WorkspaceSettingsAccountIndexRouteImport
+      parentRoute: typeof WorkspaceSettingsAccountRoute
+    }
     '/_workspace/_dashboard/contacts/': {
       id: '/_workspace/_dashboard/contacts/'
       path: '/'
       fullPath: '/contacts/'
       preLoaderRoute: typeof WorkspaceDashboardContactsIndexRouteImport
       parentRoute: typeof WorkspaceDashboardContactsRoute
+    }
+    '/_workspace/settings/account/security': {
+      id: '/_workspace/settings/account/security'
+      path: '/security'
+      fullPath: '/settings/account/security'
+      preLoaderRoute: typeof WorkspaceSettingsAccountSecurityRouteImport
+      parentRoute: typeof WorkspaceSettingsAccountRoute
+    }
+    '/_workspace/settings/account/profile': {
+      id: '/_workspace/settings/account/profile'
+      path: '/profile'
+      fullPath: '/settings/account/profile'
+      preLoaderRoute: typeof WorkspaceSettingsAccountProfileRouteImport
+      parentRoute: typeof WorkspaceSettingsAccountRoute
     }
     '/_workspace/_dashboard/tag/$tag': {
       id: '/_workspace/_dashboard/tag/$tag'
@@ -1387,8 +1445,27 @@ const WorkspaceDashboardRouteChildren: WorkspaceDashboardRouteChildren = {
 const WorkspaceDashboardRouteWithChildren =
   WorkspaceDashboardRoute._addFileChildren(WorkspaceDashboardRouteChildren)
 
+interface WorkspaceSettingsAccountRouteChildren {
+  WorkspaceSettingsAccountProfileRoute: typeof WorkspaceSettingsAccountProfileRoute
+  WorkspaceSettingsAccountSecurityRoute: typeof WorkspaceSettingsAccountSecurityRoute
+  WorkspaceSettingsAccountIndexRoute: typeof WorkspaceSettingsAccountIndexRoute
+}
+
+const WorkspaceSettingsAccountRouteChildren: WorkspaceSettingsAccountRouteChildren =
+  {
+    WorkspaceSettingsAccountProfileRoute: WorkspaceSettingsAccountProfileRoute,
+    WorkspaceSettingsAccountSecurityRoute:
+      WorkspaceSettingsAccountSecurityRoute,
+    WorkspaceSettingsAccountIndexRoute: WorkspaceSettingsAccountIndexRoute,
+  }
+
+const WorkspaceSettingsAccountRouteWithChildren =
+  WorkspaceSettingsAccountRoute._addFileChildren(
+    WorkspaceSettingsAccountRouteChildren,
+  )
+
 interface WorkspaceSettingsRouteChildren {
-  WorkspaceSettingsAccountRoute: typeof WorkspaceSettingsAccountRoute
+  WorkspaceSettingsAccountRoute: typeof WorkspaceSettingsAccountRouteWithChildren
   WorkspaceSettingsBillingRoute: typeof WorkspaceSettingsBillingRoute
   WorkspaceSettingsMembersRoute: typeof WorkspaceSettingsMembersRoute
   WorkspaceSettingsPlansRoute: typeof WorkspaceSettingsPlansRoute
@@ -1398,7 +1475,7 @@ interface WorkspaceSettingsRouteChildren {
 }
 
 const WorkspaceSettingsRouteChildren: WorkspaceSettingsRouteChildren = {
-  WorkspaceSettingsAccountRoute: WorkspaceSettingsAccountRoute,
+  WorkspaceSettingsAccountRoute: WorkspaceSettingsAccountRouteWithChildren,
   WorkspaceSettingsBillingRoute: WorkspaceSettingsBillingRoute,
   WorkspaceSettingsMembersRoute: WorkspaceSettingsMembersRoute,
   WorkspaceSettingsPlansRoute: WorkspaceSettingsPlansRoute,

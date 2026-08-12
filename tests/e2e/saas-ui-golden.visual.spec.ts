@@ -7,31 +7,41 @@ import {
 } from "./fixtures/saas-ui-golden";
 
 test.describe("paired Saas UI golden visual evidence", () => {
-  test("mobile shell reserves a lane for the sidebar trigger", async ({
-    page,
-  }) => {
-    for (const kind of ["reference", "generated"] as const) {
-      await gotoGolden({ page, kind, route: "/dashboard" });
-
-      const trigger = page.getByRole("button", { name: "Open sidebar" });
-      const search = page.getByRole("searchbox", { name: "Search" });
-      await expect(trigger).toBeVisible();
-      await expect(search).toBeVisible();
-      const [triggerRect, searchRect] = await Promise.all([
-        trigger.evaluate((element) => {
-          const { x, width } = element.getBoundingClientRect();
-          return { x, width };
-        }),
-        search.evaluate((element) => {
-          const { x } = element.getBoundingClientRect();
-          return { x };
-        }),
-      ]);
-
-      expect(searchRect.x).toBeGreaterThanOrEqual(
-        triggerRect.x + triggerRect.width + 8,
+  test.describe("mobile shell geometry", () => {
+    test.beforeEach(({ page: _page }, testInfo) => {
+      void _page;
+      testInfo.skip(
+        testInfo.project.name !== "mobile-chromium",
+        "Mobile shell geometry is mobile-scoped.",
       );
-    }
+    });
+
+    test.use({ viewport: { width: 320, height: 800 } });
+
+    test("reserves a lane for the sidebar trigger", async ({ page }) => {
+      for (const kind of ["reference", "generated"] as const) {
+        await gotoGolden({ page, kind, route: "/dashboard" });
+
+        const trigger = page.getByRole("button", { name: "Open sidebar" });
+        const search = page.getByRole("searchbox", { name: "Search" });
+        await expect(trigger).toBeVisible();
+        await expect(search).toBeVisible();
+        const [triggerRect, searchRect] = await Promise.all([
+          trigger.evaluate((element) => {
+            const { x, width } = element.getBoundingClientRect();
+            return { x, width };
+          }),
+          search.evaluate((element) => {
+            const { x } = element.getBoundingClientRect();
+            return { x };
+          }),
+        ]);
+
+        expect(searchRect.x).toBeGreaterThanOrEqual(
+          triggerRect.x + triggerRect.width + 8,
+        );
+      }
+    });
   });
 
   test("dark mode changes computed theme and screenshot evidence", async ({
