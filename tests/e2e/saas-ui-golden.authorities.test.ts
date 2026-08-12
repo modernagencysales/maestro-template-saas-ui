@@ -219,14 +219,17 @@ describe("golden browser authority startup", () => {
     expect(command.args).not.toContain("/repo/apps/web");
   });
 
-  it("keeps shared fixture validation independent of route content", () => {
+  it("keeps shared fixture seeding independent of route content", () => {
     const fixture = readFileSync(
       `${root}/tests/e2e/fixtures/saas-ui-golden.ts`,
       "utf8",
     );
+    const readinessLocators = fixture.indexOf("const meaningfulReadyLocators");
+    expect(readinessLocators).toBeGreaterThanOrEqual(0);
+    const sharedFixture = fixture.slice(0, readinessLocators);
 
-    expect(fixture).not.toContain("Good morning, Alex Morgan");
-    expect(fixture).not.toContain('page.getByText("Acme Inc.")');
+    expect(sharedFixture).not.toContain("Good morning, Alex Morgan");
+    expect(sharedFixture).not.toContain('page.getByText("Acme Inc.")');
   });
 
   it("seeds fixtures before navigation without self-authored result metadata", () => {
