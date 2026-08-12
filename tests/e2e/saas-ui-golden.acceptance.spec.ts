@@ -112,7 +112,9 @@ const compositionAssertions: Record<
     await expect(
       page.getByRole("textbox", { name: /Search your workspace/i }),
     ).toBeVisible();
-    await expect(page.getByText(/No results for query/i)).toBeVisible();
+    await expect(
+      page.getByText("Recent searches", { exact: true }),
+    ).toBeVisible();
   },
   states: async (page) => {
     await expect(
