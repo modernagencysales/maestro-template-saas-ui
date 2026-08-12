@@ -28,6 +28,16 @@ describe("golden browser authority startup", () => {
       isExpectedGoldenNavigationAbort({
         resourceType: "script",
         url: "http://127.0.0.1:4173/assets/_workspace._dashboard.tag._tag.js",
+        errorText: "net::ERR_ABORTED",
+        pageUrl: "http://127.0.0.1:4173/contacts?goldenAuthority=reference",
+        navigationUrl:
+          "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
+      }),
+    ).toBe(true);
+    expect(
+      isExpectedGoldenNavigationAbort({
+        resourceType: "script",
+        url: "http://127.0.0.1:4173/assets/_workspace._dashboard.tag._tag.js",
         errorText: "net::ERR_FAILED",
         pageUrl: "http://127.0.0.1:4174/contacts?goldenAuthority=generated",
       }),

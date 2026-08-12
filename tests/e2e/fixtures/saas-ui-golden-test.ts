@@ -12,6 +12,7 @@ export const test = base.extend({
   goldenRuntimeErrorGate: [
     async ({ page }, use) => {
       const failures: string[] = [];
+      let navigationUrl = page.url();
       const onConsole = (message: { type(): string; text(): string }) => {
         if (message.type() === "error") {
           failures.push(`console.error: ${message.text()}`);
@@ -33,11 +34,26 @@ export const test = base.extend({
               url: request.url(),
               errorText: request.failure()?.errorText,
               pageUrl: page.url(),
+              navigationUrl,
             }))
         ) {
           failures.push(
             `failed ${request.resourceType()} request: ${request.url()} (${request.failure()?.errorText ?? "unknown error"})`,
           );
+        }
+      };
+      const onRequest = (request: {
+        resourceType(): string;
+        url(): string;
+        isNavigationRequest(): boolean;
+        frame(): unknown;
+      }) => {
+        if (
+          request.resourceType() === "document" &&
+          request.isNavigationRequest() &&
+          request.frame() === page.mainFrame()
+        ) {
+          navigationUrl = request.url();
         }
       };
       const onResponse = (response: {
@@ -59,6 +75,7 @@ export const test = base.extend({
       page.on("console", onConsole);
       page.on("pageerror", onPageError);
       page.on("requestfailed", onRequestFailed);
+      page.on("request", onRequest);
       page.on("response", onResponse);
 
       try {
@@ -67,6 +84,7 @@ export const test = base.extend({
         page.off("console", onConsole);
         page.off("pageerror", onPageError);
         page.off("requestfailed", onRequestFailed);
+        page.off("request", onRequest);
         page.off("response", onResponse);
         expect(failures, "browser runtime errors").toEqual([]);
         assertNoNewGoldenServerErrors(page);

@@ -31,6 +31,7 @@ export function isExpectedGoldenNavigationAbort(input: {
   url: string;
   errorText: string | undefined;
   pageUrl: string;
+  navigationUrl?: string;
 }) {
   if (
     input.resourceType !== "script" ||
@@ -39,7 +40,7 @@ export function isExpectedGoldenNavigationAbort(input: {
     return false;
   }
   const requestOrigin = new URL(input.url).origin;
-  const pageOrigin = new URL(input.pageUrl).origin;
+  const pageOrigin = new URL(input.navigationUrl ?? input.pageUrl).origin;
   return (
     requestOrigin !== pageOrigin &&
     goldenAuthorityOrigins.has(requestOrigin) &&
