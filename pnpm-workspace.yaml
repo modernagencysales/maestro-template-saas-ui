@@ -13,6 +13,7 @@ overrides:
   "@saas-ui/modals": "3.0.0-next.52"
   "@saas-ui/hooks": "3.0.0-next.3"
   "@saas-ui-pro/react": "1.0.0-next.4"
+  motion-dom: "12.23.23"
 
 patchedDependencies:
   "@confect/cli@10.0.0-next.9": "patches/@confect__cli@10.0.0-next.9.patch"
