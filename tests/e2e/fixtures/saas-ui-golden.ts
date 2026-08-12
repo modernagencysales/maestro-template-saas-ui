@@ -74,8 +74,6 @@ async function assertGoldenFixture(
     "data-color-mode",
     colorMode,
   );
-  await expect(page.getByText(/Good morning, Alex Morgan/)).toBeVisible();
-  await expect(page.getByText("Acme Inc.").first()).toBeVisible();
 }
 
 function evidencePath(testInfo: TestInfo, name: string) {

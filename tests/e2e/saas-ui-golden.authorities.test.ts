@@ -77,4 +77,14 @@ describe("golden browser authority startup", () => {
     expect(command.args).toContain("/tmp/generated-target/apps/web");
     expect(command.args).not.toContain("/repo/apps/web");
   });
+
+  it("keeps shared fixture validation independent of route content", () => {
+    const fixture = readFileSync(
+      `${root}/tests/e2e/fixtures/saas-ui-golden.ts`,
+      "utf8",
+    );
+
+    expect(fixture).not.toContain("Good morning, Alex Morgan");
+    expect(fixture).not.toContain('page.getByText("Acme Inc.")');
+  });
 });
