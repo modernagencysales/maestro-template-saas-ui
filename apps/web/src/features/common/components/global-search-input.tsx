@@ -23,6 +23,7 @@ export const GlobalSearchInput = React.forwardRef<
       ref={mergeRefs(ref, searchRef)}
       size="sm"
       variant="subtle"
+      color="fg"
       endElement={<Command colorPalette="gray">{searchCommand}</Command>}
       {...props}
     />

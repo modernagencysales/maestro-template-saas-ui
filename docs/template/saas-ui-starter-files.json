@@ -174,7 +174,7 @@
       "source": "apps/web/src/features/common/components/global-search-input.tsx",
       "destination": "apps/web/src/features/common/components/global-search-input.tsx",
       "sourceSha256": "6f0a6c575344f4f1410d8493ffe6f14d8842b083017eae1b6055ee3efb24534d",
-      "sha256": "968503e58d2052fdddaf409e52b8d6f50a537159519eb0a4386ff887f28fe965",
+      "sha256": "087931469edac0b33afec926ee023cdfb9b9cf17737cdda3f31c24f22380182e",
       "adapted": true
     },
     {
@@ -251,7 +251,7 @@
       "source": "apps/web/src/features/common/layouts/app-layout.tsx",
       "destination": "apps/web/src/features/common/layouts/app-layout.tsx",
       "sourceSha256": "657ecb6d987d6177a7ec0410fc87f261d1aaffc87f1c8addd112be7f5141b57c",
-      "sha256": "c5951639c73ae470369444acc50afa5155aa6d7511d7422bf59c9bcc89bc41ab",
+      "sha256": "cdf6fef4042e68f780f2e0c0773424fb8324219815d0e47086a70271a01eb0fe",
       "adapted": true
     },
     {
