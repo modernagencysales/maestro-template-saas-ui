@@ -172,6 +172,7 @@ describe("golden browser authority startup", () => {
       "apps/web/src/features/common/hooks/use-current-workspace.ts",
       "apps/web/src/features/common/hooks/use-tags.ts",
       "apps/web/src/features/common/hooks/use-workspaces.ts",
+      "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
     ]) {
       expect(authorityScript).toContain(`"${path}"`);
     }
