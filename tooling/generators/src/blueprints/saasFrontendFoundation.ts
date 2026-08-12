@@ -33,8 +33,6 @@ const registryReceipt = readJson<RegistryReceipt>(
 // lintable, private, and reviewable in a generated target.
 const FRONTEND_SUPPORT_PATHS = [
   "tsconfig.base.json",
-  "packages/convex/src/refs.ts",
-  "packages/convex/confect/_generated/refs.ts",
   "apps/web/package.json",
   "apps/web/tsconfig.json",
   "apps/web/vite.config.ts",
@@ -85,7 +83,12 @@ const currentWebSourcePaths = (directory: string): readonly string[] =>
   }).flatMap((entry) => {
     const path = `${directory}/${entry.name}`;
     if (entry.isDirectory()) return currentWebSourcePaths(path);
-    return /\.(?:ts|tsx|mts|mjs)$/.test(entry.name) ? [path] : [];
+    return /\.(?:ts|tsx|mts|mjs)$/.test(entry.name) &&
+      !/(?:\/sample\/|\/settings-surface\.|\/setup-surface\.|\/posthog\.test\.)/.test(
+        path,
+      )
+      ? [path]
+      : [];
   });
 
 const STARTER_SOURCE_ROOTS = [
@@ -93,7 +96,6 @@ const STARTER_SOURCE_ROOTS = [
   "apps/web/src/adapters",
   "apps/web/src/lib",
   "apps/web/src/providers",
-  "apps/web/src/sample",
   "apps/web/src/saas-ui",
   "apps/web/src/workspace",
   "apps/web/src/features/auth",
@@ -105,6 +107,10 @@ const STARTER_SOURCE_ROOTS = [
   "apps/web/src/features/search",
   "apps/web/src/features/settings",
   "apps/web/src/features/workspaces",
+] as const;
+const CUSTOMER_FRONTEND_PACKAGE_ROOTS = [
+  "packages/template-core",
+  "packages/workflow-ui",
 ] as const;
 
 const manifestCompositionPaths = (): readonly string[] =>
@@ -125,6 +131,11 @@ const foundationPaths = [
   ...manifest.licenses.map(({ destination }) => destination),
   ...FRONTEND_SUPPORT_PATHS,
   ...STARTER_SOURCE_ROOTS.flatMap(currentWebSourcePaths),
+  ...CUSTOMER_FRONTEND_PACKAGE_ROOTS.flatMap(currentWebSourcePaths),
+  ...CUSTOMER_FRONTEND_PACKAGE_ROOTS.flatMap((root) => [
+    `${root}/package.json`,
+    `${root}/tsconfig.json`,
+  ]),
 ];
 
 const UNIQUE_FOUNDATION_PATHS = Object.freeze(

@@ -2226,7 +2226,7 @@ Feature: Reconcile disputed invoices
     );
 
     const indexRoute = files.get("apps/web/src/routes/index.tsx") ?? "";
-    expect(indexRoute).toContain("BusinessDashboardRoute");
+    expect(indexRoute).toContain("DashboardPage");
     expect(indexRoute).not.toContain("public-funnel");
     const posthog = files.get("apps/web/src/providers/posthog.tsx") ?? "";
     expect(posthog).toContain("shouldEnableAnalyticsCapture");
