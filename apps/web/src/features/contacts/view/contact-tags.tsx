@@ -19,7 +19,7 @@ export const ContactTags: React.FC<{ contact: ContactDTO }> = ({ contact }) => {
   const utils = api.useUtils();
 
   const { mutate } = api.contacts.updateTags.useMutation({
-    onError: (error) => {
+    onError: (error: Error) => {
       toast.error({
         title: "Failed to update tags",
         description: error.message,

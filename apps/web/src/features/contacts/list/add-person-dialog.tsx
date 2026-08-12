@@ -34,7 +34,7 @@ export function AddPersonDialog(props: AddPersonDialogProps) {
     onSettled: () => {
       utils.contacts.listByType.invalidate({ workspaceId: workspace.id });
     },
-    onSuccess: (data) => {
+    onSuccess: (data: { id: string }) => {
       toast.success({
         title: "Person added",
         action: {
@@ -50,7 +50,7 @@ export function AddPersonDialog(props: AddPersonDialogProps) {
         },
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       console.error(error);
       toast.error({
         title: "Failed to add person",

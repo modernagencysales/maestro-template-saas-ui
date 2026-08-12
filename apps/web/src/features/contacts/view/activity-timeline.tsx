@@ -32,6 +32,8 @@ import { StatusBadge } from "@workspace/ui/status-badge";
 
 import { UserAvatar } from "#components/user-avatar";
 
+type SubmitHandler<T> = (data: T) => Promise<any>;
+
 export type Activity<Type, TData extends object, TUser = Partial<User>> = {
   id: string;
   user: TUser;
@@ -297,9 +299,7 @@ const ActivityTimelineComment: React.FC<ActivityTimelineCommentProps> = (
 
 const commentSchema = z.object({
   comment: z
-    .string({
-      required_error: "Please add a comment",
-    })
+    .string({ error: "Please add a comment" })
     .min(1, "Please add a comment"),
 });
 

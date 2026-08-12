@@ -85,6 +85,8 @@ const DateCell = ({ date }: { date?: string | Date | null }) => {
   return <>{date ? format(new Date(date), "PP") : null}</>;
 };
 
+type BoardContact = ContactDTO & { sortOrder?: number };
+
 const ActionCell: DataGridCell<ContactDTO> = (cell) => {
   return (
     <Box onClick={(e) => e.stopPropagation()}>
@@ -152,10 +154,7 @@ export function ContactsListPage({
         cell: (cell) => (
           <HStack gap="4">
             <ContactAvatar contact={cell.row.original} size="xs" />
-            <Link
-              to="/contacts/view/$id"
-              params={{ id: cell.row.original.id }}
-            >
+            <Link to="/contacts/view/$id" params={{ id: cell.row.original.id }}>
               {cell.getValue()}
             </Link>
           </HStack>
@@ -168,13 +167,17 @@ export function ContactsListPage({
       }),
       helper.accessor("createdAt", {
         header: "Created at",
-        cell: (cell) => <DateCell date={cell.getValue() as string | Date | null} />,
+        cell: (cell) => (
+          <DateCell date={cell.getValue() as string | Date | null} />
+        ),
         filterFn: getDataGridFilter("date"),
         enableGlobalFilter: false,
       }),
       helper.accessor("updatedAt", {
         header: "Updated at",
-        cell: (cell) => <DateCell date={cell.getValue() as string | Date | null} />,
+        cell: (cell) => (
+          <DateCell date={cell.getValue() as string | Date | null} />
+        ),
         filterFn: getDataGridFilter("date"),
         enableGlobalFilter: false,
       }),
@@ -223,7 +226,8 @@ export function ContactsListPage({
   );
 
   const addPerson = () => {
-    modals.open(AddPersonDialog, {
+    modals.open({
+      component: AddPersonDialog,
       type: type ?? "lead",
     });
   };
@@ -463,8 +467,9 @@ export function ContactsListPage({
           renderCard={(row) => <ContactCard contact={row.original} />}
           groupBy={userSettings.contactsGroupBy}
           onCardDragEnd={({ items, to, from }) => {
-            const contact = data?.contacts.find(
-              ({ id }) => id === items[to.columnId]?.[to.index],
+            const contacts = (data?.contacts ?? []) as BoardContact[];
+            const contact = contacts.find(
+              ({ id }: BoardContact) => id === items[to.columnId]?.[to.index],
             );
 
             const [field, toValue] = (to.columnId as string).split(":") as [
@@ -478,26 +483,31 @@ export function ContactsListPage({
             }
 
             const prevId = items[to.columnId]?.[to.index - 1];
-            let prevContact = data?.contacts.find(({ id }) => id === prevId);
+            let prevContact = contacts.find(
+              ({ id }: BoardContact) => id === prevId,
+            );
 
             const nextId = items[to.columnId]?.[to.index + 1];
-            let nextContact = data?.contacts.find(({ id }) => id === nextId);
+            let nextContact = contacts.find(
+              ({ id }: BoardContact) => id === nextId,
+            );
 
             if (prevContact && !nextContact) {
               nextContact =
-                data?.contacts[
-                  data?.contacts.findIndex(({ id }) => id === prevId) + 1
+                contacts[
+                  contacts.findIndex(({ id }: BoardContact) => id === prevId) +
+                    1
                 ];
             } else if (!prevContact && !nextContact) {
               prevContact =
-                data?.contacts[
-                  data?.contacts.findIndex(({ id }) => id === prevId) - 1
+                contacts[
+                  contacts.findIndex(({ id }: BoardContact) => id === prevId) -
+                    1
                 ];
             }
 
             const prevSortOrder = prevContact?.sortOrder || 0;
-            const nextSortOrder =
-              nextContact?.sortOrder ?? data?.contacts.length ?? 0;
+            const nextSortOrder = nextContact?.sortOrder ?? contacts.length;
 
             const sortOrder = (prevSortOrder + nextSortOrder) / 2 || to.index;
 
