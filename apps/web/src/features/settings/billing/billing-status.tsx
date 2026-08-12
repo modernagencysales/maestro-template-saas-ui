@@ -30,13 +30,13 @@ export function BillingStatus() {
         </Text>
       )}
 
-      {isTrialing && (
+      {isTrialing && trialEndsAt && (
         <Text>
           Your trial ends <FormattedDate value={trialEndsAt} />.
         </Text>
       )}
 
-      {isTrialExpired && (
+      {isTrialExpired && trialEndsAt && (
         <Text>
           Your trial ended on <FormattedDate value={trialEndsAt} />.
         </Text>

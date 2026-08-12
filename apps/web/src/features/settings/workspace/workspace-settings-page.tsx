@@ -71,7 +71,7 @@ function WorkspaceDetails(props: { workspace: WorkspaceDTO }) {
   };
 
   const slugAvailable = api.workspaces.slugAvailable.useMutation({
-    onSettled: (data) => {
+    onSettled: (data: { available: boolean } | undefined) => {
       setSlugError(
         data?.available ? undefined : "This workspace URL is already taken.",
       );

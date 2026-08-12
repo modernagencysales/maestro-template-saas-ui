@@ -51,6 +51,7 @@ export type UserDTO = Record<string, unknown> & {
   name?: string;
   email?: string;
   image?: string;
+  avatar?: string | null;
 };
 export type WorkspaceMemberSettingsDTO = {
   channels: Record<string, boolean>;

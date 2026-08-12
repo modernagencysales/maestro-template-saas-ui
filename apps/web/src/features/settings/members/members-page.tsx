@@ -15,6 +15,14 @@ import { api } from "#lib/trpc/react";
 
 import { Member, MembersList } from "./members-list";
 
+const errorMessage = (error: unknown) =>
+  typeof error === "object" &&
+  error !== null &&
+  "message" in error &&
+  typeof error.message === "string"
+    ? error.message
+    : String(error);
+
 export function MembersSettingsPage() {
   const modals = useModals();
 
@@ -65,10 +73,10 @@ export function MembersSettingsPage() {
         success: {
           title: `Invitation(s) have been sent.`,
         },
-        error: (err: any) => {
+        error: (err: unknown) => {
           return {
             title: "Failed to invite members",
-            description: err.message,
+            description: errorMessage(err),
           };
         },
       },
@@ -88,17 +96,17 @@ export function MembersSettingsPage() {
         success: {
           title: `Removed ${member.email}!`,
         },
-        error: (err: any) => {
+        error: (err: unknown) => {
           return {
             title: "Failed to remove member",
-            description: err.message,
+            description: errorMessage(err),
           };
         },
       },
     );
   };
 
-  const onRemove = (member: WorkspaceMemberDTO) => {
+  const onRemove = (member: Member) => {
     modals.confirm?.({
       title: "Remove member",
       body: `Are you sure you want to remove ${member.email} from ${
@@ -121,10 +129,10 @@ export function MembersSettingsPage() {
             success: {
               title: `Removed ${member.email}!`,
             },
-            error: (err: any) => {
+            error: (err: unknown) => {
               return {
                 title: "Failed to remove member",
-                description: err.message,
+                description: errorMessage(err),
               };
             },
           },
@@ -160,19 +168,16 @@ export function MembersSettingsPage() {
                   Please upgrade your plan to invite more people.{" "}
                 </Alert.Description>
               </Alert.Content>
-              <Link
-                to="/settings/plans"
-                fontWeight="medium"
-              >
+              <Link to="/settings/plans" fontWeight="medium">
                 Upgrade now
               </Link>
             </Alert.Root>
           ) : null}
           <MembersList
             allowInvite={!limitReached}
-            members={members.map((member) => ({
+            members={members.map((member: WorkspaceMemberDTO) => ({
               id: member.id,
-              email: member.email!,
+              email: member.email ?? "",
               roles: member.roles,
               status: member.status,
             }))}

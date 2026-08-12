@@ -18,6 +18,10 @@ interface SlugValidationState {
   isAvailable?: boolean;
 }
 
+interface SlugAvailabilityResult {
+  available: boolean;
+}
+
 function SlugStatusIndicator({
   isValidSlug,
   isPending,
@@ -61,7 +65,7 @@ export function CreateWorkspaceStep() {
   };
 
   const slugAvailable = api.workspaces.slugAvailable.useMutation({
-    onSettled: (data) => {
+    onSettled: (data: SlugAvailabilityResult | undefined) => {
       setSlugError(
         data?.available ? undefined : "This workspace URL is already taken.",
       );
@@ -89,10 +93,10 @@ export function CreateWorkspaceStep() {
           workspace.set(result.slug);
           stepper.goToNextStep();
         }
-      } catch (error: any) {
+      } catch (error: unknown) {
         toast.error({
           title: "Failed to create workspace",
-          description: error.message,
+          description: error instanceof Error ? error.message : String(error),
         });
       }
     },

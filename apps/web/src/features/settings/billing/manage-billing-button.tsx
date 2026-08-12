@@ -15,7 +15,7 @@ export function ManageBillingButton(props: ManageBillingButtonProps) {
   return (
     <Button
       role="group"
-      variant={props.variant === "secondary" ? "outline" : props.variant}
+      variant={props.variant}
       disabled={isPending}
       onClick={async () => {
         try {
@@ -27,11 +27,11 @@ export function ManageBillingButton(props: ManageBillingButtonProps) {
           if (result.url) {
             window.location.href = result.url;
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(error);
           toast.error({
             title: "Failed to open billing settings",
-            description: error.message,
+            description: error instanceof Error ? error.message : String(error),
           });
         }
       }}

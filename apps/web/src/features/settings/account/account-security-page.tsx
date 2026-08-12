@@ -10,6 +10,11 @@ import { api } from "#lib/trpc/react";
 
 import { UpdatePasswordDialog } from "./update-password-dialog";
 
+interface AuthAccount {
+  providerId: string;
+  updatedAt: Date | string | number | null;
+}
+
 function TwoFactorAuthItem() {
   return (
     <GridList.Item>
@@ -19,24 +24,29 @@ function TwoFactorAuthItem() {
   );
 }
 
-function PasswordListItem({ lastChanged }: { lastChanged: Date | null }) {
+function PasswordListItem({
+  lastChanged,
+}: {
+  lastChanged: Date | string | number | null;
+}) {
   const modals = useModals();
 
   return (
     <GridList.Item
       onClick={() => {
-        const id = modals.open(UpdatePasswordDialog, {
+        modals.open({
+          component: UpdatePasswordDialog,
           title: "Update your password",
           isCentered: true,
           onSuccess() {
             toast.success({
               title: "Your password has been updated",
             });
-            modals.close(id);
+            modals.close();
           },
-          onError(error: any) {
+          onError(error: unknown) {
             toast.error({
-              title: error.message,
+              title: error instanceof Error ? error.message : String(error),
             });
           },
         });
@@ -45,7 +55,7 @@ function PasswordListItem({ lastChanged }: { lastChanged: Date | null }) {
       <GridList.Cell flex="1">Password</GridList.Cell>
       {lastChanged && (
         <GridList.Cell color="muted" px="4">
-          Last changed {lastChanged.toLocaleDateString()}
+          Last changed {new Date(lastChanged).toLocaleDateString()}
         </GridList.Cell>
       )}
       <GridList.Cell>
@@ -58,8 +68,8 @@ function PasswordListItem({ lastChanged }: { lastChanged: Date | null }) {
 function AccountSignIn() {
   const { data } = api.auth.listAccounts.useQuery();
 
-  const authAccount = data?.find(
-    (account) => account.providerId === "credential",
+  const authAccount = (data as AuthAccount[] | undefined)?.find(
+    (account: AuthAccount) => account.providerId === "credential",
   );
 
   return (

@@ -53,11 +53,11 @@ export function PlansPage() {
           description: `You are now on the ${plan.name} plan.`,
         });
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(error);
       toast.error({
         title: "Failed to upgrade plan",
-        description: error.message,
+        description: error instanceof Error ? error.message : String(error),
       });
     }
   };
@@ -79,7 +79,7 @@ export function PlansPage() {
       <PricingTable
         planId={currentPlan?.id}
         plans={plans}
-        features={features}
+        features={[...features]}
         onUpdatePlan={onUpdatePlan}
       />
     </SettingsPage>

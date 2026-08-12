@@ -30,7 +30,7 @@ export function AcceptInvitePage({ params }: { params: { token: string } }) {
         to: "/",
       });
     },
-    onError(error) {
+    onError(error: { message: string }) {
       console.error(error);
       toast.error({
         title: "Failed to accept invitation",

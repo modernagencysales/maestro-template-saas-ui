@@ -28,6 +28,15 @@ import { api } from "#lib/trpc/react";
 import { BillingStatus } from "./billing-status";
 import { ManageBillingButton } from "./manage-billing-button";
 
+interface BillingInvoice {
+  number: string;
+  date: Date | string | number;
+  status: string;
+  total: number;
+  currency?: string;
+  url?: string | null;
+}
+
 function BillingPlan({ workspace }: { workspace: WorkspaceDTO }) {
   return (
     <Section.Root>
@@ -37,11 +46,7 @@ function BillingPlan({ workspace }: { workspace: WorkspaceDTO }) {
           <Card.Body>
             <BillingStatus />
             <HStack mt="4">
-              <LinkButton
-                to="/settings/plans"
-              >
-                Update plan
-              </LinkButton>
+              <LinkButton to="/settings/plans">Update plan</LinkButton>
 
               <ManageBillingButton workspaceId={workspace.id} variant="ghost" />
             </HStack>
@@ -159,7 +164,7 @@ function InvoicesTable({ workspace }: { workspace: WorkspaceDTO }) {
 
   return (
     <GridList.Root>
-      {data.map((invoice) => (
+      {data.map((invoice: BillingInvoice) => (
         <GridList.Item key={invoice.number} gap="4" fontSize="sm">
           <GridList.Cell color="fg.muted" flex="1">
             <FormattedDate value={invoice.date} />
