@@ -110,4 +110,18 @@ export default [
       "template/frontend-route-server-boundary": "error",
     },
   },
+  {
+    files: [
+      "apps/**/src/**/*.{ts,tsx}",
+      "packages/**/src/**/*.{ts,tsx}",
+      "tooling/generators/**/*.{ts,tsx,txt}",
+      "generated/**/*.{ts,tsx}",
+    ],
+    plugins: { template: templatePlugin },
+    rules: {
+      "template/saas-ui-shell-authority": "error",
+      "template/prefer-saas-ui-primitives": "error",
+      "template/saas-ui-semantic-colors": "error",
+    },
+  },
 ];

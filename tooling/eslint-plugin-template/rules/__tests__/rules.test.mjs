@@ -20,6 +20,9 @@ import noCrossDomainValueImport from "../no-cross-domain-value-import.mjs";
 import noRawScheduler from "../no-raw-scheduler.mjs";
 import frontendRouteThin from "../frontend-route-thin.mjs";
 import frontendRouteServerBoundary from "../frontend-route-server-boundary.mjs";
+import shellAuthority from "../saas-ui-shell-authority.mjs";
+import officialPrimitives from "../prefer-saas-ui-primitives.mjs";
+import semanticColors from "../saas-ui-semantic-colors.mjs";
 
 const tester = new RuleTester({
   languageOptions: {
@@ -804,6 +807,103 @@ tester.run("frontend-route-server-boundary", frontendRouteServerBoundary, {
       filename: "apps/web/src/routes/callback.tsx",
       code: "import { getSignUpUrl } from '@workos/authkit-tanstack-react-start'; export const x = getSignUpUrl;",
       errors: [{ messageId: "helper" }],
+    },
+  ],
+});
+
+tester.run("saas-ui-shell-authority", shellAuthority, {
+  valid: [
+    {
+      filename: "apps/web/src/features/common/app-sidebar.tsx",
+      code: "import { Sidebar } from '@saas-ui/react'; export function AppSidebar() { return <Sidebar />; }",
+    },
+    {
+      filename: "generated/fixtures/dashboard.tsx",
+      code: "export const fixture = { label: 'Sidebar', value: 'DataGrid' };",
+    },
+    {
+      filename: "docs/template/example.tsx",
+      code: "export const example = { label: 'Page' };",
+    },
+  ],
+  invalid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "import { Sidebar } from '@saas-ui/react'; export function OrdersPage() { return <Sidebar />; }",
+      errors: [{ messageId: "shellOnly" }],
+    },
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "const DataGrid = () => null; export default DataGrid;",
+      errors: [{ messageId: "shellOnly" }],
+    },
+    {
+      filename: "tooling/generators/src/blueprints/customer/page.tsx",
+      code: "import { Page } from './page'; export const route = Page;",
+      errors: [{ messageId: "shellOnly" }],
+    },
+  ],
+});
+
+tester.run("prefer-saas-ui-primitives", officialPrimitives, {
+  valid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "import { Button, Dialog } from '@saas-ui/react'; export function OrdersPage() { return <><Button>Save</Button><Dialog /></>; }",
+    },
+    {
+      filename: "apps/web/src/features/common/app-sidebar.tsx",
+      code: "const Button = () => null; export default Button;",
+    },
+    {
+      filename: "generated/fixtures/dashboard.tsx",
+      code: "export const fixture = { component: 'Button' };",
+    },
+  ],
+  invalid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "import { Button } from './button'; export function OrdersPage() { return <Button />; }",
+      errors: [{ messageId: "officialPrimitive" }],
+    },
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "const Dialog = () => null; export default Dialog;",
+      errors: [{ messageId: "officialPrimitive" }],
+    },
+  ],
+});
+
+tester.run("saas-ui-semantic-colors", semanticColors, {
+  valid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "export function OrdersPage() { return <Box color='fg.muted' bg='surface.canvas' />; }",
+    },
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "const data = { color: '#123456', status: 'gray.600' }; export default data;",
+    },
+    {
+      filename: "apps/web/src/features/common/theme.tsx",
+      code: "export const theme = { colors: { gray: { 600: '#123456' } } };",
+    },
+  ],
+  invalid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "export function OrdersPage() { return <Box color='#123456' />; }",
+      errors: [{ messageId: "semanticColor" }],
+    },
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "export function OrdersPage() { return <Box bg='gray.600' />; }",
+      errors: [{ messageId: "semanticColor" }],
+    },
+    {
+      filename: "apps/web/src/features/orders/orders.tsx",
+      code: "export function Orders() { return <Box color='#123456' />; }",
+      errors: [{ messageId: "semanticColor" }],
     },
   ],
 });
