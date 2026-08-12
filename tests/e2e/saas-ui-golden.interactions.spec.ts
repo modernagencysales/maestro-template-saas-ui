@@ -120,16 +120,29 @@ test.describe("paired Saas UI golden interactions", () => {
     test(`${kind} navigates list to detail and switches the record aside`, async ({
       page,
     }) => {
-      await gotoGolden({ page, kind, route: entry("list-detail").route });
+      await gotoGolden({ page, kind, route: entry("data-grid").route });
       await page.getByRole("link", { name: "Jordan Lee" }).click();
       await expect(page).toHaveURL(/contacts\/view\/contact-1/);
-      const details = page.getByRole("button", { name: /contact details/i });
+      const details = page.getByRole("button", {
+        name: "Hide contact details",
+      });
       await details.click();
-      await expect(page.getByText("Details", { exact: true })).toBeVisible();
+      await expect(
+        page.getByRole("complementary", { name: "Contact details" }),
+      ).toHaveAttribute("data-state", "closed");
+      const showDetails = page.getByRole("button", {
+        name: "Show contact details",
+      });
+      await expect(showDetails).toBeFocused();
+      await showDetails.click();
+      const close = page.getByRole("button", { name: "Close contact details" });
+      await close.focus();
       await page.keyboard.press("Escape");
-      await details.focus();
+      await expect(
+        page.getByRole("complementary", { name: "Contact details" }),
+      ).toHaveAttribute("data-state", "closed");
       await expect(page.locator(":focus")).toHaveAccessibleName(
-        /contact details/i,
+        "Show contact details",
       );
     });
 
@@ -137,10 +150,13 @@ test.describe("paired Saas UI golden interactions", () => {
       page,
     }) => {
       await gotoGolden({ page, kind, route: entry("split-inbox").route });
-      const item = page.getByText("Jordan Lee", { exact: true });
+      const item = page.getByRole("row", { name: /Sam Rivera/ });
       await expect(item).toBeVisible();
       await item.click();
-      await expect(page).toHaveURL(/inbox/);
+      await expect(item).toHaveAttribute("data-active", "true");
+      await expect(
+        page.getByRole("complementary", { name: "Contact details" }),
+      ).toContainText("Sam Rivera");
     });
 
     test(`${kind} settings navigation reaches billing`, async ({ page }) => {

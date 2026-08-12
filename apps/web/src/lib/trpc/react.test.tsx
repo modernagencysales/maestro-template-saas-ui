@@ -17,15 +17,24 @@ describe("generated fake tRPC facade", () => {
       id: "contact-1",
       name: "Jordan Lee",
     });
+    expect(
+      api.contacts.byId.useSuspenseQuery({ id: "contact-2" })[0],
+    ).toMatchObject({
+      id: "contact-2",
+      name: "Sam Rivera",
+    });
     expect(api.notifications.inbox.useQuery({})).toMatchObject({
       data: {
-        notifications: [
+        notifications: expect.arrayContaining([
           expect.objectContaining({ subject: { name: "Jordan Lee" } }),
-        ],
+        ]),
       },
       isLoading: false,
       isPending: false,
     });
+    expect(api.notifications.inbox.useQuery({})).toBe(
+      api.notifications.inbox.useQuery({}),
+    );
     expect(api.billing.account.useQuery({})).toMatchObject({
       data: { email: "alex@example.com" },
     });

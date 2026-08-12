@@ -58,6 +58,7 @@ const FRONTEND_SUPPORT_PATHS = [
   "apps/web/src/routes/_workspace.settings.tags.tsx",
   "apps/web/src/routes/_workspace.settings.workspace.tsx",
   "apps/web/src/routes/_workspace.contacts.tsx",
+  "apps/web/src/routes/_workspace.contacts.index.tsx",
   "apps/web/src/routes/_workspace.contacts.$contactId.tsx",
   "apps/web/src/routes/_workspace.contacts.$type.tsx",
   "apps/web/src/routes/_workspace.contacts.view.$id.tsx",

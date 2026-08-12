@@ -18,6 +18,9 @@ describe("upstream chassis route authority", () => {
     expect(read("src/routes/_workspace.inbox.$id.tsx")).toContain(
       "<InboxViewPage",
     );
+    expect(read("src/routes/_workspace.inbox.$id.tsx")).toContain(
+      "validateSearch",
+    );
     expect(read("src/routes/_workspace.contacts.tsx")).toContain("<Outlet");
     expect(read("src/routes/_workspace.contacts.tsx")).not.toContain(
       "<ContactsListPage",

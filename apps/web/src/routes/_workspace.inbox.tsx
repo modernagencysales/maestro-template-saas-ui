@@ -7,11 +7,7 @@ export const Route = createFileRoute("/_workspace/inbox")({
 });
 
 function InboxRoute() {
-  const { id } = Route.useParams();
-  const params = React.useMemo(
-    () => ({ workspace: "acme", ...(id ? { id } : {}) }),
-    [id],
-  );
+  const params = React.useMemo(() => ({ workspace: "acme" }), []);
   return (
     <InboxLayout params={params}>
       <Outlet />

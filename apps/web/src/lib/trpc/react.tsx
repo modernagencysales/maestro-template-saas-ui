@@ -18,12 +18,20 @@ const result = (data?: UntypedProcedure): QueryResult => ({
   isPending: false,
 });
 
-function queryFixture(path: readonly string[]): UntypedProcedure {
+const queryResults = new Map<string, QueryResult>();
+
+function queryFixture(
+  path: readonly string[],
+  input?: UntypedProcedure,
+): UntypedProcedure {
   switch (path.join(".")) {
     case "contacts.listByType":
       return { contacts: goldenFixtures.contacts };
     case "contacts.byId":
-      return goldenFixtures.contacts[0];
+      return (
+        goldenFixtures.contacts.find((contact) => contact.id === input?.id) ??
+        goldenFixtures.contacts[0]
+      );
     case "notifications.inbox":
       return { notifications: goldenFixtures.notifications };
     case "billing.account":
@@ -56,11 +64,19 @@ function fakeProcedure(path: readonly string[]): UntypedProcedure {
     {
       get: (_target, property) => {
         if (property === "useQuery") {
-          return () => result(queryFixture(path));
+          return (input?: UntypedProcedure) => {
+            const key = `${path.join(".")}:${JSON.stringify(input)}`;
+            let query = queryResults.get(key);
+            if (!query) {
+              query = result(queryFixture(path, input));
+              queryResults.set(key, query);
+            }
+            return query;
+          };
         }
         if (property === "useSuspenseQuery") {
-          return () => {
-            const data = queryFixture(path);
+          return (input?: UntypedProcedure) => {
+            const data = queryFixture(path, input);
             return [data, result(data)];
           };
         }
@@ -73,7 +89,8 @@ function fakeProcedure(path: readonly string[]): UntypedProcedure {
             reset: () => undefined,
           });
         }
-        if (property === "getData") return () => queryFixture(path);
+        if (property === "getData")
+          return (input?: UntypedProcedure) => queryFixture(path, input);
         if (property === "invalidate") return async () => undefined;
         return fakeProcedure([...path, String(property)]);
       },

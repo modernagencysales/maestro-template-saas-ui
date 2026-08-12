@@ -150,6 +150,15 @@ export const goldenFixtures = {
       subject: { name: "Jordan Lee" },
       metadata: { action: "created-contact" },
     },
+    {
+      id: "notification-2",
+      subjectId: "contact-2",
+      actorId: "user-1",
+      createdAt: "2026-01-14T09:00:00.000Z",
+      type: "action",
+      subject: { name: "Sam Rivera" },
+      metadata: { action: "created-contact" },
+    },
   ],
   billing: {
     email: "alex@example.com",
