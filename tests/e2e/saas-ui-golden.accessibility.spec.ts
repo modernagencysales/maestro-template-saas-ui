@@ -158,6 +158,12 @@ test.describe("paired onboarding dark-mode accessibility", () => {
     test(`${kind} has no serious or critical dark-mode axe violations`, async ({
       page,
     }) => {
+      await page.addInitScript(() => {
+        sessionStorage.setItem(
+          "getting-started.workspace",
+          JSON.stringify("acme"),
+        );
+      });
       await gotoGolden({
         page,
         kind,

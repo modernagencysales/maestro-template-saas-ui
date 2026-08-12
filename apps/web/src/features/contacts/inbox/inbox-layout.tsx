@@ -154,6 +154,7 @@ export function InboxLayout({
       {...(typeof open === "boolean" ? { open } : {})}
       onOpen={() => setOpen(true)}
       onClose={() => setOpen(false)}
+      css={{ contain: "paint" }}
     >
       <ClientResizer
         defaultWidth={width}

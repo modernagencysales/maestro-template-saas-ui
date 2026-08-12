@@ -314,7 +314,7 @@
       "source": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "sourceSha256": "bc5baf32043a6d9e67b10b79e01f7efcae44120ea12b3fd54fee9bb6e60fb56f",
-      "sha256": "1415eff4846cb36384b01acb7eb1af3b3bfa4c9f7a6489d4e3ddf85ee52e6c84",
+      "sha256": "3d79fa763842215926ccc23553a197ceb4a8257970c3ef752d12ac7eb6a2b62c",
       "adapted": true
     },
     {
