@@ -6,6 +6,7 @@ import type { ComponentProps, ComponentType } from "react";
 import {
   AppShell,
   AppShellProps,
+  Box,
   IconButton,
   Sidebar,
   useSidebar,
@@ -93,7 +94,9 @@ const AppLayoutContent: React.FC<AppLayoutProps> = ({
         header={
           <>
             <PaymentOverdueBanner />
-            <GlobalSearchInput aria-label="Search" role="searchbox" />
+            <Box ps={{ base: "14", md: "0" }}>
+              <GlobalSearchInput aria-label="Search" role="searchbox" />
+            </Box>
           </>
         }
         bg="sidebar.bg"
