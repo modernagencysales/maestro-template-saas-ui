@@ -34,6 +34,7 @@ import { Route as AuthResetPasswordRouteImport } from './routes/_auth.reset-pass
 import { Route as AuthLoginRouteImport } from './routes/_auth.login'
 import { Route as AuthForgotPasswordRouteImport } from './routes/_auth.forgot-password'
 import { Route as BuildPackPackIdIndexRouteImport } from './routes/build-pack.$packId.index'
+import { Route as WorkspaceSettingsIndexRouteImport } from './routes/_workspace.settings.index'
 import { Route as CheckoutFakeHostedSessionIdRouteImport } from './routes/checkout.fake-hosted.$sessionId'
 import { Route as BuildPackPackIdGeneratingRouteImport } from './routes/build-pack.$packId.generating'
 import { Route as WorkspaceSettingsWorkspaceRouteImport } from './routes/_workspace.settings.workspace'
@@ -194,6 +195,11 @@ const BuildPackPackIdIndexRoute = BuildPackPackIdIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => BuildPackPackIdRoute,
+} as any)
+const WorkspaceSettingsIndexRoute = WorkspaceSettingsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => WorkspaceSettingsRoute,
 } as any)
 const CheckoutFakeHostedSessionIdRoute =
   CheckoutFakeHostedSessionIdRouteImport.update({
@@ -469,6 +475,7 @@ export interface FileRoutesByFullPath {
   '/settings/workspace': typeof WorkspaceSettingsWorkspaceRoute
   '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
   '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
+  '/settings/': typeof WorkspaceSettingsIndexRoute
   '/build-pack/$packId/': typeof BuildPackPackIdIndexRoute
   '/contacts/$contactId': typeof WorkspaceDashboardContactsContactIdRoute
   '/contacts/$type': typeof WorkspaceDashboardContactsTypeRoute
@@ -492,7 +499,6 @@ export interface FileRoutesByTo {
   '/signup': typeof AuthSignupRoute
   '/getting-started': typeof WorkspaceGettingStartedRoute
   '/onboarding': typeof WorkspaceOnboardingRoute
-  '/settings': typeof WorkspaceSettingsRouteWithChildren
   '/checkout/$reportId': typeof CheckoutReportIdRoute
   '/checkout/return': typeof CheckoutReturnRoute
   '/maestro/$packId': typeof MaestroPackIdRoute
@@ -529,6 +535,7 @@ export interface FileRoutesByTo {
   '/settings/workspace': typeof WorkspaceSettingsWorkspaceRoute
   '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
   '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
+  '/settings': typeof WorkspaceSettingsIndexRoute
   '/build-pack/$packId': typeof BuildPackPackIdIndexRoute
   '/contacts/$contactId': typeof WorkspaceDashboardContactsContactIdRoute
   '/contacts/$type': typeof WorkspaceDashboardContactsTypeRoute
@@ -595,6 +602,7 @@ export interface FileRoutesById {
   '/_workspace/settings/workspace': typeof WorkspaceSettingsWorkspaceRoute
   '/build-pack/$packId/generating': typeof BuildPackPackIdGeneratingRoute
   '/checkout/fake-hosted/$sessionId': typeof CheckoutFakeHostedSessionIdRoute
+  '/_workspace/settings/': typeof WorkspaceSettingsIndexRoute
   '/build-pack/$packId/': typeof BuildPackPackIdIndexRoute
   '/_workspace/_dashboard/contacts/$contactId': typeof WorkspaceDashboardContactsContactIdRoute
   '/_workspace/_dashboard/contacts/$type': typeof WorkspaceDashboardContactsTypeRoute
@@ -659,6 +667,7 @@ export interface FileRouteTypes {
     | '/settings/workspace'
     | '/build-pack/$packId/generating'
     | '/checkout/fake-hosted/$sessionId'
+    | '/settings/'
     | '/build-pack/$packId/'
     | '/contacts/$contactId'
     | '/contacts/$type'
@@ -682,7 +691,6 @@ export interface FileRouteTypes {
     | '/signup'
     | '/getting-started'
     | '/onboarding'
-    | '/settings'
     | '/checkout/$reportId'
     | '/checkout/return'
     | '/maestro/$packId'
@@ -719,6 +727,7 @@ export interface FileRouteTypes {
     | '/settings/workspace'
     | '/build-pack/$packId/generating'
     | '/checkout/fake-hosted/$sessionId'
+    | '/settings'
     | '/build-pack/$packId'
     | '/contacts/$contactId'
     | '/contacts/$type'
@@ -784,6 +793,7 @@ export interface FileRouteTypes {
     | '/_workspace/settings/workspace'
     | '/build-pack/$packId/generating'
     | '/checkout/fake-hosted/$sessionId'
+    | '/_workspace/settings/'
     | '/build-pack/$packId/'
     | '/_workspace/_dashboard/contacts/$contactId'
     | '/_workspace/_dashboard/contacts/$type'
@@ -989,6 +999,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/build-pack/$packId/'
       preLoaderRoute: typeof BuildPackPackIdIndexRouteImport
       parentRoute: typeof BuildPackPackIdRoute
+    }
+    '/_workspace/settings/': {
+      id: '/_workspace/settings/'
+      path: '/'
+      fullPath: '/settings/'
+      preLoaderRoute: typeof WorkspaceSettingsIndexRouteImport
+      parentRoute: typeof WorkspaceSettingsRoute
     }
     '/checkout/fake-hosted/$sessionId': {
       id: '/checkout/fake-hosted/$sessionId'
@@ -1377,6 +1394,7 @@ interface WorkspaceSettingsRouteChildren {
   WorkspaceSettingsPlansRoute: typeof WorkspaceSettingsPlansRoute
   WorkspaceSettingsTagsRoute: typeof WorkspaceSettingsTagsRoute
   WorkspaceSettingsWorkspaceRoute: typeof WorkspaceSettingsWorkspaceRoute
+  WorkspaceSettingsIndexRoute: typeof WorkspaceSettingsIndexRoute
 }
 
 const WorkspaceSettingsRouteChildren: WorkspaceSettingsRouteChildren = {
@@ -1386,6 +1404,7 @@ const WorkspaceSettingsRouteChildren: WorkspaceSettingsRouteChildren = {
   WorkspaceSettingsPlansRoute: WorkspaceSettingsPlansRoute,
   WorkspaceSettingsTagsRoute: WorkspaceSettingsTagsRoute,
   WorkspaceSettingsWorkspaceRoute: WorkspaceSettingsWorkspaceRoute,
+  WorkspaceSettingsIndexRoute: WorkspaceSettingsIndexRoute,
 }
 
 const WorkspaceSettingsRouteWithChildren =

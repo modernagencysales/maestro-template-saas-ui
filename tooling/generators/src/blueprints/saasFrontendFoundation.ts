@@ -52,6 +52,7 @@ const FRONTEND_SUPPORT_PATHS = [
   "apps/web/src/routes/_workspace.onboarding.tsx",
   "apps/web/src/routes/_workspace._dashboard.reports.tsx",
   "apps/web/src/routes/_workspace.settings.tsx",
+  "apps/web/src/routes/_workspace.settings.index.tsx",
   "apps/web/src/routes/_workspace.settings.account.tsx",
   "apps/web/src/routes/_workspace.settings.billing.tsx",
   "apps/web/src/routes/_workspace.settings.members.tsx",

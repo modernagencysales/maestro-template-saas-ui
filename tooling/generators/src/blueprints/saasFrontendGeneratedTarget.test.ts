@@ -150,6 +150,7 @@ describe("SaaS UI generated target artifact boundary", () => {
         "apps/web/src/routes/_workspace.onboarding.tsx",
         "apps/web/src/routes/_workspace._dashboard.reports.tsx",
         "apps/web/src/routes/_workspace._dashboard.contacts.index.tsx",
+        "apps/web/src/routes/_workspace.settings.index.tsx",
         "apps/web/src/routes/_workspace.settings.plans.tsx",
         "apps/web/src/routes/_workspace._dashboard.states.tsx",
         "apps/web/src/routes/privacy.tsx",

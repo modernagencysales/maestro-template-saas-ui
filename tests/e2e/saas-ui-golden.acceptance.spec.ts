@@ -71,6 +71,7 @@ const compositionAssertions: Record<
   settings: async (page) => {
     await expect(page.getByRole("link", { name: "Back to app" })).toBeVisible();
     await expect(page.getByText("Account", { exact: true })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Profile" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Billing" })).toBeVisible();
   },
   form: async (page) => {
@@ -148,7 +149,9 @@ function renderedRouteFor(entry: AcceptanceEntry) {
   // the nested inbox URL as the selected contact route.
   return entry.id === "split-inbox"
     ? "/contacts/view/contact-1"
-    : concreteRoute(entry.route);
+    : entry.id === "settings"
+      ? "/settings/account"
+      : concreteRoute(entry.route);
 }
 
 test.describe("paired acceptance-map compositions", () => {
