@@ -37,7 +37,9 @@ The checked-in router/provider authority is:
 - `apps/web/src/routes/__root.tsx` for the root document.
 - `apps/web/src/routes/_app.tsx` and its nested `$workspace/_dashboard` tree for
   authenticated application routes.
-- generated `apps/web/src/routeTree.gen.ts`.
+- generated `routeTree` at `apps/web/src/routeTree.gen.ts`.
+- `defaultPreload: "intent"` and `setupRouterSsrQueryIntegration` from the
+  pinned Starter router.
 
 Deployment decision:
 

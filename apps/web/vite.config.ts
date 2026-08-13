@@ -5,6 +5,7 @@ import { defineConfig } from "vite";
 import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig({
+  build: { sourcemap: false },
   resolve: {
     tsconfigPaths: true,
     alias: {

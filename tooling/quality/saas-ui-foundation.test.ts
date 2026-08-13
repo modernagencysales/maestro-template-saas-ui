@@ -1,4 +1,14 @@
-import { resolve } from "node:path";
+import {
+  copyFileSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -61,5 +71,65 @@ describe("Saas UI foundation authorities", () => {
           evidence.length > 0,
       ),
     ).toBe(true);
+  });
+
+  it("maps archetypes to the literal Starter route tree", () => {
+    const routes = Object.fromEntries(
+      readSaasUiAcceptance(root).entries.map(({ id, route }) => [id, route]),
+    );
+
+    expect(routes).toMatchObject({
+      "app-shell": "/$workspace",
+      "dashboard-report": "/$workspace",
+      "data-grid": "/$workspace/contacts",
+      "filterable-collection": "/$workspace/contacts",
+      "list-detail": "/$workspace/contacts/view/$id",
+      "split-inbox": "/$workspace/inbox",
+      "record-aside": "/$workspace/contacts/view/$id",
+      settings: "/$workspace/settings",
+      form: "/getting-started",
+      onboarding: "/getting-started",
+      kanban: "/$workspace/kanban",
+      showcase: "/$workspace/showcase",
+      auth: "/login",
+      billing: "/$workspace/settings/billing",
+      "search-command": "/$workspace/search",
+      states: "/$workspace",
+    });
+  });
+
+  it("rejects installed registry ids that drift from the pinned receipt", () => {
+    const checkout = mkdtempSync(join(tmpdir(), "saas-ui-foundation-"));
+
+    try {
+      mkdirSync(join(checkout, "docs/template"), { recursive: true });
+      mkdirSync(join(checkout, "apps/web/src"), { recursive: true });
+      for (const path of [
+        "docs/template/saas-ui-upstream.json",
+        "docs/template/saas-ui-deviations.json",
+        "docs/template/saas-ui-acceptance.json",
+        "docs/template/saas-ui-registry-files.json",
+        "apps/web/components.json",
+      ]) {
+        mkdirSync(join(checkout, path, ".."), { recursive: true });
+        copyFileSync(join(root, path), join(checkout, path));
+      }
+      symlinkSync(
+        join(root, "apps/web/src/components"),
+        join(checkout, "apps/web/src/components"),
+      );
+      const configPath = join(checkout, "apps/web/components.json");
+      const config = JSON.parse(readFileSync(configPath, "utf8")) as {
+        installed: string[];
+      };
+      config.installed = config.installed.slice(1);
+      writeFileSync(configPath, `${JSON.stringify(config, null, 2)}\n`);
+
+      expect(checkSaasUiFoundation(checkout)).toContain(
+        "components.json installed registry ids do not match the pinned receipt",
+      );
+    } finally {
+      rmSync(checkout, { recursive: true, force: true });
+    }
   });
 });

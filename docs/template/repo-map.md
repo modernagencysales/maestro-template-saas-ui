@@ -126,7 +126,8 @@
 ## Frontend Routes
 
 The literal Starter hierarchy under `apps/web/src/routes/_app/` is the route
-authority. It owns workspace dashboard, contacts, inbox, search, getting
-started, and settings routes. Auth routes live under `routes/_auth/`, and API
-handlers under `routes/api/`. Product additions extend this tree; they do not
-restore the legacy `_workspace` or a second business shell/navigation system.
+authority. It owns workspace dashboard, contacts, inbox, search, getting started
+(`getting-started`), and settings routes. Auth routes live under
+`routes/_auth/`, and API handlers under `routes/api/`. Product additions extend
+this tree; they do not restore the legacy `_workspace` or a second business
+shell/navigation system.

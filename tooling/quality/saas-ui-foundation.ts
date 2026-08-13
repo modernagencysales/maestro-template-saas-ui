@@ -78,10 +78,13 @@ export type SaasUiRegistryFiles = Readonly<{
   schemaVersion: 1;
   sourceCommit: string;
   files: readonly Readonly<{
+    source: string;
     destination: string;
     sha256: string;
   }>[];
 }>;
+
+type SaasUiComponentsConfig = Readonly<{ installed: readonly string[] }>;
 
 function readJson(root: string, relativePath: string): unknown {
   return JSON.parse(
@@ -251,11 +254,12 @@ function readRegistryFilesValue(value: unknown): SaasUiRegistryFiles {
     throw new Error("registry files.files must be an array");
   const files = root.files.map((fileValue, index) => {
     const file = record(fileValue, `registry files.files[${index}]`);
+    const source = string(file.source, "registry files.source");
     const destination = string(file.destination, "registry files.destination");
     const sha256 = string(file.sha256, "registry files.sha256");
     if (!/^[a-f0-9]{64}$/.test(sha256))
       throw new Error(`registry files.files[${index}] sha256 is invalid`);
-    return { destination, sha256 };
+    return { source, destination, sha256 };
   });
   return { schemaVersion: 1, sourceCommit, files };
 }
@@ -266,6 +270,32 @@ export function readSaasUiAcceptance(root: string): SaasUiAcceptanceMap {
 
 export function readSaasUiRegistryFiles(root: string): SaasUiRegistryFiles {
   return readRegistryFilesValue(readJson(root, REGISTRY_FILES_PATH));
+}
+
+function readComponentsConfig(root: string): SaasUiComponentsConfig {
+  const config = record(
+    readJson(root, "apps/web/components.json"),
+    "components.json",
+  );
+  return {
+    installed: stringArray(config.installed, "components.json installed"),
+  };
+}
+
+function registryIdsFromReceipt(
+  registryFiles: SaasUiRegistryFiles,
+): readonly string[] {
+  return [
+    ...new Set(
+      registryFiles.files.flatMap(({ source }) => {
+        if (!source.startsWith("packages/blocks/")) return [];
+        const parts = source.split("/");
+        const id =
+          parts[2] === "hooks" ? parts[3]?.replace(/\.[^.]+$/u, "") : parts[3];
+        return id ? [id] : [];
+      }),
+    ),
+  ].sort((left, right) => left.localeCompare(right, "en"));
 }
 
 function duplicateValues(values: readonly string[]): readonly string[] {
@@ -333,9 +363,41 @@ function validateAcceptance(
   return errors;
 }
 
+function validateRegistryIds(
+  registryFiles: SaasUiRegistryFiles,
+  manifest: SaasUiManifest,
+  components: SaasUiComponentsConfig,
+): readonly string[] {
+  const errors: string[] = [];
+  const receiptIds = registryIdsFromReceipt(registryFiles);
+  const installed = [...(manifest.registry.installed ?? [])].sort(
+    (left, right) => left.localeCompare(right, "en"),
+  );
+  const configured = [...components.installed].sort((left, right) =>
+    left.localeCompare(right, "en"),
+  );
+  if (
+    receiptIds.length !== 28 ||
+    receiptIds.filter((id) => id !== "use-open-state").length !== 27
+  )
+    errors.push(
+      "registry receipt must contain all 27 Pro blocks and the shared hook",
+    );
+  if (JSON.stringify(installed) !== JSON.stringify(receiptIds))
+    errors.push(
+      "upstream manifest installed registry ids do not match the pinned receipt",
+    );
+  if (JSON.stringify(configured) !== JSON.stringify(receiptIds))
+    errors.push(
+      "components.json installed registry ids do not match the pinned receipt",
+    );
+  return errors;
+}
+
 function validateRegistryFiles(
   registryFiles: SaasUiRegistryFiles,
   manifest: SaasUiManifest,
+  components: SaasUiComponentsConfig,
   root: string,
 ): readonly string[] {
   const errors: string[] = [];
@@ -354,6 +416,7 @@ function validateRegistryFiles(
   }
   if (registryFiles.files.length === 0)
     errors.push("registry files receipt has no files");
+  errors.push(...validateRegistryIds(registryFiles, manifest, components));
   for (const file of registryFiles.files) {
     try {
       const actual = createHash("sha256")
@@ -376,8 +439,10 @@ export function checkSaasUiFoundation(root: string): readonly string[] {
     () => readSaasUiRegistryFiles(root),
     errors,
   );
+  const components = readAuthority(() => readComponentsConfig(root), errors);
   const deviations = readAuthority(() => readSaasUiDeviations(root), errors);
-  if (!manifest || !acceptance || !registryFiles || !deviations) return errors;
+  if (!manifest || !acceptance || !registryFiles || !components || !deviations)
+    return errors;
   errors.push(...validateManifest(manifest));
   errors.push(
     ...validateAcceptance(
@@ -385,7 +450,9 @@ export function checkSaasUiFoundation(root: string): readonly string[] {
       manifest.compositions.map(({ id }) => id),
     ),
   );
-  errors.push(...validateRegistryFiles(registryFiles, manifest, root));
+  errors.push(
+    ...validateRegistryFiles(registryFiles, manifest, components, root),
+  );
   return errors;
 }
 

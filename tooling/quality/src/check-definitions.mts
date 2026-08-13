@@ -424,27 +424,35 @@ const checkDescriptorDefinitions = {
       {
         file: "docs/template/repo-map.md",
         includes: [
-          "/brain",
-          "/workflows",
-          "/capabilities",
-          "/agents",
-          "/runs",
-          "/settings",
-          "/api",
-          "/admin",
+          "apps/web/src/routes/_app/",
+          "workspace dashboard",
+          "contacts",
+          "inbox",
+          "search",
+          "getting-started",
+          "settings",
         ],
-        message: "repo map must declare planned app routes",
+        message: "repo map must declare the literal Starter route authority",
       },
       {
         file: "docs/template/frontend-architecture.md",
         includes: [
           "generated `routeTree`",
           'defaultPreload: "intent"',
-          "scrollRestoration: true",
+          "setupRouterSsrQueryIntegration",
           "apps/web/src/routeTree.gen.ts",
         ],
         message:
           "frontend architecture must declare TanStack Start route tree invariants",
+      },
+      {
+        file: "apps/web/src/router.tsx",
+        includes: [
+          "routeTree",
+          'defaultPreload: "intent"',
+          "setupRouterSsrQueryIntegration",
+        ],
+        message: "web router must preserve the pinned Starter route behavior",
       },
       {
         file: "apps/web/package.json",

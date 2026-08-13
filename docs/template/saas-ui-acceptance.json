@@ -10,7 +10,7 @@
       },
       "factoryDestination": "apps/web/src/features/common",
       "generatedDestination": "apps/web/src/features/common",
-      "route": "/dashboard",
+      "route": "/$workspace",
       "behaviorCheck": "shell controls and navigation",
       "evidence": [
         "app-shell-ready-read-desktop-light",
@@ -26,7 +26,7 @@
       },
       "factoryDestination": "apps/web/src/features/reports",
       "generatedDestination": "apps/web/src/features/reports",
-      "route": "/reports",
+      "route": "/$workspace",
       "behaviorCheck": "dashboard report renders and active period control changes",
       "evidence": [
         "dashboard-report-ready-read-desktop-light",
@@ -42,7 +42,7 @@
       },
       "factoryDestination": "apps/web/src/features/contacts/list",
       "generatedDestination": "apps/web/src/features/contacts/list",
-      "route": "/contacts",
+      "route": "/$workspace/contacts",
       "behaviorCheck": "filter sort pagination changes content and selection exposes actions",
       "evidence": [
         "data-grid-ready-read-desktop-light",
@@ -58,7 +58,7 @@
       },
       "factoryDestination": "apps/web/src/features/contacts/list",
       "generatedDestination": "apps/web/src/features/contacts/list",
-      "route": "/contacts",
+      "route": "/$workspace/contacts",
       "behaviorCheck": "active filter removal",
       "evidence": [
         "filterable-collection-ready-read-desktop-light",
@@ -74,7 +74,7 @@
       },
       "factoryDestination": "apps/web/src/features/contacts/view",
       "generatedDestination": "apps/web/src/features/contacts/view",
-      "route": "/contacts/view/contact-1",
+      "route": "/$workspace/contacts/view/$id",
       "behaviorCheck": "list to detail navigation",
       "evidence": [
         "list-detail-ready-read-desktop-light",
@@ -90,7 +90,7 @@
       },
       "factoryDestination": "apps/web/src/features/contacts/inbox",
       "generatedDestination": "apps/web/src/features/contacts/inbox",
-      "route": "/inbox",
+      "route": "/$workspace/inbox",
       "behaviorCheck": "split selection",
       "evidence": [
         "split-inbox-ready-read-desktop-light",
@@ -106,7 +106,7 @@
       },
       "factoryDestination": "apps/web/src/features/contacts/view",
       "generatedDestination": "apps/web/src/features/contacts/view",
-      "route": "/contacts/view/contact-1",
+      "route": "/$workspace/contacts/view/$id",
       "behaviorCheck": "record aside opens and restores focus",
       "evidence": [
         "record-aside-ready-read-mobile-light",
@@ -122,7 +122,7 @@
       },
       "factoryDestination": "apps/web/src/features/settings",
       "generatedDestination": "apps/web/src/features/settings",
-      "route": "/settings",
+      "route": "/$workspace/settings",
       "behaviorCheck": "settings navigation",
       "evidence": [
         "settings-ready-read-desktop-light",
@@ -138,7 +138,7 @@
       },
       "factoryDestination": "apps/web/src/features/getting-started",
       "generatedDestination": "apps/web/src/features/getting-started",
-      "route": "/forms",
+      "route": "/getting-started",
       "behaviorCheck": "form validation and submit",
       "evidence": ["form-ready-read-desktop-light", "paid-artifact-boundary"]
     },
@@ -167,7 +167,7 @@
       },
       "factoryDestination": "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
       "generatedDestination": "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
-      "route": "/kanban",
+      "route": "/$workspace/kanban",
       "behaviorCheck": "kanban drag",
       "evidence": ["kanban-ready-read-desktop-light", "paid-artifact-boundary"]
     },
@@ -180,7 +180,7 @@
       },
       "factoryDestination": "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
       "generatedDestination": "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
-      "route": "/showcase",
+      "route": "/$workspace/showcase",
       "behaviorCheck": "drawer and modal focus restoration",
       "evidence": [
         "showcase-ready-read-desktop-light",
@@ -209,7 +209,7 @@
       },
       "factoryDestination": "apps/web/src/features/settings/billing",
       "generatedDestination": "apps/web/src/features/settings/billing",
-      "route": "/settings/billing",
+      "route": "/$workspace/settings/billing",
       "behaviorCheck": "billing presentation and email validation",
       "evidence": ["billing-ready-read-desktop-light", "paid-artifact-boundary"]
     },
@@ -222,7 +222,7 @@
       },
       "factoryDestination": "apps/web/src/features/search",
       "generatedDestination": "apps/web/src/features/search",
-      "route": "/search",
+      "route": "/$workspace/search",
       "behaviorCheck": "search shortcut, query result, and clear command",
       "evidence": [
         "search-command-ready-read-desktop-light",
@@ -238,7 +238,7 @@
       },
       "factoryDestination": "apps/web/src/features/workspaces",
       "generatedDestination": "apps/web/src/features/workspaces",
-      "route": "/states",
+      "route": "/$workspace",
       "behaviorCheck": "loading empty ready read edit success failure error not-found permission and recovery transitions",
       "evidence": ["states-ready-read-desktop-light", "paid-artifact-boundary"]
     }
