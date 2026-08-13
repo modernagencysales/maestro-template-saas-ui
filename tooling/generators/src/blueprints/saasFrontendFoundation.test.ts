@@ -1,4 +1,8 @@
-import { readFileSync } from "node:fs";
+import { execFileSync } from "node:child_process";
+import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
 import { buildSaasApplicationTargetPlan } from "./saasApplication";
 import {
@@ -11,6 +15,46 @@ const readSource = (path: string): string =>
   readFileSync(new URL(path, repoRoot), "utf8");
 
 describe("mandatory SaaS UI frontend foundation", () => {
+  it("reads the route-tree authority from the requested source root", () => {
+    const root = mkdtempSync(join(tmpdir(), "saas-ui-source-root-"));
+    const routeTreePath = join(root, "apps/web/src/routeTree.gen.ts");
+    const routeTree = "// source-root route tree\n";
+
+    try {
+      execFileSync("git", [
+        "clone",
+        "--quiet",
+        "--shared",
+        fileURLToPath(repoRoot),
+        root,
+      ]);
+      writeFileSync(routeTreePath, routeTree);
+      const entry = buildSaasApplicationTargetPlan({
+        name: "source-root",
+        sourceRoot: root,
+      }).entries.find(({ path }) => path === "apps/web/src/routeTree.gen.ts");
+
+      expect(entry?.content).toBe(routeTree);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("fails closed when the requested source root is incomplete", () => {
+    const root = mkdtempSync(join(tmpdir(), "saas-ui-source-root-"));
+
+    try {
+      expect(() =>
+        buildSaasApplicationTargetPlan({
+          name: "source-root",
+          sourceRoot: root,
+        }),
+      ).toThrow();
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("projects the frontend foundation for every current pattern selection", () => {
     for (const patterns of [
       [],

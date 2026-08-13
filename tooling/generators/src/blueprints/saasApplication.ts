@@ -627,6 +627,7 @@ type BlueprintTargetPlanOptions = {
   readonly name: string;
   readonly firstOutcome?: string;
   readonly patterns?: readonly SaasApplicationPatternId[];
+  readonly sourceRoot?: string;
 };
 
 const canonicalTargetPlanOptions = {

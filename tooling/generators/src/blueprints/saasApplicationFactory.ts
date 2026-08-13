@@ -1,6 +1,7 @@
 import type { GeneratedFile } from "../index";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 import {
   buildCurrentRecordsExampleFiles,
   buildCurrentSaasApplicationChassisFiles,
@@ -491,8 +492,14 @@ export const buildFactorySaasApplicationFiles = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
   readonly patterns?: SaasApplicationPatternSelection["patterns"];
+  readonly sourceRoot?: string;
 }): readonly GeneratedFile[] => {
-  const frontendFiles = saasFrontendFoundationFiles(currentSource);
+  const sourceRoot = options.sourceRoot;
+  const frontendFiles = saasFrontendFoundationFiles(
+    sourceRoot === undefined
+      ? currentSource
+      : (path) => readFileSync(resolve(sourceRoot, path), "utf8"),
+  );
   const frontendPaths = new Set(frontendFiles.map(({ path }) => path));
   const currentFiles = currentSaasApplicationFiles(options).filter(
     ({ path }) =>
