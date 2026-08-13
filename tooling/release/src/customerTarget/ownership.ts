@@ -23,6 +23,7 @@ const FACTORY_ONLY_PREFIXES = [
   ".superpowers/",
   ".vscode/",
   "agent-pack/",
+  "artifacts/saas-ui-golden/",
   "docs/design-intake/",
   "docs/migration/",
   "docs/superpowers/",
@@ -153,6 +154,7 @@ const TEMPLATE_PREFIXES = [
   "apps/cli/",
   "apps/web/",
   "docs/agent/",
+  "docs/licenses/saas-ui/",
   "docs/template/",
   "examples/generic-ai-ops/",
   "features/",
@@ -170,6 +172,7 @@ const TEMPLATE_PREFIXES = [
   "tooling/eslint-plugin-template/",
   "tooling/generators/",
   "tooling/quality/",
+  "tooling/saas-ui/",
   "tooling/workflow/",
 ] as const;
 

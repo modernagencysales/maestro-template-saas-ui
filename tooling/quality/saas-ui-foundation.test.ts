@@ -33,6 +33,7 @@ describe("Saas UI foundation authorities", () => {
         "form",
         "onboarding",
         "kanban",
+        "showcase",
         "auth",
         "billing",
         "search-command",

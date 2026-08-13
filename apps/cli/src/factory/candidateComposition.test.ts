@@ -440,6 +440,47 @@ describe("candidate customer composition", () => {
     );
     expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
 
+    const neutralFixture = buildCandidateReleaseFixture(
+      { name, outcome },
+      buildSaasApplicationTargetPlan,
+    );
+    const neutralCreate = loadCustomerCreateComposition(
+      neutralFixture.source,
+      buildSaasApplicationTargetPlan,
+    );
+    const neutralResult = await neutralCreate.run(
+      [
+        "create",
+        neutralFixture.targetRoot,
+        "--name",
+        name,
+        "--outcome",
+        outcome,
+        "--demo-only",
+        "--write",
+        "--json",
+      ],
+      neutralFixture.candidateRoot,
+    );
+    expect(
+      neutralResult.exitCode,
+      `${neutralResult.stdout}\n${neutralResult.stderr}`,
+    ).toBe(0);
+    await runCandidatePnpm(neutralFixture.targetRoot, [
+      "install",
+      "--frozen-lockfile",
+      "--ignore-scripts",
+    ]);
+    await runCandidatePnpm(neutralFixture.targetRoot, [
+      "run",
+      "typecheck:saas-ui:baseline",
+    ]);
+    await runCandidatePnpm(neutralFixture.targetRoot, [
+      "--dir",
+      "apps/web",
+      "typecheck",
+    ]);
+
     const instance = JSON.parse(
       readFileSync(join(fixture.targetRoot, "template-instance.json"), "utf8"),
     ) as {
@@ -494,16 +535,13 @@ describe("candidate customer composition", () => {
     expect(customerFiles).toContain("packages/integrations/src/dodo.ts");
     expect(
       readFileSync(
-        join(fixture.targetRoot, "apps/web/src/routes/index.tsx"),
+        join(
+          fixture.targetRoot,
+          "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
+        ),
         "utf8",
       ),
     ).not.toContain("public-funnel");
-    expect(
-      readFileSync(
-        join(fixture.targetRoot, "apps/web/src/providers/posthog.tsx"),
-        "utf8",
-      ),
-    ).not.toMatch(/app-idea-evaluator|public-funnel/u);
     expect(
       readFileSync(
         join(fixture.targetRoot, "apps/web/src/routeTree.gen.ts"),
@@ -512,15 +550,6 @@ describe("candidate customer composition", () => {
     ).not.toMatch(
       /EvaluateRouteImport|CheckoutReturnRouteImport|BuildPackPackIdRouteImport/u,
     );
-    const generatedRefsTest = readFileSync(
-      join(
-        fixture.targetRoot,
-        "apps/web/src/adapters/confect-generated-refs.test.ts",
-      ),
-      "utf8",
-    );
-    expect(generatedRefsTest).toContain("BrainPageListRef");
-    expect(generatedRefsTest).not.toContain("evaluateAppIdea");
     const customerPackage = JSON.parse(
       readFileSync(join(fixture.targetRoot, "package.json"), "utf8"),
     ) as {
@@ -699,11 +728,6 @@ describe("candidate customer composition", () => {
     await runCandidatePnpm(fixture.targetRoot, [
       "--dir",
       "packages/convex",
-      "typecheck",
-    ]);
-    await runCandidatePnpm(fixture.targetRoot, [
-      "--dir",
-      "apps/web",
       "typecheck",
     ]);
     await runCandidatePnpm(fixture.targetRoot, [

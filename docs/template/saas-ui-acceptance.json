@@ -161,15 +161,31 @@
     {
       "id": "kanban",
       "upstream": {
-        "repository": "starter",
-        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
-        "path": "apps/web/src/features/contacts/list/contact-card.tsx"
+        "repository": "pro",
+        "commit": "ac3a40c8dc05e403f9d501a87c092646891d3c40",
+        "path": "packages/blocks/lists/sortable-task-list/sortable-task-list.tsx"
       },
-      "factoryDestination": "apps/web/src/features/contacts/list",
-      "generatedDestination": "apps/web/src/features/contacts/list",
+      "factoryDestination": "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
+      "generatedDestination": "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
       "route": "/kanban",
       "behaviorCheck": "kanban drag",
       "evidence": ["kanban-ready-read-desktop-light", "paid-artifact-boundary"]
+    },
+    {
+      "id": "showcase",
+      "upstream": {
+        "repository": "pro",
+        "commit": "ac3a40c8dc05e403f9d501a87c092646891d3c40",
+        "path": "packages/blocks/communication/latest-messages-card/latest-messages-card.tsx"
+      },
+      "factoryDestination": "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
+      "generatedDestination": "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
+      "route": "/showcase",
+      "behaviorCheck": "drawer and modal focus restoration",
+      "evidence": [
+        "showcase-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
     },
     {
       "id": "auth",

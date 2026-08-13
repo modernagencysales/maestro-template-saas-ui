@@ -341,13 +341,45 @@
     },
     {
       "id": "kanban",
-      "source": "apps/web/src/features/contacts/list/contact-card.tsx",
-      "factoryDestination": "apps/web/src/features/contacts/list/contact-card.tsx",
-      "generatedDestination": "apps/web/src/features/contacts/list/contact-card.tsx",
+      "source": "packages/blocks/lists/sortable-task-list/sortable-task-list.tsx",
+      "factoryDestination": "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
+      "generatedDestination": "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
       "files": [
         {
-          "source": "apps/web/src/features/contacts/list/contact-card.tsx",
-          "destination": "apps/web/src/features/contacts/list/contact-card.tsx"
+          "source": "packages/blocks/lists/sortable-task-list/sortable-task-list.tsx",
+          "destination": "apps/web/src/components/sortable-task-list/sortable-task-list.tsx"
+        },
+        {
+          "source": "packages/blocks/cards/task-card-with-labels/task-card-with-labels.tsx",
+          "destination": "apps/web/src/components/task-card-with-labels/task-card-with-labels.tsx"
+        },
+        {
+          "source": "packages/blocks/cards/task-card-with-properties/task-card-with-properties.tsx",
+          "destination": "apps/web/src/components/task-card-with-properties/task-card-with-properties.tsx"
+        }
+      ]
+    },
+    {
+      "id": "showcase",
+      "source": "packages/blocks/communication/latest-messages-card/latest-messages-card.tsx",
+      "factoryDestination": "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
+      "generatedDestination": "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
+      "files": [
+        {
+          "source": "packages/blocks/communication/latest-messages-card/latest-messages-card.tsx",
+          "destination": "apps/web/src/components/latest-messages-card/latest-messages-card.tsx"
+        },
+        {
+          "source": "packages/blocks/files/files-list-card/files-list-card.tsx",
+          "destination": "apps/web/src/components/files-list-card/files-list-card.tsx"
+        },
+        {
+          "source": "packages/blocks/drawers/add-contact-drawer/add-contact-drawer.tsx",
+          "destination": "apps/web/src/components/add-contact-drawer/add-contact-drawer.tsx"
+        },
+        {
+          "source": "packages/blocks/modals/feedback-modal/feedback-modal.tsx",
+          "destination": "apps/web/src/components/feedback-modal/feedback-modal.tsx"
         }
       ]
     },

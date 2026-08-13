@@ -23,6 +23,7 @@ const COMPOSITION_IDS = [
   "form",
   "onboarding",
   "kanban",
+  "showcase",
   "auth",
   "billing",
   "search-command",

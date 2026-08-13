@@ -204,19 +204,12 @@ describe("maestro-template CLI", () => {
     },
   );
 
-  it("rejects unsafe Vite contract proxies before attaching the API key", async () => {
-    vi.stubEnv("MAESTRO_API_BASE_URL", "http://127.example.test");
-    vi.stubEnv("MAESTRO_API_KEY", "contracts-test-key");
-    vi.resetModules();
+  it("does not expose a Vite API proxy that can attach the CLI API key", async () => {
+    const config = await vi.importActual<{
+      default: { server?: { proxy?: unknown } };
+    }>("../../web/vite.config");
 
-    try {
-      await expect(vi.importActual("../../web/vite.config")).rejects.toThrow(
-        "HTTPS or loopback HTTP",
-      );
-    } finally {
-      vi.unstubAllEnvs();
-      vi.resetModules();
-    }
+    expect(config.default.server).not.toHaveProperty("proxy");
   });
 
   it("describes the shared workflow template", () => {
