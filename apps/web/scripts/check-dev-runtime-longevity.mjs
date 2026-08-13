@@ -72,7 +72,7 @@ export async function checkDevRuntimeLongevity({
 
   let browser;
   try {
-    const healthUrl = `http://127.0.0.1:${webPort}/favicon.svg`;
+    const healthUrl = `http://127.0.0.1:${webPort}/favicon.ico`;
     const healthBefore = await waitForHealth(healthUrl);
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
