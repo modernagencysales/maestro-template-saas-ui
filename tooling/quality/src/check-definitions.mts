@@ -245,7 +245,7 @@ const checkDescriptorDefinitions = {
       {
         file: "tooling/generators/package.json",
         includes: [
-          '"test": "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism"',
+          '"test": "vitest run --passWithNoTests --pool=threads --maxWorkers=1 --no-file-parallelism"',
         ],
         message:
           "generator tests that exercise checked-out projections must run without file parallelism",

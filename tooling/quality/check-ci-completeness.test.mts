@@ -27,7 +27,7 @@ describe("check:ci-completeness", () => {
       "pnpm --dir tooling/agent-pack test:privacy-no-network",
     );
     expect(requirements).toContain(
-      "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism",
+      "vitest run --passWithNoTests --pool=threads --maxWorkers=1 --no-file-parallelism",
     );
     expect(requirements).toContain("check:system-topology");
     expect(requirements).toContain("check:data-resources");
