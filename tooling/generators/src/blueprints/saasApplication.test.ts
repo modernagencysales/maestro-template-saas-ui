@@ -2237,9 +2237,17 @@ Feature: Reconcile disputed invoices
     expect(recordsSurface).toContain(
       "templateConfectRefs.public.records.records.create",
     );
+    expect(recordsSurface).toContain("useConvexQuery");
+    expect(recordsSurface).toContain("listState.isError");
     expect(recordsSurface).not.toMatch(
       /templateConfectRefs\.public\.records\.(?:list|create)/u,
     );
+    for (const obsoleteSeam of [
+      "../../adapters/confect-state",
+      "../../env",
+      "../../providers/workspace",
+    ])
+      expect(recordsSurface).not.toContain(obsoleteSeam);
 
     const recordsRoute =
       files.get("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx") ??

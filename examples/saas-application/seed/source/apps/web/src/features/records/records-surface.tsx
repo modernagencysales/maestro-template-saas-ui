@@ -1,23 +1,18 @@
 import { useEffect, useMemo, useState } from "react";
 import { Button, Card, Heading, Input, Stack, Text } from "@saas-ui/react";
+import { convexQuery } from "@convex-dev/react-query";
+import { useQuery as useConvexQuery } from "@tanstack/react-query";
+import { useMutation } from "convex/react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
-import type { Ref } from "@confect/core";
+import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
+import { useWorkspaceSlug } from "#features/common/hooks/use-workspace-slug";
 import type {
   RecordAdapter,
   SaaSRecord,
 } from "../../adapters/records/contract.js";
 import { createFakeRecordAdapter } from "../../adapters/records/fake.js";
 import { createHttpRecordAdapter } from "../../adapters/records/http.js";
-import {
-  useTemplateMutation,
-  useTemplateQuery,
-} from "../../adapters/confect-state";
-import { isConvexConfigured } from "../../env";
-import { useWorkspace } from "../../providers/workspace";
 import { presentRecords, type RecordsState } from "./model.js";
-
-type ListRecordsRef = typeof templateConfectRefs.public.records.list;
-type WorkspaceId = Ref.Args<ListRecordsRef>["workspaceId"];
 
 const sharedFakeAdapter = createFakeRecordAdapter();
 const sharedHttpAdapter = createHttpRecordAdapter();
@@ -29,7 +24,7 @@ export function RecordsSurface({
 }) {
   return import.meta.env.VITE_MAESTRO_CONTRACT_MODE === "1" ? (
     <FakeRecordsSurface adapter={sharedHttpAdapter} />
-  ) : isConvexConfigured() ? (
+  ) : import.meta.env.VITE_CONVEX_URL ? (
     <LocalRecordsSurface />
   ) : (
     <FakeRecordsSurface adapter={fakeAdapter} />
@@ -37,14 +32,12 @@ export function RecordsSurface({
 }
 
 function FakeRecordsSurface({ adapter }: { readonly adapter: RecordAdapter }) {
-  const workspace = useWorkspace();
-  const workspaceId =
-    workspace.status === "ready" ? workspace.activeWorkspaceId : null;
+  const workspaceId = useWorkspaceSlug();
   const [records, setRecords] = useState<readonly SaaSRecord[]>([]);
   const [state, setState] = useState<RecordsState>({ status: "loading" });
 
   useEffect(() => {
-    if (workspaceId === null) return;
+    if (!workspaceId) return;
     void adapter.list(workspaceId).then(
       (loaded) => {
         setRecords(loaded);
@@ -64,7 +57,7 @@ function FakeRecordsSurface({ adapter }: { readonly adapter: RecordAdapter }) {
   }, [adapter, workspaceId]);
 
   const create = async (title: string, detail: string) => {
-    if (workspaceId === null) return;
+    if (!workspaceId) return;
     try {
       const created = await adapter.create({ workspaceId, title, detail });
       setRecords(await adapter.list(workspaceId));
@@ -99,19 +92,15 @@ function FakeRecordsSurface({ adapter }: { readonly adapter: RecordAdapter }) {
 }
 
 function LocalRecordsSurface() {
-  const workspace = useWorkspace();
-  const workspaceId =
-    workspace.status === "ready"
-      ? (workspace.activeWorkspaceId as WorkspaceId)
-      : null;
-  const listState = useTemplateQuery(
-    templateConfectRefs.public.records.list,
-    workspaceId === null ? "skip" : { workspaceId },
-    { isEmpty: (records) => records.length === 0 },
+  const [workspace] = useCurrentWorkspace();
+  const workspaceId = workspace?.id;
+  const listState = useConvexQuery(
+    convexQuery(
+      templateConfectRefs.public.records.list,
+      workspaceId === undefined ? "skip" : { workspaceId },
+    ),
   );
-  const createRecord = useTemplateMutation(
-    templateConfectRefs.public.records.create,
-  );
+  const createRecord = useMutation(templateConfectRefs.public.records.create);
   const [selected, setSelected] = useState<SaaSRecord | null>(null);
   const [creating, setCreating] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -119,34 +108,44 @@ function LocalRecordsSurface() {
     if (failure !== null) return { status: "error", message: failure };
     if (creating) return { status: "create" };
     if (selected !== null) return { status: "detail", record: selected };
-    if (listState.status === "ready") {
+    if (listState.isError) {
       return {
-        status: "list",
-        records: listState.data.map((record) => ({
-          id: String(record._id),
-          workspaceId: String(record.workspaceId),
-          title: record.title,
-          detail: record.detail,
-          createdAt: record.createdAt,
-          updatedAt: record.updatedAt,
-        })),
+        status: "error",
+        message:
+          listState.error instanceof Error
+            ? listState.error.message
+            : "Records unavailable.",
       };
     }
-    if (listState.status === "empty") return { status: "empty" };
-    if (listState.status === "loading" || listState.status === "skipped") {
-      return { status: "loading" };
+    if (listState.data !== undefined) {
+      return {
+        status: listState.data.length === 0 ? "empty" : "list",
+        ...(listState.data.length === 0
+          ? {}
+          : {
+              records: listState.data.map((record) => ({
+                id: String(record._id),
+                workspaceId: String(record.workspaceId),
+                title: record.title,
+                detail: record.detail,
+                createdAt: record.createdAt,
+                updatedAt: record.updatedAt,
+              })),
+            }),
+      };
     }
-    return {
-      status: "error",
-      message:
-        listState.status === "typed_failure"
-          ? "The workspace rejected the records request."
-          : listState.message,
-    };
-  }, [creating, failure, listState, selected]);
+    return { status: "loading" };
+  }, [
+    creating,
+    failure,
+    listState.data,
+    listState.error,
+    listState.isError,
+    selected,
+  ]);
 
   const create = async (title: string, detail: string) => {
-    if (workspaceId === null) return;
+    if (workspaceId === undefined) return;
     try {
       await createRecord({ workspaceId, title, detail });
       setCreating(false);
