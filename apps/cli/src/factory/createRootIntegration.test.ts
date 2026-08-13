@@ -722,26 +722,9 @@ describe("create root integration", () => {
         stdio: "pipe",
       });
     }
-    const webTargetConfig = join(parent, "web-target-tsconfig.json");
-    writeFileSync(
-      webTargetConfig,
-      JSON.stringify({
-        extends: join(compileRoot, "apps/web/tsconfig.json"),
-        compilerOptions: {
-          baseUrl: compileRoot,
-          paths: {
-            "@maestro-template/convex/refs": [
-              "packages/convex/dist/src/refs.d.ts",
-            ],
-          },
-        },
-      }),
-    );
-    const webCompile = spawnSync(
-      "pnpm",
-      ["exec", "tsc", "-p", webTargetConfig, "--noEmit"],
-      { cwd: compileRoot, encoding: "utf8" },
-    );
+    const webCompile = await runGeneratedPnpm(compileRoot, [
+      "typecheck:saas-ui",
+    ]);
     expect(
       webCompile.status,
       `${webCompile.stdout}\n${webCompile.stderr}`,
