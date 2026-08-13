@@ -28,6 +28,12 @@ describe("customer chassis Woodpecker admission", () => {
     );
   });
 
+  it("seeds the current immutable release for offline runtime tests", () => {
+    const source = read("tooling/ci/seed-frozen-alpha2-store.sh");
+
+    expect(source).toContain("maestro-template-v0.2.0-alpha.3");
+  });
+
   it("declares the sole deterministic PR context", () => {
     const project = read(".factory/project.yaml");
     expect(project).toContain("required: []");
