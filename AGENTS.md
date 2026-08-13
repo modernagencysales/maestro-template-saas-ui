@@ -213,6 +213,29 @@ invalidates prior evidence. Woodpecker verification for the current PR head is
 the only blocking full-verification authority; never copy or manufacture status
 across commits.
 
+## Verification And Review Boundary
+
+Verification proves the requested product outcome; it must not become a second
+product or recursively verify its own evidence.
+
+- The frozen commit, required CI definition, verifier/gate implementation, and
+  reviewed test harness are trusted authorities for the delivery batch. Review
+  their actual diff and behavior; do not assume they are malicious, rewritten
+  after review, or conspiring with the candidate code.
+- Adversarial findings must show a concrete bypass controlled by untrusted
+  product input or shipped application code within the documented threat model.
+  Hypothetical malicious harnesses, forged commits, self-modifying gates,
+  compromised runners, and demands that a verifier prove its own honesty are
+  out of scope unless the task explicitly concerns supply-chain or CI security.
+- A reviewer may not expand the threat model. New trust-boundary requirements
+  require owner approval before they become blockers or authorize code changes.
+- After one fix and one re-review of a concrete finding, proceed to the required
+  deterministic gate. Do not start another speculative hardening cycle; record
+  non-blocking ideas as follow-up and finish the requested outcome.
+- After two failed verification cycles for the same batch, stop and ask the
+  owner whether to fix, defer, or remove the failing gate. A third cycle requires
+  explicit owner approval.
+
 ## Testing Doctrine
 
 - New behavior needs tests before implementation.
