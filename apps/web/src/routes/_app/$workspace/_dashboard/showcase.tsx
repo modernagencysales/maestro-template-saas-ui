@@ -79,14 +79,18 @@ function ShowcasePage() {
         </Stack>
         {drawerOpen ? (
           <AddContactDrawer
-            defaultOpen
-            onOpenChange={(details) => setDrawerOpen(details.open)}
+            open
+            onOpenChange={(details: { open: boolean }) =>
+              setDrawerOpen(details.open)
+            }
             onSubmit={() => setDrawerOpen(false)}
           />
         ) : null}
         <FeedbackModal
           open={modalOpen}
-          onOpenChange={(details) => setModalOpen(details.open)}
+          onOpenChange={(details: { open: boolean }) =>
+            setModalOpen(details.open)
+          }
           onSubmit={() => setModalOpen(false)}
         />
       </Page.Body>

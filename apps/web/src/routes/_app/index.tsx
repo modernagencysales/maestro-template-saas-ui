@@ -13,7 +13,8 @@ export const Route = createFileRoute("/_app/")({
     }
 
     await context.convexClient.mutation(
-      templateConfectRefs.public.access.provisioning.ensureProvisioned,
+      templateConfectRefs.public.access.provisioning
+        .ensureProvisioned as never,
       {},
     );
 

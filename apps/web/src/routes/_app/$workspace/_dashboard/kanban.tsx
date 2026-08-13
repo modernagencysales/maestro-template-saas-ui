@@ -79,7 +79,7 @@ function KanbanPage() {
             {({ columns, items, activeId }) => (
               <HStack alignItems="stretch" gap="4" overflowX="auto">
                 {columns.map((columnId) => (
-                  <KanbanBoardColumn key={columnId} id={columnId}>
+                  <KanbanBoardColumn key={columnId} id={String(columnId)}>
                     {(items[columnId] ?? []).map((itemId) => (
                       <KanbanCard
                         key={itemId}

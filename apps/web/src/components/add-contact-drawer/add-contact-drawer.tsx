@@ -6,7 +6,7 @@ import * as Drawer from "@/components/ui/drawer/drawer";
 import * as FileUpload from "@/components/ui/file-upload/file-upload";
 import { Form, useAppForm } from "@/components/forms/index";
 import { Avatar } from "@/components/ui/avatar/avatar";
-import { Button } from "@/components/ui/button/button";
+import { Button } from "@saas-ui/react";
 
 export interface AddContactFormValues {
   profileImage: File | null;
@@ -21,11 +21,13 @@ export interface AddContactDrawerProps extends Omit<
   Drawer.RootProps,
   "children"
 > {
+  open?: boolean;
+  onOpenChange?: (details: { open: boolean }) => void;
   onSubmit: (values: AddContactFormValues) => Promise<void> | void;
 }
 
 export const AddContactDrawer: React.FC<AddContactDrawerProps> = (props) => {
-  const { onSubmit, ...rest } = props;
+  const { onSubmit, open, onOpenChange, ...rest } = props;
 
   const defaultValues: AddContactFormValues = {
     profileImage: null,
@@ -41,7 +43,7 @@ export const AddContactDrawer: React.FC<AddContactDrawerProps> = (props) => {
   });
 
   return (
-    <Drawer.Root {...rest}>
+    <Drawer.Root {...rest} {...({ open, onOpenChange } as never)}>
       <Drawer.Backdrop />
       <Form form={form}>
         <Drawer.Content>

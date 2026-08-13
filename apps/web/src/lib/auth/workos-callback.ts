@@ -1,3 +1,4 @@
+// eslint-disable-next-line complexity -- checks the provider's several error shapes at one boundary.
 function isProviderHttpError(
   error: unknown,
   seen = new WeakSet<object>(),
@@ -11,6 +12,7 @@ function isProviderHttpError(
     message?: unknown;
     status?: unknown;
     response?: { status?: unknown };
+    cause?: unknown;
   };
   return (
     candidate.name === "HTTPError" ||

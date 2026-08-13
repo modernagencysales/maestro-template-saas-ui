@@ -39,6 +39,7 @@ type QueryResult<TData = unknown> = {
   readonly isLoading?: boolean;
   readonly isPending?: boolean;
 };
+type ConvexQueryRef = Parameters<typeof convexQuery>[0];
 type MutationResult = {
   readonly mutate: (input?: unknown) => void;
   readonly mutateAsync: (input?: unknown) => Promise<unknown>;
@@ -163,14 +164,15 @@ function procedure<TData = unknown>(
 ): StarterProcedure<TData> {
   const key = path.join(".");
   const ref = realRefs[key as keyof typeof realRefs];
+  const convexRef = ref as unknown as ConvexQueryRef;
   return {
     useQuery: (input) => {
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) {
         const data = neutralData(key);
-        return { data, isLoading: false, isPending: false };
+        return { data: data as TData, isLoading: false, isPending: false };
       }
-      return useConvexQuery(ref, input ?? {}) as QueryResult<TData>;
+      return useConvexQuery(convexRef, input ?? {}) as QueryResult<TData>;
     },
     useSuspenseQuery: (input) => {
       if (!ref && !isNeutral(key)) neutral(key);
@@ -181,7 +183,7 @@ function procedure<TData = unknown>(
           { data: data as TData, isLoading: false, isPending: false },
         ];
       }
-      const result = useQuery(convexQuery(ref, input ?? {}));
+      const result = useQuery(convexQuery(convexRef, input ?? {}));
       return [result.data as TData, result as QueryResult<TData>];
     },
     ensureData: async (input) => {
@@ -189,7 +191,10 @@ function procedure<TData = unknown>(
       if (!ref) return neutralData(key) as TData;
       if (!client)
         throw new Error(`Router Convex client is required for ${key}`);
-      return client.query(ref, input ?? {}) as Promise<TData>;
+      return client.query(
+        convexRef as never,
+        (input ?? {}) as never,
+      ) as Promise<TData>;
     },
     getData: () =>
       (isNeutral(key) ? neutralData(key) : undefined) as TData | undefined,
