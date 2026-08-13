@@ -8,6 +8,10 @@
 
 ## Starter frontend authority
 
+- Upstream source file or Pro block: `None` / exact path and pinned commit
+- Deviation ledger entry: `None` / exact `docs/template/saas-ui-deviations.json`
+  entry
+- Desktop/mobile light/dark evidence: `None` / screenshot artifact paths
 - Pinned Starter/Pro source: `None` / exact path and commit
 - Receipt impact: `None` / updated `saas-ui-starter-files.json` or
   `saas-ui-registry-files.json`

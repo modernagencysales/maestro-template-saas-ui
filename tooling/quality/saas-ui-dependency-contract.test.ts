@@ -7,10 +7,10 @@ type PackageJson = Readonly<{
   devDependencies?: Readonly<Record<string, string>>;
 }>;
 
+const root = resolve(import.meta.dirname, "../..");
+
 function packageJson(path: string): PackageJson {
-  return JSON.parse(
-    readFileSync(resolve(process.cwd(), path), "utf8"),
-  ) as PackageJson;
+  return JSON.parse(readFileSync(resolve(root, path), "utf8")) as PackageJson;
 }
 
 describe("Saas UI Pro registry dependency contract", () => {
@@ -22,7 +22,7 @@ describe("Saas UI Pro registry dependency contract", () => {
     expect(dependencies).toMatchObject({
       "@ark-ui/react": "5.30.0",
       "@chakra-ui/react": "3.30.0",
-      "@saas-ui/chakra-preset": "3.0.0-next.10",
+      "@saas-ui/chakra-preset": "3.0.0-next.8",
       "@saas-ui/react": "3.0.0-next.51",
       "@saas-ui-pro/react": "1.0.0-next.4",
       "@tanstack/react-form": "^1.33.2",

@@ -13,5 +13,5 @@ the same route files, provider composition, and receipt hashes. Do not approve a
 target that projects `_workspace`, golden feature, business-shell, or custom
 navigation alternatives.
 
-Owner approval phrase: **Approved: generated routes preserve the pinned Starter
-authority and receipt.**
+Owner approval phrase: **Approved: pinned reference and generated target
+preserve the Starter authority and receipt.**
