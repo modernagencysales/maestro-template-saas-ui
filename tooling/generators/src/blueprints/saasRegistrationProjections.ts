@@ -1605,10 +1605,7 @@ export const buildSaasRegistrationProjections = (
         : []),
       ...(current
         ? CURRENT_EMAIL_CLOSURE.filter(
-            (path) =>
-              (workflowSelected || !path.startsWith("tooling/workflow/")) &&
-              (workflowSelected ||
-                path !== "apps/web/src/sample/templateData.test.ts"),
+            (path) => workflowSelected || !path.startsWith("tooling/workflow/"),
           )
         : []),
       ...(current ? CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE : []),
