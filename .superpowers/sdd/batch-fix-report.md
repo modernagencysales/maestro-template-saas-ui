@@ -1,30 +1,30 @@
 # Saas UI golden batch fix report
 
-Implementation commits: `03c4f908`, `25e8b983`, `cf0dd958`, `8a660a76`,
-`a4e8c755`, `a48c581`, `fd18ffb`.
+Implementation commits: `fbb25d543`, `76a958d8f`. Evidence commit: `8a85dd9`.
 
-Verification on final implementation head:
+Focused verification:
 
-- `host-test-slot --class full pnpm smoke:golden:browser` — 87 passed, 67
-  skipped.
-- `host-test-slot --class full pnpm smoke:golden:a11y` — 137 passed, 1 skipped.
-- `host-test-slot --class full pnpm smoke:golden:visual` — 98 passed, 2 skipped.
-- `host-test-slot --class focused pnpm exec vitest run tests/e2e/saas-ui-golden.authorities.test.ts`
-  — 13 passed.
-- `host-test-slot --class focused pnpm --dir tooling/generators test -- saasFrontendFoundation.test.ts saasFrontendGeneratedTarget.test.ts`
-  — 16 files, 220 passed.
-- `host-test-slot --class focused pnpm exec vitest run tooling/saas-ui/golden-summaries.test.ts`
-  — 14 passed.
-- `host-test-slot --class full pnpm saas-ui:write-summaries` — passed;
-  foundation, artifact safety, generator, browser, accessibility, and visual
-  commands all exited 0. The receipt is bound to final HEAD
-  `6bc5aaf42f2f50df3c6a1ac02490f3ce9689ef17` and generated digest
-  `c2691cf83fb9c98dbc24487f9a01edff77c935116cbd9cc82defa131eb4b7959`.
+- `rtk host-test-slot --class focused pnpm exec vitest run tooling/quality/saas-ui-artifact-safety.test.ts tooling/quality/check-saas-ui-artifact-safety.test.ts tooling/generators/src/blueprints/saasFrontendFoundation.test.ts`
+  — 3 files, 12 passed.
+- `rtk host-test-slot --class focused pnpm exec vitest run tooling/saas-ui/golden-summaries.test.ts tooling/release/src/index.test.ts`
+  — 2 files, 30 passed.
+- `rtk host-test-slot --class focused pnpm exec vitest run tooling/generators/src/blueprints/saasFrontendFoundation.test.ts tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts tooling/release/src/index.test.ts tooling/quality/saas-ui-artifact-safety.test.ts tooling/quality/check-saas-ui-artifact-safety.test.ts`
+  — 5 files, 33 passed.
 
-Evidence regenerated under `artifacts/saas-ui-golden/`, including authority
-metadata, browser interaction inventory (154 entries across the browser suites),
-accessibility inventory (138 entries from the accessibility suite), summaries,
-and curated visual captures. Disposable Playwright output and raw server-error
-logs were removed after verification.
+Canonical verification command:
+
+`rtk host-test-slot --class full pnpm saas-ui:write-summaries`
+
+All six commands exited 0: foundation, artifact safety, generator focused tests
+(16 files, 221 tests), browser (87 passed, 67 skipped), accessibility (137
+passed, 1 skipped), and visual (98 passed, 2 skipped).
+
+The receipt is bound to final HEAD `76a958d8f01dd490491e94d6feb0ca75115b618b`
+and generated digest
+`4fd55152cc72b9f4ce2d88cfd8cad9d8b9b3899e10d33bce873524006964c154`. Interaction
+and accessibility inventories have nonblank desktop/mobile project identities.
+Evidence contains 184 curated PNGs: 92 reference/generated pairs. The evidence
+paths contain no disposable Playwright output or raw `server-errors-*.jsonl`;
+those outputs were removed after the canonical run.
 
 No remaining verification concern.
