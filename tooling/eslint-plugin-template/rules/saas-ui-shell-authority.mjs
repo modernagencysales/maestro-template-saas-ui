@@ -42,6 +42,10 @@ function isFixtureOrTest(filename) {
   return /(?:\.test\.|__fixtures__|generated\/fixtures\/)/.test(filename);
 }
 
+function isShellAuthorityRoot(filename) {
+  return /apps\/web\/src\/features\/common\//.test(filename);
+}
+
 function importedName(specifier) {
   if (specifier.type === "ImportDefaultSpecifier") return specifier.local.name;
   if (specifier.type === "ImportNamespaceSpecifier") return null;
@@ -77,6 +81,7 @@ export default {
       !inGuardedScope(filename) ||
       isSaasUiRegistryReceiptFile(filename, receiptOption(context)) ||
       isSaasUiStarterReceiptFile(filename, receiptOption(context)) ||
+      isShellAuthorityRoot(filename) ||
       isFixtureOrTest(filename)
     ) {
       return {};

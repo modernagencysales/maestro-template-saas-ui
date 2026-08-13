@@ -1,27 +1,25 @@
 /**
  * frontend-route-server-boundary — TanStack Start routes stay declarative.
- * Server handlers are limited to the three WorkOS AuthKit auth routes
- * (callback/sign-in/sign-up — forward-guard: they do not exist in this repo
- * yet); loaders are limited to the root route and the workspace layout route
- * and must delegate to imported adapter functions.
+ * Server handlers are limited to the three WorkOS AuthKit auth routes;
+ * loaders are limited to root and app-layout routes. Receipt-managed Starter
+ * routes retain their pinned upstream composition.
  *
- * Upstream also allowed a `_solo` layout loader; this repo has no such layout,
- * so that entry was dropped. If a new top-level layout route needs a loader,
- * add its exact path to LOADER_ROUTES under review.
+ * If a new top-level layout route needs a loader, add its exact path to
+ * LOADER_ROUTES under review.
  */
 const SERVER_HANDLER_ROUTES = new Set([
-  "apps/web/src/routes/callback.tsx",
-  "apps/web/src/routes/sign-in.tsx",
-  "apps/web/src/routes/sign-up.tsx",
+  "apps/web/src/routes/api/auth/callback.tsx",
+  "apps/web/src/routes/api/auth/sign-in.tsx",
+  "apps/web/src/routes/api/auth/sign-up.tsx",
 ]);
 const LOADER_ROUTES = new Set([
   "apps/web/src/routes/__root.tsx",
-  "apps/web/src/routes/_workspace.tsx",
+  "apps/web/src/routes/_app.tsx",
 ]);
 const ROUTE_HELPERS = new Map([
-  ["handleCallbackRoute", "apps/web/src/routes/callback.tsx"],
-  ["getSignInUrl", "apps/web/src/routes/sign-in.tsx"],
-  ["getSignUpUrl", "apps/web/src/routes/sign-up.tsx"],
+  ["handleCallbackRoute", "apps/web/src/routes/api/auth/callback.tsx"],
+  ["getSignInUrl", "apps/web/src/routes/api/auth/sign-in.tsx"],
+  ["getSignUpUrl", "apps/web/src/routes/api/auth/sign-up.tsx"],
 ]);
 
 function isFile(filename, suffix) {
@@ -68,7 +66,13 @@ export default {
     docs: {
       description: "Restrict TanStack Start route server handlers and loaders",
     },
-    schema: [],
+    schema: [
+      {
+        type: "object",
+        properties: { receiptPath: { type: "string" } },
+        additionalProperties: false,
+      },
+    ],
     messages: {
       server:
         "Only callback/sign-in/sign-up Start routes may define `server.handlers`; move server behavior to an adapter or approved auth route.",
@@ -83,7 +87,12 @@ export default {
       /\\/g,
       "/",
     );
-    if (!isRouteModule(filename)) return {};
+    if (
+      !isRouteModule(filename) ||
+      isSaasUiStarterReceiptFile(filename, receiptOption(context))
+    ) {
+      return {};
+    }
 
     return {
       ImportDeclaration(node) {
@@ -120,3 +129,7 @@ export default {
     };
   },
 };
+import {
+  isSaasUiStarterReceiptFile,
+  receiptOption,
+} from "../saas-ui-registry-receipt.mjs";

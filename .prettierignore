@@ -6,6 +6,7 @@ coverage/
 .stryker-tmp/
 .turbo/
 .maestro/
+.superpowers/
 .claude/settings.json
 apps/*/dist/
 packages/*/dist/
@@ -26,3 +27,23 @@ CLAUDE.md
 agent-pack/official-convex/managed/convex-section.md
 agent-pack/official-convex/managed/guidelines.md
 packages/convex/convex/_generated/ai/guidelines.md
+# These files are unformatted in the pinned Starter commit; preserve them byte-for-byte.
+apps/web/src/features/auth/schema/forgot-password.schema.ts
+apps/web/src/features/auth/schema/password.schema.ts
+apps/web/src/features/auth/schema/reset-password.schema.ts
+apps/web/src/features/settings/account/schema/profile.schema.ts
+apps/web/src/features/settings/account/schema/update-password.schema.ts
+apps/web/src/features/settings/common/support-card.tsx
+packages/i18n/src/provider.server.tsx
+packages/ui/src/button/button.tsx
+packages/ui/src/help-center/help-center.tsx
+# Preserve receipt-managed Starter adaptations under their recorded hashes.
+apps/web/src/features/auth/auth-provider.tsx
+apps/web/src/features/common/components/app-sidebar.tsx
+apps/web/src/routes/__root.tsx
+apps/web/src/routes/_app.tsx
+apps/web/src/routes/_app/index.tsx
+apps/web/src/routes/_auth.tsx
+apps/web/src/routes/api/auth/$.ts
+apps/web/src/routes/api/trpc/$.ts
+apps/web/src/routes/api/webhooks/stripe.tsx

@@ -25,6 +25,7 @@ describe("Saas UI registry ESLint overrides", () => {
       rules: saasUiRegistryStandardRuleOverrides,
     });
     expect(Object.keys(config.rules)).toEqual([
+      "@typescript-eslint/ban-ts-comment",
       "@typescript-eslint/no-empty-object-type",
       "@typescript-eslint/no-explicit-any",
       "@typescript-eslint/no-non-null-assertion",

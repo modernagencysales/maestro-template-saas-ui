@@ -1,1 +1,1 @@
-export { system } from "./preset";
+export { system } from './preset'

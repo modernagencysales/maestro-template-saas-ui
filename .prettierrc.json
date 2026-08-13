@@ -1,4 +1,38 @@
 {
   "printWidth": 80,
-  "proseWrap": "always"
+  "proseWrap": "always",
+  "overrides": [
+    {
+      "files": [
+        "apps/web/src/config/**/*",
+        "apps/web/src/features/**/*",
+        "apps/web/src/hooks/**/*",
+        "apps/web/src/routes/**/*",
+        "apps/web/src/theme/**/*",
+        "apps/web/tsconfig.json",
+        "packages/config/**/*",
+        "packages/i18n/**/*",
+        "packages/ui/**/*"
+      ],
+      "options": {
+        "semi": false,
+        "trailingComma": "all",
+        "singleQuote": true,
+        "importOrder": [
+          "server-only",
+          "^react$",
+          "^react-dom$",
+          "^env$",
+          "<THIRD_PARTY_MODULES>",
+          "^@workspace/(.*)$",
+          "^#.(.*)$",
+          "^[./]"
+        ],
+        "importOrderSeparation": true,
+        "importOrderSortSpecifiers": true,
+        "importOrderGroupNamespaceSpecifiers": true,
+        "plugins": ["@trivago/prettier-plugin-sort-imports"]
+      }
+    }
+  ]
 }

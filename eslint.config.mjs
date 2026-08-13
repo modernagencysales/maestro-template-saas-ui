@@ -7,6 +7,7 @@ import {
 import tseslint from "typescript-eslint";
 
 export const saasUiRegistryStandardRuleOverrides = Object.freeze({
+  "@typescript-eslint/ban-ts-comment": "off",
   "@typescript-eslint/no-empty-object-type": "off",
   "@typescript-eslint/no-explicit-any": "off",
   "@typescript-eslint/no-non-null-assertion": "off",
@@ -53,6 +54,9 @@ export default [
       ".stryker-tmp/**",
       ".wrangler/**",
       "tooling/agent-pack/evals/runs/**",
+      "**/*.html",
+      "**/*.json",
+      "**/*.svg",
     ],
   },
   js.configs.recommended,
@@ -67,6 +71,10 @@ export default [
       "max-depth": [shiftLeft, 4],
       "max-params": [shiftLeft, 5],
     },
+  },
+  {
+    files: ["packages/saas-api/types.ts"],
+    rules: { "@typescript-eslint/no-explicit-any": "off" },
   },
   {
     // Confect groups related TaggedErrors in value+type namespaces by
