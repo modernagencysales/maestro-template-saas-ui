@@ -125,8 +125,8 @@
       "source": "apps/web/src/features/auth/signup-page.tsx",
       "destination": "apps/web/src/features/auth/signup-page.tsx",
       "sourceSha256": "716337d1b3084f7501df348c0a3dd8058e27e00a1c181ecd06e8bf92e79e83d0",
-      "sha256": "716337d1b3084f7501df348c0a3dd8058e27e00a1c181ecd06e8bf92e79e83d0",
-      "adapted": false
+      "sha256": "7d29683b2e40647296e7fb506b61437b14c95b5f5e63c3752c0ce364da023049",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/billing/components/payment-overdue-banner.tsx",
@@ -160,7 +160,7 @@
       "source": "apps/web/src/features/common/components/app-sidebar.tsx",
       "destination": "apps/web/src/features/common/components/app-sidebar.tsx",
       "sourceSha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "sha256": "b24ab28f7e769f134e5c94d710235b26089ab81462a7634701352ad84652f0fe",
+      "sha256": "a6cf920cfd473d47c0c95f0cf6061f08ace4af60f1186aab1c88b933280f7567",
       "adapted": true
     },
     {
@@ -762,7 +762,7 @@
       "source": "apps/web/src/router.tsx",
       "destination": "apps/web/src/router.tsx",
       "sourceSha256": "766662f448c564c65a9fce2ac3de05141e4bb2afa2e2ae0d7259deacc8c42785",
-      "sha256": "163365cbe884348eb792565df2d3a38bccc148e31d60c82e6857a0c3ac640959",
+      "sha256": "d5fa5a8950b86e43b40cffddd40806b19039b1fd25070e6e0a8e97759389feb1",
       "adapted": true
     },
     {
@@ -776,7 +776,7 @@
       "source": "apps/web/src/routes/_app.tsx",
       "destination": "apps/web/src/routes/_app.tsx",
       "sourceSha256": "cd3c1e5b89d2954f26c29340cdce2e0688a6a74f018282e128d102e883dcdab4",
-      "sha256": "ca75932e899dba0f7f31164da8c60138a7bcc0c2fb2069cfb06c78679fefb398",
+      "sha256": "a37434303d798d15ae69aea2d6a8c9c7656151f25969058853c40b90f8977198",
       "adapted": true
     },
     {
@@ -825,8 +825,8 @@
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
       "sourceSha256": "fda2f11c26ba2fb8fa93e8337ade9e2ab45bcdf0d6791ebb953b7397004f1ca6",
-      "sha256": "fda2f11c26ba2fb8fa93e8337ade9e2ab45bcdf0d6791ebb953b7397004f1ca6",
-      "adapted": false
+      "sha256": "a4d983bc38a3e1ee6661af2982beef6790b48b2e0b35239a30669dfdad718b6a",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
@@ -930,8 +930,8 @@
       "source": "apps/web/src/routes/_app/accept-invite/$token.tsx",
       "destination": "apps/web/src/routes/_app/accept-invite/$token.tsx",
       "sourceSha256": "4632d0de7b7ad40b692313b5f36d608d9c16f1d14cb796d357369192e8adc577",
-      "sha256": "4632d0de7b7ad40b692313b5f36d608d9c16f1d14cb796d357369192e8adc577",
-      "adapted": false
+      "sha256": "d3b0a68d03aa048ac70eebcdfc1904d928c8370e09b2e45684204eb9c57bab03",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/getting-started.tsx",
@@ -951,7 +951,7 @@
       "source": "apps/web/src/routes/_app/index.tsx",
       "destination": "apps/web/src/routes/_app/index.tsx",
       "sourceSha256": "1863f77e8fdd28809250795c60b4a453462d91a2240e13bb9698a9aeef08525b",
-      "sha256": "e788faccd4c3a155ca9bd183951510cef07228d3d96bb4ba0c18812e34cff704",
+      "sha256": "d78e94db634087f422b89ca6db5694a76541a0a58cbfbb701bfb2af11e530984",
       "adapted": true
     },
     {

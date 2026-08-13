@@ -6,7 +6,7 @@
       "source": "packages/blocks/drawers/add-contact-drawer/add-contact-drawer.tsx",
       "destination": "apps/web/src/components/add-contact-drawer/add-contact-drawer.tsx",
       "sourceSha256": "1481c3d483c0edc654cc00388cd02796dc143192edb4feeac9f7feec64f483a7",
-      "sha256": "ddd0b6b06d2dc43e7943dca1c670670a396f349b9357a3c86591584d34e2adf7"
+      "sha256": "85654903ed35676e49148a921afb18c9ee0bc11df4c2d7571173ab850a286056"
     },
     {
       "source": "packages/blocks/communication/chat-details/chat-details.tsx",
