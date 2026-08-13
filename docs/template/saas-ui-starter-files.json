@@ -160,8 +160,8 @@
       "source": "apps/web/src/features/common/components/app-sidebar.tsx",
       "destination": "apps/web/src/features/common/components/app-sidebar.tsx",
       "sourceSha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "sha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "adapted": false
+      "sha256": "b24ab28f7e769f134e5c94d710235b26089ab81462a7634701352ad84652f0fe",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/components/billing-status.tsx",
@@ -1014,8 +1014,8 @@
       "source": "apps/web/src/routeTree.gen.ts",
       "destination": "apps/web/src/routeTree.gen.ts",
       "sourceSha256": "45d73c4b308bfb015325284e5b601a8c4edc97e07768436c4eefdedfb000c8fa",
-      "sha256": "45d73c4b308bfb015325284e5b601a8c4edc97e07768436c4eefdedfb000c8fa",
-      "adapted": false
+      "sha256": "618e0da4c0faa7f414bd56b94352f498fc39d043e567fd3593bfb4e580ab25da",
+      "adapted": true
     },
     {
       "source": "apps/web/src/theme/preset.ts",

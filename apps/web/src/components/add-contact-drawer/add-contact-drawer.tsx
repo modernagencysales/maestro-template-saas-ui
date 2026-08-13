@@ -21,8 +21,6 @@ export interface AddContactDrawerProps extends Omit<
   Drawer.RootProps,
   "children"
 > {
-  defaultOpen?: boolean;
-  onOpenChange?: (details: { open: boolean }) => void;
   onSubmit: (values: AddContactFormValues) => Promise<void> | void;
 }
 
