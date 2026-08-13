@@ -6,6 +6,7 @@ test.beforeEach(async ({ page }) => {
   await page.locator('input[type="password"]').fill("DemoPassword123");
   await page.locator('input[type="password"]').press("Tab");
   await page.getByRole("button", { name: "Log in" }).click();
+  await expect(page.getByRole("heading", { name: "Reports" })).toBeVisible();
 });
 
 test("exposes Kanban and Showcase from the workspace sidebar", async ({
@@ -42,6 +43,24 @@ test("reorders a Kanban card by drag and drop", async ({ page }) => {
   await expect(page.getByTestId("kanban-column-done")).toContainText(
     "Import workspace sources",
   );
+});
+
+test("keeps every Kanban column inside the mobile viewport", async ({
+  page,
+}, testInfo) => {
+  test.skip(!testInfo.project.name.startsWith("mobile"));
+  await page.goto("/awesome-inc/kanban");
+  const columns = page.getByTestId(/^kanban-column-/u);
+  await expect(columns).toHaveCount(2);
+  for (const column of await columns.all()) {
+    const box = await column.boundingBox();
+    expect(box).not.toBeNull();
+    if (!box) throw new Error("Kanban column is not visible");
+    expect(box.width).toBeGreaterThan(300);
+    expect(box.x + box.width).toBeLessThanOrEqual(
+      await page.evaluate(() => window.innerWidth),
+    );
+  }
 });
 
 test("opens and closes the showcase drawer and modal", async ({ page }) => {

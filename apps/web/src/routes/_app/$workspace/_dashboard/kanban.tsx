@@ -77,7 +77,12 @@ function KanbanPage() {
             defaultItems={{ todo: ["task-1", "task-2"], done: ["task-3"] }}
           >
             {({ columns, items, activeId }) => (
-              <HStack alignItems="stretch" gap="4" overflowX="auto">
+              <HStack
+                alignItems="stretch"
+                gap="4"
+                flexDirection={{ base: "column", md: "row" }}
+                overflowX={{ base: "visible", md: "auto" }}
+              >
                 {columns.map((columnId) => (
                   <KanbanBoardColumn key={columnId} id={String(columnId)}>
                     {(items[columnId] ?? []).map((itemId) => (
