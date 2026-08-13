@@ -184,13 +184,14 @@ describe("SaaS UI generated target artifact boundary", () => {
   });
 
   it("builds and starts a freshly materialized customer target with frozen dependencies", async () => {
-    const plan = buildSaasApplicationTargetPlan({
+    const neutralPlan = buildSaasApplicationTargetPlan({ name: "Build Proof" });
+    const recordsPlan = buildSaasApplicationTargetPlan({
       name: "Build Proof",
       patterns: ["records-example"],
     });
     const target = mkdtempSync(join(tmpdir(), "saas-ui-generated-build-"));
     try {
-      for (const entry of plan.entries) {
+      for (const entry of neutralPlan.entries) {
         const path = join(target, entry.path);
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, entry.content);
@@ -198,7 +199,7 @@ describe("SaaS UI generated target artifact boundary", () => {
       expect(
         readFileSync(join(target, "tsconfig.base.json"), "utf8"),
       ).toContain('"strict": true');
-      const paths = new Set(plan.entries.map(({ path }) => path));
+      const paths = new Set(recordsPlan.entries.map(({ path }) => path));
       expect(
         paths.has("apps/web/src/adapters/confect-generated-refs.test.ts"),
       ).toBe(false);
@@ -270,6 +271,11 @@ describe("SaaS UI generated target artifact boundary", () => {
       command(["install", "--frozen-lockfile"]);
       command(["run", "typecheck:saas-ui:baseline"]);
       command(["--dir", "apps/web", "typecheck"]);
+      for (const entry of recordsPlan.entries) {
+        const path = join(target, entry.path);
+        mkdirSync(dirname(path), { recursive: true });
+        writeFileSync(path, entry.content);
+      }
       command(["--dir", "apps/web", "build"]);
       const routeTree = readFileSync(
         join(target, "apps/web/src/routeTree.gen.ts"),
