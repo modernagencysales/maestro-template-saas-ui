@@ -156,6 +156,22 @@ describe("saas application blueprint", () => {
       );
 
     const neutral = paths();
+    const rootTsconfig = (
+      patterns?: readonly ("records-example" | "workflow-automation")[],
+    ) => {
+      const entry = buildSelected({
+        name: "Selected App",
+        ...(patterns ? { patterns } : {}),
+      }).entries.find(({ path }) => path === "tsconfig.json");
+      if (entry === undefined) throw new Error("missing root tsconfig");
+      return JSON.parse(entry.content) as {
+        readonly references?: readonly { readonly path?: string }[];
+      };
+    };
+
+    expect(rootTsconfig().references).not.toContainEqual({
+      path: "./tooling/workflow",
+    });
     expect(neutral.has("features/records.feature")).toBe(false);
     expect(
       neutral.has("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"),
@@ -170,6 +186,9 @@ describe("saas application blueprint", () => {
     ).toBe(true);
 
     const records = paths(["records-example"]);
+    expect(rootTsconfig(["records-example"]).references).not.toContainEqual({
+      path: "./tooling/workflow",
+    });
     expect(records.has("features/records.feature")).toBe(true);
     expect(
       records.has("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"),
@@ -189,6 +208,9 @@ describe("saas application blueprint", () => {
       expect(records.has(path), path).toBe(false);
 
     const workflow = paths(["workflow-automation"]);
+    expect(rootTsconfig(["workflow-automation"]).references).toContainEqual({
+      path: "./tooling/workflow",
+    });
     expect(workflow.has("features/records.feature")).toBe(false);
     expect(workflow.has("tooling/workflow/package.json")).toBe(true);
     expect(workflow.has("tooling/workflow/tsconfig.json")).toBe(true);
@@ -1877,6 +1899,7 @@ Feature: Reconcile disputed invoices
         "apps/cli/src/factory/supportBundle.ts",
         ".npmrc",
         ".prettierignore",
+        "tsconfig.json",
         "package.json",
         "pnpm-lock.yaml",
         "patches/@confect__cli@10.0.0-next.9.patch",

@@ -800,6 +800,13 @@ const customerLockfile = (
   return value;
 };
 
+const customerRootTsconfig = (workflowSelected: boolean): string => {
+  const value = currentSource("tsconfig.json");
+  return workflowSelected
+    ? value
+    : replace(value, '    { "path": "./tooling/workflow" },\n', "");
+};
+
 const customerAgentPackCheck = (): string => {
   let value = currentSource("tooling/quality/check-agent-pack.mts");
   value = replace(
@@ -1484,6 +1491,14 @@ export const buildSaasRegistrationProjections = (
       : []),
     ...(current ? [{ path: ".npmrc", content: currentSource(".npmrc") }] : []),
     { path: ".prettierignore", content: currentSource(".prettierignore") },
+    ...(current
+      ? [
+          {
+            path: "tsconfig.json",
+            content: customerRootTsconfig(workflowSelected),
+          },
+        ]
+      : []),
     { path: "package.json", content: customerPackage(current, options) },
     ...(current
       ? [{ path: "pnpm-lock.yaml", content: customerLockfile(options) }]

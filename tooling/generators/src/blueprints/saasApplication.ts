@@ -763,6 +763,7 @@ function buildTargetPlan(
     ["docs/template/how-this-relates-to-maestro.md", "copy"],
     ["docs/template/repo-map.md", "copy"],
     ["docs/template/template-maturity-model.md", "copy"],
+    ["tsconfig.json", "generate"],
     ["package.json", "generate"],
     ["pnpm-workspace.yaml", "copy"],
     ["pnpm-lock.yaml", "copy"],
