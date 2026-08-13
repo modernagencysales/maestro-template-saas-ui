@@ -23,7 +23,6 @@ const baseline = (lockSha256: string): SaasUiTypecheckBaseline => ({
       line: 1,
       column: 1,
       code: "TS2322",
-      messageSha256: hash("Type 'string' is not assignable to type 'number'."),
     }),
   ),
 });
@@ -97,6 +96,24 @@ describe("Saas UI receipt-aware typecheck", () => {
         validate(
           root,
           diagnostic("apps/web/src/components/paid.tsx"),
+          baseline(lockSha256),
+        ),
+      ).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores platform-specific diagnostic message rendering", () => {
+    const { root, lockSha256 } = fixture();
+    try {
+      expect(
+        validate(
+          root,
+          diagnostic(
+            "apps/web/src/components/paid.tsx",
+            "Type was resolved through /linux/node_modules.",
+          ),
           baseline(lockSha256),
         ),
       ).toEqual([]);

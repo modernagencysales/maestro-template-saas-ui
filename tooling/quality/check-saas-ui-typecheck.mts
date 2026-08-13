@@ -20,7 +20,6 @@ export type SaasUiTypecheckDiagnostic = Readonly<{
   line: number;
   column: number;
   code: string;
-  messageSha256: string;
 }>;
 
 export type SaasUiTypecheckBaseline = Readonly<{
@@ -103,13 +102,12 @@ export const parseSaasUiTypecheckDiagnostics = (
   output.split("\n").flatMap((line) => {
     const match = diagnosticPattern.exec(line);
     if (!match) return [];
-    const [, path, lineNumber, column, code, message] = match;
+    const [, path, lineNumber, column, code] = match;
     if (
       path === undefined ||
       lineNumber === undefined ||
       column === undefined ||
-      code === undefined ||
-      message === undefined
+      code === undefined
     )
       return [];
     const absolute = resolve(root, path);
@@ -120,7 +118,6 @@ export const parseSaasUiTypecheckDiagnostics = (
         line: Number(lineNumber),
         column: Number(column),
         code,
-        messageSha256: sha256(message),
       },
     ];
   });
