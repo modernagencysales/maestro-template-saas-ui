@@ -1161,8 +1161,8 @@
       "source": "packages/i18n/tsconfig.json",
       "destination": "packages/i18n/tsconfig.json",
       "sourceSha256": "d9860e0d2069a01f2424470de1399bbcd50d8a3bd18e3c56dda41c2909af7982",
-      "sha256": "d9860e0d2069a01f2424470de1399bbcd50d8a3bd18e3c56dda41c2909af7982",
-      "adapted": false
+      "sha256": "8cf99dccbf3e3985e57e918c6cbcf609004c6afce52a1a02cc66a88e7716c3bf",
+      "adapted": true
     },
     {
       "source": "packages/ui/.babelrc.json",
