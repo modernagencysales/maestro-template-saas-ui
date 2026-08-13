@@ -293,13 +293,28 @@ const checkoutState = async (root: string): Promise<Buffer | undefined> => {
     repository.stdout.toString("utf8").trim() !== "true"
   )
     return undefined;
-  const [status, diff] = await Promise.all([
+  const [head, status, cachedDiff, diff] = await Promise.all([
+    runGit(root, ["rev-parse", "HEAD"]),
     runGit(root, ["status", "--porcelain=v1", "--untracked-files=all", "-z"]),
+    runGit(root, ["diff", "--cached", "--binary", "--no-ext-diff"]),
     runGit(root, ["diff", "--binary", "--no-ext-diff"]),
   ]);
-  if (status.exitCode !== 0 || diff.exitCode !== 0)
+  if (
+    head.exitCode !== 0 ||
+    status.exitCode !== 0 ||
+    cachedDiff.exitCode !== 0 ||
+    diff.exitCode !== 0
+  )
     throw new Error("could not capture Git checkout state");
-  return Buffer.concat([status.stdout, Buffer.from([0]), diff.stdout]);
+  return Buffer.concat([
+    head.stdout,
+    Buffer.from([0]),
+    status.stdout,
+    Buffer.from([0]),
+    cachedDiff.stdout,
+    Buffer.from([0]),
+    diff.stdout,
+  ]);
 };
 
 const assertCheckoutState = async (

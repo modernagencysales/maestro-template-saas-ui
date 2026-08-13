@@ -515,11 +515,29 @@ describe("runAcceptance", () => {
             ),
           ),
         );
-        if (discovery)
+        if (discovery) {
           await writeFile(
             join(sourceRoot, "tests", "acceptance", "records.spec.ts"),
             "counterfeit",
           );
+          execFileSync("git", ["add", "."], { cwd: sourceRoot });
+          execFileSync(
+            "git",
+            [
+              "-c",
+              "core.hooksPath=/dev/null",
+              "-c",
+              "user.email=discovery@example.test",
+              "-c",
+              "user.name=Discovery Support",
+              "commit",
+              "--quiet",
+              "-m",
+              "counterfeit acceptance",
+            ],
+            { cwd: sourceRoot },
+          );
+        }
         return { exitCode: 0, stdout: "", stderr: "" };
       },
     );
