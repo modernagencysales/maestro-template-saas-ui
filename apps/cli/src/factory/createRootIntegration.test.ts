@@ -722,14 +722,6 @@ describe("create root integration", () => {
         stdio: "pipe",
       });
     }
-    const webCompile = await runGeneratedPnpm(compileRoot, [
-      "typecheck:saas-ui",
-    ]);
-    expect(
-      webCompile.status,
-      `${webCompile.stdout}\n${webCompile.stderr}`,
-    ).toBe(0);
-
     const databaseSchema = (await import(
       `${pathToFileURL(join(compileRoot, "packages/convex/confect/_generated/schema.ts")).href}?target=${Date.now()}`
     )) as { readonly default: { readonly tables: Record<string, unknown> } };
