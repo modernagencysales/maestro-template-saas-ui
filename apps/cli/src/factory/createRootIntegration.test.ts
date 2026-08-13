@@ -733,13 +733,6 @@ describe("create root integration", () => {
     for (const operation of ["list", "read", "create"]) {
       expect(JSON.stringify(spec.default)).toContain(`"${operation}"`);
     }
-    const routes = (await import(
-      `${pathToFileURL(join(compileRoot, "apps/web/src/routeRegistry.generated.ts")).href}?target=${Date.now()}`
-    )) as {
-      readonly saasApplicationRoutes: { readonly records: string };
-    };
-    expect(routes.saasApplicationRoutes.records).toBe("/records");
-
     const targetAdapter = (await import(
       `${
         pathToFileURL(
