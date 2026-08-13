@@ -1063,8 +1063,8 @@
       "source": "packages/config/package.json",
       "destination": "packages/config/package.json",
       "sourceSha256": "32ea13ab54adf331a95663c71ea117e4b2395fbbdba2db6605dc38990b00b0a6",
-      "sha256": "32ea13ab54adf331a95663c71ea117e4b2395fbbdba2db6605dc38990b00b0a6",
-      "adapted": false
+      "sha256": "5314fd35323f6ed1d7aff16e1e50bead2fbc12ccdf2f554d62ea135a6a3483c8",
+      "adapted": true
     },
     {
       "source": "packages/config/tsconfig.json",
