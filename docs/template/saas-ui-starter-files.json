@@ -1070,8 +1070,8 @@
       "source": "packages/config/tsconfig.json",
       "destination": "packages/config/tsconfig.json",
       "sourceSha256": "3b42ffe5430441a3a500a8117e0146e91c067d3e146e1e6f7f5684decd5ed944",
-      "sha256": "3b42ffe5430441a3a500a8117e0146e91c067d3e146e1e6f7f5684decd5ed944",
-      "adapted": false
+      "sha256": "2a7733f6f51ae60006b487eb6d87f51e913abb7dd64f50d867bbe2eeeebae745",
+      "adapted": true
     },
     {
       "source": "packages/i18n/lang/.empty",
