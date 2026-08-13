@@ -6,6 +6,7 @@ import {
   appendResponseCookies,
   StartCookieSessionStorage,
 } from "#lib/auth/workos-cookie-session-storage";
+import { appendStaleVerifierDeletes } from "#lib/auth/workos-auth-entry";
 
 export const Route = createFileRoute("/api/auth/sign-up")({
   server: {
@@ -24,6 +25,13 @@ export const Route = createFileRoute("/api/auth/sign-up")({
         const headers = new Headers({ Location: result.url });
         appendResponseCookies(headers, result.response);
         appendHeaderBag(headers, result.headers);
+        await appendStaleVerifierDeletes(
+          auth,
+          request,
+          result.cookieName,
+          headers,
+          getConfig("redirectUri"),
+        );
         return new Response(null, { status: 307, headers });
       },
     },

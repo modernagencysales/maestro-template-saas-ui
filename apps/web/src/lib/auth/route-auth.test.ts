@@ -12,6 +12,8 @@ describe("protected route auth", () => {
     expect(safeReturnPath("/awesome-inc/dashboard?tab=all")).toBe(
       "/awesome-inc/dashboard?tab=all",
     );
+    expect(safeReturnPath("/\\\\evil.example/path")).toBe("/");
+    expect(safeReturnPath("/safe\npath")).toBe("/");
   });
 
   it("returns client-safe auth for an authenticated context", () => {

@@ -7,7 +7,7 @@ import { templateConfectRefs } from "../../../../../packages/convex/src/refs";
 
 export const Route = createFileRoute("/_app/")({
   beforeLoad: async ({ context }) => {
-    if (!context.session) {
+    if (!context.auth?.user) {
       throw redirect({
         to: "/login",
       });

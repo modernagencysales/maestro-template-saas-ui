@@ -42,8 +42,16 @@ describe("WorkOS auth adapter", () => {
   it("returns an unauthenticated initial state when auth context is unavailable", () => {
     expect(
       loadInitialAuth(() => {
-        throw new Error("middleware unavailable");
+        throw "HTTPError";
       }),
     ).toEqual({ user: null });
+  });
+
+  it("does not hide unexpected auth failures", () => {
+    expect(() =>
+      loadInitialAuth(() => {
+        throw new Error("configuration failure");
+      }),
+    ).toThrow("configuration failure");
   });
 });

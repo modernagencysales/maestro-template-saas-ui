@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getAuthKitContext } from "@workos/authkit-tanstack-react-start";
+import { handleWorkosLogout } from "#lib/auth/workos-logout";
 
 export const Route = createFileRoute("/api/auth/$")({
   server: {
@@ -19,7 +20,7 @@ export const Route = createFileRoute("/api/auth/$")({
         }
         return new Response("Not found", { status: 404 });
       },
-      POST: async () => new Response(null, { status: 204 }),
+      POST: async ({ request }) => handleWorkosLogout(request),
     },
   },
 });

@@ -1,6 +1,11 @@
-function isProviderHttpError(error: unknown): boolean {
+function isProviderHttpError(
+  error: unknown,
+  seen = new WeakSet<object>(),
+): boolean {
   if (error === "HTTPError") return true;
   if (typeof error !== "object" || error === null) return false;
+  if (seen.has(error)) return false;
+  seen.add(error);
   const candidate = error as {
     name?: unknown;
     message?: unknown;
@@ -12,7 +17,8 @@ function isProviderHttpError(error: unknown): boolean {
     candidate.message === "HTTPError" ||
     (typeof candidate.status === "number" && candidate.status >= 400) ||
     (typeof candidate.response?.status === "number" &&
-      candidate.response.status >= 400)
+      candidate.response.status >= 400) ||
+    isProviderHttpError(candidate.cause, seen)
   );
 }
 
