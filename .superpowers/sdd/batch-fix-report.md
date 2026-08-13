@@ -13,15 +13,18 @@ Verification on final implementation head:
   — 13 passed.
 - `host-test-slot --class focused pnpm --dir tooling/generators test -- saasFrontendFoundation.test.ts saasFrontendGeneratedTarget.test.ts`
   — 16 files, 220 passed.
+- `host-test-slot --class focused pnpm exec vitest run tooling/saas-ui/golden-summaries.test.ts`
+  — 14 passed.
 - `host-test-slot --class full pnpm saas-ui:write-summaries` — passed;
   foundation, artifact safety, generator, browser, accessibility, and visual
   commands all exited 0. The receipt is bound to final HEAD
-  `fd18ffb3bd3cceae46bf2cbc3693394efa63efa8` and generated digest
+  `6bc5aaf42f2f50df3c6a1ac02490f3ce9689ef17` and generated digest
   `c2691cf83fb9c98dbc24487f9a01edff77c935116cbd9cc82defa131eb4b7959`.
 
 Evidence regenerated under `artifacts/saas-ui-golden/`, including authority
-metadata, Playwright inventories, accessibility results, interaction results,
-summaries, and curated visual captures. Disposable Playwright output and raw
-server-error logs were removed after verification.
+metadata, browser interaction inventory (154 entries across the browser suites),
+accessibility inventory (138 entries from the accessibility suite), summaries,
+and curated visual captures. Disposable Playwright output and raw server-error
+logs were removed after verification.
 
 No remaining verification concern.

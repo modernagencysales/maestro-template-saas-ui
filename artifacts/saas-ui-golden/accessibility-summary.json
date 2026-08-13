@@ -1,8 +1,8 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T00:13:25.288Z",
+  "generatedAt": "2026-08-13T00:33:18.740Z",
   "status": "passed",
-  "finalHead": "fd18ffb3bd3cceae46bf2cbc3693394efa63efa8",
+  "finalHead": "6bc5aaf42f2f50df3c6a1ac02490f3ce9689ef17",
   "pins": {
     "template": "acf0bc4be38dea842f321831387fc77cf7242439",
     "starter": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
@@ -18,49 +18,49 @@
   "commands": [
     {
       "command": "pnpm check:saas-ui-foundation",
-      "startedAt": "2026-08-13T00:05:21.183Z",
-      "finishedAt": "2026-08-13T00:05:22.198Z",
-      "completedAt": "2026-08-13T00:05:22.198Z",
+      "startedAt": "2026-08-13T00:25:59.118Z",
+      "finishedAt": "2026-08-13T00:26:00.136Z",
+      "completedAt": "2026-08-13T00:26:00.136Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm check:saas-ui-artifact-safety",
-      "startedAt": "2026-08-13T00:05:22.198Z",
-      "finishedAt": "2026-08-13T00:05:23.162Z",
-      "completedAt": "2026-08-13T00:05:23.162Z",
+      "startedAt": "2026-08-13T00:26:00.136Z",
+      "finishedAt": "2026-08-13T00:26:01.102Z",
+      "completedAt": "2026-08-13T00:26:01.102Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm --dir tooling/generators test -- saasFrontendFoundation.test.ts saasFrontendGeneratedTarget.test.ts",
-      "startedAt": "2026-08-13T00:05:23.162Z",
-      "finishedAt": "2026-08-13T00:06:37.275Z",
-      "completedAt": "2026-08-13T00:06:37.275Z",
+      "startedAt": "2026-08-13T00:26:01.102Z",
+      "finishedAt": "2026-08-13T00:27:05.675Z",
+      "completedAt": "2026-08-13T00:27:05.675Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm smoke:golden:browser",
-      "startedAt": "2026-08-13T00:06:37.275Z",
-      "finishedAt": "2026-08-13T00:08:27.371Z",
-      "completedAt": "2026-08-13T00:08:27.371Z",
+      "startedAt": "2026-08-13T00:27:05.675Z",
+      "finishedAt": "2026-08-13T00:28:42.256Z",
+      "completedAt": "2026-08-13T00:28:42.256Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm smoke:golden:a11y",
-      "startedAt": "2026-08-13T00:08:27.371Z",
-      "finishedAt": "2026-08-13T00:11:07.541Z",
-      "completedAt": "2026-08-13T00:11:07.541Z",
+      "startedAt": "2026-08-13T00:28:42.256Z",
+      "finishedAt": "2026-08-13T00:31:03.716Z",
+      "completedAt": "2026-08-13T00:31:03.716Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm smoke:golden:visual",
-      "startedAt": "2026-08-13T00:11:07.541Z",
-      "finishedAt": "2026-08-13T00:13:25.271Z",
-      "completedAt": "2026-08-13T00:13:25.271Z",
+      "startedAt": "2026-08-13T00:31:03.716Z",
+      "finishedAt": "2026-08-13T00:33:18.725Z",
+      "completedAt": "2026-08-13T00:33:18.725Z",
       "exitCode": 0,
       "result": "exitCode=0"
     }
@@ -68,604 +68,928 @@
   "resultInventories": {
     "interaction": [
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dark mode changes computed theme and screenshot evidence",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > app-shell renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings readiness reaches profile on both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > dashboard-report renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > app-shell ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > data-grid renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dashboard-report ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > filterable-collection renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > data-grid ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > list-detail renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > filterable-collection ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > split-inbox renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > list-detail ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > record-aside renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > split-inbox ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > settings renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > record-aside ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > form renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > onboarding renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > form ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > kanban renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > onboarding ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > auth renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > kanban ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > billing renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > auth ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > search-command renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > billing ready-read light captures both authorities",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > states renders its mapped composition on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > search-command ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > app-shell ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dashboard-report ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > data-grid ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > filterable-collection ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > list-detail ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > split-inbox ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > record-aside ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > form ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > onboarding ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > kanban ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > auth ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > billing ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > search-command ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states loading light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states loading dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states empty light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states empty dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-edit light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-edit dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-success light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-success dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-failure light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-failure dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states error light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states error dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states not-found light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states not-found dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states permission-denied light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states permission-denied dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dark mode changes computed theme and screenshot evidence",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings readiness reaches profile on both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > app-shell ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dashboard-report ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > data-grid ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > filterable-collection ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > list-detail ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > split-inbox ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > record-aside ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > form ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > onboarding ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > kanban ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > auth ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > billing ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > search-command ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-read light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > app-shell ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dashboard-report ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > data-grid ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > filterable-collection ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > list-detail ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > split-inbox ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > record-aside ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > form ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > onboarding ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > kanban ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > auth ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > billing ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > search-command ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-read dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states loading light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states loading dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states empty light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states empty dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-edit light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-edit dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-success light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-success dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-failure light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-failure dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states error light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states error dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states not-found light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states not-found dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states permission-denied light captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states permission-denied dark captures both authorities",
-        "project": "",
-        "status": "expected"
-      },
-      {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > mobile shell geometry > reserves a lane for the sidebar trigger",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > app-shell renders its mapped composition on both authorities",
         "project": "",
         "status": "skipped"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > mobile shell geometry > keeps page headings clear of the sidebar trigger",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > dashboard-report renders its mapped composition on both authorities",
         "project": "",
         "status": "skipped"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > mobile shell geometry > reserves a lane for the sidebar trigger",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > data-grid renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > filterable-collection renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > list-detail renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > split-inbox renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > record-aside renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > settings renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > form renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > onboarding renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > kanban renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > auth renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > billing renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > search-command renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > states renders its mapped composition on both authorities",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture loading hydrates on both authorities",
         "project": "",
         "status": "expected"
       },
       {
-        "file": "saas-ui-golden.visual.spec.ts",
-        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > mobile shell geometry > keeps page headings clear of the sidebar trigger",
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture empty hydrates on both authorities",
         "project": "",
         "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture ready-read hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture ready-edit hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture mutation-success hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture mutation-failure hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture error hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture not-found hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture permission-denied hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture loading hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture empty hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture ready-read hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture ready-edit hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture mutation-success hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture mutation-failure hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture error hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture not-found hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture permission-denied hydrates on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > golden capture preconditions > seeds dark mode and a consent decision before ready content",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.acceptance.spec.ts",
+        "title": "saas-ui-golden.acceptance.spec.ts > golden capture preconditions > seeds dark mode and a consent decision before ready content",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference shell collapse, resize, persistence, and flyout",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference workspace and user menus expose named commands",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference global search accepts keyboard shortcut and query",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference data grid filters, sorts, pages, and selects",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference removes an active collection filter",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference navigates list to detail and switches the record aside",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference selects an inbox item in the split view",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches billing",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches profile",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches security",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference report period selection changes the active period",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference form covers validation, success, and failure",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference advances onboarding after invalid and valid form states",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference drags a Kanban card between columns",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference moves the exact Kanban card by keyboard through the adapter",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference auth form validates credentials and preserves input",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference billing validates email before an update",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference ready-edit state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference mutation-failure state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference error state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference not-found state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference permission-denied state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated shell collapse, resize, persistence, and flyout",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated workspace and user menus expose named commands",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated global search accepts keyboard shortcut and query",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated data grid filters, sorts, pages, and selects",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated removes an active collection filter",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated navigates list to detail and switches the record aside",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated selects an inbox item in the split view",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches billing",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches profile",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches security",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated report period selection changes the active period",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated form covers validation, success, and failure",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated advances onboarding after invalid and valid form states",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated drags a Kanban card between columns",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated moves the exact Kanban card by keyboard through the adapter",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated auth form validates credentials and preserves input",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated billing validates email before an update",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated ready-edit state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated mutation-failure state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated error state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated not-found state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated permission-denied state performs its recovery action",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference shell collapse, resize, persistence, and flyout",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference workspace and user menus expose named commands",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference global search accepts keyboard shortcut and query",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference data grid filters, sorts, pages, and selects",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference removes an active collection filter",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference navigates list to detail and switches the record aside",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference selects an inbox item in the split view",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches billing",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches profile",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches security",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference report period selection changes the active period",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference form covers validation, success, and failure",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference advances onboarding after invalid and valid form states",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference drags a Kanban card between columns",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference moves the exact Kanban card by keyboard through the adapter",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference auth form validates credentials and preserves input",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference billing validates email before an update",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference ready-edit state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference mutation-failure state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference error state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference not-found state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference permission-denied state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated shell collapse, resize, persistence, and flyout",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated workspace and user menus expose named commands",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated global search accepts keyboard shortcut and query",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated data grid filters, sorts, pages, and selects",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated removes an active collection filter",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated navigates list to detail and switches the record aside",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated selects an inbox item in the split view",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches billing",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches profile",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches security",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated report period selection changes the active period",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated form covers validation, success, and failure",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated advances onboarding after invalid and valid form states",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated drags a Kanban card between columns",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated moves the exact Kanban card by keyboard through the adapter",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated auth form validates credentials and preserves input",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated billing validates email before an update",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated ready-edit state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated mutation-failure state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated error state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated not-found state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated permission-denied state performs its recovery action",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile shell behavior > reference mobile shell keeps the desktop flyout trigger hidden",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile shell behavior > generated mobile shell keeps the desktop flyout trigger hidden",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile shell behavior > reference mobile shell keeps the desktop flyout trigger hidden",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile shell behavior > generated mobile shell keeps the desktop flyout trigger hidden",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile dashboard and data-grid reflow > reference keeps report metrics and data-grid controls usable at 320px",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile dashboard and data-grid reflow > generated keeps report metrics and data-grid controls usable at 320px",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile dashboard and data-grid reflow > reference keeps report metrics and data-grid controls usable at 320px",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile dashboard and data-grid reflow > generated keeps report metrics and data-grid controls usable at 320px",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile inbox behavior > reference switches between one inbox pane at a time",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile inbox behavior > generated switches between one inbox pane at a time",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile inbox behavior > reference switches between one inbox pane at a time",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.interactions.spec.ts",
+        "title": "saas-ui-golden.interactions.spec.ts > paired mobile inbox behavior > generated switches between one inbox pane at a time",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.spec.ts",
+        "title": "saas-ui-golden.spec.ts > paired Saas UI golden behavior > paired authorities expose the authenticated workspace shell",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.spec.ts",
+        "title": "saas-ui-golden.spec.ts > paired Saas UI golden behavior > paired authorities keep the shell keyboard-operable",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.spec.ts",
+        "title": "saas-ui-golden.spec.ts > paired Saas UI golden behavior > paired authorities expose the authenticated workspace shell",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.spec.ts",
+        "title": "saas-ui-golden.spec.ts > paired Saas UI golden behavior > paired authorities keep the shell keyboard-operable",
+        "project": "",
+        "status": "skipped"
       }
     ],
     "accessibility": [
