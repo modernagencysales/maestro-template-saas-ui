@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   safeReturnPath,
+  loadRouteAuth,
   requireAuthenticatedRoute,
 } from "#lib/auth/route-auth";
 
@@ -28,8 +29,25 @@ describe("protected route auth", () => {
   it("redirects when the real AuthKit route context has no user", () => {
     expect(() =>
       requireAuthenticatedRoute({
+        auth: { user: null },
         location: { pathname: "/awesome-inc", searchStr: "?tab=all" },
       }),
     ).toThrow();
+  });
+
+  it("redirects for a recoverable AuthKit provider failure", () => {
+    expect(
+      loadRouteAuth(() => {
+        throw "HTTPError";
+      }),
+    ).toEqual({ user: null });
+  });
+
+  it("propagates unexpected AuthKit failures", () => {
+    expect(() =>
+      loadRouteAuth(() => {
+        throw new Error("config failure");
+      }),
+    ).toThrow("config failure");
   });
 });
