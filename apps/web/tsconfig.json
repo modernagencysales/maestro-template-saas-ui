@@ -25,7 +25,8 @@
       "#features/*": ["./src/features/*"],
       "#lib/*": ["./src/lib/*"],
       "#utils/*": ["./src/utils/*"],
-      "#theme/*": ["./src/theme/*"]
+      "#theme/*": ["./src/theme/*"],
+    "@maestro-template/convex/refs": ["../../packages/convex/src/refs.ts"]
     }
   },
   "include": ["src"],

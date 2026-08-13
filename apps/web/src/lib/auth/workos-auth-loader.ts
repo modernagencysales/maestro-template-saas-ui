@@ -1,9 +1,10 @@
-type RawAuth = {
-  readonly accessToken?: string;
-  readonly user: unknown;
-  readonly [key: string]: unknown;
-};
 import { getAuthKitContext } from "@workos/authkit-tanstack-react-start";
+import type {
+  NoUserInfo,
+  UserInfo,
+} from "@workos/authkit-tanstack-react-start";
+
+type RawAuth = UserInfo | NoUserInfo;
 
 function isRecoverableAuthError(error: unknown): boolean {
   if (error === "HTTPError") return true;
@@ -26,13 +27,14 @@ function isRecoverableAuthError(error: unknown): boolean {
 }
 
 export function stripAccessToken(auth: RawAuth) {
+  if (!auth.user) return auth;
   const { accessToken: _accessToken, ...safe } = auth;
   void _accessToken;
   return safe;
 }
 
 export function loadInitialAuth(
-  getAuth: () => RawAuth = () => getAuthKitContext().auth() as RawAuth,
+  getAuth: () => RawAuth = () => getAuthKitContext().auth(),
 ) {
   try {
     return stripAccessToken(getAuth());

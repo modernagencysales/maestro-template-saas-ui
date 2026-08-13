@@ -19,10 +19,11 @@ import { seo } from "#utils/seo.ts";
 import { Provider } from "../provider.tsx";
 import { loadInitialAuth } from "#lib/auth/workos-auth-loader";
 import { useAuthFromAuthKit } from "#lib/auth/workos-auth";
+import type { CompatibilityApi } from "#lib/trpc/react";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
-  trpc: any;
+  trpc: CompatibilityApi;
   convexClient: import("convex/react").ConvexReactClient;
   convexQueryClient: import("@convex-dev/react-query").ConvexQueryClient;
 }>()({
@@ -61,7 +62,7 @@ function BaseRootDocument(props: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <AuthKitProvider initialAuth={Route.useLoaderData().auth as any}>
+        <AuthKitProvider initialAuth={Route.useLoaderData().auth}>
           <ConvexProviderWithAuth
             client={Route.useRouteContext().convexClient}
             useAuth={useAuthFromAuthKit}

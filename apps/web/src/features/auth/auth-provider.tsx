@@ -36,8 +36,7 @@ export const authService: Pick<
   onLogin: async () => redirectToAuth("sign-in") as never,
   onSignup: async () => redirectToAuth("sign-up") as never,
   onLogout: async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    window.location.reload();
+    window.location.assign("/api/auth/logout");
   },
 };
 
