@@ -8,7 +8,8 @@ fork adds domain-specific screens:
 
 ```text
 TanStack Start route
--> Saas UI business shell
+-> features/common/layouts/app-layout.tsx
+-> features/common/layouts/dashboard-layout.tsx + app-sidebar.tsx
 -> feature component
 -> apps/web/src/adapters/confect-state.ts
 -> generated @confect/react ref
@@ -20,21 +21,24 @@ TanStack Start route
 
 Use these files as the first pattern when adding a client-specific entity:
 
-| Purpose                  | File                                                              |
-| ------------------------ | ----------------------------------------------------------------- |
-| Business shell           | `apps/web/src/saas-ui/business-shell.tsx`                         |
-| Live query card          | `apps/web/src/features/workflows/live-runs-panel.tsx`             |
-| Pure query presenter     | `apps/web/src/features/workflows/live-runs-presenter.ts`          |
-| Query and mutation route | `apps/web/src/features/data-lifecycle/data-lifecycle-surface.tsx` |
-| Frontend state adapter   | `apps/web/src/adapters/confect-state.ts`                          |
-| Effect boundary adapter  | `apps/web/src/adapters/effectBoundary.ts`                         |
-| Example read contract    | `packages/convex/confect/demo/showcase.spec.ts`                   |
-| Example write contract   | `packages/convex/confect/ops/dataLifecycle.spec.ts`               |
+| Purpose                  | File                                                                                                                      |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------- |
+| Business shell           | `apps/web/src/features/common/layouts/app-layout.tsx`                                                                     |
+| Dashboard shell          | `apps/web/src/features/common/layouts/dashboard-layout.tsx` and `apps/web/src/features/common/components/app-sidebar.tsx` |
+| Live query card          | `apps/web/src/features/workflows/live-runs-panel.tsx`                                                                     |
+| Pure query presenter     | `apps/web/src/features/workflows/live-runs-presenter.ts`                                                                  |
+| Query and mutation route | `apps/web/src/features/data-lifecycle/data-lifecycle-surface.tsx`                                                         |
+| Frontend state adapter   | `apps/web/src/adapters/confect-state.ts`                                                                                  |
+| Effect boundary adapter  | `apps/web/src/adapters/effectBoundary.ts`                                                                                 |
+| Example read contract    | `packages/convex/confect/demo/showcase.spec.ts`                                                                           |
+| Example write contract   | `packages/convex/confect/ops/dataLifecycle.spec.ts`                                                                       |
 
 ## Labels
 
-- **Saas UI shell:** owns the visible business-app layout, nav, cards, tables,
-  buttons, badges, and responsive route pages.
+- **Upstream layout authority:** `app-layout.tsx`, `dashboard-layout.tsx`, and
+  `app-sidebar.tsx` own the visible business-app layout, nav, and responsive
+  route composition. See
+  [SaaS UI frontend authority](./saas-ui-frontend-authority.md).
 - **Confect hooks:** default data path for Convex-backed server state.
 - **Convex React Query:** router/cache integration only; do not wrap arbitrary
   Effect programs in TanStack Query.

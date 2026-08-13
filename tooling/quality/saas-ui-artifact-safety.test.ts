@@ -174,7 +174,7 @@ describe("Saas UI artifact safety", () => {
     }
   });
 
-  it("reads an optional starter receipt without requiring one", () => {
+  it("fails closed when a required starter receipt exposes paid source", () => {
     const root = createFixture({
       starterReceiptDestination: "src/starter-paid.ts",
       packagePatch: {

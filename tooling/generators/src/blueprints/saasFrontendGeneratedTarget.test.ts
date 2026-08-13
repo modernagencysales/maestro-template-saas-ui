@@ -123,6 +123,84 @@ describe("SaaS UI generated target artifact boundary", () => {
       expect(paths.has(path), path).toBe(true);
   });
 
+  it("loads every advertised golden smoke module from a fresh target", () => {
+    const plan = buildSaasApplicationTargetPlan({ name: "Command loading" });
+    const target = mkdtempSync(join(tmpdir(), "saas-ui-golden-command-load-"));
+    try {
+      for (const entry of plan.entries) {
+        const path = join(target, entry.path);
+        mkdirSync(dirname(path), { recursive: true });
+        writeFileSync(path, entry.content);
+      }
+      execFileSync("pnpm", ["install", "--frozen-lockfile"], {
+        cwd: target,
+        stdio: "pipe",
+        timeout: 180_000,
+      });
+
+      const packageJson = JSON.parse(
+        readFileSync(join(target, "package.json"), "utf8"),
+      ) as { readonly scripts?: Record<string, string> };
+      const smokeScripts = Object.entries(packageJson.scripts ?? {}).filter(
+        ([name]) => name === "smoke:golden" || name.startsWith("smoke:golden:"),
+      );
+      const modulesByScript = new Map<string, Set<string>>();
+      const specsByScript = new Map<string, Set<string>>();
+      // eslint-disable-next-line complexity -- recursively expands every advertised smoke command.
+      function collect(
+        name: string,
+        seen: Set<string>,
+      ): { modules: Set<string>; specs: Set<string> } {
+        const existingModules = modulesByScript.get(name);
+        const existingSpecs = specsByScript.get(name);
+        if (existingModules && existingSpecs)
+          return { modules: existingModules, specs: existingSpecs };
+        if (seen.has(name)) return { modules: new Set(), specs: new Set() };
+        seen.add(name);
+        const script = packageJson.scripts?.[name] ?? "";
+        const modules = new Set<string>();
+        const specs = new Set<string>();
+        for (const match of script.matchAll(/playwright test ([^&]+)/g))
+          for (const argument of match[1]?.trim().split(/\s+/u) ?? [])
+            if (argument.endsWith(".ts")) specs.add(argument);
+        for (const match of script.matchAll(/tsx (\S+)/g))
+          if (match[1]?.endsWith(".ts")) modules.add(match[1]);
+        for (const nested of script.matchAll(/pnpm (smoke:golden(?::\S+)?)/g)) {
+          const nestedResult = collect(nested[1] ?? "", new Set(seen));
+          for (const module of nestedResult.modules) modules.add(module);
+          for (const spec of nestedResult.specs) specs.add(spec);
+        }
+        modulesByScript.set(name, modules);
+        specsByScript.set(name, specs);
+        return { modules, specs };
+      }
+
+      for (const [name] of smokeScripts) {
+        const { modules, specs } = collect(name, new Set());
+        modules.add("tooling/saas-ui/golden-authority.mts");
+        expect(specs.size, name).toBeGreaterThan(0);
+        execFileSync(
+          "pnpm",
+          ["exec", "playwright", "test", "--list", ...specs],
+          { cwd: target, stdio: "pipe", timeout: 30_000 },
+        );
+        for (const module of modules)
+          execFileSync(
+            "pnpm",
+            [
+              "exec",
+              "tsx",
+              "--eval",
+              `import(${JSON.stringify(`./${module}`)})`,
+            ],
+            { cwd: target, stdio: "pipe", timeout: 30_000 },
+          );
+      }
+    } finally {
+      rmSync(target, { recursive: true, force: true });
+    }
+  }, 240_000);
+
   it("projects the shared Saas UI compatibility seam for pinned upstream props", () => {
     const sources = new Map(
       buildSaasApplicationTargetPlan({

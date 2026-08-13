@@ -1,17 +1,14 @@
 import { createHash } from "node:crypto";
 import { execFileSync, spawn } from "node:child_process";
 import {
-  cpSync,
   existsSync,
   mkdirSync,
-  mkdtempSync,
+  readdirSync,
   readFileSync,
   writeFileSync,
 } from "node:fs";
-import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { buildSaasApplicationTargetPlan } from "../../tooling/generators/src/blueprints/saasApplication";
 import { checkSaasUiFoundation } from "../quality/saas-ui-foundation";
 import { previewCommand } from "./golden-authority-command";
 import {
@@ -57,13 +54,6 @@ const referenceCompatibilityPaths = new Set([
   "apps/web/src/features/search/search-page.tsx",
   "apps/web/src/features/settings/common/settings-sidebar.tsx",
 ]);
-const port = process.env.PORT ?? process.argv[3] ?? "4173";
-const authority = process.argv[2];
-
-if (authority !== "reference" && authority !== "generated") {
-  throw new Error("Usage: golden-authority.mts <reference|generated> <port>");
-}
-
 function verifyStarterPin() {
   const actual = execFileSync("git", ["rev-parse", "HEAD"], {
     cwd: starterRoot,
@@ -156,156 +146,105 @@ function readReferenceReceipt(servedRoot: string) {
   };
 }
 
-function hashEntries(entries: readonly { path: string; content: string }[]) {
+function hashLocalTarget(root: string): string {
+  const files: string[] = [];
+  const visit = (directory: string, relative = "") => {
+    for (const entry of readdirSync(directory, { withFileTypes: true })) {
+      if (
+        entry.name === ".git" ||
+        entry.name === "node_modules" ||
+        entry.name === "dist" ||
+        entry.name === "artifacts"
+      )
+        continue;
+      const path = relative ? join(relative, entry.name) : entry.name;
+      const absolute = join(directory, entry.name);
+      if (entry.isDirectory()) visit(absolute, path);
+      else if (entry.isFile()) files.push(path);
+    }
+  };
+  visit(root);
+  files.sort((left, right) => left.localeCompare(right, "en"));
   const hash = createHash("sha256");
-  for (const entry of entries) {
-    hash.update(entry.path);
+  for (const path of files) {
+    hash.update(path);
     hash.update("\0");
-    hash.update(entry.content);
+    hash.update(readFileSync(join(root, path)));
     hash.update("\0");
   }
   return hash.digest("hex");
 }
 
-function materializeGeneratedTarget() {
-  const targetRoot = mkdtempSync(
-    join(tmpdir(), "maestro-saas-ui-golden-generated-"),
-  );
-  const plan = buildSaasApplicationTargetPlan({
-    name: "Golden customer target",
-    firstOutcome: "Review the generated SaaS workspace",
-  });
-  const digest = hashEntries(plan.entries);
-  for (const entry of plan.entries) {
-    const target = join(targetRoot, entry.path);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, entry.content);
-  }
-  writeFileSync(
-    join(targetRoot, ".golden-authority.json"),
-    `${JSON.stringify(
-      {
-        authority,
-        materializedAt: new Date().toISOString(),
-        source: "buildSaasApplicationTargetPlan",
-        entries: plan.entries.length,
-        digest,
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  return { digest, targetRoot };
-}
-
-function materializePinnedReferenceTarget() {
-  const targetRoot = mkdtempSync(
-    join(tmpdir(), "maestro-saas-ui-golden-reference-"),
-  );
-  const plan = buildSaasApplicationTargetPlan({
-    name: "Golden customer target",
-    firstOutcome: "Review the generated SaaS workspace",
-  });
-  for (const entry of plan.entries) {
-    const target = join(targetRoot, entry.path);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, entry.content);
-  }
-  const receipt = JSON.parse(
-    readFileSync(
-      resolve(repositoryRoot, "docs/template/saas-ui-starter-files.json"),
-      "utf8",
-    ),
-  ) as { files: readonly { source: string; destination: string }[] };
-  cpSync(
-    resolve(starterRoot, "apps/web/src/lib"),
-    join(targetRoot, "apps/web/src/lib"),
-    { recursive: true, force: true },
-  );
-  const starterDestinations = new Set(
-    receipt.files.map(({ destination }) => destination),
-  );
-  for (const path of referenceCompatibilityPaths)
-    starterDestinations.delete(path);
-  for (const entry of plan.entries) {
-    if (starterDestinations.has(entry.path)) continue;
-    const target = join(targetRoot, entry.path);
-    mkdirSync(dirname(target), { recursive: true });
-    writeFileSync(target, entry.content);
-  }
-  for (const file of receipt.files) {
-    if (referenceCompatibilityPaths.has(file.destination)) continue;
-    const target = join(targetRoot, file.destination);
-    if (!existsSync(target)) continue;
-    const source = execFileSync(
-      "git",
-      ["show", `${starterPin}:${file.source}`],
-      {
-        cwd: starterRoot,
-      },
-    );
-    writeFileSync(target, source);
-  }
-  writeFileSync(
-    join(targetRoot, ".golden-authority.json"),
-    `${JSON.stringify(
-      {
-        authority: "reference",
-        source: "pinned-starter-transplant",
-        sourceCommit: starterPin,
-        entries: receipt.files.length,
-      },
-      null,
-      2,
-    )}\n`,
-  );
-  return { targetRoot, digest: hashEntries(plan.entries) };
-}
-
-const materialized =
-  authority === "reference"
-    ? materializePinnedReferenceTarget()
-    : materializeGeneratedTarget();
-const targetRoot = materialized.targetRoot;
-const starterContentDigest =
-  authority === "reference"
-    ? verifyStarterPin()
-    : readPinnedStarterContentDigest();
-
-const digest =
-  authority === "reference" ? starterContentDigest : materialized.digest;
-if (!digest) {
-  throw new Error("Generated golden authority did not produce a digest");
-}
-if (
-  authority === "generated" &&
-  (targetRoot === starterRoot || digest === starterContentDigest)
+async function materializeAuthorityTarget(
+  authority: "reference" | "generated",
 ) {
-  throw new Error(
-    "Generated golden authority must have a distinct root and digest",
-  );
+  if (
+    existsSync(
+      resolve(
+        repositoryRoot,
+        "tooling/generators/src/blueprints/saasApplication.ts",
+      ),
+    )
+  ) {
+    const factory = await import("./golden-authority-factory.mts");
+    return factory.materializeGoldenAuthorityTarget({
+      authority,
+      repositoryRoot,
+      starterRoot,
+      starterPin,
+      referenceCompatibilityPaths,
+    });
+  }
+  return {
+    targetRoot: repositoryRoot,
+    digest: hashLocalTarget(repositoryRoot),
+  };
 }
-const evidenceRoot = resolve(repositoryRoot, "artifacts/saas-ui-golden");
-mkdirSync(evidenceRoot, { recursive: true });
-const foundationErrors = checkSaasUiFoundation(repositoryRoot);
-if (foundationErrors.length > 0)
-  throw new Error(
-    `Saas UI foundation check failed:\n${foundationErrors.join("\n")}`,
-  );
-const metadata =
-  authority === "reference"
-    ? proveReferenceServedFiles({
-        starterPin,
-        starterContentDigest: digest,
-        ...readReferenceReceipt(targetRoot),
-      })
-    : createGeneratedAuthorityMetadata({ generatedDigest: digest });
-writeFileSync(
-  join(evidenceRoot, `authority-${authority}.json`),
-  serializeAuthorityMetadata(metadata),
-);
 
-if (authority === "reference" || authority === "generated") {
+// eslint-disable-next-line complexity -- coordinates the two golden authorities and launcher lifecycle.
+async function main() {
+  const authority = process.argv[2];
+  if (authority !== "reference" && authority !== "generated")
+    throw new Error("Usage: golden-authority.mts <reference|generated> <port>");
+  const port = process.env.PORT ?? process.argv[3] ?? "4173";
+  const materialized = await materializeAuthorityTarget(authority);
+  const targetRoot = materialized.targetRoot;
+  const starterContentDigest =
+    authority === "reference"
+      ? verifyStarterPin()
+      : readPinnedStarterContentDigest();
+  const digest =
+    authority === "reference" ? starterContentDigest : materialized.digest;
+  if (!digest)
+    throw new Error("Generated golden authority did not produce a digest");
+  if (
+    authority === "generated" &&
+    (targetRoot === starterRoot || digest === starterContentDigest)
+  )
+    throw new Error(
+      "Generated golden authority must have a distinct root and digest",
+    );
+
+  const evidenceRoot = resolve(repositoryRoot, "artifacts/saas-ui-golden");
+  mkdirSync(evidenceRoot, { recursive: true });
+  const foundationErrors = checkSaasUiFoundation(repositoryRoot);
+  if (foundationErrors.length > 0)
+    throw new Error(
+      `Saas UI foundation check failed:\n${foundationErrors.join("\n")}`,
+    );
+  const metadata =
+    authority === "reference"
+      ? proveReferenceServedFiles({
+          starterPin,
+          starterContentDigest: digest,
+          ...readReferenceReceipt(targetRoot),
+        })
+      : createGeneratedAuthorityMetadata({ generatedDigest: digest });
+  writeFileSync(
+    join(evidenceRoot, `authority-${authority}.json`),
+    serializeAuthorityMetadata(metadata),
+  );
+
   execFileSync("pnpm", ["install", "--frozen-lockfile"], {
     cwd: targetRoot,
     stdio: "inherit",
@@ -318,46 +257,50 @@ if (authority === "reference" || authority === "generated") {
     },
     stdio: "inherit",
   });
+
+  const command = previewCommand({
+    repositoryRoot,
+    targetRoot,
+    authority,
+    port,
+  });
+  const serverErrors = createGoldenServerErrorRecorder({
+    evidenceRoot,
+    authority,
+  });
+  const child = spawn(command.command, command.args, {
+    cwd: command.cwd,
+    env: {
+      ...process.env,
+      GOLDEN_AUTHORITY: authority,
+      GOLDEN_AUTHORITY_ROOT: targetRoot,
+      REFERENCE_SOURCE_MODE: authority === "reference" ? "1" : "0",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+  });
+
+  child.stdout?.on("data", (chunk: Buffer) => {
+    process.stdout.write(chunk);
+    serverErrors.recordChunk("stdout", chunk);
+  });
+  child.stderr?.on("data", (chunk: Buffer) => {
+    process.stderr.write(chunk);
+    serverErrors.recordChunk("stderr", chunk);
+  });
+  child.on("error", (error) => serverErrors.recordProcessError(error.message));
+
+  const stop = (signal: NodeJS.Signals) => child.kill(signal);
+  process.on("SIGINT", () => stop("SIGINT"));
+  process.on("SIGTERM", () => stop("SIGTERM"));
+  child.on("exit", (code, signal) => {
+    serverErrors.close();
+    if (signal) process.kill(process.pid, signal);
+    process.exit(code ?? 1);
+  });
 }
 
-const command = previewCommand({
-  repositoryRoot,
-  targetRoot,
-  authority,
-  port,
-});
-const serverErrors = createGoldenServerErrorRecorder({
-  evidenceRoot,
-  authority,
-});
-const child = spawn(command.command, command.args, {
-  cwd: command.cwd,
-  env: {
-    ...process.env,
-    GOLDEN_AUTHORITY: authority,
-    GOLDEN_AUTHORITY_ROOT: targetRoot,
-    REFERENCE_SOURCE_MODE: authority === "reference" ? "1" : "0",
-  },
-  stdio: ["ignore", "pipe", "pipe"],
-});
-
-child.stdout?.on("data", (chunk: Buffer) => {
-  process.stdout.write(chunk);
-  serverErrors.recordChunk("stdout", chunk);
-});
-child.stderr?.on("data", (chunk: Buffer) => {
-  process.stderr.write(chunk);
-  serverErrors.recordChunk("stderr", chunk);
-});
-child.on("error", (error) => {
-  serverErrors.recordProcessError(error.message);
-});
-
-const stop = (signal: NodeJS.Signals) => child.kill(signal);
-process.on("SIGINT", () => stop("SIGINT"));
-process.on("SIGTERM", () => stop("SIGTERM"));
-child.on("exit", (code, signal) => {
-  serverErrors.close();
-  if (signal) process.kill(process.pid, signal);
-  process.exit(code ?? 1);
-});
+if (
+  process.argv[1] &&
+  resolve(process.argv[1]) === fileURLToPath(import.meta.url)
+)
+  await main();

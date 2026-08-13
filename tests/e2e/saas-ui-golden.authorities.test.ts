@@ -162,9 +162,14 @@ describe("golden browser authority startup", () => {
       `${root}/tooling/saas-ui/golden-authority.mts`,
       "utf8",
     );
+    const factoryMaterializer = readFileSync(
+      `${root}/tooling/saas-ui/golden-authority-factory.mts`,
+      "utf8",
+    );
+    const authoritySources = `${authorityScript}\n${factoryMaterializer}`;
 
-    expect(authorityScript).toContain(
-      "if (referenceCompatibilityPaths.has(file.destination)) continue;",
+    expect(authoritySources).toContain(
+      "if (input.referenceCompatibilityPaths.has(file.destination)) continue;",
     );
     for (const path of [
       "apps/web/src/theme/semantic-tokens/colors.ts",
@@ -179,7 +184,7 @@ describe("golden browser authority startup", () => {
       "apps/web/src/features/auth/login-page.tsx",
       "apps/web/src/features/settings/billing/manage-billing-button.tsx",
     ]) {
-      expect(authorityScript).toContain(`"${path}"`);
+      expect(authoritySources).toContain(`"${path}"`);
     }
   });
 
@@ -188,15 +193,20 @@ describe("golden browser authority startup", () => {
       `${root}/tooling/saas-ui/golden-authority.mts`,
       "utf8",
     );
+    const factoryMaterializer = readFileSync(
+      `${root}/tooling/saas-ui/golden-authority-factory.mts`,
+      "utf8",
+    );
+    const authoritySources = `${authorityScript}\n${factoryMaterializer}`;
 
-    expect(authorityScript).toContain("mkdtempSync");
-    expect(authorityScript).toContain('createHash("sha256")');
+    expect(authoritySources).toContain("mkdtempSync");
+    expect(authoritySources).toContain('createHash("sha256")');
     expect(authorityScript).toContain(
       "const targetRoot = materialized.targetRoot;",
     );
     expect(authorityScript).toContain("must have a distinct root and digest");
-    expect(authorityScript).toContain("buildSaasApplicationTargetPlan");
-    expect(authorityScript).not.toContain("copyTrackedScaffold");
+    expect(authoritySources).toContain("buildSaasApplicationTargetPlan");
+    expect(authoritySources).not.toContain("copyTrackedScaffold");
     expect(authorityScript).toContain('["install", "--frozen-lockfile"]');
   });
 

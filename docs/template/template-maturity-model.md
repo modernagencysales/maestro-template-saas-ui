@@ -16,7 +16,10 @@ handoff evidence, and production operations.
 typed architectural direction.
 
 **Required evidence:** hosted URL, `apps/web/src/routes/index.tsx`,
-`apps/web/src/saas-ui/business-shell.tsx`, visual smoke snapshots,
+`apps/web/src/features/common/layouts/app-layout.tsx`,
+`apps/web/src/features/common/layouts/dashboard-layout.tsx`,
+`apps/web/src/features/common/components/app-sidebar.tsx`,
+`docs/template/saas-ui-frontend-authority.md`, visual smoke snapshots, and
 `docs/template/reviewer-guide.md`.
 
 **Required commands:** `pnpm check:format`, `pnpm build`,
@@ -84,7 +87,10 @@ Flow constrained to workflow surfaces.
 **Boundary:** L4 proves the template can start real client builds with strong
 guardrails. [template-defaults.md](./template-defaults.md) is the default versus
 extension-path decision record for surfaces such as billing, notification
-center, retention jobs, and deploy promotion. It still leaves fork- or
+center, retention jobs, and deploy promotion. The upstream layout authority is
+`apps/web/src/features/common/layouts/app-layout.tsx` with
+`dashboard-layout.tsx` and `app-sidebar.tsx`, as defined by
+`docs/template/saas-ui-frontend-authority.md`. It still leaves fork- or
 product-specific work such as full tenant admin flows, every mutation toast, and
 every future modal/popover adoption.
 
