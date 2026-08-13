@@ -27,6 +27,10 @@ import {
   validateNativeAcceptanceReportBoundary,
   type ParsedPlaywrightJsonReport,
 } from "./playwright-report.mts";
+import {
+  assertCheckoutState,
+  snapshotCheckoutState,
+} from "./checkout-state.mts";
 
 export type LoadedProductPlan = {
   readonly path: string;
@@ -447,6 +451,7 @@ const readNativePlaywrightListing = (
   repoRoot: string,
   sourceRoot: string,
 ): ParsedPlaywrightJsonReport => {
+  const initialCheckoutState = snapshotCheckoutState(sourceRoot);
   const configPath = repoPath(
     repoRoot,
     sourceRoot,
@@ -465,6 +470,11 @@ const readNativePlaywrightListing = (
       "--reporter=json",
     ],
     { cwd: repoRoot, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
+  );
+  assertCheckoutState(
+    initialCheckoutState,
+    sourceRoot,
+    "Product contract checkout/source mutation during discovery",
   );
   const report = parsePlaywrightJsonReport(JSON.parse(output) as unknown);
   validateNativeAcceptanceReportBoundary({ sourceRoot, report });
@@ -494,7 +504,7 @@ export const generateProductContract = async (options: {
   const plans = await loadPlans(options.repoRoot, options.sourceRoot);
   const report = await loadAcceptanceDiscovery(
     options.repoRoot,
-    options.sourceRoot,
+    sourceRoot,
     options,
   );
   validateAcceptanceReportBoundary({ sourceRoot, report });

@@ -140,6 +140,22 @@ behaviors:
   );
 };
 
+const initializeGitCheckout = (sourceRoot: string): void => {
+  execFileSync("git", ["init", "--quiet"], { cwd: sourceRoot });
+  execFileSync("git", ["config", "user.email", "acceptance@example.test"], {
+    cwd: sourceRoot,
+  });
+  execFileSync("git", ["config", "user.name", "Acceptance Test"], {
+    cwd: sourceRoot,
+  });
+  execFileSync("git", ["add", "."], { cwd: sourceRoot });
+  execFileSync(
+    "git",
+    ["-c", "core.hooksPath=/dev/null", "commit", "--quiet", "-m", "initial"],
+    { cwd: sourceRoot },
+  );
+};
+
 const writeDefaultRunnerPnpm = async (input: {
   readonly root: string;
   readonly chunks: readonly string[];
@@ -185,6 +201,7 @@ const defaultRunnerFailure = async (input: {
 }): Promise<string> => {
   const repoRoot = await realpath(input.root);
   const bin = await writeDefaultRunnerPnpm({ ...input, root: repoRoot });
+  initializeGitCheckout(join(repoRoot, "source"));
   const previousPath = process.env.PATH;
   process.env.PATH = `${bin}:${previousPath ?? ""}`;
   try {
@@ -469,7 +486,7 @@ describe("acceptance runtime validation", () => {
 });
 
 describe("runAcceptance", () => {
-  it("rejects a checkout/source mutation during discovery before runtime", async () => {
+  it("rejects a hidden checkout/source mutation before discovery", async () => {
     const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-checkout-"));
     roots.push(root);
     await writeRequiredContract(root);
@@ -494,6 +511,19 @@ describe("runAcceptance", () => {
       ],
       { cwd: sourceRoot },
     );
+    execFileSync(
+      "git",
+      [
+        "update-index",
+        "--assume-unchanged",
+        "tests/acceptance/records.spec.ts",
+      ],
+      { cwd: sourceRoot },
+    );
+    await writeFile(
+      join(sourceRoot, "tests", "acceptance", "records.spec.ts"),
+      "counterfeit",
+    );
     const processRunner = vi.fn(
       async (
         args: readonly string[],
@@ -515,29 +545,6 @@ describe("runAcceptance", () => {
             ),
           ),
         );
-        if (discovery) {
-          await writeFile(
-            join(sourceRoot, "tests", "acceptance", "records.spec.ts"),
-            "counterfeit",
-          );
-          execFileSync("git", ["add", "."], { cwd: sourceRoot });
-          execFileSync(
-            "git",
-            [
-              "-c",
-              "core.hooksPath=/dev/null",
-              "-c",
-              "user.email=discovery@example.test",
-              "-c",
-              "user.name=Discovery Support",
-              "commit",
-              "--quiet",
-              "-m",
-              "counterfeit acceptance",
-            ],
-            { cwd: sourceRoot },
-          );
-        }
         return { exitCode: 0, stdout: "", stderr: "" };
       },
     );
@@ -549,8 +556,8 @@ describe("runAcceptance", () => {
         scope: "required",
         processRunner,
       }),
-    ).rejects.toThrow(/checkout.*source mutation.*discovery/i);
-    expect(processRunner).toHaveBeenCalledTimes(1);
+    ).rejects.toThrow(/could not capture Git checkout state/i);
+    expect(processRunner).not.toHaveBeenCalled();
   });
 
   it("executes discovery and the current required grep against native reports", async () => {
@@ -576,6 +583,7 @@ behaviors:
     outcomes: [listed]
 `,
     );
+    initializeGitCheckout(join(root, "source"));
     const writeOutput = vi.fn<(output: string) => void>();
     const processRunner = vi.fn(
       async (
@@ -693,6 +701,7 @@ behaviors:
     outcomes: [listed]
 `,
     );
+    initializeGitCheckout(join(root, "source"));
     const nativeFailure = `generated CLI title is missing Bearer bearer-canary API_TOKEN=token-canary ${"x".repeat(600)} final preflight witness SERVICE_PASSWORD=password-canary`;
     const failure = runAcceptance({
       repoRoot: root,
@@ -772,6 +781,7 @@ behaviors:
     outcomes: [listed]
 `,
     );
+    initializeGitCheckout(join(root, "source"));
     const jsonHeaders = JSON.stringify({
       Authorization: "Basic auth-json-canary",
       Cookie: 'session="json-cookie-canary"',
@@ -858,6 +868,7 @@ behaviors:
     outcomes: [listed]
 `,
     );
+    initializeGitCheckout(join(root, "source"));
     const reportPaths: string[] = [];
     const validJson = JSON.stringify(rawNativeReport([], join(root, "source")));
     const rejection = expect(

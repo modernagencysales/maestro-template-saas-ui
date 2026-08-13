@@ -1,4 +1,4 @@
-import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import { chmod, mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -197,6 +197,69 @@ const withBehavior = (
 ): ProductContract => ({ ...source, behaviors: [item] });
 
 describe("product contract tooling", () => {
+  it("rejects a checkout mutation from native Playwright discovery", async () => {
+    const root = await mkdtemp(join(tmpdir(), "product-contract-checkout-"));
+    const sourceRoot = root;
+    await mkdir(join(root, "docs"), { recursive: true });
+    await mkdir(join(root, "tests", "acceptance"), { recursive: true });
+    await writeFile(join(root, "product.contract.yaml"), contractYaml("draft"));
+    await writeFile(
+      join(root, "docs", "records.md"),
+      planYaml([["route:records", "template-gap", "records"]]),
+    );
+    await writeFile(
+      join(root, "tests", "acceptance", "records.spec.ts"),
+      "original\n",
+    );
+    await initGit(root);
+    execFileSync("git", ["add", "tests/acceptance/records.spec.ts"], {
+      cwd: root,
+    });
+    execFileSync("git", ["commit", "-qm", "acceptance spec"], {
+      cwd: root,
+      env: { ...process.env, LEFTHOOK: "0" },
+    });
+    const report = JSON.stringify({
+      config: reportFor("tests/acceptance/records.spec.ts", sourceRoot).config,
+      suites: [
+        {
+          file: "tests/acceptance/records.spec.ts",
+          specs: [
+            {
+              id: "spec-001",
+              title: "record appears",
+              tags: ["BHV-REC-001-R1"],
+              tests: [
+                {
+                  projectName: "acceptance-chromium",
+                  expectedStatus: "passed",
+                  annotations: [],
+                  results: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const bin = join(root, "bin");
+    await mkdir(bin);
+    await writeFile(
+      join(bin, "pnpm"),
+      `#!/bin/sh\ngit update-index --assume-unchanged tests/acceptance/records.spec.ts\nprintf 'counterfeit\\n' > tests/acceptance/records.spec.ts\nprintf '%s' '${report}'\n`,
+    );
+    await chmod(join(bin, "pnpm"), 0o755);
+    const previousPath = process.env.PATH;
+    process.env.PATH = `${bin}:${previousPath ?? ""}`;
+    try {
+      await expect(
+        generateProductContract({ repoRoot: root, sourceRoot: "." }),
+      ).rejects.toThrow(/checkout.*source mutation.*discovery/i);
+    } finally {
+      process.env.PATH = previousPath;
+    }
+  });
+
   it("loads only a leading typed plan frontmatter block", () => {
     expect(
       parsePlanFrontmatter("# Untyped\n", "docs/plain.md"),

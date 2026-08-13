@@ -16,6 +16,10 @@ import {
   type ParsedPlaywrightJsonReport,
   type PlaywrightTestRecord,
 } from "./playwright-report.mts";
+import {
+  assertCheckoutState,
+  snapshotCheckoutState,
+} from "./checkout-state.mts";
 
 export type PlaywrightProcessResult = {
   readonly exitCode: number;
@@ -34,12 +38,6 @@ type AcceptanceOptions = {
   readonly scope: "required" | "all";
   readonly processRunner?: PlaywrightProcessRunner;
   readonly writeOutput?: (output: string) => void;
-};
-
-type GitProcessResult = {
-  readonly exitCode: number;
-  readonly stdout: Buffer;
-  readonly stderr: Buffer;
 };
 
 export type AcceptanceArguments = {
@@ -257,81 +255,6 @@ const defaultProcessRunner =
       );
     });
 
-const runGit = (
-  cwd: string,
-  args: readonly string[],
-): Promise<GitProcessResult> =>
-  new Promise((resolveProcess) => {
-    const child = spawn("git", args, {
-      cwd,
-      stdio: ["ignore", "pipe", "pipe"],
-    });
-    const stdout: Buffer[] = [];
-    const stderr: Buffer[] = [];
-    child.stdout?.on("data", (chunk: Buffer) => stdout.push(chunk));
-    child.stderr?.on("data", (chunk: Buffer) => stderr.push(chunk));
-    child.on("error", (error) =>
-      resolveProcess({
-        exitCode: 1,
-        stdout: Buffer.concat(stdout),
-        stderr: Buffer.concat([...stderr, Buffer.from(error.message)]),
-      }),
-    );
-    child.on("close", (exitCode) =>
-      resolveProcess({
-        exitCode: exitCode ?? 1,
-        stdout: Buffer.concat(stdout),
-        stderr: Buffer.concat(stderr),
-      }),
-    );
-  });
-
-const checkoutState = async (root: string): Promise<Buffer | undefined> => {
-  const repository = await runGit(root, ["rev-parse", "--is-inside-work-tree"]);
-  if (
-    repository.exitCode !== 0 ||
-    repository.stdout.toString("utf8").trim() !== "true"
-  )
-    return undefined;
-  const [head, status, cachedDiff, diff] = await Promise.all([
-    runGit(root, ["rev-parse", "HEAD"]),
-    runGit(root, ["status", "--porcelain=v1", "--untracked-files=all", "-z"]),
-    runGit(root, ["diff", "--cached", "--binary", "--no-ext-diff"]),
-    runGit(root, ["diff", "--binary", "--no-ext-diff"]),
-  ]);
-  if (
-    head.exitCode !== 0 ||
-    status.exitCode !== 0 ||
-    cachedDiff.exitCode !== 0 ||
-    diff.exitCode !== 0
-  )
-    throw new Error("could not capture Git checkout state");
-  return Buffer.concat([
-    head.stdout,
-    Buffer.from([0]),
-    status.stdout,
-    Buffer.from([0]),
-    cachedDiff.stdout,
-    Buffer.from([0]),
-    diff.stdout,
-  ]);
-};
-
-const assertCheckoutState = async (
-  initial: Buffer | undefined,
-  root: string,
-  phase: "discovery" | "runtime",
-): Promise<void> => {
-  if (initial === undefined) return;
-  try {
-    const current = await checkoutState(root);
-    if (current !== undefined && current.equals(initial)) return;
-  } catch {
-    // A repository that existed before Playwright must remain available.
-  }
-  throw new Error(`Acceptance checkout/source mutation during ${phase}`);
-};
-
 const readReport = async (
   reportPath: string,
 ): Promise<ParsedPlaywrightJsonReport> => {
@@ -435,7 +358,7 @@ export const runAcceptance = async (
 
   const runner =
     options.processRunner ?? defaultProcessRunner(options.repoRoot);
-  const initialCheckoutState = await checkoutState(sourceRoot);
+  const initialCheckoutState = snapshotCheckoutState(sourceRoot);
   const temporaryDirectory = await mkdtemp(
     join(tmpdir(), "maestro-acceptance-"),
   );
@@ -459,7 +382,11 @@ export const runAcceptance = async (
       failureMessage: "Playwright acceptance discovery failed",
       failOnNonzero: true,
     });
-    await assertCheckoutState(initialCheckoutState, sourceRoot, "discovery");
+    assertCheckoutState(
+      initialCheckoutState,
+      sourceRoot,
+      "Acceptance checkout/source mutation during discovery",
+    );
     const discovered = discovery.report;
     validateReport(sourceRoot, discovered, options.processRunner === undefined);
     const tags = options.scope === "required" ? requiredTags : [];
@@ -481,7 +408,11 @@ export const runAcceptance = async (
       failureMessage: "Playwright acceptance runtime failed",
       failOnNonzero: false,
     });
-    await assertCheckoutState(initialCheckoutState, sourceRoot, "runtime");
+    assertCheckoutState(
+      initialCheckoutState,
+      sourceRoot,
+      "Acceptance checkout/source mutation during runtime",
+    );
     validateReport(
       sourceRoot,
       runtime.report,
