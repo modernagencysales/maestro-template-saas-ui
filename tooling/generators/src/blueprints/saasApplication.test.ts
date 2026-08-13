@@ -161,6 +161,7 @@ describe("saas application blueprint", () => {
       neutral.has("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"),
     ).toBe(false);
     expect(neutral.has("tooling/workflow/package.json")).toBe(false);
+    expect(neutral.has("tooling/workflow/tsconfig.json")).toBe(false);
     expect(
       neutral.has("packages/convex/confect/workflows/graphCurrent.ts"),
     ).toBe(false);
@@ -190,6 +191,7 @@ describe("saas application blueprint", () => {
     const workflow = paths(["workflow-automation"]);
     expect(workflow.has("features/records.feature")).toBe(false);
     expect(workflow.has("tooling/workflow/package.json")).toBe(true);
+    expect(workflow.has("tooling/workflow/tsconfig.json")).toBe(true);
     expect(
       workflow.has("packages/convex/confect/workflows/graphCurrent.ts"),
     ).toBe(true);
@@ -1839,6 +1841,7 @@ Feature: Reconcile disputed invoices
         "docs/template/coding-standards.md",
         "docs/template/enforced-engineering-rules.md",
         "tooling/workflow/package.json",
+        "tooling/workflow/tsconfig.json",
         "cucumber.cjs",
         "tooling/acceptance/required-selection.mts",
         "tooling/acceptance/source-check.mts",

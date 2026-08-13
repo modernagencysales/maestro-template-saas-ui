@@ -1304,6 +1304,10 @@ export const buildSaasRegistrationProjections = (
                   path: "tooling/workflow/package.json",
                   content: currentSource("tooling/workflow/package.json"),
                 },
+                {
+                  path: "tooling/workflow/tsconfig.json",
+                  content: currentSource("tooling/workflow/tsconfig.json"),
+                },
               ]
             : []),
           {
