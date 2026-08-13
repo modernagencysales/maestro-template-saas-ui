@@ -319,12 +319,6 @@ async function bootContractsRuntime(
     return safe.slice(-19_900);
   };
   const inherited = minimalEnvironment(dependencies.environment());
-  const localEnvironment = {
-    ...inherited,
-    CONVEX_AGENT_MODE: "anonymous",
-    MAESTRO_CONTRACT_TEST: "1",
-    VITE_MAESTRO_CONTRACT_MODE: "1",
-  };
   const [webPort, convexPort, convexSitePort, readinessPort] =
     await Promise.all([
       dependencies.freePort(),
@@ -334,6 +328,16 @@ async function bootContractsRuntime(
     ]);
   const apiBaseUrl = `http://127.0.0.1:${convexSitePort}`;
   const expectedWebUrl = `http://127.0.0.1:${webPort}`;
+  const localEnvironment = {
+    ...inherited,
+    CONVEX_AGENT_MODE: "anonymous",
+    MAESTRO_CONTRACT_TEST: "1",
+    VITE_MAESTRO_CONTRACT_MODE: "1",
+    WORKOS_API_KEY: "fake",
+    WORKOS_CLIENT_ID: "client_test_contracts_runtime",
+    WORKOS_COOKIE_PASSWORD: "contracts-runtime-test-cookie-password",
+    WORKOS_REDIRECT_URI: `${expectedWebUrl}/api/auth/callback`,
+  };
   let output = "";
   let announcedWebUrl = "";
   let announceReady: (() => void) | undefined;

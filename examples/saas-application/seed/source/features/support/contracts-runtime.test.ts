@@ -235,6 +235,17 @@ describe("contracts runtime", () => {
 
     expect(second).toBe(first);
     expect(test.spawnApp).toHaveBeenCalledTimes(1);
+    expect(test.spawnApp).toHaveBeenCalledWith(
+      expect.objectContaining({
+        environment: expect.objectContaining({
+          WORKOS_API_KEY: "fake",
+          WORKOS_CLIENT_ID: "client_test_contracts_runtime",
+          WORKOS_COOKIE_PASSWORD: "contracts-runtime-test-cookie-password",
+          WORKOS_REDIRECT_URI: "http://127.0.0.1:4100/api/auth/callback",
+        }),
+      }),
+      expect.any(Function),
+    );
     expect(test.launchBrowser).toHaveBeenCalledTimes(1);
     expect(test.dependencies.runCommand).toHaveBeenCalledWith(
       expect.arrayContaining(["MAESTRO_CONTRACT_TEST", "1"]),
