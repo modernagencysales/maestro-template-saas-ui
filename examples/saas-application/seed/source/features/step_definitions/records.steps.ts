@@ -10,23 +10,9 @@ Given("the contracts workspace is ready", function (this: ContractsWorld) {
 });
 
 When(
-  "I create a record named {string} in the app",
-  async function (this: ContractsWorld, title: string) {
-    await actions.createInApp(this, title);
-  },
-);
-
-When(
   "I create a record named {string} from the CLI",
   async function (this: ContractsWorld, title: string) {
     await actions.createFromCli(this, title);
-  },
-);
-
-Then(
-  "the app shows a record named {string}",
-  async function (this: ContractsWorld, title: string) {
-    await actions.expectAppIncludes(this, title);
   },
 );
 
@@ -59,16 +45,16 @@ Then(
 );
 
 Then(
-  "the app does not show {string}",
+  "listing records from the CLI includes {string}",
   async function (this: ContractsWorld, title: string) {
-    await actions.expectAppExcludes(this, title);
+    await actions.expectPrimaryCliIncludes(this, title);
   },
 );
 
 Then(
-  "listing records from the CLI includes {string}",
+  "listing records from the CLI does not include {string}",
   async function (this: ContractsWorld, title: string) {
-    await actions.expectPrimaryCliIncludes(this, title);
+    await actions.expectPrimaryCliExcludes(this, title);
   },
 );
 

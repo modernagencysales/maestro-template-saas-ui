@@ -4,7 +4,6 @@ import {
 } from "../support/contracts-runtime";
 import {
   type ContractsWorldState,
-  requirePage,
   requireScenario,
 } from "../support/contracts-scenario";
 
@@ -48,15 +47,6 @@ const listedTitles = (stdout: string): readonly string[] => {
 export const createRecordsJourneyActions = (
   runtime: () => ContractsRuntime = contractsRuntime,
 ) => ({
-  createInApp: async (world: ContractsWorldState, title: string) => {
-    const page = requirePage(world);
-    await page.goto(`${runtime().webUrl}/records`);
-    await page.getByRole("button", { name: "Create record" }).click();
-    await page.getByLabel("Record title").fill(title);
-    await page.getByLabel("Record detail").fill("Created by Cucumber.");
-    await page.getByRole("button", { name: "Save record" }).click();
-    await page.getByRole("heading", { name: title }).waitFor();
-  },
   createFromCli: async (world: ContractsWorldState, title: string) => {
     const scenario = requireScenario(world);
     await runtime().runCli(
@@ -68,11 +58,6 @@ export const createRecordsJourneyActions = (
         `${scenario.namespace}-create-cli`,
       ),
     );
-  },
-  expectAppIncludes: async (world: ContractsWorldState, title: string) => {
-    const page = requirePage(world);
-    await page.goto(`${runtime().webUrl}/records`);
-    await page.getByRole("button", { name: title }).waitFor();
   },
   tryCreateWithoutKey: async (world: ContractsWorldState, title: string) => {
     const scenario = requireScenario(world);
@@ -128,14 +113,6 @@ export const createRecordsJourneyActions = (
       throw new Error("The CLI did not report a workspace mismatch.");
     }
   },
-  expectAppExcludes: async (world: ContractsWorldState, title: string) => {
-    const page = requirePage(world);
-    await page.goto(`${runtime().webUrl}/records`);
-    await page.getByRole("button", { name: "Create record" }).waitFor();
-    if ((await page.getByText(title, { exact: true }).count()) !== 0) {
-      throw new Error(`The app unexpectedly showed ${JSON.stringify(title)}.`);
-    }
-  },
   expectPrimaryCliIncludes: async (
     world: ContractsWorldState,
     title: string,
@@ -152,6 +129,26 @@ export const createRecordsJourneyActions = (
     );
     if (!listedTitles(stdout).includes(title)) {
       throw new Error(`CLI records did not include ${JSON.stringify(title)}.`);
+    }
+  },
+  expectPrimaryCliExcludes: async (
+    world: ContractsWorldState,
+    title: string,
+  ) => {
+    const scenario = requireScenario(world);
+    const stdout = await runtime().runCli(
+      scenario,
+      commandArgs(
+        "records.list",
+        scenario.workspaceSlug,
+        {},
+        `${scenario.namespace}-list-primary-excludes`,
+      ),
+    );
+    if (listedTitles(stdout).includes(title)) {
+      throw new Error(
+        `CLI records unexpectedly included ${JSON.stringify(title)}.`,
+      );
     }
   },
   expectOtherWorkspaceExcludes: async (

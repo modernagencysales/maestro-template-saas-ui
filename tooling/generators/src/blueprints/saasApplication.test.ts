@@ -138,6 +138,21 @@ describe("saas application blueprint", () => {
     ]);
   });
 
+  it("keeps generated routes native and secretless contracts behind the CLI boundary", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan({
+        name: "Records App",
+        patterns: ["records-example"],
+      }).entries.map(({ path, content }) => [path, content]),
+    );
+    expect(entries.get("apps/web/vite.config.ts")).not.toContain(
+      "enableRouteGeneration: false",
+    );
+    const feature = entries.get("features/records.feature") ?? "";
+    expect(feature.match(/^ {2}Scenario:/gmu)).toHaveLength(3);
+    expect(feature).not.toContain("in the app");
+  });
+
   it("projects only explicitly selected product patterns", () => {
     const buildSelected = buildSaasApplicationTargetPlan as (options: {
       readonly name: string;

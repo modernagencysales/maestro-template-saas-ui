@@ -1,21 +1,16 @@
 Feature: Manage workspace records
-  A workspace member can manage the same records from the app and the CLI.
+  A workspace member can manage records from the authenticated CLI.
 
-  Scenario: Create in UI and read in CLI
+  Scenario: Create and list in CLI
     Given the contracts workspace is ready
-    When I create a record named "Launch checklist" in the app
+    When I create a record named "Launch checklist" from the CLI
     Then listing records from the CLI includes "Launch checklist"
-
-  Scenario: Create in CLI and read in UI
-    Given the contracts workspace is ready
-    When I create a record named "Release notes" from the CLI
-    Then the app shows a record named "Release notes"
 
   Scenario: Reject a missing API key
     Given the contracts workspace is ready
     When I try to create a record named "Rejected without a key" without a CLI API key
     Then the CLI reports that an API key is required
-    And the app does not show "Rejected without a key"
+    And listing records from the CLI does not include "Rejected without a key"
 
   Scenario: Reject a cross-workspace write without side effects
     Given the contracts workspace is ready

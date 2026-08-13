@@ -992,7 +992,7 @@ describe("create root integration", () => {
         `${failure.stdout ?? ""}\n${failure.stderr ?? failure.message}`,
       );
     }
-    expect(contracts.stdout).toContain("4 scenarios (4 passed)");
+    expect(contracts.stdout).toContain("3 scenarios (3 passed)");
   }, 300_000);
 });
 
