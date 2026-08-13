@@ -277,6 +277,10 @@ describe("SaaS UI generated target artifact boundary", () => {
           NODE_ENV: "production",
           PORT: String(port),
           VITE_CONVEX_URL: "https://generated-target-test.convex.cloud",
+          WORKOS_API_KEY: "sk_test_generated_target",
+          WORKOS_CLIENT_ID: "client_test_generated_target",
+          WORKOS_COOKIE_PASSWORD: "generated-target-test-cookie-password",
+          WORKOS_REDIRECT_URI: `http://127.0.0.1:${port}/api/auth/callback`,
         },
         stdio: "pipe",
       });
