@@ -136,6 +136,7 @@ describe("SaaS UI generated target artifact boundary", () => {
     for (const script of [
       "check:saas-ui-foundation",
       "check:saas-ui-artifact-safety",
+      "typecheck:saas-ui",
     ])
       expect(packageJson.scripts?.[script], script).toBeTypeOf("string");
     for (const script of [
@@ -148,6 +149,8 @@ describe("SaaS UI generated target artifact boundary", () => {
     for (const path of [
       "tooling/quality/check-saas-ui-foundation.mts",
       "tooling/quality/check-saas-ui-artifact-safety.mts",
+      "tooling/quality/check-saas-ui-typecheck.mts",
+      "tooling/quality/fixtures/saas-ui-typecheck-baseline.json",
       "tooling/quality/src/direct-run.mts",
     ])
       expect(paths.has(path), path).toBe(true);
@@ -256,6 +259,7 @@ describe("SaaS UI generated target artifact boundary", () => {
           }
         })();
       command(["install", "--frozen-lockfile"]);
+      command(["--dir", "apps/web", "typecheck"]);
       command(["--dir", "apps/web", "build"]);
 
       const port = await availablePort();

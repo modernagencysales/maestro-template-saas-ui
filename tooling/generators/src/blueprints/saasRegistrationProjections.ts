@@ -359,6 +359,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:format",
   "lint",
   "typecheck",
+  "typecheck:saas-ui",
   "check:effect-diagnostics",
   "test",
   "test:runtime-longevity",

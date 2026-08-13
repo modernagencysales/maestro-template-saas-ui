@@ -38,10 +38,15 @@ const FRONTEND_SUPPORT_PATHS = [
   "apps/web/public/img/logo-icon.svg",
   "apps/web/public/img/onboarding/light.svg",
   "apps/web/public/img/onboarding/dark.svg",
+  "packages/i18n/lang/.empty",
+  "packages/ui/.storybook/preview-head.html",
+  "packages/ui/.storybook/static/.empty",
+  "packages/ui/.storybook/storybook-logo.svg",
   "eslint.config.mjs",
   "tooling/eslint-plugin-template/index.mjs",
   "tooling/eslint-plugin-template/saas-ui-registry-receipt.mjs",
   "tooling/quality/check-saas-ui-artifact-safety.mts",
+  "tooling/quality/check-saas-ui-typecheck.mts",
   "tooling/quality/check-saas-ui-foundation.mts",
   "tooling/quality/src/direct-run.mts",
   "tooling/quality/saas-ui-foundation.ts",
@@ -54,6 +59,7 @@ const FRONTEND_SUPPORT_PATHS = [
   "docs/template/saas-ui-starter-files.json",
   "docs/template/saas-ui-acceptance.json",
   "docs/template/saas-ui-deviations.json",
+  "tooling/quality/fixtures/saas-ui-typecheck-baseline.json",
 ] as const;
 
 export const isObsoleteFrontendAuthority = (path: string): boolean =>

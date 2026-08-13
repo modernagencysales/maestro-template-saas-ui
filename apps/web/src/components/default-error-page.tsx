@@ -1,24 +1,24 @@
-import { Box, Button, Code, HStack, Stack } from "@saas-ui/react";
+import { Box, Button, Code, HStack, Stack } from '@saas-ui/react'
 import {
   ErrorComponentProps,
   rootRouteId,
   useMatch,
   useRouter,
-} from "@tanstack/react-router";
-import { LuTriangleAlert } from "react-icons/lu";
+} from '@tanstack/react-router'
+import { LuTriangleAlert } from 'react-icons/lu'
 
-import { ErrorPage } from "./error-page";
-import { LinkButton } from "./link-button";
+import { ErrorPage } from './error-page'
+import { LinkButton } from './link-button'
 
-const isDev = import.meta.env.DEV;
+const isDev = import.meta.env.DEV
 
 export function DefaultErrorPage({ error }: ErrorComponentProps) {
-  const router = useRouter();
+  const router = useRouter()
   const isRoot = useMatch({
     strict: false,
     shouldThrow: false,
     select: (state) => state.id === rootRouteId,
-  });
+  })
 
   return (
     <ErrorPage
@@ -32,7 +32,7 @@ export function DefaultErrorPage({ error }: ErrorComponentProps) {
             variant="surface"
             size="sm"
             onClick={() => {
-              router.invalidate();
+              router.invalidate()
             }}
           >
             Try Again
@@ -47,8 +47,8 @@ export function DefaultErrorPage({ error }: ErrorComponentProps) {
               size="sm"
               to="/"
               onClick={(e) => {
-                e.preventDefault();
-                window.history.back();
+                e.preventDefault()
+                window.history.back()
               }}
             >
               Go Back
@@ -65,5 +65,5 @@ export function DefaultErrorPage({ error }: ErrorComponentProps) {
         )}
       </Stack>
     </ErrorPage>
-  );
+  )
 }

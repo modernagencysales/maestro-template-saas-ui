@@ -135,6 +135,38 @@ describe("pinned starter transplant", () => {
     }
   });
 
+  it("receipts the literal Starter error and navigation component closure", () => {
+    const root = resolve(import.meta.dirname, "../..");
+    const receipt = JSON.parse(
+      readFileSync(
+        join(root, "docs/template/saas-ui-starter-files.json"),
+        "utf8",
+      ),
+    ) as {
+      files: Array<{
+        source: string;
+        destination: string;
+        sourceSha256: string;
+        sha256: string;
+        adapted: boolean;
+      }>;
+    };
+    for (const path of [
+      "apps/web/src/components/default-error-page.tsx",
+      "apps/web/src/components/default-loader.tsx",
+      "apps/web/src/components/link-button.tsx",
+    ]) {
+      const file = receipt.files.find(
+        ({ destination }) => destination === path,
+      );
+      expect(file).toMatchObject({
+        source: path,
+        adapted: false,
+      });
+      expect(file?.sourceSha256).toBe(file?.sha256);
+    }
+  });
+
   it("maps every owned Starter projection to its pinned source", () => {
     const root = resolve(import.meta.dirname, "../..");
     const receipt = JSON.parse(

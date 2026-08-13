@@ -28,6 +28,9 @@ agent-pack/official-convex/managed/convex-section.md
 agent-pack/official-convex/managed/guidelines.md
 packages/convex/convex/_generated/ai/guidelines.md
 # Preserve pinned Starter formatting and receipt hashes in upstream-owned trees.
+apps/web/src/components/default-error-page.tsx
+apps/web/src/components/default-loader.tsx
+apps/web/src/components/link-button.tsx
 apps/web/src/config/
 apps/web/src/features/
 apps/web/src/hooks/

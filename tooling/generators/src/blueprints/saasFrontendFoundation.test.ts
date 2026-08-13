@@ -95,6 +95,8 @@ describe("mandatory SaaS UI frontend foundation", () => {
       "docs/template/saas-ui-deviations.json",
       "docs/template/saas-ui-starter-files.json",
       "tooling/quality/check-saas-ui-artifact-safety.mts",
+      "tooling/quality/check-saas-ui-typecheck.mts",
+      "tooling/quality/fixtures/saas-ui-typecheck-baseline.json",
       "tooling/quality/src/direct-run.mts",
       "tooling/eslint-plugin-template/saas-ui-registry-receipt.mjs",
       ...manifest.licenses.map(({ destination }) => destination),
