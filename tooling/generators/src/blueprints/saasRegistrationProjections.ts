@@ -246,7 +246,6 @@ export const CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE = [
 
 export const CURRENT_EMAIL_CLOSURE = [
   ".env.example",
-  "apps/web/src/sample/templateData.test.ts",
   "docs/template/client-handoff-packet.md",
   "docs/template/client-intake-wizard.md",
   "docs/template/how-to-add-notification.md",
@@ -300,7 +299,6 @@ export const CURRENT_EMAIL_CLOSURE = [
 
 export const CURRENT_EMAIL_BASE_COPY_REPLACEMENTS = [
   ".env.example",
-  "apps/web/src/sample/templateData.test.ts",
   "docs/template/client-handoff-packet.md",
   "docs/template/client-intake-wizard.md",
   "docs/template/how-to-add-notification.md",
@@ -764,7 +762,7 @@ const customerLockfile = (
       "@convex-dev/workflow",
     );
   if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
-    for (const importer of ["apps/cli", "apps/web", "packages/convex"])
+    for (const importer of ["apps/cli", "packages/convex"])
       value = removeLockfileImporterDependencyByName(
         value,
         importer,
@@ -1379,6 +1377,10 @@ export const buildSaasRegistrationProjections = (
             content: customerConvexPackage(options),
           },
           {
+            path: "packages/convex/src/refs.ts",
+            content: currentSource("packages/convex/src/refs.ts"),
+          },
+          {
             path: "tooling/quality/check-convex-generation.mts",
             content: currentSource(
               "tooling/quality/check-convex-generation.mts",
@@ -1588,6 +1590,13 @@ export const buildSaasRegistrationProjections = (
         : []),
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
+      "packages/convex/confect/_generated/tables/workspaces.ts",
+      "packages/convex/confect/access/members.spec.ts",
+      "packages/convex/confect/access/provisioning.spec.ts",
+      "packages/convex/confect/access/roles.ts",
+      "packages/convex/confect/auth/workspaces.spec.ts",
+      "packages/convex/confect/errors.ts",
+      "packages/convex/confect/tables/workspaces.ts",
       ...(workflowSelected
         ? ["packages/convex/confect/_generated/tables/workflowArtifacts.ts"]
         : []),

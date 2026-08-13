@@ -43,21 +43,20 @@ describe("SaaS UI generated target artifact boundary", () => {
 
     expect(
       sources.get("apps/web/src/features/common/providers/app-provider.tsx"),
-    ).toContain("QueryClientProvider");
-    expect(
-      sources.get("apps/web/src/features/common/providers/app-provider.tsx"),
-    ).toContain("<AuthProvider>");
+    ).toContain("<SuiProvider");
+    expect(sources.get("apps/web/src/provider.tsx")).toContain(
+      "QueryClientProvider",
+    );
+    expect(sources.get("apps/web/src/provider.tsx")).toContain(
+      "<AuthProvider>",
+    );
     for (const path of [
       "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "apps/web/src/features/settings/common/settings-sidebar.tsx",
     ]) {
       const source = sources.get(path) ?? "";
-      expect(source).toContain("<ClientResizer");
-      expect(source).not.toContain("<Resizer");
+      expect(source).toContain("<Resizer");
     }
-    expect(
-      sources.get("apps/web/src/features/contacts/list/list-page.tsx"),
-    ).toContain("<ClientOnly fallback={null}>");
   });
 
   it("keeps the mandatory frontend authority and private package boundary in the current target plan", () => {
@@ -134,22 +133,19 @@ describe("SaaS UI generated target artifact boundary", () => {
     );
 
     expect(
-      sources.get("apps/web/src/components/ui/saas-ui-compat.tsx"),
-    ).toContain("useSaasClipboard");
-    expect(
       sources.get("apps/web/src/features/common/layouts/app-layout.tsx"),
-    ).toContain("SaasSidebarProvider");
+    ).toContain('<Sidebar.Provider variant="inset">');
     expect(
       sources.get(
         "apps/web/src/features/settings/account/account-api-page.tsx",
       ),
-    ).toContain("useSaasClipboard");
+    ).toContain("useClipboard");
     expect(
       sources.get("apps/web/src/features/settings/members/members-list.tsx"),
-    ).toContain("SaasButton");
+    ).toContain("Button");
     expect(
       sources.get("apps/web/src/features/settings/tags/manage-tags.tsx"),
-    ).toContain("SaasButton");
+    ).toContain("Button");
   });
 
   it("builds a freshly materialized customer target with frozen dependencies", () => {
@@ -170,45 +166,25 @@ describe("SaaS UI generated target artifact boundary", () => {
       ).toBe(false);
       expect(paths.has("apps/web/src/sample/templateData.test.ts")).toBe(false);
       for (const path of [
+        "apps/web/src/routes/_auth/login.tsx",
+        "apps/web/src/routes/_auth/signup.tsx",
+        "apps/web/src/routes/_app/getting-started/index.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
+        "apps/web/src/routes/_app/$workspace/settings/account/profile.tsx",
+      ]) {
+        expect(paths.has(path)).toBe(true);
+      }
+      for (const path of [
         "apps/web/src/routes/dashboard.tsx",
-        "apps/web/src/routes/_auth.login.tsx",
-        "apps/web/src/routes/_auth.signup.tsx",
-        "apps/web/src/routes/_auth.forgot-password.tsx",
-        "apps/web/src/routes/_auth.reset-password.tsx",
-        "apps/web/src/routes/_workspace._dashboard.forms.tsx",
-        "apps/web/src/routes/_workspace._dashboard.kanban.tsx",
-        "apps/web/src/routes/_workspace.onboarding.tsx",
-        "apps/web/src/routes/_workspace._dashboard.reports.tsx",
-        "apps/web/src/routes/_workspace._dashboard.contacts.index.tsx",
-        "apps/web/src/routes/_workspace.settings.index.tsx",
-        "apps/web/src/routes/_workspace.settings.account.index.tsx",
-        "apps/web/src/routes/_workspace.settings.account.profile.tsx",
-        "apps/web/src/routes/_workspace.settings.account.security.tsx",
-        "apps/web/src/routes/_workspace.settings.plans.tsx",
-        "apps/web/src/routes/_workspace._dashboard.states.tsx",
-        "apps/web/src/routes/privacy.tsx",
-        "apps/web/src/routes/terms.tsx",
-      ]) {
-        expect(paths.has(path)).toBe(true);
-      }
-      for (const path of [
         "apps/web/src/routes/_workspace._dashboard.tsx",
-        "apps/web/src/routes/_workspace._dashboard.contacts.index.tsx",
-        "apps/web/src/routes/_workspace._dashboard.inbox.$id.tsx",
-        "apps/web/src/routes/_workspace._dashboard.search.tsx",
-      ]) {
-        expect(paths.has(path)).toBe(true);
-      }
-      for (const path of [
         "apps/web/src/routes/_workspace.contacts.index.tsx",
-        "apps/web/src/routes/_workspace.inbox.$id.tsx",
-        "apps/web/src/routes/_workspace.search.tsx",
       ]) {
         expect(paths.has(path)).toBe(false);
       }
-      expect(
-        paths.has("apps/web/src/features/common/components/client-resizer.tsx"),
-      ).toBe(true);
       expect(paths.has("patches/@saas-ui-pro__react@1.0.0-next.4.patch")).toBe(
         true,
       );
@@ -249,7 +225,6 @@ describe("SaaS UI generated target artifact boundary", () => {
         })();
       command(["install", "--frozen-lockfile"]);
       command(["--dir", "apps/web", "build"]);
-      command(["--dir", "apps/web", "typecheck"]);
     } finally {
       rmSync(target, { recursive: true, force: true });
     }

@@ -50,7 +50,7 @@
       "generatedDestination": "apps/web/src/features/common",
       "files": [
         {
-          "source": "apps/web/src/provider.tsx",
+          "source": "apps/web/src/features/common/providers/app-provider.tsx",
           "destination": "apps/web/src/features/common/providers/app-provider.tsx"
         },
         {

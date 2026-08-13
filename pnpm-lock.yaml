@@ -143,9 +143,6 @@ importers:
 
   apps/web:
     dependencies:
-      "@convex-dev/react-query":
-        specifier: 0.1.0
-        version: 0.1.0("@tanstack/react-query@5.101.2(react@19.2.0)")(convex@1.42.1(react@19.2.0))
       "@ark-ui/react":
         specifier: 5.30.0
         version: 5.30.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -155,6 +152,9 @@ importers:
       "@chakra-ui/react":
         specifier: 3.33.0
         version: 3.33.0(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@convex-dev/react-query":
+        specifier: 0.1.0
+        version: 0.1.0(@tanstack/react-query@5.101.2(react@19.2.0))(convex@1.42.1(react@19.2.0))
       "@dnd-kit/core":
         specifier: ^6.3.1
         version: 6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -1458,6 +1458,15 @@ packages:
         optional: true
       "@blocknote/react":
         optional: true
+
+  "@convex-dev/react-query@0.1.0":
+    resolution:
+      {
+        integrity: sha512-ULmBZCtAQDUePdBhUv7hj1Yy4QiCelhi6uEIOtMpjW8db6W9CFKvQwLt9heLngccFyMFfAZdOfSrT+cP4AH0Jw==,
+      }
+    peerDependencies:
+      "@tanstack/react-query": ^5.0.0
+      convex: ^1.29.3
 
   "@convex-dev/workflow@0.4.4":
     resolution:
@@ -4878,6 +4887,19 @@ packages:
       "@tanstack/router-core":
         optional: true
 
+  "@tanstack/react-router-ssr-query@1.167.1":
+    resolution:
+      {
+        integrity: sha512-W9j5JPnBikyafvuUfykFfHIWod58OAbAAa5leNkXBcoDoocghMmu6w9uZOmUZvAWT7CSvgj5tBUtF7CM2OoHXQ==,
+      }
+    engines: { node: ">=20.19" }
+    peerDependencies:
+      "@tanstack/query-core": ">=5.90.0"
+      "@tanstack/react-query": ">=5.90.0"
+      "@tanstack/react-router": ">=1.127.0"
+      react: ">=18.0.0 || >=19.0.0"
+      react-dom: ">=18.0.0 || >=19.0.0"
+
   "@tanstack/react-router@1.170.17":
     resolution:
       {
@@ -5044,6 +5066,16 @@ packages:
         optional: true
       webpack:
         optional: true
+
+  "@tanstack/router-ssr-query-core@1.169.1":
+    resolution:
+      {
+        integrity: sha512-rngux8s/3mPQzcjLYDLkNU31coYVyCgrVTfpdwqUdY5jIEHqGTXrO73DTkPR1PppwYUeVhmNCgl8TctRcnupjg==,
+      }
+    engines: { node: ">=20.19" }
+    peerDependencies:
+      "@tanstack/query-core": ">=5.90.0"
+      "@tanstack/router-core": ">=1.127.0"
 
   "@tanstack/router-utils@1.162.2":
     resolution:
@@ -6228,6 +6260,34 @@ packages:
       {
         integrity: sha512-lI23nIs4bnT3T8NIoh+vFaz5s2/DdP0Jgt2jxwgWljvwn82cLJtyi/If+fjFyoLMGIOz0U/fKvWE0d4jsNQEfg==,
       }
+
+  "@workos-inc/node@10.9.0":
+    resolution:
+      {
+        integrity: sha512-Voxhxocg7Q9lpi1gJ6qyPCjgcjh7fZmxU0gR7BQRnv+ozCJ9Xj4jZulVt38tGMukniDI1uwTiXm+G2vdogpD4Q==,
+      }
+    engines: { node: ">=22.11.0" }
+
+  "@workos/authkit-session@0.6.0":
+    resolution:
+      {
+        integrity: sha512-AaDt34h4XF5BTF5ShN+W+8OOHxj+n0KmkX+e89OVNaeZJKwqao0b/S3m3BiAylNHdZGM95tsvRUKeoEXp5qERQ==,
+      }
+    engines: { node: ">=20.0.0" }
+    peerDependencies:
+      "@workos-inc/node": ^8.0.0 || ^9.0.0 || ^10.0.0
+
+  "@workos/authkit-tanstack-react-start@0.9.1":
+    resolution:
+      {
+        integrity: sha512-1HlxkyNk7FddmxVgjqgv6QZu5eIoY7ZsvEJpTexE2h/VD6hZOZx8d6eWQVAdrvGxc+va58WRZZFxtEjGaOal/g==,
+      }
+    engines: { node: ">=20.0.0" }
+    peerDependencies:
+      "@tanstack/react-router": ">=1.0.0"
+      "@tanstack/react-start": ">=1.168.25"
+      react: ^18.0 || ^19.0
+      react-dom: ^18.0 || ^19.0
 
   "@xyflow/react@12.11.1":
     resolution:
@@ -9816,6 +9876,12 @@ packages:
       }
     engines: { node: ">= 0.10" }
 
+  iron-webcrypto@2.0.0:
+    resolution:
+      {
+        integrity: sha512-rtffZKDUHciZElM8mjFCufBC7nVhCxHYyWHESqs89OioEDz4parOofd8/uhrejh/INhQFfYQfByS22LlezR9sQ==,
+      }
+
   is-arrayish@0.2.1:
     resolution:
       {
@@ -12875,6 +12941,13 @@ packages:
         integrity: sha512-JFNbkD1Svwe0KvGi8GOeLcP4kAWQ609twvCdcHxq1oSL8svv39ZuSvajcD8B+5D0eL4+s1Is2D/O6KN3qcTeRA==,
       }
 
+  uint8array-extras@1.5.0:
+    resolution:
+      {
+        integrity: sha512-rvKSBiC5zqCCiDZ9kAOszZcDvdAHwwIKJG33Ykj43OKcWsnmcBRL09YTU4nOeHZ8Y2a7l1MgTd08SBe9A8Qj6A==,
+      }
+    engines: { node: ">=18" }
+
   unbash@4.0.2:
     resolution:
       {
@@ -13120,6 +13193,17 @@ packages:
       uuid@latest.  For CommonJS codebases, use uuid@11 (but be aware this
       version will likely be deprecated in 2028).
     hasBin: true
+
+  valibot@1.4.2:
+    resolution:
+      {
+        integrity: sha512-gjdCvJ6d3RyHAneqxMYMW9QMCwYMb3jpOO0IyHZV1bnRHFBHrX3VkIILt5XYR0WhwHiH7Mty8ovuPZ/O3gamrg==,
+      }
+    peerDependencies:
+      typescript: ">=5"
+    peerDependenciesMeta:
+      typescript:
+        optional: true
 
   validate-npm-package-license@3.0.4:
     resolution:
@@ -13653,95 +13737,7 @@ packages:
       react:
         optional: true
 
-  "@convex-dev/react-query@0.1.0":
-    resolution:
-      {
-        integrity: sha512-ULmBZCtAQDUePdBhUv7hj1Yy4QiCelhi6uEIOtMpjW8db6W9CFKvQwLt9heLngccFyMFfAZdOfSrT+cP4AH0Jw==,
-      }
-    peerDependencies:
-      "@tanstack/react-query": ^5.0.0
-      convex: ^1.29.3
-
-  "@workos-inc/node@10.9.0":
-    resolution:
-      {
-        integrity: sha512-Voxhxocg7Q9lpi1gJ6qyPCjgcjh7fZmxU0gR7BQRnv+ozCJ9Xj4jZulVt38tGMukniDI1uwTiXm+G2vdogpD4Q==,
-      }
-    engines: { node: ">=22.11.0" }
-
-  "@workos/authkit-session@0.6.0":
-    resolution:
-      {
-        integrity: sha512-AaDt34h4XF5BTF5ShN+W+8OOHxj+n0KmkX+e89OVNaeZJKwqao0b/S3m3BiAylNHdZGM95tsvRUKeoEXp5qERQ==,
-      }
-    engines: { node: ">=20.0.0" }
-    peerDependencies:
-      "@workos-inc/node": ^8.0.0 || ^9.0.0 || ^10.0.0
-
-  "@workos/authkit-tanstack-react-start@0.9.1":
-    resolution:
-      {
-        integrity: sha512-1HlxkyNk7FddmxVgjqgv6QZu5eIoY7ZsvEJpTexE2h/VD6hZOZx8d6eWQVAdrvGxc+va58WRZZFxtEjGaOal/g==,
-      }
-    engines: { node: ">=20.0.0" }
-    peerDependencies:
-      "@tanstack/react-router": ">=1.0.0"
-      "@tanstack/react-start": ">=1.168.25"
-      react: ^18.0 || ^19.0
-      react-dom: ^18.0 || ^19.0
-
-  "@tanstack/react-router-ssr-query@1.167.1":
-    resolution:
-      {
-        integrity: sha512-W9j5JPnBikyafvuUfykFfHIWod58OAbAAa5leNkXBcoDoocghMmu6w9uZOmUZvAWT7CSvgj5tBUtF7CM2OoHXQ==,
-      }
-    engines: { node: ">=20.19" }
-    peerDependencies:
-      "@tanstack/query-core": ">=5.90.0"
-      "@tanstack/react-query": ">=5.90.0"
-      "@tanstack/react-router": ">=1.127.0"
-      react: ">=18.0.0 || >=19.0.0"
-      react-dom: ">=18.0.0 || >=19.0.0"
-
 snapshots:
-  "@convex-dev/react-query@0.1.0(\"@tanstack/react-query@5.101.2(react@19.2.0)\")(convex@1.42.1(react@19.2.0))":
-    dependencies:
-      "@tanstack/react-query": 5.101.2(react@19.2.0)
-      convex: 1.42.1(react@19.2.0)
-
-  "@workos-inc/node@10.9.0": {}
-
-  "@workos/authkit-session@0.6.0(@workos-inc/node@10.9.0)(typescript@5.9.3)":
-    dependencies:
-      "@workos-inc/node": 10.9.0
-      iron-webcrypto: 2.0.0
-      jose: 6.2.3
-      valibot: 1.4.2(typescript@5.9.3)
-    transitivePeerDependencies:
-      - typescript
-
-  "@workos/authkit-tanstack-react-start@0.9.1(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/react-start@1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.2.4)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)":
-    dependencies:
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/react-start": 1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.2.4)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
-      "@workos/authkit-session": 0.6.0(@workos-inc/node@10.9.0)(typescript@5.9.3)
-      react: 19.2.0
-      react-dom: 19.2.0(react@19.2.0)
-    transitivePeerDependencies:
-      - "@workos-inc/node"
-      - typescript
-
-  "@tanstack/react-router-ssr-query@1.167.1(@tanstack/query-core@5.101.2)(@tanstack/react-query@5.101.2(react@19.2.0))(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.14)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
-    dependencies:
-      "@tanstack/query-core": 5.101.2
-      "@tanstack/react-query": 5.101.2(react@19.2.0)
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/router-ssr-query-core": 1.169.1(@tanstack/query-core@5.101.2)(@tanstack/router-core@1.171.14)
-      react: 19.2.0
-      react-dom: 19.2.0(react@19.2.0)
-    transitivePeerDependencies:
-      - "@tanstack/router-core"
-
   "@adobe/css-tools@4.5.0": {}
 
   "@ampproject/remapping@2.3.0":
@@ -14528,6 +14524,11 @@ snapshots:
     optionalDependencies:
       "@blocknote/core": 0.51.4(@types/hast@3.0.4)
       "@blocknote/react": 0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
+
+  "@convex-dev/react-query@0.1.0(@tanstack/react-query@5.101.2(react@19.2.0))(convex@1.42.1(react@19.2.0))":
+    dependencies:
+      "@tanstack/react-query": 5.101.2(react@19.2.0)
+      convex: 1.42.1(react@19.2.0)
 
   "@convex-dev/workflow@0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.1)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0)))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.1)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))":
     dependencies:
@@ -16545,6 +16546,17 @@ snapshots:
     transitivePeerDependencies:
       - csstype
 
+  "@tanstack/react-router-ssr-query@1.167.1(@tanstack/query-core@5.101.2)(@tanstack/react-query@5.101.2(react@19.2.0))(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.14)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+    dependencies:
+      "@tanstack/query-core": 5.101.2
+      "@tanstack/react-query": 5.101.2(react@19.2.0)
+      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/router-ssr-query-core": 1.169.1(@tanstack/query-core@5.101.2)(@tanstack/router-core@1.171.14)
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+    transitivePeerDependencies:
+      - "@tanstack/router-core"
+
   "@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@tanstack/history": 1.162.0
@@ -16720,6 +16732,11 @@ snapshots:
       - rollup
       - supports-color
       - unloader
+
+  "@tanstack/router-ssr-query-core@1.169.1(@tanstack/query-core@5.101.2)(@tanstack/router-core@1.171.14)":
+    dependencies:
+      "@tanstack/query-core": 5.101.2
+      "@tanstack/router-core": 1.171.14
 
   "@tanstack/router-utils@1.162.2":
     dependencies:
@@ -17636,6 +17653,28 @@ snapshots:
       "@vitest/pretty-format": 3.2.6
       loupe: 3.2.1
       tinyrainbow: 2.0.0
+
+  "@workos-inc/node@10.9.0": {}
+
+  "@workos/authkit-session@0.6.0(@workos-inc/node@10.9.0)(typescript@5.9.3)":
+    dependencies:
+      "@workos-inc/node": 10.9.0
+      iron-webcrypto: 2.0.0
+      jose: 6.2.3
+      valibot: 1.4.2(typescript@5.9.3)
+    transitivePeerDependencies:
+      - typescript
+
+  "@workos/authkit-tanstack-react-start@0.9.1(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/react-start@1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.2.4)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.9.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)":
+    dependencies:
+      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/react-start": 1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.2.4)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@workos/authkit-session": 0.6.0(@workos-inc/node@10.9.0)(typescript@5.9.3)
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+    transitivePeerDependencies:
+      - "@workos-inc/node"
+      - typescript
 
   "@xyflow/react@12.11.1(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(immer@11.1.11)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
     dependencies:
@@ -20633,6 +20672,10 @@ snapshots:
 
   ipaddr.js@1.9.1: {}
 
+  iron-webcrypto@2.0.0:
+    dependencies:
+      uint8array-extras: 1.5.0
+
   is-arrayish@0.2.1: {}
 
   is-core-module@2.16.2:
@@ -22487,6 +22530,8 @@ snapshots:
 
   ufo@1.6.4: {}
 
+  uint8array-extras@1.5.0: {}
+
   unbash@4.0.2: {}
 
   underscore@1.13.8: {}
@@ -22560,6 +22605,10 @@ snapshots:
   uuid@14.0.1: {}
 
   uuid@9.0.1: {}
+
+  valibot@1.4.2(typescript@5.9.3):
+    optionalDependencies:
+      typescript: 5.9.3
 
   validate-npm-package-license@3.0.4:
     dependencies:

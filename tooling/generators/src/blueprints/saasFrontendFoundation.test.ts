@@ -156,13 +156,14 @@ describe("mandatory SaaS UI frontend foundation", () => {
       receipt.files.map(({ destination }) => destination),
     );
 
-    for (const path of saasFrontendFoundationPaths().filter(
+    const foundation = new Set(saasFrontendFoundationPaths());
+    for (const path of [...destinations].filter(
       (path) =>
         path === "apps/web/src/router.tsx" ||
         path === "apps/web/src/routeTree.gen.ts" ||
         path.startsWith("apps/web/src/routes/"),
     ))
-      expect(destinations.has(path), path).toBe(true);
+      expect(foundation.has(path), path).toBe(true);
   });
 
   it("ships the files used by generated Saas UI check scripts", () => {
