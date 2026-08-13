@@ -33,7 +33,9 @@ import { Route as AppWorkspaceSettingsTagsRouteImport } from './routes/_app/$wor
 import { Route as AppWorkspaceSettingsPlansRouteImport } from './routes/_app/$workspace/settings/plans'
 import { Route as AppWorkspaceSettingsMembersRouteImport } from './routes/_app/$workspace/settings/members'
 import { Route as AppWorkspaceSettingsBillingRouteImport } from './routes/_app/$workspace/settings/billing'
+import { Route as AppWorkspaceDashboardShowcaseRouteImport } from './routes/_app/$workspace/_dashboard/showcase'
 import { Route as AppWorkspaceDashboardSearchRouteImport } from './routes/_app/$workspace/_dashboard/search'
+import { Route as AppWorkspaceDashboardKanbanRouteImport } from './routes/_app/$workspace/_dashboard/kanban'
 import { Route as AppWorkspaceDashboardInboxRouteImport } from './routes/_app/$workspace/_dashboard/inbox'
 import { Route as AppWorkspaceSettingsAccountIndexRouteImport } from './routes/_app/$workspace/settings/account/index'
 import { Route as AppWorkspaceDashboardContactsIndexRouteImport } from './routes/_app/$workspace/_dashboard/contacts/index'
@@ -168,10 +170,22 @@ const AppWorkspaceSettingsBillingRoute =
     path: '/billing',
     getParentRoute: () => AppWorkspaceSettingsRoute,
   } as any)
+const AppWorkspaceDashboardShowcaseRoute =
+  AppWorkspaceDashboardShowcaseRouteImport.update({
+    id: '/showcase',
+    path: '/showcase',
+    getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
 const AppWorkspaceDashboardSearchRoute =
   AppWorkspaceDashboardSearchRouteImport.update({
     id: '/search',
     path: '/search',
+    getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
+const AppWorkspaceDashboardKanbanRoute =
+  AppWorkspaceDashboardKanbanRouteImport.update({
+    id: '/kanban',
+    path: '/kanban',
     getParentRoute: () => AppWorkspaceDashboardRoute,
   } as any)
 const AppWorkspaceDashboardInboxRoute =
@@ -245,7 +259,9 @@ export interface FileRoutesByFullPath {
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/getting-started/': typeof AppGettingStartedIndexRoute
   '/$workspace/inbox': typeof AppWorkspaceDashboardInboxRouteWithChildren
+  '/$workspace/kanban': typeof AppWorkspaceDashboardKanbanRoute
   '/$workspace/search': typeof AppWorkspaceDashboardSearchRoute
+  '/$workspace/showcase': typeof AppWorkspaceDashboardShowcaseRoute
   '/$workspace/settings/billing': typeof AppWorkspaceSettingsBillingRoute
   '/$workspace/settings/members': typeof AppWorkspaceSettingsMembersRoute
   '/$workspace/settings/plans': typeof AppWorkspaceSettingsPlansRoute
@@ -276,7 +292,9 @@ export interface FileRoutesByTo {
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/getting-started': typeof AppGettingStartedIndexRoute
   '/$workspace/inbox': typeof AppWorkspaceDashboardInboxRouteWithChildren
+  '/$workspace/kanban': typeof AppWorkspaceDashboardKanbanRoute
   '/$workspace/search': typeof AppWorkspaceDashboardSearchRoute
+  '/$workspace/showcase': typeof AppWorkspaceDashboardShowcaseRoute
   '/$workspace/settings/billing': typeof AppWorkspaceSettingsBillingRoute
   '/$workspace/settings/members': typeof AppWorkspaceSettingsMembersRoute
   '/$workspace/settings/plans': typeof AppWorkspaceSettingsPlansRoute
@@ -312,7 +330,9 @@ export interface FileRoutesById {
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/_app/getting-started/': typeof AppGettingStartedIndexRoute
   '/_app/$workspace/_dashboard/inbox': typeof AppWorkspaceDashboardInboxRouteWithChildren
+  '/_app/$workspace/_dashboard/kanban': typeof AppWorkspaceDashboardKanbanRoute
   '/_app/$workspace/_dashboard/search': typeof AppWorkspaceDashboardSearchRoute
+  '/_app/$workspace/_dashboard/showcase': typeof AppWorkspaceDashboardShowcaseRoute
   '/_app/$workspace/settings/billing': typeof AppWorkspaceSettingsBillingRoute
   '/_app/$workspace/settings/members': typeof AppWorkspaceSettingsMembersRoute
   '/_app/$workspace/settings/plans': typeof AppWorkspaceSettingsPlansRoute
@@ -347,7 +367,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/stripe'
     | '/getting-started/'
     | '/$workspace/inbox'
+    | '/$workspace/kanban'
     | '/$workspace/search'
+    | '/$workspace/showcase'
     | '/$workspace/settings/billing'
     | '/$workspace/settings/members'
     | '/$workspace/settings/plans'
@@ -378,7 +400,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/stripe'
     | '/getting-started'
     | '/$workspace/inbox'
+    | '/$workspace/kanban'
     | '/$workspace/search'
+    | '/$workspace/showcase'
     | '/$workspace/settings/billing'
     | '/$workspace/settings/members'
     | '/$workspace/settings/plans'
@@ -413,7 +437,9 @@ export interface FileRouteTypes {
     | '/api/webhooks/stripe'
     | '/_app/getting-started/'
     | '/_app/$workspace/_dashboard/inbox'
+    | '/_app/$workspace/_dashboard/kanban'
     | '/_app/$workspace/_dashboard/search'
+    | '/_app/$workspace/_dashboard/showcase'
     | '/_app/$workspace/settings/billing'
     | '/_app/$workspace/settings/members'
     | '/_app/$workspace/settings/plans'
@@ -609,11 +635,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceSettingsBillingRouteImport
       parentRoute: typeof AppWorkspaceSettingsRoute
     }
+    '/_app/$workspace/_dashboard/showcase': {
+      id: '/_app/$workspace/_dashboard/showcase'
+      path: '/showcase'
+      fullPath: '/$workspace/showcase'
+      preLoaderRoute: typeof AppWorkspaceDashboardShowcaseRouteImport
+      parentRoute: typeof AppWorkspaceDashboardRoute
+    }
     '/_app/$workspace/_dashboard/search': {
       id: '/_app/$workspace/_dashboard/search'
       path: '/search'
       fullPath: '/$workspace/search'
       preLoaderRoute: typeof AppWorkspaceDashboardSearchRouteImport
+      parentRoute: typeof AppWorkspaceDashboardRoute
+    }
+    '/_app/$workspace/_dashboard/kanban': {
+      id: '/_app/$workspace/_dashboard/kanban'
+      path: '/kanban'
+      fullPath: '/$workspace/kanban'
+      preLoaderRoute: typeof AppWorkspaceDashboardKanbanRouteImport
       parentRoute: typeof AppWorkspaceDashboardRoute
     }
     '/_app/$workspace/_dashboard/inbox': {
@@ -698,7 +738,9 @@ const AppWorkspaceDashboardInboxRouteWithChildren =
 
 interface AppWorkspaceDashboardRouteChildren {
   AppWorkspaceDashboardInboxRoute: typeof AppWorkspaceDashboardInboxRouteWithChildren
+  AppWorkspaceDashboardKanbanRoute: typeof AppWorkspaceDashboardKanbanRoute
   AppWorkspaceDashboardSearchRoute: typeof AppWorkspaceDashboardSearchRoute
+  AppWorkspaceDashboardShowcaseRoute: typeof AppWorkspaceDashboardShowcaseRoute
   AppWorkspaceDashboardIndexRoute: typeof AppWorkspaceDashboardIndexRoute
   AppWorkspaceDashboardContactsTypeRoute: typeof AppWorkspaceDashboardContactsTypeRoute
   AppWorkspaceDashboardTagTagRoute: typeof AppWorkspaceDashboardTagTagRoute
@@ -708,7 +750,9 @@ interface AppWorkspaceDashboardRouteChildren {
 
 const AppWorkspaceDashboardRouteChildren: AppWorkspaceDashboardRouteChildren = {
   AppWorkspaceDashboardInboxRoute: AppWorkspaceDashboardInboxRouteWithChildren,
+  AppWorkspaceDashboardKanbanRoute: AppWorkspaceDashboardKanbanRoute,
   AppWorkspaceDashboardSearchRoute: AppWorkspaceDashboardSearchRoute,
+  AppWorkspaceDashboardShowcaseRoute: AppWorkspaceDashboardShowcaseRoute,
   AppWorkspaceDashboardIndexRoute: AppWorkspaceDashboardIndexRoute,
   AppWorkspaceDashboardContactsTypeRoute:
     AppWorkspaceDashboardContactsTypeRoute,
