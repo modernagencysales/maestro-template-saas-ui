@@ -22,9 +22,8 @@ typed architectural direction.
 `docs/template/saas-ui-frontend-authority.md`, visual smoke snapshots, and
 `docs/template/reviewer-guide.md`.
 
-**Required commands:** `pnpm check:format`, `pnpm build`,
-`pnpm smoke:golden:browser`, `pnpm smoke:golden:a11y`,
-`pnpm smoke:golden:visual`.
+**Required commands:** `pnpm check:format`, `pnpm build`, and
+`pnpm smoke:starter-route-parity`.
 
 **Investor inference:** the story is inspectable, but this level alone is not a
 client implementation platform.

@@ -1,99 +1,91 @@
-"use client";
+'use client'
 
-import * as React from "react";
-import * as Sui from "@saas-ui/react";
+import * as React from 'react'
 
-import { ResizeHandle, SplitPage } from "@saas-ui-pro/react";
-import { useLocalStorage } from "@saas-ui/hooks";
-import { ButtonGroup, useBreakpointValue } from "@saas-ui/react";
-import { useNavigate } from "@tanstack/react-router";
-import { LuInbox } from "react-icons/lu";
+import { ResizeHandle, Resizer, SplitPage } from '@saas-ui-pro/react'
+import { useLocalStorage } from '@saas-ui/hooks'
+import {
+  ButtonGroup,
+  EmptyState,
+  Page,
+  useBreakpointValue,
+} from '@saas-ui/react'
+import { useNavigate } from '@tanstack/react-router'
+import { LuInbox } from 'react-icons/lu'
 
-import type { NotificationDTO } from "@workspace/api/types";
+import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace.ts'
+import { useOpenState } from '#hooks/use-open-state.ts'
+import { api } from '#lib/trpc/react.tsx'
 
-import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
-import { useOpenState } from "#hooks/use-open-state";
-import { api } from "#lib/trpc/react";
-
-import { InboxList } from "./inbox-list";
-import { ClientResizer } from "../../common/components/client-resizer";
-
-function useViewportReady() {
-  const [ready, setReady] = React.useState(false);
-
-  React.useEffect(() => {
-    setReady(true);
-  }, []);
-
-  return ready;
-}
+import { InboxList } from './inbox-list.tsx'
 
 export function InboxLayout({
   params,
   children,
 }: {
-  params: { workspace: string; id?: string };
-  children: React.ReactNode;
+  params: { workspace: string; id?: string }
+  children: React.ReactNode
 }) {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
-  const [workspace] = useCurrentWorkspace();
+  const [workspace] = useCurrentWorkspace()
 
-  const [, startTransition] = React.useTransition();
+  const [, startTransition] = React.useTransition()
 
   const { data, isLoading } = api.notifications.inbox.useQuery({
     workspaceId: workspace.id,
-  });
+  })
 
   const isMobile = useBreakpointValue(
     { base: true, lg: false },
-    { fallback: "base" },
-  );
-  const viewportReady = useViewportReady();
+    { fallback: 'base' },
+  )
 
   const { open, setOpen } = useOpenState({
     defaultOpen: !!params.id,
-  });
+  })
 
-  const [width, setWidth] = useLocalStorage("app.inbox-list.width", 280);
+  const [width, setWidth] = useLocalStorage('app.inbox-list.width', 280)
 
   React.useEffect(() => {
-    if (!params.id && !isLoading && viewportReady && !isMobile) {
-      const firstItem = data?.notifications[0];
+    if (!params.id && !isLoading && !isMobile) {
+      const firstItem = data?.notifications[0]
       if (firstItem) {
         // redirect to the first inbox notification if it's available.
         startTransition(() => {
           navigate({
-            to: "/inbox/$id",
+            to: '/$workspace/inbox/$id',
             params: {
+              workspace: params.workspace,
               id: firstItem.id,
             },
             search: {
               contactId: firstItem.subjectId,
             },
             mask: {
-              to: "/contacts/view/$id",
+              to: '/$workspace/contacts/view/$id',
               params: {
+                workspace: params.workspace,
                 id: firstItem.subjectId,
               },
             },
-          });
-        });
+          })
+        })
       }
     }
-  }, [data, isLoading, isMobile, params, viewportReady]);
+  }, [data, isLoading, isMobile, params])
 
   React.useEffect(() => {
     if (params.id) {
-      setOpen(true);
+      setOpen(true)
     }
     // the isMobile dep is needed so that the SplitPage
     // will open again when the screen size changes to lg
-  }, [params, isMobile, setOpen]);
+  }, [params, isMobile, setOpen])
 
   // const [visibleProps, setVisibleProps] = React.useState<string[]>([])
 
-  const notificationCount = data?.notifications?.length || 0;
+  const notificationCount = data?.notifications?.length || 0
 
   // const displayProperties = (
   //   <ToggleButtonGroup
@@ -151,92 +143,45 @@ export function InboxLayout({
         </Portal>
       </Menu> */}
     </ButtonGroup>
-  );
+  )
 
   const emptyState = (
-    <Sui.EmptyState
+    <EmptyState
       icon={<LuInbox />}
       title="Inbox zero"
       description="Nothing to do here"
       height="100%"
     />
-  );
-
-  const hasDetail = !!open;
+  )
 
   return (
-    <SplitPage
-      display="flex"
-      flex="1"
-      position="relative"
-      overflow="hidden"
-      flexDirection="row"
-      {...(typeof open === "boolean" ? { open } : {})}
-      onOpen={() => setOpen(true)}
-      onClose={() => setOpen(false)}
-    >
-      <Sui.Box
-        display={{ base: hasDetail ? "none" : "flex", lg: "flex" }}
-        flex={{ base: 1, lg: "unset" }}
-        height="100%"
+    <SplitPage open={open} onOpenChange={setOpen}>
+      <Resizer
+        defaultWidth={width}
+        onResize={({ width }) => setWidth(width)}
+        enabled={!isMobile}
       >
-        <InboxListPane
-          width={width}
-          onResize={setWidth}
-          enabled={!isMobile}
+        <Page.Root
+          as="div"
+          borderRightWidth={{ base: 0, lg: '1px' }}
+          minWidth="280px"
+          maxW={{ base: '100%', lg: '640px' }}
+          position="relative"
           loading={isLoading}
-          showEmpty={!notificationCount && !open}
-          emptyState={emptyState}
-          items={data?.notifications || []}
-          toolbar={toolbar}
-        />
-      </Sui.Box>
-      <Sui.Box
-        display={{ base: hasDetail ? "flex" : "none", lg: "flex" }}
-        flex="1"
-        height="100%"
-      >
-        {children}
-      </Sui.Box>
+          flex={{ base: '1', lg: 'unset' }}
+        >
+          <Page.Header title="Inbox" actions={toolbar} />
+          <Page.Body p="0">
+            {!notificationCount && !open ? (
+              emptyState
+            ) : (
+              <InboxList items={data?.notifications || []} />
+            )}
+          </Page.Body>
+          <ResizeHandle />
+        </Page.Root>
+      </Resizer>
+      {children}
     </SplitPage>
-  );
-}
-
-function InboxListPane(props: {
-  width: number;
-  onResize: (width: number) => void;
-  enabled: boolean;
-  loading: boolean;
-  showEmpty: boolean;
-  emptyState: React.ReactNode;
-  items: NotificationDTO[];
-  toolbar: React.ReactNode;
-}) {
-  return (
-    <ClientResizer
-      defaultWidth={props.width}
-      onResize={({ width }) => props.onResize(width)}
-      enabled={props.enabled}
-    >
-      <Sui.Page.Root
-        as="div"
-        borderRightWidth={{ base: 0, lg: "1px" }}
-        minWidth="280px"
-        maxW={{ base: "100%", lg: "640px" }}
-        position="relative"
-        loading={props.loading}
-        flex={{ base: "1", lg: "unset" }}
-      >
-        <Sui.Page.Header title="Inbox" actions={props.toolbar} />
-        <Sui.Page.Body p="0">
-          {props.showEmpty ? (
-            props.emptyState
-          ) : (
-            <InboxList items={props.items} />
-          )}
-        </Sui.Page.Body>
-        <ResizeHandle />
-      </Sui.Page.Root>
-    </ClientResizer>
-  );
+  )
 }

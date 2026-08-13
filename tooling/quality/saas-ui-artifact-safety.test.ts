@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { mkdirSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -11,6 +12,8 @@ const pins = {
   starter: "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
   pro: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
 } as const;
+const hash = (value: string): string =>
+  createHash("sha256").update(value).digest("hex");
 
 const createFixture = (
   options: {
@@ -92,7 +95,7 @@ const createFixture = (
       source: "apps/web/src/fixture.tsx",
       destination,
       sourceSha256: "1".repeat(64),
-      sha256: "2".repeat(64),
+      sha256: hash("paid source\n"),
       adapted: false,
     },
     ...(options.starterReceiptDestination === undefined
@@ -102,7 +105,7 @@ const createFixture = (
             source: "apps/web/src/starter-paid.ts",
             destination: options.starterReceiptDestination,
             sourceSha256: "3".repeat(64),
-            sha256: "4".repeat(64),
+            sha256: hash("starter paid source\n"),
             adapted: true,
           },
         ]),
@@ -185,6 +188,30 @@ describe("Saas UI artifact safety", () => {
     try {
       expect(assertSaasUiArtifactSafety(root)).toContain(
         "paid source enters npm packlist: src/starter-paid.ts",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects starter source whose receipt hash no longer matches", () => {
+    const root = createFixture();
+    try {
+      writeFileSync(join(root, "src/paid.ts"), "changed paid source\n");
+      expect(assertSaasUiArtifactSafety(root)).toContain(
+        "starter receipt destination hash mismatch: src/paid.ts",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a missing required starter receipt", () => {
+    const root = createFixture();
+    try {
+      rmSync(join(root, "docs/template/saas-ui-starter-files.json"));
+      expect(assertSaasUiArtifactSafety(root)).toContain(
+        "required Saas UI starter receipt is missing: docs/template/saas-ui-starter-files.json",
       );
     } finally {
       rmSync(root, { recursive: true, force: true });

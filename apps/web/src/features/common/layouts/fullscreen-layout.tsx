@@ -1,12 +1,12 @@
-"use client";
+'use client'
 
-import { HStack, Text } from "@chakra-ui/react";
-import { useAuth } from "@saas-ui/auth-provider";
-import { AppShell, Menu } from "@saas-ui/react";
+import { HStack, Text } from '@chakra-ui/react'
+import { useAuth } from '@saas-ui/auth-provider'
+import { AppShell, Menu } from '@saas-ui/react'
 
-import { BackButton } from "../../../components/back-button";
+import { BackButton } from '#components/back-button'
 
-import { AppLayout, AppLayoutProps } from "./app-layout";
+import { AppLayout, AppLayoutProps } from './app-layout'
 
 /**
  * Fullscreen layout, for functionality that requires extra focus, like onboarding/checkout/etc.
@@ -14,9 +14,9 @@ import { AppLayout, AppLayoutProps } from "./app-layout";
 export const FullscreenLayout: React.FC<
   AppLayoutProps & { hideBackButton?: boolean }
 > = ({ children, hideBackButton, ...rest }) => {
-  const { user, logOut } = useAuth();
+  const { user, logOut } = useAuth()
 
-  let menu;
+  let menu
   if (user) {
     menu = (
       <Menu.Root>
@@ -38,7 +38,7 @@ export const FullscreenLayout: React.FC<
           </Menu.Item>
         </Menu.Content>
       </Menu.Root>
-    );
+    )
   }
 
   return (
@@ -51,10 +51,10 @@ export const FullscreenLayout: React.FC<
         py="2"
         width="full"
       >
-        {!hideBackButton && <BackButton />}
+        {!hideBackButton && <BackButton to="/" />}
         {menu}
       </HStack>
       {children}
     </AppShell>
-  );
-};
+  )
+}

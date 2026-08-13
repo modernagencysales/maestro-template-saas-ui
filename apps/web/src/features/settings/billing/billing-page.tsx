@@ -1,6 +1,6 @@
-"use client";
+'use client'
 
-import React from "react";
+import React from 'react'
 
 import {
   Card,
@@ -11,31 +11,22 @@ import {
   Section,
   Text,
   toast,
-} from "@saas-ui/react";
-import { LuArrowRight } from "react-icons/lu";
-import { z } from "zod";
+} from '@saas-ui/react'
+import { LuArrowRight } from 'react-icons/lu'
+import { z } from 'zod'
 
-import { WorkspaceDTO } from "@workspace/api/types";
-import { FormattedDate, FormattedNumber } from "@workspace/i18n";
-import { Form, useAppForm } from "@workspace/ui/form";
-import { SettingsPage } from "@workspace/ui/settings-page";
+import { WorkspaceDTO } from '@workspace/api/types'
+import { FormattedDate, FormattedNumber } from '@workspace/i18n'
+import { Form, useAppForm } from '@workspace/ui/form'
+import { SettingsPage } from '@workspace/ui/settings-page'
 
-import { Link } from "#components/link";
-import { LinkButton } from "#components/link-button";
-import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
-import { api } from "#lib/trpc/react";
+import { Link } from '#components/link'
+import { LinkButton } from '#components/link-button'
+import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace'
+import { api } from '#lib/trpc/react'
 
-import { BillingStatus } from "./billing-status";
-import { ManageBillingButton } from "./manage-billing-button";
-
-interface BillingInvoice {
-  number: string;
-  date: Date | string | number;
-  status: string;
-  total: number;
-  currency?: string;
-  url?: string | null;
-}
+import { BillingStatus } from './billing-status'
+import { ManageBillingButton } from './manage-billing-button'
 
 function BillingPlan({ workspace }: { workspace: WorkspaceDTO }) {
   return (
@@ -46,7 +37,12 @@ function BillingPlan({ workspace }: { workspace: WorkspaceDTO }) {
           <Card.Body>
             <BillingStatus />
             <HStack mt="4">
-              <LinkButton to="/settings/plans">Update plan</LinkButton>
+              <LinkButton
+                to="/$workspace/settings/plans"
+                params={{ workspace: workspace.slug }}
+              >
+                Update plan
+              </LinkButton>
 
               <ManageBillingButton workspaceId={workspace.id} variant="ghost" />
             </HStack>
@@ -54,33 +50,33 @@ function BillingPlan({ workspace }: { workspace: WorkspaceDTO }) {
         </Card.Root>
       </Section.Body>
     </Section.Root>
-  );
+  )
 }
 
 const billingEmailSchema = z.object({
   email: z.string().email(),
-});
+})
 
 function BillingEmail({ workspace }: { workspace: WorkspaceDTO }) {
   const { data, isLoading } = api.billing.account.useQuery({
     workspaceId: workspace.id,
-  });
+  })
 
   const mutation = api.billing.updateBillingDetails.useMutation({
     onError() {
       toast.error({
-        title: "Failed to update the billing email",
+        title: 'Failed to update the billing email',
         description:
-          "Please try again, or contact us if the problems persists.",
-      });
+          'Please try again, or contact us if the problems persists.',
+      })
     },
     onSuccess() {
       toast.success({
-        title: "Billing email updated",
-        description: "Invoices will now be sent to the new email address.",
-      });
+        title: 'Billing email updated',
+        description: 'Invoices will now be sent to the new email address.',
+      })
     },
-  });
+  })
 
   const form = useAppForm({
     validators: {
@@ -88,15 +84,15 @@ function BillingEmail({ workspace }: { workspace: WorkspaceDTO }) {
       onSubmit: billingEmailSchema,
     },
     defaultValues: {
-      email: data?.email ?? "",
+      email: data?.email ?? '',
     },
     onSubmit: async ({ value }) => {
       await mutation.mutateAsync({
         workspaceId: workspace.id,
         email: value.email,
-      });
+      })
     },
-  });
+  })
 
   return (
     <Section.Root>
@@ -127,7 +123,7 @@ function BillingEmail({ workspace }: { workspace: WorkspaceDTO }) {
         ) : null}
       </Section.Body>
     </Section.Root>
-  );
+  )
 }
 
 function BillingInvoices({ workspace }: { workspace: WorkspaceDTO }) {
@@ -150,21 +146,21 @@ function BillingInvoices({ workspace }: { workspace: WorkspaceDTO }) {
         </Card.Root>
       </Section.Body>
     </Section.Root>
-  );
+  )
 }
 
 function InvoicesTable({ workspace }: { workspace: WorkspaceDTO }) {
   const [data] = api.billing.listInvoices.useSuspenseQuery({
     workspaceId: workspace.id,
-  });
+  })
 
   if (!data.length) {
-    return <Text textStyle="sm">No invoices received yet.</Text>;
+    return <Text textStyle="sm">No invoices received yet.</Text>
   }
 
   return (
     <GridList.Root>
-      {data.map((invoice: BillingInvoice) => (
+      {data.map((invoice) => (
         <GridList.Item key={invoice.number} gap="4" fontSize="sm">
           <GridList.Cell color="fg.muted" flex="1">
             <FormattedDate value={invoice.date} />
@@ -180,28 +176,28 @@ function InvoicesTable({ workspace }: { workspace: WorkspaceDTO }) {
             />
           </GridList.Cell>
           <GridList.Cell>
-            <Link to={invoice.url ?? "#"} target="_blank">
+            <Link to={invoice.url ?? '#'} target="_blank">
               View invoice <LuArrowRight />
             </Link>
           </GridList.Cell>
         </GridList.Item>
       ))}
     </GridList.Root>
-  );
+  )
 }
 
 function InvoiceStatus(props: { status: string }) {
   switch (props.status) {
-    case "paid":
-      return <Text>Paid</Text>;
+    case 'paid':
+      return <Text>Paid</Text>
     default:
-    case "open":
-      return <Text color="orange.500">Open</Text>;
+    case 'open':
+      return <Text color="orange.500">Open</Text>
   }
 }
 
 export function BillingPage() {
-  const [workspace] = useCurrentWorkspace();
+  const [workspace] = useCurrentWorkspace()
 
   return (
     <SettingsPage title="Billing">
@@ -209,5 +205,5 @@ export function BillingPage() {
       <BillingEmail workspace={workspace} />
       <BillingInvoices workspace={workspace} />
     </SettingsPage>
-  );
+  )
 }

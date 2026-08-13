@@ -84,7 +84,9 @@ describe("mandatory SaaS UI frontend foundation", () => {
     ))
       expect(paths.has(destination), destination).toBe(true);
     for (const path of [
-      "apps/web/src/features/golden/fixtures.ts",
+      "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
+      "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
+      "packages/ui/package.json",
       "apps/web/src/theme/preset.ts",
       "apps/web/src/features/common/layouts/app-layout.tsx",
       "eslint.config.mjs",
@@ -98,5 +100,86 @@ describe("mandatory SaaS UI frontend foundation", () => {
       ...manifest.licenses.map(({ destination }) => destination),
     ])
       expect(paths.has(path), path).toBe(true);
+  });
+
+  it("projects every local ESLint rule imported by the advertised lint command", () => {
+    const paths = new Set(saasFrontendFoundationPaths());
+    const plugin = readSource("tooling/eslint-plugin-template/index.mjs");
+    const imports = [...plugin.matchAll(/from "\.\/(rules\/[^"]+)"/gu)].map(
+      ([, path]) => `tooling/eslint-plugin-template/${path}`,
+    );
+
+    expect(imports.length).toBeGreaterThan(0);
+    for (const path of imports) expect(paths.has(path), path).toBe(true);
+  });
+
+  it("projects only the literal Starter route authority", () => {
+    const paths = saasFrontendFoundationPaths();
+    const targetPaths = buildSaasApplicationTargetPlan({
+      name: "route authority",
+      patterns: ["records-example"],
+    }).entries.map(({ path }) => path);
+
+    expect(paths).toContain(
+      "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
+    );
+    expect(paths).not.toContain("apps/web/src/routes/dashboard.tsx");
+    expect(paths.some((path) => path.includes("/routes/_workspace"))).toBe(
+      false,
+    );
+    const forbidden = [
+      "/features/golden/",
+      "/features/public-funnel/",
+      "business-shell",
+      "apps/web/src/navigation/",
+      "apps/web/src/providers/",
+      "apps/web/src/workspace/",
+      "apps/web/src/saas-ui/",
+    ];
+    for (const fragment of forbidden)
+      expect(
+        paths.some((path) => path.includes(fragment)),
+        fragment,
+      ).toBe(false);
+    for (const path of targetPaths) {
+      expect(path.includes("/routes/_workspace"), path).toBe(false);
+      for (const fragment of forbidden)
+        expect(path.includes(fragment), path).toBe(false);
+    }
+  });
+
+  it("receipt-binds the literal Starter route authority", () => {
+    const receipt = JSON.parse(
+      readSource("docs/template/saas-ui-starter-files.json"),
+    ) as { readonly files: readonly { readonly destination: string }[] };
+    const destinations = new Set(
+      receipt.files.map(({ destination }) => destination),
+    );
+
+    for (const path of saasFrontendFoundationPaths().filter(
+      (path) =>
+        path === "apps/web/src/router.tsx" ||
+        path === "apps/web/src/routeTree.gen.ts" ||
+        path.startsWith("apps/web/src/routes/"),
+    ))
+      expect(destinations.has(path), path).toBe(true);
+  });
+
+  it("ships the files used by generated Saas UI check scripts", () => {
+    const plan = buildSaasApplicationTargetPlan({ name: "tooling closure" });
+    const paths = new Set(plan.entries.map(({ path }) => path));
+    const packageJson = JSON.parse(
+      plan.entries.find(({ path }) => path === "package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
+
+    for (const name of [
+      "check:saas-ui-foundation",
+      "check:saas-ui-artifact-safety",
+    ]) {
+      const command = packageJson.scripts?.[name] ?? "";
+      const executable = /^tsx (\S+)$/u.exec(command)?.[1];
+      expect(executable, name).toBeDefined();
+      expect(paths.has(executable ?? ""), `${name}: ${executable}`).toBe(true);
+    }
   });
 });

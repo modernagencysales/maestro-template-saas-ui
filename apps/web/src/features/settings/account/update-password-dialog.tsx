@@ -1,19 +1,19 @@
-import * as React from "react";
+import * as React from 'react'
 
-import { useUpdatePassword } from "@saas-ui/auth-provider";
-import { Button, Dialog } from "@saas-ui/react";
+import { useUpdatePassword } from '@saas-ui/auth-provider'
+import { Button, Dialog } from '@saas-ui/react'
 
-import { Form, useAppForm } from "@workspace/ui/form";
+import { Form, useAppForm } from '@workspace/ui/form'
 
-import { updatePasswordSchema } from "./schema/update-password.schema";
+import { updatePasswordSchema } from './schema/update-password.schema.ts'
 
 export interface UpdatePasswordFormProps extends Omit<
   Dialog.RootProps,
-  "children"
+  'children'
 > {
-  onSuccess?: (data: any) => void;
-  onError?: (error: any) => void;
-  onValidationError?: (error: any) => void;
+  onSuccess?: (data: any) => void
+  onError?: (error: any) => void
+  onValidationError?: (error: any) => void
 }
 
 export const UpdatePasswordDialog: React.FC<UpdatePasswordFormProps> = ({
@@ -23,7 +23,7 @@ export const UpdatePasswordDialog: React.FC<UpdatePasswordFormProps> = ({
   open,
   onOpenChange,
 }) => {
-  const [, submit] = useUpdatePassword();
+  const [, submit] = useUpdatePassword()
 
   const form = useAppForm({
     validators: {
@@ -31,9 +31,9 @@ export const UpdatePasswordDialog: React.FC<UpdatePasswordFormProps> = ({
       onSubmit: updatePasswordSchema,
     },
     defaultValues: {
-      password: "",
-      newPassword: "",
-      confirmPassword: "",
+      password: '',
+      newPassword: '',
+      confirmPassword: '',
     },
     onSubmitInvalid: onValidationError,
     onSubmit: async ({ value }) => {
@@ -41,13 +41,13 @@ export const UpdatePasswordDialog: React.FC<UpdatePasswordFormProps> = ({
         const data = await submit({
           password: value.password,
           newPassword: value.newPassword,
-        });
-        onSuccess(data);
+        })
+        onSuccess(data)
       } catch (error) {
-        onError(error);
+        onError(error)
       }
     },
-  });
+  })
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -101,5 +101,5 @@ export const UpdatePasswordDialog: React.FC<UpdatePasswordFormProps> = ({
         </Form>
       </Dialog.Content>
     </Dialog.Root>
-  );
-};
+  )
+}

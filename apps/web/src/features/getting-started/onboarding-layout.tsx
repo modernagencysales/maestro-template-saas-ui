@@ -1,16 +1,16 @@
-import * as React from "react";
+import * as React from 'react'
 
-import { Page } from "@saas-ui/react";
+import { Page } from '@saas-ui/react'
 
-import { FullscreenLayout } from "#features/common/layouts/fullscreen-layout";
+import { FullscreenLayout } from '#features/common/layouts/fullscreen-layout'
 
 export interface OnboardingLayoutProps {
-  isLoading?: boolean;
-  children: React.ReactNode;
+  isLoading?: boolean
+  children: React.ReactNode
 }
 
 export const OnboardingLayout: React.FC<OnboardingLayoutProps> = (props) => {
-  const { children, ...pageProps } = props;
+  const { children, ...pageProps } = props
 
   return (
     <FullscreenLayout>
@@ -20,5 +20,5 @@ export const OnboardingLayout: React.FC<OnboardingLayoutProps> = (props) => {
         </Page.Body>
       </Page.Root>
     </FullscreenLayout>
-  );
-};
+  )
+}

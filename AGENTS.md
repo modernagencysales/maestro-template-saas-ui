@@ -96,11 +96,12 @@ layers, add the missing boundary instead.
   need.
 - The pinned upstream Starter Kit Pro and Saas UI Pro registry are the single
   frontend authority; follow [the frontend authority guide](docs/template/saas-ui-frontend-authority.md).
-- Record structural or style compatibility changes in
-  `docs/template/saas-ui-deviations.json`; aesthetic preference is not a valid
-  deviation reason.
-- Review paired reference/generated desktop/mobile light/dark evidence with
-  [the golden-review runbook](docs/template/saas-ui-golden-review.md).
+- Keep `docs/template/saas-ui-deviations.json` as the exact empty array; port
+  product behavior through adapters without forking the pinned frontend.
+- Keep routes under the literal Starter `_app` tree and verify them with
+  [the route-parity runbook](docs/template/saas-ui-golden-review.md). Do not
+  restore `_workspace`, golden feature, business-shell, or custom navigation
+  alternatives.
 - Feature components may use feature adapters; blocks may not import Convex,
   Confect refs, route modules, provider SDKs, or workspace auth internals.
 - React Flow belongs in workflow UI and workflow feature surfaces only.

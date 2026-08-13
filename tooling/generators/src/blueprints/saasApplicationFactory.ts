@@ -6,7 +6,10 @@ import {
   buildCurrentSaasApplicationChassisFiles,
   buildSaasApplicationFiles,
 } from "./saasApplication";
-import { saasFrontendFoundationFiles } from "./saasFrontendFoundation";
+import {
+  isObsoleteFrontendAuthority,
+  saasFrontendFoundationFiles,
+} from "./saasFrontendFoundation";
 import {
   selectsSaasApplicationPattern,
   type SaasApplicationPatternSelection,
@@ -227,7 +230,6 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
         "apps/web/src/features/records/model.ts",
         "apps/web/src/features/records/records-surface.tsx",
         "apps/web/src/screens/records-screen.tsx",
-        "apps/web/src/routes/_workspace.records.tsx",
         "features/records.feature",
         "features/step_definitions/records.journeys.ts",
         "features/step_definitions/records.steps.ts",
@@ -312,16 +314,8 @@ const customerDocumentationCommandReplacements: Readonly<
       "5. Run `pnpm build` and `pnpm smoke:web-static`.",
       "5. Run `pnpm build` and the deployment owner's static smoke.",
     ],
-    [
-      "deployment, require `pnpm smoke:golden:browser`, `pnpm smoke:golden:a11y`,\n   and `pnpm smoke:golden:visual`. Upload the guarded",
-      "deployment, require the deployment owner's hosted liveness and the\n   paired local golden browser, accessibility, and visual evidence. Upload the guarded",
-    ],
   ],
   "docs/template/template-maturity-model.md": [
-    [
-      "**Required commands:** `pnpm check:format`, `pnpm build`,\n`pnpm smoke:golden:browser`, `pnpm smoke:golden:a11y`,\n`pnpm smoke:golden:visual`.",
-      "**Required commands:** `pnpm check:format`, `pnpm build`, and the deployment owner's paired browser, accessibility, and visual evidence.",
-    ],
     ["`pnpm review:completion`.", "`pnpm review:contract`."],
     ["`pnpm evals`.", "`pnpm test`."],
     ["`pnpm deploy:doctor`.", "`pnpm verify`."],
@@ -480,11 +474,19 @@ export const buildFactorySaasApplicationFiles = (options: {
   readonly firstOutcome?: string;
   readonly patterns?: SaasApplicationPatternSelection["patterns"];
 }): readonly GeneratedFile[] => {
-  const currentFiles = currentSaasApplicationFiles(options);
+  const frontendFiles = saasFrontendFoundationFiles(currentSource);
+  const frontendPaths = new Set(frontendFiles.map(({ path }) => path));
+  const currentFiles = currentSaasApplicationFiles(options).filter(
+    ({ path }) =>
+      !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
+  );
   const contractFiles = currentContractFiles(options);
   const registrationFiles = buildSaasRegistrationProjections({
     patterns: options.patterns,
-  });
+  }).filter(
+    ({ path }) =>
+      !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
+  );
   const existingPaths = new Set(
     [...currentFiles, ...contractFiles, ...registrationFiles].map(
       ({ path }) => path,
@@ -495,10 +497,11 @@ export const buildFactorySaasApplicationFiles = (options: {
       ...currentFiles,
       ...contractFiles,
       ...registrationFiles,
-      ...saasFrontendFoundationFiles(currentSource).filter(
-        ({ path }) => !existingPaths.has(path),
+      ...frontendFiles.filter(({ path }) => !existingPaths.has(path)),
+      ...currentCustomerSourceProjections(options).filter(
+        ({ path }) =>
+          !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
       ),
-      ...currentCustomerSourceProjections(options),
       ...(selectsSaasApplicationPattern(options, "records-example")
         ? [recordsFeatureProvenance()]
         : []),

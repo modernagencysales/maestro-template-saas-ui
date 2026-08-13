@@ -1,7 +1,19 @@
+import { Card, Progress, Stack, Text } from '@chakra-ui/react'
+import { useBilling } from '@saas-ui-pro/billing'
+import { Has } from '@saas-ui-pro/feature-flags'
+import { differenceInDays, formatDistanceStrict } from 'date-fns'
+
+import { LinkButton } from '#components/link-button'
+
+import { useWorkspaceSlug } from '../hooks/use-workspace-slug'
+
 export const BillingStatus = () => {
-  // Billing is intentionally a neutral fixture seam in the reference app.
-  return null;
-  /*
+  const workspace = useWorkspaceSlug()
+  const { isTrialing, trialEndsAt, currentPlan } = useBilling()
+
+  if (!isTrialing || !currentPlan || !trialEndsAt) {
+    return null
+  }
 
   let progress = 0
   if (currentPlan.trialDays) {
@@ -29,7 +41,7 @@ export const BillingStatus = () => {
           {message}
           <Has feature="billing">
             <LinkButton
-              to="/settings/billing"
+              to="/$workspace/settings/billing"
               params={{
                 workspace,
               }}
@@ -58,5 +70,4 @@ export const BillingStatus = () => {
       </Card.Body>
     </Card.Root>
   )
-*/
-};
+}

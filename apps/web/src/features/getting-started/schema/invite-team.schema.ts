@@ -1,4 +1,4 @@
-import * as z from "zod";
+import * as z from 'zod'
 
 export function parseEmails(value: string): string[] {
   return (
@@ -7,7 +7,7 @@ export function parseEmails(value: string): string[] {
       .split(/[,\s\n]+/)
       .map((email) => email.trim())
       .filter(Boolean)
-  );
+  )
 }
 
 export const inviteTeamSchema = z.object({
@@ -20,9 +20,9 @@ export const inviteTeamSchema = z.object({
         ),
       {
         message:
-          "Please enter valid email addresses separated by commas, spaces, or new lines",
+          'Please enter valid email addresses separated by commas, spaces, or new lines',
       },
     ),
-});
+})
 
-export type InviteTeamFormInput = z.infer<typeof inviteTeamSchema>;
+export type InviteTeamFormInput = z.infer<typeof inviteTeamSchema>

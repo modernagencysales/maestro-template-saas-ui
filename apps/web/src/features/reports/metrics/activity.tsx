@@ -1,17 +1,17 @@
-import { Text, Timeline } from "@chakra-ui/react";
-import { Tooltip } from "@saas-ui/react";
+import { Text, Timeline } from '@chakra-ui/react'
+import { Tooltip } from '@saas-ui/react'
 
-import type { ContactDTO } from "@workspace/api/types";
-import { DateTime, RelativeTime } from "@workspace/i18n";
+import type { ContactDTO } from '@workspace/api/types'
+import { DateTime, RelativeTime } from '@workspace/i18n'
 
-import { ContactAvatar } from "#features/contacts/common/contact-avatar";
+import { ContactAvatar } from '#features/contacts/common/contact-avatar'
 
-import { MetricsCard } from "./metrics-card";
+import { MetricsCard } from './metrics-card'
 
 export interface ActivityData {
-  contact: ContactDTO;
-  action: string;
-  date: string;
+  contact: ContactDTO
+  action: string
+  date: string
 }
 
 const ActivityDate: React.FC<{ date: Date }> = (props) => {
@@ -21,8 +21,8 @@ const ActivityDate: React.FC<{ date: Date }> = (props) => {
         <RelativeTime date={props.date} />
       </Text>
     </Tooltip>
-  );
-};
+  )
+}
 
 export const Activity = ({ data }: { data: ActivityData[] }) => {
   return (
@@ -40,13 +40,13 @@ export const Activity = ({ data }: { data: ActivityData[] }) => {
             <Timeline.Content color="muted">
               <Text as="span" fontWeight="medium" color="chakra-body-text">
                 {contact.name}
-              </Text>{" "}
-              <span>{action}</span> <span>·</span>{" "}
+              </Text>{' '}
+              <span>{action}</span> <span>·</span>{' '}
               <ActivityDate date={new Date(date)} />
             </Timeline.Content>
           </Timeline.Item>
         ))}
       </Timeline.Root>
     </MetricsCard>
-  );
-};
+  )
+}

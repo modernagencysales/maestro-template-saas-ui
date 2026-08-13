@@ -1,23 +1,23 @@
-import { Box, Tag } from "@chakra-ui/react";
+import { Box, Tag } from '@chakra-ui/react'
 
 const contactTypes = {
   lead: {
-    label: "Lead",
-    color: "cyan",
+    label: 'Lead',
+    color: 'cyan',
   },
   customer: {
-    label: "Customer",
-    color: "purple",
+    label: 'Customer',
+    color: 'purple',
   },
-} as const;
+} as const
 
-export type ContactTypeEnum = keyof typeof contactTypes;
+export type ContactTypeEnum = keyof typeof contactTypes
 
 export const ContactType: React.FC<
   Tag.RootProps & { type?: ContactTypeEnum }
 > = (props) => {
-  const { type: typeProp, ...rest } = props;
-  const type = (typeProp && contactTypes[typeProp]) || contactTypes.lead;
+  const { type: typeProp, ...rest } = props
+  const type = (typeProp && contactTypes[typeProp]) || contactTypes.lead
 
   return (
     <Tag.Root
@@ -33,5 +33,5 @@ export const ContactType: React.FC<
 
       <Tag.Label>{type.label}</Tag.Label>
     </Tag.Root>
-  );
-};
+  )
+}

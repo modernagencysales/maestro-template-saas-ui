@@ -1,75 +1,88 @@
-"use client";
+'use client'
 
-import * as React from "react";
+import * as React from 'react'
 
 import {
-  Box,
   Center,
   Container,
-  HStack,
+  defineSlotRecipe,
   useStepsContext,
-} from "@chakra-ui/react";
-import { useSessionStorageValue } from "@react-hookz/web";
-import { LoadingOverlay, Steps } from "@saas-ui/react";
-import { useNavigate } from "@tanstack/react-router";
+} from '@chakra-ui/react'
+import { useSessionStorageValue } from '@react-hookz/web'
+import { LoadingOverlay, Steps } from '@saas-ui/react'
+import { useNavigate } from '@tanstack/react-router'
 
-import { AppearanceStep } from "./appearance";
-import { CreateWorkspaceStep } from "./create-workspace";
-import { InviteTeamMembersStep } from "./invite-team-members";
-import { OnboardingLayout } from "./onboarding-layout";
-import { SubscribeStep } from "./subscribe";
+import { AppearanceStep } from './appearance'
+import { CreateWorkspaceStep } from './create-workspace'
+import { InviteTeamMembersStep } from './invite-team-members'
+import { OnboardingLayout } from './onboarding-layout'
+import { SubscribeStep } from './subscribe'
+
+// TODO move to theme
+const recipe = defineSlotRecipe({
+  className: 'steps',
+  slots: ['root', 'list', 'item', 'indicator', 'title'],
+  variants: {
+    variant: {
+      dots: {
+        list: {
+          display: 'flex',
+          gap: 2,
+          justifyContent: 'center',
+        },
+        indicator: {
+          boxSize: 2,
+          overflow: 'hidden',
+          bg: 'colorPalette.subtle',
+          rounded: 'full',
+          _current: {
+            bg: 'colorPalette.solid',
+          },
+          '& *': {
+            display: 'none',
+          },
+        },
+        title: {
+          display: 'none',
+        },
+      },
+    },
+  },
+})
 
 export const GettingStartedPage: React.FC = () => {
-  const workspace = useSessionStorageValue<string>("getting-started.workspace");
+  const workspace = useSessionStorageValue<string>('getting-started.workspace')
 
-  const defaultStep = workspace.value ? 1 : 0;
+  const defaultStep = workspace.value ? 1 : 0
 
   return (
     <OnboardingLayout>
       <Container maxW="container.md">
         <Center minH="calc(100vh - 100px)">
-          <Steps.Root defaultStep={defaultStep} count={4} width="full">
+          <Steps.Root
+            variant={'dots' as any}
+            recipe={recipe}
+            defaultStep={defaultStep}
+            count={4}
+            width="full"
+          >
             <OnboardingSteps />
-            <OnboardingProgress />
+
+            <Steps.List>
+              <Steps.Item index={0} title="Create organization" />
+              <Steps.Item index={1} title="Choose your style" />
+              <Steps.Item index={2} title="Invite team members" />
+              <Steps.Item index={3} title="Subscribe to updates" />
+            </Steps.List>
           </Steps.Root>
         </Center>
       </Container>
     </OnboardingLayout>
-  );
-};
-
-function OnboardingProgress() {
-  const stepper = useStepsContext();
-
-  return (
-    <HStack
-      aria-label={`Onboarding step ${stepper.value + 1} of 4`}
-      role="progressbar"
-      aria-valuemin={1}
-      aria-valuemax={4}
-      aria-valuenow={stepper.value + 1}
-      gap="2"
-      justifyContent="center"
-    >
-      {Array.from({ length: 4 }, (_, index) => (
-        <Box
-          key={index}
-          aria-hidden="true"
-          boxSize="2"
-          bg={
-            index === stepper.value
-              ? "colorPalette.solid"
-              : "colorPalette.subtle"
-          }
-          rounded="full"
-        />
-      ))}
-    </HStack>
-  );
+  )
 }
 
 function OnboardingSteps() {
-  const stepper = useStepsContext();
+  const stepper = useStepsContext()
 
   return (
     <>
@@ -90,11 +103,13 @@ function OnboardingSteps() {
         {stepper.percent === 100 && <OnboardingCompleted />}
       </Steps.CompletedContent>
     </>
-  );
+  )
 }
 
 const OnboardingCompleted = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
+
+  const workspace = useSessionStorageValue<string>('getting-started.workspace')
 
   return (
     <LoadingOverlay.Root
@@ -103,11 +118,14 @@ const OnboardingCompleted = () => {
       bg="bg"
       ref={() => {
         navigate({
-          to: "/",
-        });
+          to: '/$workspace',
+          params: {
+            workspace: workspace.value!,
+          },
+        })
       }}
     >
       <LoadingOverlay.Spinner />
     </LoadingOverlay.Root>
-  );
-};
+  )
+}

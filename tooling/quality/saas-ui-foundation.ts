@@ -1,7 +1,6 @@
 import { createHash } from "node:crypto";
-import { existsSync, readFileSync } from "node:fs";
+import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
-import ts from "typescript";
 
 const MANIFEST_PATH = "docs/template/saas-ui-upstream.json";
 const DEVIATIONS_PATH = "docs/template/saas-ui-deviations.json";
@@ -12,102 +11,6 @@ const PINS = {
   starter: "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
   pro: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
 } as const;
-export const SAAS_UI_DEVIATIONS_DIGEST =
-  "7973cb33c3b1db32b54e7a73b6f631dcd8e84004326e79462506cc59edc0e593";
-
-export function hasExecutableEvidenceDeclaration(
-  source: string,
-  declaration: string,
-): boolean {
-  const sourceFile = ts.createSourceFile(
-    "evidence.ts",
-    source,
-    ts.ScriptTarget.Latest,
-    true,
-    ts.ScriptKind.TSX,
-  );
-  const expectedArg = declaration.startsWith("test(")
-    ? declaration.slice(5, declaration.indexOf(", async"))
-    : JSON.stringify(declaration);
-  let found = false;
-  // eslint-disable-next-line complexity -- validates bounded executable test context.
-  const allowedContext = (node: ts.Node): boolean => {
-    for (
-      let current: ts.Node | undefined = node.parent;
-      current;
-      current = current.parent
-    ) {
-      if (
-        ts.isIfStatement(current) ||
-        ts.isConditionalExpression(current) ||
-        (ts.isBinaryExpression(current) &&
-          [
-            ts.SyntaxKind.AmpersandAmpersandToken,
-            ts.SyntaxKind.BarBarToken,
-            ts.SyntaxKind.QuestionQuestionToken,
-          ].includes(current.operatorToken.kind)) ||
-        ts.isSwitchStatement(current) ||
-        (ts.isIterationStatement(current, true) &&
-          !(
-            ts.isForOfStatement(current) &&
-            /(authorities|acceptanceEntries)/u.test(
-              current.expression.getText(sourceFile),
-            )
-          )) ||
-        ts.isTryStatement(current) ||
-        ts.isCatchClause(current)
-      )
-        return false;
-      if (ts.isFunctionLike(current)) {
-        const parent = current.parent;
-        if (!(
-          ts.isCallExpression(parent) &&
-          ((ts.isIdentifier(parent.expression) &&
-            parent.expression.text === "describe") ||
-            (ts.isPropertyAccessExpression(parent.expression) &&
-              parent.expression.name.text === "describe")) &&
-          parent.arguments[1] === current
-        ))
-          return false;
-      }
-    }
-    return true;
-  };
-  // eslint-disable-next-line complexity -- walks a fixed AST call-shape authority.
-  const visit = (node: ts.Node) => {
-    if (found || !ts.isCallExpression(node)) {
-      ts.forEachChild(node, visit);
-      return;
-    }
-    const callee = node.expression;
-    const eachBase = ts.isCallExpression(callee)
-      ? callee.expression
-      : undefined;
-    const validCallee =
-      (ts.isIdentifier(callee) &&
-        (callee.text === "it" || callee.text === "test")) ||
-      (eachBase !== undefined &&
-        ts.isPropertyAccessExpression(eachBase) &&
-        eachBase.name.text === "each" &&
-        ts.isIdentifier(eachBase.expression) &&
-        (eachBase.expression.text === "it" ||
-          eachBase.expression.text === "test"));
-    const callback = node.arguments[1];
-    const callable =
-      callback !== undefined &&
-      (ts.isArrowFunction(callback) || ts.isFunctionExpression(callback));
-    if (
-      validCallee &&
-      callable &&
-      allowedContext(node) &&
-      node.arguments[0]?.getText(sourceFile) === expectedArg
-    )
-      found = true;
-    ts.forEachChild(node, visit);
-  };
-  visit(sourceFile);
-  return found;
-}
 const COMPOSITION_IDS = [
   "app-shell",
   "dashboard-report",
@@ -151,17 +54,6 @@ export type SaasUiManifest = Readonly<{
     path: string;
     destination: string;
   }>[];
-}>;
-
-export type SaasUiDeviation = Readonly<{
-  source: string;
-  destination: string;
-  change: string;
-  reason: string;
-  evidence: string;
-  evidencePaths: readonly string[];
-  evidenceChecks: readonly string[];
-  sourceAuthority: "starter-receipt" | "factory-support";
 }>;
 
 export type SaasUiAcceptanceMap = Readonly<{
@@ -300,66 +192,11 @@ export function readSaasUiManifest(root: string): SaasUiManifest {
   return readManifestValue(readJson(root, MANIFEST_PATH));
 }
 
-// eslint-disable-next-line complexity -- validates the fixed deviation authority schema.
-export function readSaasUiDeviations(root: string): readonly SaasUiDeviation[] {
+export function readSaasUiDeviations(root: string): readonly [] {
   const value = readJson(root, DEVIATIONS_PATH);
-  const authority = record(value, DEVIATIONS_PATH);
-  if (authority.schemaVersion !== 1)
-    throw new Error("deviations schemaVersion must be 1");
-  if (typeof authority.authorityDigest !== "string")
-    throw new Error("deviations authorityDigest must be a string");
-  if (!Array.isArray(authority.deviations))
-    throw new Error("deviations.deviations must be an array");
-  const deviations = authority.deviations.map((itemValue, index) => {
-    const item = record(itemValue, `deviation[${index}]`);
-    return {
-      source: string(item.source, "deviation.source"),
-      destination: string(item.destination, "deviation.destination"),
-      change: string(item.change, "deviation.change"),
-      reason: string(item.reason, "deviation.reason"),
-      evidence: string(item.evidence, "deviation.evidence"),
-      evidencePaths: stringArray(item.evidencePaths, "deviation.evidencePaths"),
-      evidenceChecks: stringArray(
-        item.evidenceChecks,
-        "deviation.evidenceChecks",
-      ),
-      sourceAuthority: (() => {
-        const value = string(item.sourceAuthority, "deviation.sourceAuthority");
-        if (value !== "starter-receipt" && value !== "factory-support")
-          throw new Error(`unsupported deviation source authority: ${value}`);
-        return value;
-      })(),
-    };
-  });
-  const digest = createHash("sha256")
-    .update(JSON.stringify(deviations))
-    .digest("hex");
-  if (
-    digest !== SAAS_UI_DEVIATIONS_DIGEST ||
-    authority.authorityDigest !== SAAS_UI_DEVIATIONS_DIGEST
-  )
-    throw new Error("deviations authority digest mismatch");
-  for (const deviation of deviations) {
-    for (const path of deviation.evidencePaths) {
-      if (
-        path.includes("..") ||
-        path.startsWith("/") ||
-        !existsSync(resolve(root, path))
-      )
-        throw new Error(`deviation evidence path is missing: ${path}`);
-    }
-    for (const check of deviation.evidenceChecks) {
-      const [path, ...name] = check.split("#");
-      if (!existsSync(resolve(root, path)))
-        throw new Error(`deviation evidence check file is missing: ${path}`);
-      if (
-        name.length > 0 &&
-        !readFileSync(resolve(root, path), "utf8").includes(name.join("#"))
-      )
-        throw new Error(`deviation evidence check is not present: ${check}`);
-    }
-  }
-  return deviations;
+  if (!Array.isArray(value) || value.length > 0)
+    throw new Error("Saas UI deviations must remain an empty array");
+  return [];
 }
 
 function readAcceptanceValue(value: unknown): SaasUiAcceptanceMap {
@@ -530,172 +367,6 @@ function validateRegistryFiles(
   return errors;
 }
 
-const FACTORY_SUPPORT_DESTINATIONS = new Set([
-  "tsconfig.base.json",
-  "apps/web/tsconfig.json",
-  "apps/web/src/features/common/components/client-resizer.tsx",
-  "apps/web/src/routes/__root.tsx",
-  "apps/web/src/lib/trpc/react.tsx",
-  "apps/web/src/components/back-button.tsx",
-  "apps/web/src/features/contacts/list/list-page.tsx",
-  "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
-  "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
-  "apps/web/src/routes/_workspace._dashboard.inbox.$id.tsx",
-  "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
-]);
-const DEVIATION_EVIDENCE_AUTHORITY = new Map<string, string>([
-  [
-    "apps/web/src/features/common/layouts/app-layout.tsx:Sidebar.Inset mobile block-start lane|apps/web/src/features/common/layouts/app-layout.tsx:Sidebar.Inset",
-    "tests/e2e/saas-ui-golden.visual.spec.ts#keeps page headings clear of the sidebar trigger",
-  ],
-  [
-    "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)|apps/web/src/features/common/components/client-resizer.tsx",
-    "apps/web/src/features/common/components/client-resizer.test.tsx#renders its fallback during SSR without evaluating the browser-only resizer",
-  ],
-  [
-    "@saas-ui-pro/react@1.0.0-next.4:components/resize/resize-handle.tsx:ResizeHandle|apps/web/src/features/common/components/app-sidebar.tsx:ResizeHandle",
-    "apps/web/src/features/common/shell.test.tsx#guards the upstream resizer from SSR and exposes an accessible separator",
-  ],
-  [
-    "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes|apps/web/tsconfig.json:compilerOptions.exactOptionalPropertyTypes",
-    "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target with frozen dependencies",
-  ],
-  [
-    "tsconfig.base.json:compilerOptions.noUncheckedIndexedAccess|apps/web/tsconfig.json:compilerOptions.noUncheckedIndexedAccess",
-    "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#builds a freshly materialized customer target with frozen dependencies",
-  ],
-  [
-    "@chakra-ui/react@3.30.0:components/stat:StatRoot|apps/web/src/features/reports/reports-page.tsx:Churn by tier metric",
-    "apps/web/src/features/reports/reports-page.test.tsx#does not expose the chart legend as an invalid definition-list item",
-  ],
-  [
-    "apps/web/src/features/common/providers/app-provider.tsx:QueryClientProvider/AuthProvider|apps/web/src/features/common/providers/app-provider.tsx",
-    "apps/web/src/features/common/providers/app-provider.test.tsx#closes the generated auth and React Query provider boundary",
-  ],
-  [
-    "@saas-ui-pro/react@1.0.0-next.4:components/resize/Resizer|apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/settings/common/settings-sidebar.tsx",
-    "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider and resizer seams for upstream screens",
-  ],
-  [
-    "apps/web/src/routes/__root.tsx:AppProvider|apps/web/src/routes/__root.tsx",
-    "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts#projects SSR-safe provider and resizer seams for upstream screens",
-  ],
-  [
-    "apps/web/src/lib/trpc/react.tsx:fake procedure facade|apps/web/src/lib/trpc/react.tsx",
-    "apps/web/src/lib/trpc/react.test.tsx#serves the shared neutral fixtures required by projected SaaS UI screens",
-  ],
-  [
-    "@saas-ui-pro/react@1.0.0-next.4:Aside.Root|apps/web/src/features/contacts/view/contact-page.tsx; apps/web/src/features/contacts/view/contact-sidebar.tsx",
-    "tests/e2e/saas-ui-golden.interactions.spec.ts#test(`${kind} navigates list to detail and switches the record aside`, async ({",
-  ],
-  [
-    "@saas-ui-pro/react@1.0.0-next.4:DataGridColumnResizer|apps/web/src/features/contacts/list/list-page.tsx",
-    "apps/web/src/features/contacts/list/list-page.ssr.test.tsx#renders the data-grid route during SSR without browser globals",
-  ],
-  [
-    "@saas-ui-pro/react@1.0.0-next.4:DataGridSort and DataGridHeaderCell|patches/@saas-ui-pro__react@1.0.0-next.4.patch; apps/web/src/features/contacts/list/list-page.tsx",
-    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} keeps sorting semantics on column headers and names row actions`, async ({",
-  ],
-  [
-    "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx|apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
-    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${entry.id} ${kind} has no serious or critical axe violations`, async ({",
-  ],
-  [
-    "@saas-ui/react:Steps.List dots recipe|apps/web/src/features/getting-started/getting-started-page.tsx:OnboardingProgress",
-    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} exposes the visual step indicator as named progress`, async ({",
-  ],
-  [
-    "@saas-ui/react:BackButtonPrimitive|apps/web/src/components/back-button.tsx",
-    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${entry.id} exposes names and visible keyboard focus on both authorities`, async ({",
-  ],
-  [
-    "@chakra-ui/react semantic token fg.error|apps/web/src/theme/semantic-tokens/colors.ts",
-    "tests/e2e/saas-ui-golden.accessibility.spec.ts#test(`${kind} has no serious or critical dark-mode axe violations`, async ({",
-  ],
-  [
-    "@saas-ui-pro/react@1.0.0-next.4:components/split-page/SplitPage|apps/web/src/features/contacts/inbox/inbox-layout.tsx; apps/web/src/features/contacts/inbox/inbox-view-page.tsx; apps/web/src/routes/_workspace._dashboard.inbox.$id.tsx",
-    "tests/e2e/saas-ui-golden.interactions.spec.ts#test(`${kind} switches between one inbox pane at a time`, async ({",
-  ],
-]);
-
-function deviationDestinationPaths(destination: string): readonly string[] {
-  return destination.split(";").flatMap((entry) => {
-    const path = entry.trim().split(":", 1)[0];
-    return path === undefined ? [] : [path];
-  });
-}
-
-// eslint-disable-next-line complexity -- validates the bounded deviation authority fields.
-function validateDeviations(
-  deviations: readonly SaasUiDeviation[],
-  root: string,
-): readonly string[] {
-  const errors: string[] = [];
-  const receipt = readJson(root, "docs/template/saas-ui-starter-files.json");
-  const receiptFiles = Array.isArray(record(receipt, "starter receipt").files)
-    ? (record(receipt, "starter receipt").files as readonly unknown[])
-    : [];
-  const adaptedDestinations = new Set(
-    receiptFiles.flatMap((value) => {
-      const item = record(value, "starter receipt file");
-      return item.adapted === true && typeof item.destination === "string"
-        ? [item.destination]
-        : [];
-    }),
-  );
-  for (const deviation of deviations) {
-    const expectedCheck = DEVIATION_EVIDENCE_AUTHORITY.get(
-      `${deviation.source}|${deviation.destination}`,
-    );
-    if (
-      deviation.evidenceChecks.length !== 1 ||
-      deviation.evidenceChecks[0] !== expectedCheck
-    )
-      errors.push(
-        `deviation evidence check is not the approved check: ${deviation.destination}`,
-      );
-    for (const path of deviation.evidencePaths) {
-      if (
-        path.includes("..") ||
-        path.startsWith("/") ||
-        !existsSync(resolve(root, path))
-      )
-        errors.push(`deviation evidence path is missing: ${path}`);
-    }
-    for (const check of deviation.evidenceChecks) {
-      const [path, ...name] = check.split("#");
-      if (!existsSync(resolve(root, path)))
-        errors.push(`deviation evidence check file is missing: ${path}`);
-      else if (
-        name.length > 0 &&
-        !hasExecutableEvidenceDeclaration(
-          readFileSync(resolve(root, path), "utf8"),
-          name.join("#"),
-        )
-      )
-        errors.push(`deviation evidence check is not present: ${check}`);
-    }
-    const paths = deviationDestinationPaths(deviation.destination);
-    for (const path of paths) {
-      if (deviation.sourceAuthority === "factory-support") {
-        if (!FACTORY_SUPPORT_DESTINATIONS.has(path))
-          errors.push(
-            `factory-support deviation destination is not approved: ${path}`,
-          );
-      } else if (
-        !existsSync(resolve(root, "docs/template/saas-ui-starter-files.json"))
-      ) {
-        errors.push("starter-receipt deviation authority is missing");
-      } else if (!adaptedDestinations.has(path)) {
-        errors.push(
-          `starter-receipt deviation destination is not adapted: ${path}`,
-        );
-      }
-    }
-  }
-  return errors;
-}
-
 export function checkSaasUiFoundation(root: string): readonly string[] {
   const errors: string[] = [];
   const manifest = readAuthority(() => readSaasUiManifest(root), errors);
@@ -705,10 +376,7 @@ export function checkSaasUiFoundation(root: string): readonly string[] {
     errors,
   );
   const deviations = readAuthority(() => readSaasUiDeviations(root), errors);
-  for (const deviation of deviations ?? [])
-    if (deviation.reason.toLowerCase().includes("aesthetic"))
-      errors.push(`deviation ${deviation.source} uses an aesthetic reason`);
-  if (!manifest || !acceptance || !registryFiles) return errors;
+  if (!manifest || !acceptance || !registryFiles || !deviations) return errors;
   errors.push(...validateManifest(manifest));
   errors.push(
     ...validateAcceptance(
@@ -717,7 +385,6 @@ export function checkSaasUiFoundation(root: string): readonly string[] {
     ),
   );
   errors.push(...validateRegistryFiles(registryFiles, manifest, root));
-  errors.push(...validateDeviations(deviations ?? [], root));
   return errors;
 }
 

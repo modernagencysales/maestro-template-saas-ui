@@ -38,12 +38,12 @@ export function DefaultErrorPage({ error }: ErrorComponentProps) {
             Try Again
           </Button>
           {isRoot ? (
-            <LinkButton variant="outline" size="sm" to="/">
+            <LinkButton variant="secondary" size="sm" to="/">
               Home
             </LinkButton>
           ) : (
             <LinkButton
-              variant="outline"
+              variant="secondary"
               size="sm"
               to="/"
               onClick={(e) => {

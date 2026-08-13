@@ -1,13 +1,4 @@
-import {
-  mkdirSync,
-  mkdtempSync,
-  readFileSync,
-  rmSync,
-  writeFileSync,
-} from "node:fs";
-import { createHash } from "node:crypto";
-import { tmpdir } from "node:os";
-import { join, resolve } from "node:path";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 
 import {
@@ -16,13 +7,12 @@ import {
   readSaasUiDeviations,
   readSaasUiManifest,
   readSaasUiRegistryFiles,
-  hasExecutableEvidenceDeclaration,
 } from "./saas-ui-foundation.js";
 
 const root = resolve(import.meta.dirname, "../..");
 
 describe("Saas UI foundation authorities", () => {
-  it("pins every paid source and maps every accepted composition", () => {
+  it("pins every paid source and keeps the literal Starter deviation-free", () => {
     const manifest = readSaasUiManifest(root);
 
     expect(manifest.pins).toEqual({
@@ -49,26 +39,7 @@ describe("Saas UI foundation authorities", () => {
         "states",
       ]),
     );
-    expect(readSaasUiDeviations(root).map(({ source }) => source)).toEqual([
-      "apps/web/src/features/common/layouts/app-layout.tsx:Sidebar.Inset mobile block-start lane",
-      "@saas-ui-pro/react@1.0.0-next.4:components/resize/use-resize.ts:useEventListener(document, ...)",
-      "@saas-ui-pro/react@1.0.0-next.4:components/resize/resize-handle.tsx:ResizeHandle",
-      "tsconfig.base.json:compilerOptions.exactOptionalPropertyTypes",
-      "tsconfig.base.json:compilerOptions.noUncheckedIndexedAccess",
-      "@chakra-ui/react@3.30.0:components/stat:StatRoot",
-      "apps/web/src/features/common/providers/app-provider.tsx:QueryClientProvider/AuthProvider",
-      "@saas-ui-pro/react@1.0.0-next.4:components/resize/Resizer",
-      "apps/web/src/routes/__root.tsx:AppProvider",
-      "apps/web/src/lib/trpc/react.tsx:fake procedure facade",
-      "@saas-ui-pro/react@1.0.0-next.4:Aside.Root",
-      "@saas-ui-pro/react@1.0.0-next.4:DataGridColumnResizer",
-      "@saas-ui-pro/react@1.0.0-next.4:DataGridSort and DataGridHeaderCell",
-      "apps/web/src/features/auth/login-page.tsx; apps/web/src/features/settings/billing/manage-billing-button.tsx",
-      "@saas-ui/react:Steps.List dots recipe",
-      "@saas-ui/react:BackButtonPrimitive",
-      "@chakra-ui/react semantic token fg.error",
-      "@saas-ui-pro/react@1.0.0-next.4:components/split-page/SplitPage",
-    ]);
+    expect(readSaasUiDeviations(root)).toEqual([]);
     expect(readSaasUiRegistryFiles(root).files.length).toBeGreaterThan(0);
     expect(checkSaasUiFoundation(root)).toEqual([]);
   });
@@ -90,84 +61,4 @@ describe("Saas UI foundation authorities", () => {
       ),
     ).toBe(true);
   });
-
-  it.each(["destination", "change", "reason", "evidence"] as const)(
-    "rejects a tampered deviation %s",
-    (field) => {
-      const temporaryRoot = mkdtempSync(join(tmpdir(), "saas-ui-deviation-"));
-      try {
-        mkdirSync(join(temporaryRoot, "docs/template"), { recursive: true });
-        const authority = JSON.parse(
-          readFileSync(
-            join(root, "docs/template/saas-ui-deviations.json"),
-            "utf8",
-          ),
-        ) as {
-          deviations: Array<Record<string, unknown>>;
-          authorityDigest: string;
-        };
-        const first = authority.deviations[0];
-        if (!first) throw new Error("missing deviation fixture");
-        first[field] = `${String(first[field])} tampered`;
-        writeFileSync(
-          join(temporaryRoot, "docs/template/saas-ui-deviations.json"),
-          JSON.stringify(authority),
-        );
-        expect(() => readSaasUiDeviations(temporaryRoot)).toThrow(
-          /authority|digest/,
-        );
-      } finally {
-        rmSync(temporaryRoot, { recursive: true, force: true });
-      }
-    },
-  );
-
-  it("rejects a preference reason even when the JSON digest is recomputed", () => {
-    const authority = JSON.parse(
-      readFileSync(join(root, "docs/template/saas-ui-deviations.json"), "utf8"),
-    ) as {
-      deviations: Array<Record<string, unknown>>;
-      authorityDigest: string;
-    };
-    const first = authority.deviations[0];
-    if (!first) throw new Error("missing deviation fixture");
-    first.reason = "aesthetic preference";
-    authority.authorityDigest = createHash("sha256")
-      .update(JSON.stringify(authority.deviations))
-      .digest("hex");
-    const temporaryRoot = mkdtempSync(
-      join(tmpdir(), "saas-ui-deviation-preference-"),
-    );
-    try {
-      mkdirSync(join(temporaryRoot, "docs/template"), { recursive: true });
-      writeFileSync(
-        join(temporaryRoot, "docs/template/saas-ui-deviations.json"),
-        JSON.stringify(authority),
-      );
-      expect(() => readSaasUiDeviations(temporaryRoot)).toThrow(
-        /authority|digest/,
-      );
-    } finally {
-      rmSync(temporaryRoot, { recursive: true, force: true });
-    }
-  });
-
-  it.each([
-    ['// it("proof")', false],
-    ['const proof = "it(\\"proof\\")";', false],
-    ['it.skip("proof", () => {})', false],
-    ['it.todo("proof")', false],
-    ['it("proof")', false],
-    ['it("proof", undefined)', false],
-    ['if (false) it("proof", () => {})', false],
-    ['false && it("proof", () => {})', false],
-    ['function helper() { it("proof", () => {}) }', false],
-    ['it("proof", () => {})', true],
-    ['test.each([[1]])("proof", () => {})', true],
-  ])(
-    "requires an enabled executable evidence declaration",
-    (source, expected) => {
-      expect(hasExecutableEvidenceDeclaration(source, "proof")).toBe(expected);
-    },
-  );
 });

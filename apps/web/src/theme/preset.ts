@@ -1,7 +1,7 @@
-import { createSystem, defineConfig, defineRecipe } from "@chakra-ui/react";
-import { defaultConfig } from "@saas-ui/chakra-preset";
+import { createSystem, defineConfig, defineRecipe } from '@chakra-ui/react'
+import { defaultConfig } from '@saas-ui/chakra-preset'
 
-import { colors } from "./semantic-tokens/colors";
+import { colors } from './semantic-tokens/colors'
 
 const buttonRecipe = defineRecipe({
   variants: {
@@ -15,9 +15,9 @@ const buttonRecipe = defineRecipe({
     },
   },
   defaultVariants: {
-    variant: "secondary",
+    variant: 'secondary',
   },
-});
+})
 
 const config = defineConfig({
   theme: {
@@ -28,6 +28,6 @@ const config = defineConfig({
       colors,
     },
   },
-});
+})
 
-export const system = createSystem(defaultConfig, config);
+export const system = createSystem(defaultConfig, config)

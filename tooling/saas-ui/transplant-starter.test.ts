@@ -84,6 +84,38 @@ describe("pinned starter transplant", () => {
     }
   });
 
+  it("receipts the exact Starter support-package closure", () => {
+    const root = resolve(import.meta.dirname, "../..");
+    const receipt = JSON.parse(
+      readFileSync(
+        join(root, "docs/template/saas-ui-starter-files.json"),
+        "utf8",
+      ),
+    ) as { files: Array<{ source: string; destination: string }> };
+    const receiptedSources = new Set(receipt.files.map(({ source }) => source));
+    const expectedSources = execFileSync(
+      "git",
+      [
+        "ls-tree",
+        "-r",
+        "--name-only",
+        "HEAD",
+        "--",
+        "packages/config",
+        "packages/i18n",
+        "packages/ui",
+      ],
+      { cwd: starterRoot, encoding: "utf8" },
+    )
+      .trim()
+      .split("\n");
+
+    expect(expectedSources.length).toBeGreaterThan(0);
+    for (const source of expectedSources) {
+      expect(receiptedSources.has(source), source).toBe(true);
+    }
+  });
+
   it("tracks every adapted receipt destination after factory compatibility seams", () => {
     const root = resolve(import.meta.dirname, "../..");
     const receipt = JSON.parse(

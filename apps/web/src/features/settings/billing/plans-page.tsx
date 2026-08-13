@@ -1,33 +1,33 @@
-"use client";
+'use client'
 
-import { Box, Stack } from "@chakra-ui/react";
-import { BillingPlan, useBilling } from "@saas-ui-pro/billing";
-import { toast } from "@saas-ui/react";
+import { Box, Stack } from '@chakra-ui/react'
+import { BillingPlan, useBilling } from '@saas-ui-pro/billing'
+import { toast } from '@saas-ui/react'
 
-import { features } from "@workspace/config";
-import { SettingsPage } from "@workspace/ui/settings-page";
+import { features } from '@workspace/config'
+import { SettingsPage } from '@workspace/ui/settings-page'
 
-import { PricingTable } from "#features/billing/components/pricing-table";
-import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
-import { api } from "#lib/trpc/react";
+import { PricingTable } from '#features/billing/components/pricing-table'
+import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace'
+import { api } from '#lib/trpc/react'
 
-import { BillingStatus } from "./billing-status";
-import { ManageBillingButton } from "./manage-billing-button";
+import { BillingStatus } from './billing-status'
+import { ManageBillingButton } from './manage-billing-button'
 
 export function PlansPage() {
-  const { currentPlan, plans } = useBilling();
+  const { currentPlan, plans } = useBilling()
 
-  const [workspace] = useCurrentWorkspace();
+  const [workspace] = useCurrentWorkspace()
 
-  const utils = api.useUtils();
+  const utils = api.useUtils()
 
-  const createCheckoutSession = api.billing.createCheckoutSession.useMutation();
+  const createCheckoutSession = api.billing.createCheckoutSession.useMutation()
 
   const upgradePlan = api.billing.setSubscriptionPlan.useMutation({
     onSuccess() {
-      utils.workspaces.invalidate();
+      utils.workspaces.invalidate()
     },
-  });
+  })
 
   const onUpdatePlan = async (plan: BillingPlan) => {
     try {
@@ -37,30 +37,30 @@ export function PlansPage() {
           planId: plan.id,
           successUrl: `${window.location.href}?success=true`,
           cancelUrl: `${window.location.href}`,
-        });
+        })
 
         if (result.url) {
-          window.location.href = result.url;
+          window.location.href = result.url
         }
       } else {
         await upgradePlan.mutateAsync({
           workspaceId: workspace.id,
           planId: plan.id,
-        });
+        })
 
         toast.success({
-          title: "Plan upgraded",
+          title: 'Plan upgraded',
           description: `You are now on the ${plan.name} plan.`,
-        });
+        })
       }
-    } catch (error: unknown) {
-      console.error(error);
+    } catch (error: any) {
+      console.error(error)
       toast.error({
-        title: "Failed to upgrade plan",
-        description: error instanceof Error ? error.message : String(error),
-      });
+        title: 'Failed to upgrade plan',
+        description: error.message,
+      })
     }
-  };
+  }
 
   return (
     <SettingsPage
@@ -79,9 +79,9 @@ export function PlansPage() {
       <PricingTable
         planId={currentPlan?.id}
         plans={plans}
-        features={[...features]}
+        features={features}
         onUpdatePlan={onUpdatePlan}
       />
     </SettingsPage>
-  );
+  )
 }

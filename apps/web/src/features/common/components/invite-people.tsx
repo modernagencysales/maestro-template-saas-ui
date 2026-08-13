@@ -1,18 +1,18 @@
-import { toast } from "@saas-ui/react";
+import { toast } from '@saas-ui/react'
 
-import { InviteDialog } from "@workspace/ui/invite-dialog";
+import { InviteDialog } from '@workspace/ui/invite-dialog'
 
-import { api } from "#lib/trpc/react";
+import { api, isTRPCClientError } from '#lib/trpc/react'
 
-import { useCurrentWorkspace } from "../hooks/use-current-workspace";
+import { useCurrentWorkspace } from '../hooks/use-current-workspace'
 
 export function InvitePeopleDialog(props: {
-  isOpen: boolean;
-  onClose: () => void;
+  isOpen: boolean
+  onClose: () => void
 }) {
-  const [workspace] = useCurrentWorkspace();
+  const [workspace] = useCurrentWorkspace()
 
-  const inviteMembers = api.workspaceMembers.invite.useMutation();
+  const inviteMembers = api.workspaceMembers.invite.useMutation()
 
   return (
     <InviteDialog
@@ -31,16 +31,28 @@ export function InvitePeopleDialog(props: {
                   ? `Inviting ${emails[0]}...`
                   : `Inviting ${emails.length} people...`,
             },
-            success: { title: "Invitation(s) have been sent." },
-            error: (error: unknown) => ({
-              title:
-                error instanceof Error ? error.message : "Invitation failed",
-            }),
-          },
-        );
 
-        if (!result) throw new Error("Failed to invite people");
+            success: () => {
+              return {
+                title: 'Invitation(s) have been sent.',
+              }
+            },
+            error: (error: Error) => {
+              if (isTRPCClientError(error)) {
+                console.error(error.data)
+              }
+
+              return {
+                title: error.message,
+              }
+            },
+          },
+        )
+
+        if (!result) {
+          throw new Error('Failed to invite people')
+        }
       }}
     />
-  );
+  )
 }

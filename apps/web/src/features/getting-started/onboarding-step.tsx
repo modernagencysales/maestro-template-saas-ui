@@ -1,14 +1,14 @@
-import { keyframes } from "@emotion/react";
-import { Card, type ContainerProps, Flex, Heading, Text } from "@saas-ui/react";
+import { keyframes } from '@emotion/react'
+import { Card, type ContainerProps, Flex, Heading, Text } from '@saas-ui/react'
 
-import { SubmitButton } from "@workspace/ui/form";
+import { SubmitButton } from '@workspace/ui/form'
 
 export interface OnboardingStepProps {
-  title: string;
-  description: string;
-  submitLabel: string;
-  maxW?: ContainerProps["maxW"];
-  children: React.ReactNode;
+  title: string
+  description: string
+  submitLabel: string
+  maxW?: ContainerProps['maxW']
+  children: React.ReactNode
 }
 
 const fade = keyframes`
@@ -20,10 +20,10 @@ const fade = keyframes`
     opacity: 1;
     transform: none;
   }
-`;
+`
 
 const animation = (delay = 0) =>
-  `.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${delay}s 1 normal both running ${fade}`;
+  `.5s cubic-bezier(0.25, 0.46, 0.45, 0.94) ${delay}s 1 normal both running ${fade}`
 
 /**
  * Presentational scaffold for a getting-started step: title, description, a card
@@ -35,9 +35,9 @@ export const OnboardingStep = (props: OnboardingStepProps) => {
     title,
     description,
     submitLabel,
-    maxW = { base: "100%", md: "80%" },
+    maxW = { base: '100%', md: '80%' },
     children,
-  } = props;
+  } = props
 
   return (
     <Flex flexDirection="column" alignItems="center" textAlign="center" mb="12">
@@ -70,5 +70,5 @@ export const OnboardingStep = (props: OnboardingStepProps) => {
         {submitLabel}
       </SubmitButton>
     </Flex>
-  );
-};
+  )
+}

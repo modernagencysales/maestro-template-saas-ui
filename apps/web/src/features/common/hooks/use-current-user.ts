@@ -1,6 +1,5 @@
-import { useGoldenAdapter } from "../../golden/adapters";
+import { api } from '#lib/trpc/react'
 
 export const useCurrentUser = () => {
-  const { currentUser } = useGoldenAdapter();
-  return [currentUser] as const;
-};
+  return api.auth.me.useSuspenseQuery()
+}

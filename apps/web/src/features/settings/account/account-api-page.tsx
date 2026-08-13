@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Button,
@@ -7,28 +7,21 @@ import {
   IconButton,
   Section,
   Text,
-} from "@saas-ui/react";
-import { LuCheck, LuCopy, LuX } from "react-icons/lu";
+  useClipboard,
+} from '@saas-ui/react'
+import { LuCheck, LuCopy, LuX } from 'react-icons/lu'
 
-import { LinkButton } from "@workspace/ui/button";
-import { SettingsPage } from "@workspace/ui/settings-page";
+import { LinkButton } from '@workspace/ui/button'
+import { SettingsPage } from '@workspace/ui/settings-page'
 
-import { SaasButton, useSaasClipboard } from "#components/ui/saas-ui-compat";
+import { SettingsCard } from '../common/settings-card'
 
-import { SettingsCard } from "../common/settings-card";
-
-function AccessToken({
-  token,
-  onRemove,
-}: {
-  token: string;
-  onRemove?: (token: string) => void;
-}) {
-  const { value, copy, copied } = useSaasClipboard(token);
+function AccessToken({ token, onRemove }: any) {
+  const { value, copy, copied } = useClipboard(token)
 
   const handleRemove = () => {
-    onRemove?.(token);
-  };
+    onRemove?.(token)
+  }
 
   return (
     <GridList.Item onClick={copy}>
@@ -46,18 +39,18 @@ function AccessToken({
         </IconButton>
       </GridList.Cell>
     </GridList.Item>
-  );
+  )
 }
 
 function PersonalAccessTokens() {
-  const onRemove = () => null;
+  const onRemove = () => null
 
   return (
     <Section.Root>
       <Section.Header title="Personal access tokens" />
       <Section.Body>
         <SettingsCard
-          footer={<SaasButton variant="primary">Create new token</SaasButton>}
+          footer={<Button variant="primary">Create new token</Button>}
         >
           <GridList.Root p="0">
             <AccessToken token="12345" onRemove={onRemove} />
@@ -65,7 +58,7 @@ function PersonalAccessTokens() {
         </SettingsCard>
       </Section.Body>
     </Section.Root>
-  );
+  )
 }
 
 export function AccountApiPage() {
@@ -81,5 +74,5 @@ export function AccountApiPage() {
     >
       <PersonalAccessTokens />
     </SettingsPage>
-  );
+  )
 }

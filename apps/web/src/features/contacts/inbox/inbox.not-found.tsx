@@ -1,4 +1,4 @@
-import { EmptyState } from "@saas-ui/react";
+import { EmptyState } from '@saas-ui/react'
 
 export function InboxNotFound(props: { params: { id: string } }) {
   return (
@@ -6,5 +6,5 @@ export function InboxNotFound(props: { params: { id: string } }) {
       title="Notification not found"
       description={`There is no notification with id ${props.params.id}.`}
     />
-  );
+  )
 }

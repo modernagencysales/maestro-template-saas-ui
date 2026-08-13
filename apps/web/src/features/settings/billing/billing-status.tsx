@@ -1,8 +1,8 @@
-import { Box, Text } from "@chakra-ui/react";
-import { useBilling } from "@saas-ui-pro/billing";
-import { addDays } from "date-fns";
+import { Box, Text } from '@chakra-ui/react'
+import { useBilling } from '@saas-ui-pro/billing'
+import { addDays } from 'date-fns'
 
-import { FormattedDate } from "@workspace/i18n";
+import { FormattedDate } from '@workspace/i18n'
 
 export function BillingStatus() {
   const {
@@ -11,17 +11,17 @@ export function BillingStatus() {
     trialEndsAt,
     currentPeriodEnd,
     currentPlan,
-  } = useBilling();
+  } = useBilling()
 
   const renewalDate = currentPeriodEnd
     ? addDays(currentPeriodEnd, 1)
-    : undefined;
+    : undefined
 
   return (
     <Box textStyle="sm" color="fg.muted">
       {!isTrialExpired && (
         <Text>
-          You are currently on the <strong>{currentPlan?.name}</strong> plan.{" "}
+          You are currently on the <strong>{currentPlan?.name}</strong> plan.{' '}
           {renewalDate && (
             <>
               Renews at <FormattedDate value={renewalDate} />.
@@ -30,17 +30,17 @@ export function BillingStatus() {
         </Text>
       )}
 
-      {isTrialing && trialEndsAt && (
+      {isTrialing && (
         <Text>
           Your trial ends <FormattedDate value={trialEndsAt} />.
         </Text>
       )}
 
-      {isTrialExpired && trialEndsAt && (
+      {isTrialExpired && (
         <Text>
           Your trial ended on <FormattedDate value={trialEndsAt} />.
         </Text>
       )}
     </Box>
-  );
+  )
 }

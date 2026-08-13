@@ -1,9 +1,9 @@
-import { EmptyState } from "@saas-ui/react";
+import { EmptyState } from '@saas-ui/react'
 
 export function ContactNotFound(props: {
   params: {
-    id: string;
-  };
+    id: string
+  }
 }) {
   return (
     <EmptyState
@@ -15,5 +15,5 @@ export function ContactNotFound(props: {
       }
       height="full"
     />
-  );
+  )
 }

@@ -1,35 +1,33 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["DOM", "ES2023"],
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "strict": true,
     "jsx": "react-jsx",
-    "exactOptionalPropertyTypes": false,
-    "noUncheckedIndexedAccess": false,
-    "baseUrl": ".",
-    "rootDir": ".",
-    "outDir": "dist",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "types": ["vite/client"],
+    "isolatedModules": true,
+    "noUncheckedIndexedAccess": true,
+    "incremental": true,
+    "verbatimModuleSyntax": false,
     "paths": {
       "@/*": ["./src/*"],
-      "#config/*": ["src/config/*"],
-      "#components/*": ["src/components/*"],
-      "#features/*": ["src/features/*"],
-      "#hooks/*": ["src/hooks/*"],
-      "#lib/*": ["src/lib/*"],
-      "#theme/*": ["src/theme/*"],
-      "#utils/*": ["src/utils/*"],
-      "@workspace/ui/*": ["src/components/*"],
-      "@workspace/api/*": ["src/workspace/api/*"],
-      "@workspace/i18n": ["src/workspace/i18n/index.ts"],
-      "@workspace/config": ["src/workspace/config/index.ts"],
-      "@workspace/better-auth/*": ["src/workspace/better-auth/*"]
+      "#config/*": ["./src/config/*"],
+      "#components/*": ["./src/components/*"],
+      "#hooks/*": ["./src/hooks/*"],
+      "#features/*": ["./src/features/*"],
+      "#lib/*": ["./src/lib/*"],
+      "#utils/*": ["./src/utils/*"],
+      "#theme/*": ["./src/theme/*"]
     }
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.mts",
-    "test/**/*.ts",
-    "test/**/*.tsx",
-    "test/**/*.mts"
-  ]
+  "include": ["src"],
+  "exclude": ["**/node_modules", "dist", ".output"]
 }

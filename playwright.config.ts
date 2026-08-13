@@ -2,15 +2,10 @@ import { defineConfig, devices } from "@playwright/test";
 
 const baseURL = process.env.TEMPLATE_HOSTED_URL ?? "http://127.0.0.1:4173";
 
-process.env.UPSTREAM_REFERENCE_URL ??= "http://127.0.0.1:4173";
-process.env.GOLDEN_GENERATED_URL ??= "http://127.0.0.1:4174";
-
 export default defineConfig({
-  reporter: process.env.GOLDEN_SUMMARY_PLAYWRIGHT_OUTPUT
-    ? [["json", { outputFile: process.env.GOLDEN_SUMMARY_PLAYWRIGHT_OUTPUT }]]
-    : "list",
+  reporter: "list",
   testDir: "./tests/e2e",
-  outputDir: "./artifacts/saas-ui-golden/playwright",
+  outputDir: "./artifacts/playwright",
   snapshotPathTemplate:
     "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}",
   timeout: 30_000,
@@ -21,20 +16,12 @@ export default defineConfig({
     baseURL,
     trace: "retain-on-failure",
   },
-  webServer: [
-    {
-      command:
-        "pnpm exec tsx tooling/saas-ui/golden-authority.mts reference 4173",
-      url: "http://127.0.0.1:4173",
-      timeout: 120_000,
-    },
-    {
-      command:
-        "pnpm exec tsx tooling/saas-ui/golden-authority.mts generated 4174",
-      url: "http://127.0.0.1:4174",
-      timeout: 180_000,
-    },
-  ],
+  webServer: {
+    command: "pnpm --dir apps/web dev --host 127.0.0.1 --port 4173",
+    url: baseURL,
+    reuseExistingServer: true,
+    timeout: 120_000,
+  },
   projects: [
     {
       name: "desktop-chromium",

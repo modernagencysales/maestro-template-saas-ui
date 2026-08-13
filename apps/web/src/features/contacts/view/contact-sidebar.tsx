@@ -1,6 +1,6 @@
-import * as React from "react";
+import * as React from 'react'
 
-import { Aside } from "@saas-ui-pro/react";
+import { Aside } from '@saas-ui-pro/react'
 import {
   Box,
   Button,
@@ -9,40 +9,39 @@ import {
   Icon,
   Persona,
   Stack,
-} from "@saas-ui/react";
-import { useMutation } from "@tanstack/react-query";
-import { LuChevronRight, LuX } from "react-icons/lu";
+} from '@saas-ui/react'
+import { useMutation } from '@tanstack/react-query'
+import { LuChevronRight } from 'react-icons/lu'
 
-import type { ContactDTO } from "@workspace/api/types";
-import { DateTime } from "@workspace/i18n";
-import { OverflowMenu } from "@workspace/ui/overflow-menu";
+import type { ContactDTO } from '@workspace/api/types'
+import { DateTime } from '@workspace/i18n'
+import { OverflowMenu } from '@workspace/ui/overflow-menu'
 import {
   AddTag,
   TagColor,
   TagsList,
   TagsListItem,
-} from "@workspace/ui/tags-list";
+} from '@workspace/ui/tags-list'
 
-import { useTags } from "#features/common/hooks/use-tags";
-import { api } from "#lib/trpc/react";
+import { useTags } from '#features/common/hooks/use-tags'
+import { api } from '#lib/trpc/react'
 
-import { ContactStatus } from "../common/contact-status";
-import { ContactType } from "../common/contact-type";
+import { ContactStatus } from '../common/contact-status'
+import { ContactType } from '../common/contact-type'
 
 export interface ContactSidebarProps extends Aside.RootProps {
-  contact?: ContactDTO | null;
-  onClose?: () => void;
+  contact?: ContactDTO | null
 }
 
 export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
-  const { contact, onClose, ...rest } = props;
+  const { contact, ...rest } = props
 
   return (
     <Aside.Root
       width="360px"
       minWidth="200px"
-      maxWidth={{ base: "80%", lg: "500px" }}
-      position={{ base: "absolute", lg: "static" }}
+      maxWidth={{ base: '80%', lg: '500px' }}
+      position={{ base: 'absolute', lg: 'static' }}
       top="0"
       bottom="0"
       right="0"
@@ -50,11 +49,7 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
       boxShadow="md"
       bg="bg.panel"
       borderLeftWidth="1px"
-      role="complementary"
-      aria-label="Contact details"
-      onKeyDown={(event) => {
-        if (event.key === "Escape") onClose?.();
-      }}
+      size="lg"
       {...rest}
     >
       {contact ? (
@@ -64,7 +59,7 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
               <Persona.Root flex="1" size="sm">
                 <Persona.Avatar />
                 <Persona.Details>
-                  <Persona.Label>{contact?.name || ""}</Persona.Label>
+                  <Persona.Label>{contact?.name || ''}</Persona.Label>
                   <Persona.SecondaryLabel>
                     {contact?.email}
                   </Persona.SecondaryLabel>
@@ -73,29 +68,21 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
               <OverflowMenu.Root>
                 <OverflowMenu.Item value="delete">Delete</OverflowMenu.Item>
               </OverflowMenu.Root>
-              <Button
-                aria-label="Close contact details"
-                variant="ghost"
-                size="sm"
-                onClick={onClose}
-              >
-                <LuX />
-              </Button>
             </Stack>
           </Aside.Header>
           <ContactDetails contact={contact} />
         </>
       ) : null}
     </Aside.Root>
-  );
-};
+  )
+}
 
 function ContactDetails({ contact }: { contact: ContactDTO }) {
-  const tags = contact.tags || [];
+  const tags = contact.tags || []
 
-  const allTags = useTags();
+  const allTags = useTags()
 
-  const utils = api.useUtils();
+  const utils = api.useUtils()
 
   const updateTags = useMutation({
     mutationFn: async (tags: string[]) => {
@@ -116,19 +103,19 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
           ...contact,
           tags,
         },
-      );
+      )
     },
-  });
+  })
 
   const onCreateTags = (tag: string) => {
-    updateTags.mutate([tag]);
-  };
+    updateTags.mutate([tag])
+  }
 
   const onChangeTags = (tags: string[]) => {
-    updateTags.mutate(tags);
-  };
+    updateTags.mutate(tags)
+  }
 
-  const tagsAnchor = React.useRef<HTMLDivElement>(null);
+  const tagsAnchor = React.useRef<HTMLDivElement>(null)
 
   return (
     <Box p="6" borderBottomWidth="1px">
@@ -140,11 +127,17 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
             ms="-2.5"
             color="fg.muted"
             _expanded={{
-              bg: "transparent",
+              bg: 'transparent',
             }}
           >
             Details
-            <Icon transitionProperty="transform" transitionDuration="fast">
+            <Icon
+              transitionProperty="transform"
+              transitionDuration="fast"
+              _groupOpen={{
+                transform: 'rotate(90deg)',
+              }}
+            >
               <LuChevronRight />
             </Icon>
           </Button>
@@ -154,16 +147,11 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
           <DataList.Root orientation="horizontal" size="sm">
             <Property
               label="Type"
-              value={
-                <ContactType
-                  {...(contact?.type ? { type: contact.type } : {})}
-                  ms="-2"
-                />
-              }
+              value={<ContactType type={contact?.type} ms="-2" />}
             />
             <Property
               label="Status"
-              value={<ContactStatus status={contact.status || "new"} ms="-2" />}
+              value={<ContactStatus status={contact.status || 'new'} ms="-2" />}
             />
             <Property
               label="Signed up"
@@ -174,32 +162,31 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
               value={
                 <TagsList mt="2" ms="-2" ref={tagsAnchor}>
                   {tags.map((t) => {
-                    const tag = allTags?.find((tag) => tag.label === t);
+                    const tag = allTags?.find((tag) => tag.label === t)
                     return (
                       <TagsListItem
                         key={t}
-                        icon={<TagColor color={tag?.color || "gray"} />}
+                        icon={<TagColor color={tag?.color || 'gray'} />}
                       >
                         {tag?.label || t}
                       </TagsListItem>
-                    );
+                    )
                   })}
                   <AddTag
                     tags={allTags ?? []}
                     onCreate={onCreateTags}
                     onChange={onChangeTags}
                     positioning={{
-                      placement: "left-start",
+                      placement: 'left-start',
                       getAnchorRect: () => {
-                        const rect =
-                          tagsAnchor.current?.getBoundingClientRect();
+                        const rect = tagsAnchor.current!.getBoundingClientRect()
 
                         return {
-                          x: rect?.x ?? 0,
-                          y: rect?.y ?? 0,
-                          width: rect?.width ?? 0,
-                          height: rect?.height ?? 0,
-                        };
+                          x: rect?.x,
+                          y: rect?.y,
+                          width: rect?.width,
+                          height: rect?.height,
+                        }
                       },
                     }}
                   />
@@ -210,7 +197,7 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
         </Collapsible.Content>
       </Collapsible.Root>
     </Box>
-  );
+  )
 }
 
 function Property({ label, value }: { label: string; value: React.ReactNode }) {
@@ -219,5 +206,5 @@ function Property({ label, value }: { label: string; value: React.ReactNode }) {
       <DataList.ItemLabel minWidth="80px">{label}</DataList.ItemLabel>
       <DataList.ItemValue>{value}</DataList.ItemValue>
     </DataList.Item>
-  );
+  )
 }

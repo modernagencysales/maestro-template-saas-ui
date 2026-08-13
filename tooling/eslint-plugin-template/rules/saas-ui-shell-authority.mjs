@@ -38,15 +38,6 @@ function inGuardedScope(filename) {
   );
 }
 
-function isAuthorizedRoot(filename) {
-  return [
-    "apps/web/src/features/common/",
-    "apps/web/src/theme/",
-    "apps/web/src/saas-ui/",
-    "generated/fixtures/upstream/",
-  ].some((root) => filename.includes(root));
-}
-
 function isFixtureOrTest(filename) {
   return /(?:\.test\.|__fixtures__|generated\/fixtures\/)/.test(filename);
 }
@@ -86,7 +77,6 @@ export default {
       !inGuardedScope(filename) ||
       isSaasUiRegistryReceiptFile(filename, receiptOption(context)) ||
       isSaasUiStarterReceiptFile(filename, receiptOption(context)) ||
-      isAuthorizedRoot(filename) ||
       isFixtureOrTest(filename)
     ) {
       return {};

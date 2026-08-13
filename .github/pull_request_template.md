@@ -6,15 +6,13 @@
 
 -
 
-## Upstream-derived frontend evidence
+## Starter frontend authority
 
-- Upstream source file or Pro block: `None` / exact path and pinned commit
-- Deviation ledger entry: `None` / exact `docs/template/saas-ui-deviations.json`
-  entry
-- Desktop/mobile light/dark evidence: `None` / artifact paths under
-  `artifacts/saas-ui-golden/`
-- Interaction results: command and pasted result
-- Accessibility results: axe, keyboard, focus, zoom, and reflow command/results
+- Pinned Starter/Pro source: `None` / exact path and commit
+- Receipt impact: `None` / updated `saas-ui-starter-files.json` or
+  `saas-ui-registry-files.json`
+- Route-parity evidence: `None` / pasted `pnpm smoke:starter-route-parity`
+  result
 
 ## Verification (paste evidence — do not assert)
 
@@ -40,6 +38,9 @@
 - [ ] Tests are behavioral (no source-text grep); co-located with the change
 - [ ] No suppressions added (`eslint-disable` / `ts-expect-error`)
 - [ ] Did NOT touch a gate file to make red turn green
+- [ ] Generated frontend keeps the literal `_app` Starter route tree; no legacy
+      `_workspace`, golden feature, business-shell, or custom navigation files
+      are projected
 - [ ] Docs updated when a subsystem changes status (real/fake/seam/planned)
 - [ ] New/changed tables came from `template:add-table`, are present in
       `data-resources.json`, and declare tenancy, sensitivity, PII,

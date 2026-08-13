@@ -1,8 +1,8 @@
-"use client";
+'use client'
 
-import { AppLayout, AppLayoutProps } from "#features/common/layouts/app-layout";
+import { AppLayout, AppLayoutProps } from '#features/common/layouts/app-layout'
 
-import { SettingsSidebar } from "./settings-sidebar";
+import { SettingsSidebar } from './settings-sidebar'
 
 /**
  * Settings pages layout
@@ -15,5 +15,5 @@ export const SettingsLayout: React.FC<AppLayoutProps> = ({
     <AppLayout {...rest} sidebar={<SettingsSidebar />}>
       {children}
     </AppLayout>
-  );
-};
+  )
+}

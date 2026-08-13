@@ -1,7 +1,8 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from 'react'
 
 import {
   Box,
+  Button,
   Collapsible,
   Field,
   Flex,
@@ -12,30 +13,29 @@ import {
   Text,
   VisuallyHidden,
   useControllableState,
-} from "@chakra-ui/react";
-import { GridList, SearchInput } from "@saas-ui/react";
-import { LuPencil, LuTrash } from "react-icons/lu";
+} from '@chakra-ui/react'
+import { GridList, SearchInput } from '@saas-ui/react'
+import { LuPencil, LuTrash } from 'react-icons/lu'
 
-import { useOpenState } from "#hooks/use-open-state";
-import { SaasButton } from "#components/ui/saas-ui-compat";
+import { useOpenState } from '#hooks/use-open-state'
 
-import { ColorControl } from "./color-control";
+import { ColorControl } from './color-control'
 
 export interface Tag {
-  id: string;
-  name: string;
-  count?: number;
-  color?: string | null;
+  id: string
+  name: string
+  count?: number
+  color?: string | null
 }
 
 interface TagListItemProps {
-  colors: string[];
-  item: Tag;
-  isEditing?: boolean;
-  onEdit?: () => void;
-  onCancel?: () => void;
-  onSave?: (tag: Tag) => Promise<void>;
-  onDelete?: () => void;
+  colors: string[]
+  item: Tag
+  isEditing?: boolean
+  onEdit?: () => void
+  onCancel?: () => void
+  onSave?: (tag: Tag) => Promise<void>
+  onDelete?: () => void
 }
 
 const TagListItem: React.FC<TagListItemProps> = (props) => {
@@ -47,64 +47,64 @@ const TagListItem: React.FC<TagListItemProps> = (props) => {
     onCancel: onCancelProp,
     onSave: onSaveProp,
     onDelete: onDeleteProp,
-  } = props;
+  } = props
 
   const [edit, setEdit] = useControllableState({
     value: isEditing,
     defaultValue: false,
-  });
+  })
 
-  const [error, setError] = React.useState("");
-  const [isLoading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('')
+  const [isLoading, setLoading] = React.useState(false)
 
   const [values, setValues] = useState({
     color: item.color,
     name: item.name,
-  });
+  })
 
   const onEdit = () => {
     setValues({
       color: item.color,
       name: item.name,
-    });
-    setEdit(true);
-    onEditProp?.();
-  };
+    })
+    setEdit(true)
+    onEditProp?.()
+  }
 
   const onCancel = () => {
-    setEdit(false);
+    setEdit(false)
     setValues({
       color: item.color,
       name: item.name,
-    });
-    setError("");
-    onCancelProp?.();
-  };
+    })
+    setError('')
+    onCancelProp?.()
+  }
 
   const onSave = async () => {
     try {
-      setError("");
-      setLoading(true);
+      setError('')
+      setLoading(true)
 
       await onSaveProp?.({
         ...item,
         ...values,
-      });
+      })
 
-      setEdit(false);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
-      console.error(e);
+      setEdit(false)
+    } catch (e: any) {
+      setError(e.message)
+      console.error(e)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
-  const color = values.color ?? item.color ?? undefined;
+  const color = values.color ?? item.color ?? undefined
 
   const colorBadge = (
     <Box bgColor={`colors.tag.${color}`} borderRadius="full" boxSize="2.5" />
-  );
+  )
 
   return edit ? (
     <GridList.Item
@@ -140,32 +140,32 @@ const TagListItem: React.FC<TagListItemProps> = (props) => {
             bg="chakra-body-bg"
             onChange={(e) => setValues({ ...values, name: e.target.value })}
             onKeyDown={(e) => {
-              if (e.key === "Escape") {
+              if (e.key === 'Escape') {
                 // prevent modal from closing
-                e.preventDefault();
-                e.stopPropagation();
+                e.preventDefault()
+                e.stopPropagation()
 
                 // cancel editing
-              } else if (e.key === "Enter") {
+              } else if (e.key === 'Enter') {
                 // save changes
-                onSave();
+                onSave()
               }
             }}
           />
         </Field.Root>
       </GridList.Cell>
       <GridList.Cell display="flex" gap="2">
-        <SaasButton variant="ghost" size="sm" onClick={() => onCancel()}>
+        <Button variant="ghost" size="sm" onClick={() => onCancel()}>
           Cancel
-        </SaasButton>
-        <SaasButton
+        </Button>
+        <Button
           variant="secondary"
           size="sm"
           loading={isLoading}
           onClick={() => onSave()}
         >
           Save
-        </SaasButton>
+        </Button>
       </GridList.Cell>
     </GridList.Item>
   ) : (
@@ -219,70 +219,70 @@ const TagListItem: React.FC<TagListItemProps> = (props) => {
         </IconButton>
       </GridList.Cell>
     </GridList.Item>
-  );
-};
+  )
+}
 
 interface TagListAddItemProps {
-  colors?: string[];
-  open?: boolean;
-  onCancel?: () => void;
-  onSave?: (tag: Pick<Tag, "color" | "name">) => Promise<void>;
+  colors?: string[]
+  open?: boolean
+  onCancel?: () => void
+  onSave?: (tag: Pick<Tag, 'color' | 'name'>) => Promise<void>
 }
 
 const TagListAddItem: React.FC<TagListAddItemProps> = (props) => {
-  const { colors, open, onCancel: onCancelProp, onSave: onSaveProp } = props;
+  const { colors, open, onCancel: onCancelProp, onSave: onSaveProp } = props
 
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
   const openState = useOpenState({
     open,
     onOpenChange(details) {
       if (!details.open) {
         setValues({
-          color: "gray",
-          name: "",
-        });
+          color: 'gray',
+          name: '',
+        })
       }
     },
-  });
+  })
 
   useEffect(() => {
     if (openState.open) {
       setTimeout(() => {
-        inputRef.current?.focus();
-      });
+        inputRef.current?.focus()
+      })
     }
-  }, [openState.open]);
+  }, [openState.open])
 
-  const [error, setError] = React.useState("");
-  const [isLoading, setLoading] = React.useState(false);
+  const [error, setError] = React.useState('')
+  const [isLoading, setLoading] = React.useState(false)
 
   const [values, setValues] = useState({
-    color: "gray",
-    name: "",
-  });
+    color: 'gray',
+    name: '',
+  })
 
   const onCancel = () => {
-    setError("");
-    openState.setOpen(false);
-    onCancelProp?.();
-  };
+    setError('')
+    openState.setOpen(false)
+    onCancelProp?.()
+  }
 
   const onSave = async () => {
     try {
-      setError("");
-      setLoading(true);
+      setError('')
+      setLoading(true)
 
-      await onSaveProp?.(values);
+      await onSaveProp?.(values)
 
-      openState.setOpen(false);
-    } catch (e: unknown) {
-      setError(e instanceof Error ? e.message : String(e));
-      console.error(e);
+      openState.setOpen(false)
+    } catch (e: any) {
+      setError(e.message)
+      console.error(e)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <Collapsible.Root open={openState.open}>
@@ -323,67 +323,67 @@ const TagListAddItem: React.FC<TagListAddItemProps> = (props) => {
                 bg="chakra-body-bg"
                 onChange={(e) => setValues({ ...values, name: e.target.value })}
                 onKeyDown={(e) => {
-                  if (e.key === "Escape") {
+                  if (e.key === 'Escape') {
                     // prevent modal from closing
-                    e.preventDefault();
-                    e.stopPropagation();
+                    e.preventDefault()
+                    e.stopPropagation()
 
                     // cancel editing
-                  } else if (e.key === "Enter") {
+                  } else if (e.key === 'Enter') {
                     // save changes
-                    onSave();
+                    onSave()
                   }
                 }}
               />
             </Field.Root>
           </HStack>
           <HStack gap="2">
-            <SaasButton variant="ghost" size="sm" onClick={() => onCancel()}>
+            <Button variant="ghost" size="sm" onClick={() => onCancel()}>
               Cancel
-            </SaasButton>
-            <SaasButton
+            </Button>
+            <Button
               variant="secondary"
               size="sm"
               loading={isLoading}
               onClick={() => onSave()}
             >
               Save
-            </SaasButton>
+            </Button>
           </HStack>
         </HStack>
       </Collapsible.Content>
     </Collapsible.Root>
-  );
-};
+  )
+}
 
 interface ManageTagsProps {
-  items: Tag[];
-  colors?: string[];
-  onSave: (tag: Tag) => Promise<void>;
-  onCreate: (tag: Pick<Tag, "color" | "name">) => Promise<void>;
-  onDelete: (id: Tag["id"]) => Promise<void>;
+  items: Tag[]
+  colors?: string[]
+  onSave: (tag: Tag) => Promise<void>
+  onCreate: (tag: Pick<Tag, 'color' | 'name'>) => Promise<void>
+  onDelete: (id: Tag['id']) => Promise<void>
 }
 
 export const ManageTags = (props: ManageTagsProps) => {
-  const { items, colors = [], onSave, onCreate, onDelete } = props;
+  const { items, colors = [], onSave, onCreate, onDelete } = props
 
   const addTag = useOpenState({
     defaultOpen: false,
-  });
+  })
 
-  const [editId, setEditId] = useState<string | null>(null);
-  const [searchTerm, setSearchTerm] = useState("");
-  const inputRef = React.useRef<HTMLInputElement>(null);
+  const [editId, setEditId] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const inputRef = React.useRef<HTMLInputElement>(null)
 
   const filteredItems = useMemo(() => {
     if (!searchTerm) {
-      return items;
+      return items
     }
 
     return items.filter((item) => {
-      return item.name.toLowerCase().includes(searchTerm.toLowerCase());
-    });
-  }, [items, searchTerm]);
+      return item.name.toLowerCase().includes(searchTerm.toLowerCase())
+    })
+  }, [items, searchTerm])
 
   const noResults = searchTerm && filteredItems.length === 0 && (
     <GridList.Item>
@@ -391,7 +391,7 @@ export const ManageTags = (props: ManageTagsProps) => {
         No results for &quot;{searchTerm}&quot;
       </GridList.Cell>
     </GridList.Item>
-  );
+  )
 
   return (
     <Box>
@@ -408,27 +408,27 @@ export const ManageTags = (props: ManageTagsProps) => {
               placeholder="Filter by name..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              onReset={() => setSearchTerm("")}
+              onReset={() => setSearchTerm('')}
               onKeyDown={(e) => {
                 // prevent modal from closing
-                if (e.key === "Escape") {
-                  e.preventDefault();
-                  e.stopPropagation();
+                if (e.key === 'Escape') {
+                  e.preventDefault()
+                  e.stopPropagation()
                 }
               }}
             />
           </Box>
-          <SaasButton
+          <Button
             variant="primary"
             colorPalette="indigo"
             onClick={() => {
-              setEditId(null);
-              addTag.setOpen(true);
+              setEditId(null)
+              addTag.setOpen(true)
             }}
             size="sm"
           >
             New tag
-          </SaasButton>
+          </Button>
         </HStack>
       </Stack>
 
@@ -436,9 +436,9 @@ export const ManageTags = (props: ManageTagsProps) => {
         open={addTag.open}
         colors={colors}
         onSave={async (tag) => {
-          const result = await onCreate(tag);
-          addTag.setOpen(false);
-          return result;
+          const result = await onCreate(tag)
+          addTag.setOpen(false)
+          return result
         }}
         onCancel={() => addTag.setOpen(false)}
       />
@@ -450,14 +450,14 @@ export const ManageTags = (props: ManageTagsProps) => {
             colors={colors}
             item={item}
             onEdit={() => {
-              setEditId(item.id);
-              addTag.setOpen(false);
+              setEditId(item.id)
+              addTag.setOpen(false)
             }}
             onCancel={() => setEditId(null)}
             onSave={async (tag) => {
-              const result = await onSave(tag);
-              setEditId(null);
-              return result;
+              const result = await onSave(tag)
+              setEditId(null)
+              return result
             }}
             onDelete={() => onDelete(item.id)}
             isEditing={editId === item.id}
@@ -465,5 +465,5 @@ export const ManageTags = (props: ManageTagsProps) => {
         ))}
       </GridList.Root>
     </Box>
-  );
-};
+  )
+}

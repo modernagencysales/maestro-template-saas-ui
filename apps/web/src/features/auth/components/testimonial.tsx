@@ -1,5 +1,5 @@
-import { Box, Container, HStack, Link, Text } from "@chakra-ui/react";
-import { Avatar } from "@saas-ui/react";
+import { Box, Container, HStack, Link, Text } from '@chakra-ui/react'
+import { Avatar } from '@saas-ui/react'
 
 export const Testimonial = () => {
   return (
@@ -11,7 +11,7 @@ export const Testimonial = () => {
             Ahmed
           </Text>
           <Text color="whiteAlpha.700" fontSize="md">
-            Founder of{" "}
+            Founder of{' '}
             <Link href="https://localxpose.io" color="white">
               LocalXpose
             </Link>
@@ -24,5 +24,5 @@ export const Testimonial = () => {
         updates from the Saas UI team were exceptional, Thank you.
       </Text>
     </Container>
-  );
-};
+  )
+}

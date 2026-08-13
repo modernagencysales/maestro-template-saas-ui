@@ -1,11 +1,12 @@
-"use client";
+'use client'
 
-import * as React from "react";
+import * as React from 'react'
 
-import { ResizeHandle, ResizeHandler } from "@saas-ui-pro/react";
+import { ResizeHandle, ResizeHandler, Resizer } from '@saas-ui-pro/react'
 import {
   Badge,
   Box,
+  Command,
   HStack,
   IconButton,
   Menu,
@@ -13,50 +14,50 @@ import {
   Spacer,
   Tooltip,
   useSidebar,
-} from "@saas-ui/react";
-import { useHotkeysShortcut } from "@saas-ui/use-hotkeys";
+} from '@saas-ui/react'
+import { useHotkeysShortcut } from '@saas-ui/use-hotkeys'
 import {
   Link,
   type LinkProps,
   createLink,
   useNavigate,
-} from "@tanstack/react-router";
+} from '@tanstack/react-router'
 import {
   LuHouse,
   LuInbox,
   LuPlus,
   LuSearch,
   LuSquareUser,
-} from "react-icons/lu";
+} from 'react-icons/lu'
 
-import { useModals } from "@workspace/ui/modals";
+import { useModals } from '@workspace/ui/modals'
 
-import { SaasCommand } from "#components/ui/saas-ui-compat";
+import { useUserSettings } from '#lib/user-settings/use-user-settings'
 
-import { useUserSettings } from "../../../lib/user-settings/use-user-settings";
+import { useWorkspaceSlug } from '../hooks/use-workspace-slug'
+import { BillingStatus } from './billing-status'
+import { InvitePeopleDialog } from './invite-people'
+import { AppSidebarTags } from './sidebar-tags'
+import { UserMenu } from './user-menu'
+import { WorkspacesMenu } from './workspaces-menu'
 
-import { BillingStatus } from "./billing-status";
-import { InvitePeopleDialog } from "./invite-people";
-import { AppSidebarTags } from "./sidebar-tags";
-import { UserMenu } from "./user-menu";
-import { WorkspacesMenu } from "./workspaces-menu";
-import { ClientResizer } from "./client-resizer";
-
-export type AppSidebarProps = Sidebar.RootProps;
+export interface AppSidebarProps extends Sidebar.RootProps {}
 
 export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
-  const modals = useModals();
+  const modals = useModals()
 
-  const [{ sidebarWidth }, setUserSettings] = useUserSettings();
+  const workspace = useWorkspaceSlug()
+
+  const [{ sidebarWidth }, setUserSettings] = useUserSettings()
 
   const onResize: ResizeHandler = ({ width }) => {
-    setUserSettings("sidebarWidth", width);
-  };
+    setUserSettings('sidebarWidth', width)
+  }
 
-  const { mode, setMode, open, setOpen, isMobile } = useSidebar();
+  const { mode, setMode, open, setOpen, isMobile } = useSidebar()
 
   return (
-    <ClientResizer
+    <Resizer
       defaultWidth={sidebarWidth}
       onResize={onResize}
       enabled={!isMobile && open}
@@ -75,7 +76,7 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
             aria-label="Search"
             asChild
           >
-            <Link to="/search" search={{ q: "" }}>
+            <Link to="/$workspace/search" params={{ workspace }}>
               <LuSearch size="1.1em" />
             </Link>
           </IconButton>
@@ -87,7 +88,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
         <Sidebar.Body>
           <Sidebar.Group>
             <AppSidebarLink
-              to="/"
+              to="/$workspace"
+              params={{
+                workspace,
+              }}
               activeOptions={{
                 exact: true,
               }}
@@ -96,7 +100,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
               hotkey="navigation.dashboard"
             />
             <AppSidebarLink
-              to="/inbox"
+              to="/$workspace/inbox"
+              params={{
+                workspace,
+              }}
               activeOptions={{
                 exact: false,
               }}
@@ -106,7 +113,10 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
               hotkey="navigation.inbox"
             />
             <AppSidebarLink
-              to="/contacts"
+              to="/$workspace/contacts"
+              params={{
+                workspace,
+              }}
               activeOptions={{
                 exact: false,
               }}
@@ -167,60 +177,55 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
         <Sidebar.Track
           asChild
           onClick={() => {
-            if (mode === "flyout") {
-              setMode("collapsible");
-              setOpen(true);
+            if (mode === 'flyout') {
+              setMode('collapsible')
+              setOpen(true)
             } else {
-              setMode("flyout");
+              setMode('flyout')
             }
           }}
         >
-          <ResizeHandle
-            aria-label="Collapse sidebar"
-            role="separator"
-            aria-orientation="vertical"
-          />
+          <ResizeHandle />
         </Sidebar.Track>
       </Sidebar.Root>
-    </ClientResizer>
-  );
-};
+    </Resizer>
+  )
+}
 
 interface AppSidebarlink
   extends
     Sidebar.NavItemProps,
-    Pick<LinkProps, "to" | "params" | "activeOptions"> {
-  to: NonNullable<LinkProps["to"]>;
-  hotkey: string;
-  label: string;
-  icon: React.ReactNode;
-  badge?: React.ReactNode;
+    Pick<LinkProps, 'to' | 'params' | 'activeOptions'> {
+  hotkey: string
+  label: string
+  icon: React.ReactNode
+  badge?: React.ReactNode
 }
 
 const AppSidebarLink = (props: AppSidebarlink) => {
   const { to, params, activeOptions, icon, label, hotkey, badge, ...rest } =
-    props;
+    props
 
   const navigate = useNavigate({
-    from: "/",
-  });
+    from: '/$workspace/',
+  })
 
   const command = useHotkeysShortcut(hotkey, () => {
     navigate({
       to,
-      ...(params ? { params } : {}),
-    });
-  }, [to]);
+      params,
+    })
+  }, [to])
 
   return (
     <Tooltip
       content={
         <>
-          {label} <SaasCommand size="xs">{command}</SaasCommand>
+          {label} <Command size="xs">{command}</Command>
         </>
       }
       positioning={{
-        placement: "right",
+        placement: 'right',
       }}
       openDelay={1000}
       portalled
@@ -228,11 +233,11 @@ const AppSidebarLink = (props: AppSidebarlink) => {
       <Sidebar.NavItem {...rest}>
         <NavLink
           to={to}
-          {...(params ? { params } : {})}
+          params={params}
           activeProps={{
-            "data-active": true,
+            'data-active': true,
           }}
-          {...(activeOptions ? { activeOptions } : {})}
+          activeOptions={activeOptions}
         >
           {icon}
 
@@ -240,7 +245,7 @@ const AppSidebarLink = (props: AppSidebarlink) => {
             {label}
           </Box>
 
-          {typeof badge !== "undefined" ? (
+          {typeof badge !== 'undefined' ? (
             <Badge borderRadius="sm" ms="auto" px="1.5" bg="none">
               {badge}
             </Badge>
@@ -248,7 +253,7 @@ const AppSidebarLink = (props: AppSidebarlink) => {
         </NavLink>
       </Sidebar.NavItem>
     </Tooltip>
-  );
-};
+  )
+}
 
-const NavLink = createLink(Sidebar.NavButton);
+const NavLink = createLink(Sidebar.NavButton)

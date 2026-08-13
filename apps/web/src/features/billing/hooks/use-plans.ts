@@ -1,5 +1,5 @@
-import { api } from "#lib/trpc/react";
+import { api } from '#lib/trpc/react'
 
 export const usePlans = () => {
-  return api.billing.plans.useQuery();
-};
+  return api.billing.plans.useQuery()
+}

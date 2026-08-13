@@ -1,6 +1,6 @@
-"use client";
+'use client'
 
-import { useRef, useState } from "react";
+import { useRef, useState } from 'react'
 
 import {
   Avatar,
@@ -11,35 +11,35 @@ import {
   Section,
   Tooltip,
   toast,
-} from "@saas-ui/react";
+} from '@saas-ui/react'
 
-import { UserDTO } from "@workspace/api/types";
-import { Form, useAppForm } from "@workspace/ui/form";
-import { SettingsPage } from "@workspace/ui/settings-page";
+import { UserDTO } from '@workspace/api/types'
+import { Form, useAppForm } from '@workspace/ui/form'
+import { SettingsPage } from '@workspace/ui/settings-page'
 
-import { useCurrentUser } from "#features/common/hooks/use-current-user";
-import { api } from "#lib/trpc/react";
+import { useCurrentUser } from '#features/common/hooks/use-current-user'
+import { api } from '#lib/trpc/react'
 
-import { profileSchema } from "./schema/profile.schema";
+import { profileSchema } from './schema/profile.schema'
 
 function ProfileDetails({ user }: { user: UserDTO }) {
-  const utils = api.useUtils();
+  const utils = api.useUtils()
 
   const { mutateAsync } = api.users.updateProfile.useMutation({
     onSettled: () => {
-      utils.auth.me.invalidate();
+      utils.auth.me.invalidate()
     },
     onSuccess: () => {
       toast.success({
-        title: "Profile updated",
-      });
+        title: 'Profile updated',
+      })
     },
     onError: () => {
       toast.error({
-        title: "Failed to update profile",
-      });
+        title: 'Failed to update profile',
+      })
     },
-  });
+  })
 
   const form = useAppForm({
     validators: {
@@ -47,13 +47,13 @@ function ProfileDetails({ user }: { user: UserDTO }) {
       onSubmit: profileSchema,
     },
     defaultValues: {
-      name: user?.name ?? "",
-      email: user?.email ?? "",
+      name: user?.name ?? '',
+      email: user?.email ?? '',
     },
     onSubmit: async ({ value }) => {
-      await mutateAsync(value);
+      await mutateAsync(value)
     },
-  });
+  })
 
   return (
     <Section.Root>
@@ -83,26 +83,26 @@ function ProfileDetails({ user }: { user: UserDTO }) {
         </Card.Root>
       </Section.Body>
     </Section.Root>
-  );
+  )
 }
 
 function ProfileAvatar({ user }: { user: UserDTO }) {
-  const [previewUrl, setPreviewUrl] = useState<string | undefined>();
-  const ref = useRef<HTMLInputElement>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | undefined>()
+  const ref = useRef<HTMLInputElement>(null)
 
   const selectFile = () => {
-    ref.current?.click();
-  };
+    ref.current?.click()
+  }
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target?.files;
+    const files = e.target?.files
 
     if (files?.[0]) {
-      setPreviewUrl(URL.createObjectURL(files[0]));
+      setPreviewUrl(URL.createObjectURL(files[0]))
     }
-  };
+  }
 
-  const avatarSrc = previewUrl ?? user.avatar ?? undefined;
+  const avatarSrc = previewUrl ?? user.avatar ?? undefined
 
   return (
     <Field.Root orientation="horizontal">
@@ -118,15 +118,15 @@ function ProfileAvatar({ user }: { user: UserDTO }) {
       </Tooltip>
       <Input type="file" ref={ref} onChange={handleFileChange} display="none" />
     </Field.Root>
-  );
+  )
 }
 
 export function AccountProfilePage() {
-  const [user] = useCurrentUser();
+  const [user] = useCurrentUser()
 
   return (
     <SettingsPage title="Profile">
       {user && <ProfileDetails user={user} />}
     </SettingsPage>
-  );
+  )
 }

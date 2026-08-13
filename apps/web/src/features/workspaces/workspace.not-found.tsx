@@ -1,9 +1,9 @@
-"use client";
+'use client'
 
-import { LuFolderSearch } from "react-icons/lu";
+import { LuFolderSearch } from 'react-icons/lu'
 
-import { ErrorPage } from "#components/error-page";
-import { FullscreenLayout } from "#features/common/layouts/fullscreen-layout";
+import { ErrorPage } from '#components/error-page'
+import { FullscreenLayout } from '#features/common/layouts/fullscreen-layout'
 
 export function WorkspaceNotFound() {
   return (
@@ -13,5 +13,5 @@ export function WorkspaceNotFound() {
         icon={<LuFolderSearch />}
       />
     </FullscreenLayout>
-  );
+  )
 }

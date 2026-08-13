@@ -52,10 +52,12 @@ export function verifyStarterSourceCommit(
     [
       "status",
       "--porcelain",
-      "--ignored",
       "--untracked-files=all",
       "--",
       "apps/web/src",
+      "packages/config",
+      "packages/i18n",
+      "packages/ui",
     ],
     { cwd: starterRoot, encoding: "utf8" },
   ).trim();
@@ -76,9 +78,30 @@ export async function transplantStarter({
   receiptOnly = false,
 }: TransplantOptions): Promise<readonly TransplantedFile[]> {
   const actual = verifyStarterSourceCommit(starterRoot, expectedCommit);
+  const manifestIds = ids.filter((id) => id !== "support");
+  const supportFiles = ids.includes("support")
+    ? execFileSync(
+        "git",
+        [
+          "ls-tree",
+          "-r",
+          "--name-only",
+          "HEAD",
+          "--",
+          "packages/config",
+          "packages/i18n",
+          "packages/ui",
+        ],
+        { cwd: starterRoot, encoding: "utf8" },
+      )
+        .trim()
+        .split("\n")
+        .filter(Boolean)
+        .map((source) => ({ source, destination: `../../${source}` }))
+    : [];
 
   const files: TransplantedFile[] = [];
-  for (const file of starterFiles(ids)) {
+  for (const file of [...starterFiles(manifestIds), ...supportFiles]) {
     const source = resolve(starterRoot, file.source);
     const destination = resolve(targetRoot, file.destination);
     const sourceContents = await readFile(source);

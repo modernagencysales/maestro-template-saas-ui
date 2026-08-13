@@ -1,38 +1,38 @@
-import * as React from "react";
+import * as React from 'react'
 
-import { AreaChart } from "#components/charts";
-import { format } from "date-fns";
-import { useIntl } from "@workspace/i18n";
+import { AreaChart } from '@saas-ui/charts'
+import { format } from 'date-fns'
+import { useIntl } from 'react-intl'
 
 export interface MetricData {
-  timestamp: number;
-  value: number;
+  timestamp: number
+  value: number
 }
 
 export const RevenueChart = ({ data = [] }: { data: MetricData[] }) => {
-  const intl = useIntl();
+  const intl = useIntl()
 
   const parsedData = React.useMemo(
     () =>
       data?.map(({ timestamp, value }) => {
         return {
-          date: format(timestamp, "d/L"),
+          date: format(timestamp, 'd/L'),
           Revenue: value,
-        };
+        }
       }),
     [data],
-  );
+  )
 
   return (
     <AreaChart
       data={parsedData}
-      categories={["Revenue"]}
+      categories={['Revenue']}
       strokeWidth="2"
       variant="gradient"
       valueFormatter={(value: number) =>
         intl.formatNumber(value, {
-          currency: "EUR",
-          style: "currency",
+          currency: 'EUR',
+          style: 'currency',
           maximumFractionDigits: 0,
         })
       }
@@ -40,5 +40,5 @@ export const RevenueChart = ({ data = [] }: { data: MetricData[] }) => {
       showLegend={false}
       height="300px"
     />
-  );
-};
+  )
+}

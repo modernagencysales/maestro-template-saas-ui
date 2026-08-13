@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react'
 
 import {
   Box,
@@ -11,40 +11,40 @@ import {
   Table,
   Tag,
   Text,
-} from "@chakra-ui/react";
-import { BillingInterval, BillingPlan } from "@saas-ui-pro/billing";
-import { SegmentedControl, Tooltip } from "@saas-ui/react";
-import { LuCheck } from "react-icons/lu";
+} from '@chakra-ui/react'
+import { BillingInterval, BillingPlan } from '@saas-ui-pro/billing'
+import { SegmentedControl, Tooltip } from '@saas-ui/react'
+import { LuCheck } from 'react-icons/lu'
 
 const defaultIntervals: PricingPeriod[] = [
   {
-    id: "month",
-    label: "Pay monthly",
+    id: 'month',
+    label: 'Pay monthly',
   },
   {
-    id: "year",
-    label: "Pay yearly",
+    id: 'year',
+    label: 'Pay yearly',
   },
-];
+]
 
 export interface PricingFeature {
-  id: string;
-  label: string;
-  description?: string;
+  id: string
+  label: string
+  description?: string
 }
 
 export interface PricingPeriod {
-  id: BillingInterval;
-  label: string;
+  id: BillingInterval
+  label: string
 }
 
 export interface PricingTableProps {
-  planId?: string | null;
-  plans: BillingPlan[];
-  features: PricingFeature[];
-  onUpdatePlan?(plan: BillingPlan): Promise<void>;
-  defaultInterval?: BillingInterval;
-  intervals?: PricingPeriod[];
+  planId?: string | null
+  plans: BillingPlan[]
+  features: PricingFeature[]
+  onUpdatePlan?(plan: BillingPlan): Promise<void>
+  defaultInterval?: BillingInterval
+  intervals?: PricingPeriod[]
 }
 
 export const PricingTable: React.FC<PricingTableProps> = (props) => {
@@ -53,31 +53,31 @@ export const PricingTable: React.FC<PricingTableProps> = (props) => {
     plans: allPlans,
     features,
     onUpdatePlan,
-    defaultInterval = "month",
+    defaultInterval = 'month',
     intervals = defaultIntervals,
     ...rest
-  } = props;
-  const [interval, setInterval] = React.useState(defaultInterval);
+  } = props
+  const [interval, setInterval] = React.useState(defaultInterval)
 
   const plans = React.useMemo(() => {
-    return allPlans.filter((plan) => plan.interval === interval);
-  }, [interval]);
+    return allPlans.filter((plan) => plan.interval === interval)
+  }, [interval])
 
-  const currentPlan = allPlans.find((plan) => plan.id === planId);
+  const currentPlan = allPlans.find((plan) => plan.id === planId)
 
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(false)
   const updatePlan = async (plan: BillingPlan) => {
-    setLoading(true);
+    setLoading(true)
     try {
-      await onUpdatePlan?.(plan);
+      await onUpdatePlan?.(plan)
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <Box {...rest}>
-      <Table.Root css={{ tableLayout: "fixed" }}>
+      <Table.Root css={{ tableLayout: 'fixed' }}>
         <Table.Header>
           <Table.Row borderBottomWidth="0" bg="none">
             <Table.Cell rowSpan={2} verticalAlign="bottom">
@@ -100,22 +100,22 @@ export const PricingTable: React.FC<PricingTableProps> = (props) => {
                 >
                   <Stack gap="0">
                     <Heading as="h3" size="xl" fontWeight="medium">
-                      {plan.name}{" "}
+                      {plan.name}{' '}
                       {plan.metadata.discount && (
                         <Tag.Root size="sm">-{plan.metadata.discount}</Tag.Root>
                       )}
                     </Heading>
                   </Stack>
                 </Table.Cell>
-              );
+              )
             })}
           </Table.Row>
           <Table.Row borderBottomWidth="1px" bg="none">
             {plans.map((plan) => {
-              const isCurrent = plan.id === currentPlan?.id;
+              const isCurrent = plan.id === currentPlan?.id
               const isDowngrade =
                 currentPlan &&
-                allPlans.indexOf(plan) < allPlans.indexOf(currentPlan);
+                allPlans.indexOf(plan) < allPlans.indexOf(currentPlan)
 
               return (
                 <Table.ColumnHeader
@@ -140,17 +140,17 @@ export const PricingTable: React.FC<PricingTableProps> = (props) => {
                       </Button>
                     ) : (
                       <Button
-                        variant={isDowngrade ? "surface" : "solid"}
-                        colorPalette={isDowngrade ? "gray" : "accent"}
+                        variant={isDowngrade ? 'surface' : 'glass'}
+                        colorPalette={isDowngrade ? 'gray' : 'accent'}
                         disabled={loading}
                         onClick={() => updatePlan?.(plan)}
                       >
-                        {isDowngrade ? "Downgrade" : "Upgrade"}
+                        {isDowngrade ? 'Downgrade' : 'Upgrade'}
                       </Button>
                     )}
                   </Stack>
                 </Table.ColumnHeader>
-              );
+              )
             })}
           </Table.Row>
         </Table.Header>
@@ -163,7 +163,7 @@ export const PricingTable: React.FC<PricingTableProps> = (props) => {
                     <Tooltip
                       content={feature.description}
                       positioning={{
-                        placement: "right",
+                        placement: 'right',
                       }}
                       openDelay={50}
                     >
@@ -181,45 +181,45 @@ export const PricingTable: React.FC<PricingTableProps> = (props) => {
                 </Table.Cell>
 
                 {plans.map((plan) => {
-                  const item = plan.features.find((f) => f.id === feature.id);
+                  const item = plan.features.find((f) => f.id === feature.id)
                   return (
                     <Table.Cell key={plan.id} borderBottomWidth="1px">
                       <PricingTableFeature
                         value={item?.label ?? item?.limit ?? !!item}
                       />
                     </Table.Cell>
-                  );
+                  )
                 })}
               </Table.Row>
-            );
+            )
           })}
         </Table.Body>
       </Table.Root>
     </Box>
-  );
-};
+  )
+}
 
 interface PricingTableFeature {
-  value: string | number | boolean;
+  value: string | number | boolean
 }
 
 const PricingTableFeature: React.FC<PricingTableFeature> = ({ value }) => {
   return (
     <HStack>
       {value && <Icon as={LuCheck} color="colorPalette.solid" />}
-      {typeof value !== "boolean" && <Text color="muted">{value}</Text>}
+      {typeof value !== 'boolean' && <Text color="muted">{value}</Text>}
     </HStack>
-  );
-};
+  )
+}
 
-interface PricingTablePeriodProps extends Omit<StackProps, "onChange"> {
-  periods: PricingPeriod[];
-  period: string;
-  onChange(id: string): void;
+interface PricingTablePeriodProps extends Omit<StackProps, 'onChange'> {
+  periods: PricingPeriod[]
+  period: string
+  onChange(id: string): void
 }
 
 const PricingTablePeriod: React.FC<PricingTablePeriodProps> = (props) => {
-  const { periods, period, onChange, ...rest } = props;
+  const { periods, period, onChange, ...rest } = props
 
   return (
     <Stack {...rest} alignItems="flex-start">
@@ -231,11 +231,11 @@ const PricingTablePeriod: React.FC<PricingTablePeriodProps> = (props) => {
           value: period.id,
         }))}
         onValueChange={(details) => {
-          console.log(details);
-          if (details.value) onChange(details.value);
+          console.log(details)
+          onChange(details.value)
         }}
         value={period}
       />
     </Stack>
-  );
-};
+  )
+}

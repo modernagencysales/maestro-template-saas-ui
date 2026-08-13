@@ -10,7 +10,7 @@ export interface LinkButtonProps extends ButtonProps {
 export const LinkButton = createLink(
   React.forwardRef(function LinkButton(
     props: LinkButtonProps,
-    ref: React.ForwardedRef<HTMLButtonElement>,
+    ref: React.ForwardedRef<HTMLAnchorElement>,
   ) {
     return <Button as={Link} {...props} ref={ref} />;
   }),

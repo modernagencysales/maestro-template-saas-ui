@@ -1,10 +1,10 @@
-import { HotkeysConfig, HotkeysProvider } from "@saas-ui/use-hotkeys";
+import { HotkeysConfig, HotkeysProvider } from '@saas-ui/use-hotkeys'
 
-import { appHotkeys } from "#config/hotkeys.config";
+import { appHotkeys } from '#config/hotkeys.config'
 
 interface HotkeysProps {
-  hotkeys?: HotkeysConfig;
-  children: React.ReactNode;
+  hotkeys?: HotkeysConfig
+  children: React.ReactNode
 }
 
 export const Hotkeys: React.FC<HotkeysProps> = ({ children, hotkeys }) => {
@@ -12,5 +12,5 @@ export const Hotkeys: React.FC<HotkeysProps> = ({ children, hotkeys }) => {
     <HotkeysProvider hotkeys={hotkeys || appHotkeys}>
       {children}
     </HotkeysProvider>
-  );
-};
+  )
+}

@@ -1,14 +1,14 @@
-import { HStack, Text } from "@chakra-ui/react";
-import { ColumnDef, DataGrid, DataGridCell } from "@saas-ui-pro/react";
-import { useIntl } from "@workspace/i18n";
+import { HStack, Text } from '@chakra-ui/react'
+import { ColumnDef, DataGrid, DataGridCell } from '@saas-ui-pro/react'
+import { useIntl } from 'react-intl'
 
-import { MetricsCard } from "./metrics-card";
+import { MetricsCard } from './metrics-card'
 
 interface Data {
-  id: string;
-  country: string;
-  sales: number;
-  total: number;
+  id: string
+  country: string
+  sales: number
+  total: number
 }
 
 const SalesCell: DataGridCell<Data> = (cell) => {
@@ -22,31 +22,31 @@ const SalesCell: DataGridCell<Data> = (cell) => {
       /> */}
       <Text>{cell.getValue<string>()}</Text>
     </HStack>
-  );
-};
+  )
+}
 
 const CurrencyCell: DataGridCell<Data> = ({ getValue }) => {
-  const intl = useIntl();
+  const intl = useIntl()
 
   return (
     <>
       {intl.formatNumber(getValue<number>(), {
-        currency: "EUR",
-        style: "currency",
+        currency: 'EUR',
+        style: 'currency',
         maximumFractionDigits: 0,
       })}
     </>
-  );
-};
+  )
+}
 
 const columns: ColumnDef<Data>[] = [
   {
-    id: "country",
-    header: "Country",
+    id: 'country',
+    header: 'Country',
   },
   {
-    id: "sales",
-    header: "Sales",
+    id: 'sales',
+    header: 'Sales',
     cell: SalesCell,
     meta: {
       isNumeric: true,
@@ -54,15 +54,15 @@ const columns: ColumnDef<Data>[] = [
     size: 100,
   },
   {
-    id: "total",
-    header: "Total",
+    id: 'total',
+    header: 'Total',
     cell: CurrencyCell,
     meta: {
       isNumeric: true,
     },
     size: 100,
   },
-];
+]
 
 export const SalesByCountry = ({ data = [] }: { data: Data[] }) => {
   return (
@@ -74,5 +74,5 @@ export const SalesByCountry = ({ data = [] }: { data: Data[] }) => {
         stickyHeader={false}
       />
     </MetricsCard>
-  );
-};
+  )
+}

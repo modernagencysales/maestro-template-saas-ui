@@ -2,19 +2,12 @@ import { describe, expect, it } from "vitest";
 
 import config from "../../playwright.config";
 
-describe("golden authority web servers", () => {
-  it("allows a cold generated authority to finish before Playwright times out", () => {
-    if (!Array.isArray(config.webServer))
-      throw new Error("Expected web servers");
+describe("starter route Playwright server", () => {
+  it("starts only the checked-in template app", () => {
+    if (Array.isArray(config.webServer) || !config.webServer)
+      throw new Error("Expected one web server");
 
-    const reference = config.webServer.find((server) =>
-      server.command.includes(" reference "),
-    );
-    const generated = config.webServer.find((server) =>
-      server.command.includes(" generated "),
-    );
-
-    expect(reference?.timeout).toBe(120_000);
-    expect(generated?.timeout).toBe(180_000);
+    expect(config.webServer.command).toContain("apps/web dev");
+    expect(config.webServer.reuseExistingServer).toBe(true);
   });
 });

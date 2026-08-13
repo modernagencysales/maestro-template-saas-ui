@@ -1,11 +1,18 @@
-"use client";
+'use client'
 
-import { useGoldenAdapter } from "../../golden/adapters";
+import { api } from '#lib/trpc/react'
 
-import { useWorkspaceSlug } from "./use-workspace-slug";
+import { useWorkspaceSlug } from './use-workspace-slug'
 
 export const useCurrentWorkspace = () => {
-  useWorkspaceSlug();
-  const { currentWorkspace } = useGoldenAdapter();
-  return [currentWorkspace] as const;
-};
+  const slug = useWorkspaceSlug()
+
+  return api.workspaces.bySlug.useSuspenseQuery(
+    { slug },
+    {
+      retry(failureCount, error) {
+        return failureCount < 3 && error.data?.httpStatus !== 404
+      },
+    },
+  )
+}

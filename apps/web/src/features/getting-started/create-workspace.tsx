@@ -1,25 +1,21 @@
-import { Icon, Spinner, Text, useStepsContext } from "@chakra-ui/react";
-import { useDebouncedCallback, useSessionStorageValue } from "@react-hookz/web";
-import { toast } from "@saas-ui/react";
-import { LuCheck, LuCircleX } from "react-icons/lu";
-import slug from "slug";
+import { Icon, Spinner, Text, useStepsContext } from '@chakra-ui/react'
+import { useDebouncedCallback, useSessionStorageValue } from '@react-hookz/web'
+import { toast } from '@saas-ui/react'
+import { LuCheck, LuCircleX } from 'react-icons/lu'
+import slug from 'slug'
 
-import { Form, useAppForm } from "@workspace/ui/form";
+import { Form, useAppForm } from '@workspace/ui/form'
 
-import { getBaseUrl } from "#features/common/util/get-base-url";
-import { api } from "#lib/trpc/react";
+import { getBaseUrl } from '#features/common/util/get-base-url'
+import { api } from '#lib/trpc/react'
 
-import { OnboardingStep } from "./onboarding-step";
-import { workspaceSchema } from "./schema/workspace.schema";
+import { OnboardingStep } from './onboarding-step'
+import { workspaceSchema } from './schema/workspace.schema'
 
 interface SlugValidationState {
-  isValidSlug: boolean;
-  isPending: boolean;
-  isAvailable?: boolean;
-}
-
-interface SlugAvailabilityResult {
-  available: boolean;
+  isValidSlug: boolean
+  isPending: boolean
+  isAvailable?: boolean
 }
 
 function SlugStatusIndicator({
@@ -28,51 +24,51 @@ function SlugStatusIndicator({
   isAvailable,
 }: SlugValidationState) {
   if (isAvailable === undefined) {
-    return null;
+    return null
   }
 
   if (!isValidSlug || isAvailable === false) {
-    return <Icon as={LuCircleX} color="red.500" />;
+    return <Icon as={LuCircleX} color="red.500" />
   }
 
   if (isPending) {
-    return <Spinner size="xs" />;
+    return <Spinner size="xs" />
   }
 
   if (isAvailable) {
-    return <Icon as={LuCheck} color="green.500" />;
+    return <Icon as={LuCheck} color="green.500" />
   }
 
-  return null;
+  return null
 }
 
 export function CreateWorkspaceStep() {
-  const stepper = useStepsContext();
+  const stepper = useStepsContext()
 
-  const workspace = useSessionStorageValue("getting-started.workspace");
+  const workspace = useSessionStorageValue('getting-started.workspace')
 
-  const utils = api.useUtils();
+  const utils = api.useUtils()
 
   const { mutateAsync } = api.workspaces.create.useMutation({
     onSuccess: () => utils.auth.me.invalidate(),
-  });
+  })
 
   const setSlugError = (message: string | undefined) => {
-    form.setFieldMeta("slug", (prev) => ({
+    form.setFieldMeta('slug', (prev) => ({
       ...prev,
       errorMap: { ...prev.errorMap, onServer: message },
-    }));
-  };
+    }))
+  }
 
   const slugAvailable = api.workspaces.slugAvailable.useMutation({
-    onSettled: (data: SlugAvailabilityResult | undefined) => {
+    onSettled: (data) => {
       setSlugError(
-        data?.available ? undefined : "This workspace URL is already taken.",
-      );
+        data?.available ? undefined : 'This workspace URL is already taken.',
+      )
     },
-  });
+  })
 
-  const checkSlug = useDebouncedCallback(slugAvailable.mutate, [], 500);
+  const checkSlug = useDebouncedCallback(slugAvailable.mutate, [], 500)
 
   const form = useAppForm({
     validators: {
@@ -80,47 +76,44 @@ export function CreateWorkspaceStep() {
       onSubmit: workspaceSchema,
     },
     defaultValues: {
-      name: "",
-      slug: "",
+      name: '',
+      slug: '',
     },
     onSubmit: async ({ value }) => {
       try {
-        const result = await mutateAsync({
-          name: value.name,
-          slug: value.slug,
-        });
+        const result = await mutateAsync({ name: value.name, slug: value.slug })
         if (result?.slug) {
-          workspace.set(result.slug);
-          stepper.goToNextStep();
+          workspace.set(result.slug)
+          stepper.goToNextStep()
         }
-      } catch (error: unknown) {
+      } catch (error: any) {
         toast.error({
-          title: "Failed to create workspace",
-          description: error instanceof Error ? error.message : String(error),
-        });
+          title: 'Failed to create workspace',
+          description: error.message,
+        })
       }
     },
-  });
+  })
 
   function handleSlugChange(value: string) {
-    const slugValue = slug(value);
-    form.setFieldValue("slug", slugValue);
+    const slugValue = slug(value)
+    form.setFieldValue('slug', slugValue)
 
     if (!workspaceSchema.shape.slug.safeParse(slugValue).success) {
-      slugAvailable.reset();
-      return;
+      slugAvailable.reset()
+      return
     }
 
-    checkSlug({ slug: slugValue });
+    checkSlug({ slug: slugValue })
   }
 
   const slugValidationState: SlugValidationState = {
     isValidSlug: workspaceSchema.shape.slug.safeParse(
-      form.getFieldValue("slug"),
+      form.getFieldValue('slug'),
     ).success,
     isPending: slugAvailable.isPending,
     isAvailable: slugAvailable.data?.available,
-  };
+  }
 
   return (
     <Form form={form}>
@@ -160,5 +153,5 @@ export function CreateWorkspaceStep() {
         </form.Layout>
       </OnboardingStep>
     </Form>
-  );
+  )
 }

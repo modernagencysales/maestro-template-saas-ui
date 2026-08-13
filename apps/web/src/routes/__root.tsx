@@ -1,103 +1,106 @@
-import { ConvexProvider, type ConvexReactClient } from "convex/react";
+import { withEmotionCache } from '@emotion/react'
+import '@fontsource-variable/inter'
+import { QueryClient } from '@tanstack/react-query'
+import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import {
-  createRootRouteWithContext,
   HeadContent,
   Outlet,
   Scripts,
-  useRouterState,
-} from "@tanstack/react-router";
-import { AuthKitProvider } from "@workos/authkit-tanstack-react-start/client";
-import type { ConvexQueryClient } from "@convex-dev/react-query";
-import type { QueryClient } from "@tanstack/react-query";
-import type { ReactNode } from "react";
-import { AppProvider } from "../features/common/providers/app-provider";
-import { GoldenAdapterProvider } from "../features/golden/adapters";
-import {
-  createBrowserWorkspaceStorage,
-  WorkspaceProvider,
-} from "../providers/workspace";
-import { createFakeWorkspaceOperations } from "../providers/workspace-operations";
-import { PostHogWebProvider } from "../providers/posthog";
-import { CookieConsentBoundary } from "../providers/cookie-consent";
-import { WebRouteUxBoundary } from "../navigation/route-ux-boundary";
-import { buildTemplateRouteHead } from "../adapters/route-head";
-import appCssUrl from "../index.css?url";
-import xyflowCssUrl from "@xyflow/react/dist/style.css?url";
+  createRootRouteWithContext,
+} from '@tanstack/react-router'
+import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
+import type { createTRPCQueryUtils } from '@trpc/react-query'
 
-export type RouterContext = {
-  readonly queryClient: QueryClient;
-  readonly convexClient: ConvexReactClient;
-  readonly convexQueryClient: ConvexQueryClient;
-};
+import type { AppRouter } from '@workspace/api'
+import { I18nProvider } from '@workspace/i18n'
+import { ModalsProvider } from '@workspace/ui/modals'
 
-export const Route = createRootRouteWithContext<RouterContext>()({
-  head: () =>
-    buildTemplateRouteHead({
-      stylesheets: [
-        { rel: "stylesheet", href: xyflowCssUrl },
-        { rel: "stylesheet", href: appCssUrl },
-      ],
-    }),
-  component: RootComponent,
-});
+import { seo } from '#utils/seo.ts'
 
-const fakeInitialAuth = { user: null } as const;
+import { Provider } from '../provider.tsx'
 
-function ConvexProviderWithAuth({
-  children,
-  client,
-}: {
-  readonly children: ReactNode;
-  readonly client: ConvexReactClient;
-}) {
-  return <ConvexProvider client={client}>{children}</ConvexProvider>;
-}
+export const Route = createRootRouteWithContext<{
+  queryClient: QueryClient
+  trpc: ReturnType<typeof createTRPCQueryUtils<AppRouter>>
+}>()({
+  head: () => ({
+    meta: [
+      {
+        charSet: 'utf-8',
+      },
+      {
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1',
+      },
+      {
+        rel: 'icon',
+        href: '/favicon.ico',
+      },
+      ...seo(),
+    ],
+  }),
+  component: () => {
+    return (
+      <RootDocument>
+        <Outlet />
+      </RootDocument>
+    )
+  },
+})
 
-function RootComponent() {
-  const { convexClient, queryClient } = Route.useRouteContext();
-  const location = useRouterState({ select: (state) => state.location });
+const RootDocument = withEmotionCache(BaseRootDocument)
 
+function BaseRootDocument(props: { children: React.ReactNode }) {
   return (
-    <AuthKitProvider initialAuth={fakeInitialAuth}>
-      <ConvexProviderWithAuth client={convexClient}>
-        <WorkspaceProvider
-          operations={createFakeWorkspaceOperations()}
-          storage={createBrowserWorkspaceStorage()}
-        >
-          <CookieConsentBoundary>
-            {(analyticsConsent) => (
-              <PostHogWebProvider analyticsConsent={analyticsConsent}>
-                <RootDocument>
-                  <GoldenAdapterProvider>
-                    <AppProvider queryClient={queryClient}>
-                      <WebRouteUxBoundary
-                        href={location.href}
-                        pathname={location.pathname}
-                      >
-                        <Outlet />
-                      </WebRouteUxBoundary>
-                    </AppProvider>
-                  </GoldenAdapterProvider>
-                </RootDocument>
-              </PostHogWebProvider>
-            )}
-          </CookieConsentBoundary>
-        </WorkspaceProvider>
-      </ConvexProviderWithAuth>
-    </AuthKitProvider>
-  );
-}
-
-function RootDocument({ children }: { readonly children: ReactNode }) {
-  return (
-    <html lang="en">
+    <html suppressHydrationWarning lang="en">
       <head>
         <HeadContent />
       </head>
       <body>
-        {children}
+        <Provider>
+          <I18nProvider locale="en" messages={{}}>
+            <ModalsProvider>{props.children}</ModalsProvider>
+          </I18nProvider>
+
+          <ReactQueryDevtools buttonPosition="bottom-right" />
+          <TanStackRouterDevtools position="bottom-right" />
+        </Provider>
+
+        <div id="app-loader">
+          <img src="/img/logo-icon.svg" alt="logo" width="24" height="24" />
+        </div>
+        <style>
+          {`body {
+            padding: 0;
+          }
+
+          #app-loader {
+            position: absolute;
+            inset: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100dvh;
+            transition-property: opacity;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            transition-duration: 250ms;
+            opacity: 1;
+            background-color: oklch(1 0 0);
+            pointer-events: none;
+            z-index: 9999;
+          }
+
+          .dark #app-loader {
+            background-color: oklch(0.05 0.030 261.692);
+          }
+
+          .loaded #app-loader {
+            opacity: 0;
+          }`}
+        </style>
+
         <Scripts />
       </body>
     </html>
-  );
+  )
 }

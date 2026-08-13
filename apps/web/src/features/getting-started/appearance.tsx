@@ -6,19 +6,19 @@ import {
   StackProps,
   Text,
   useStepsContext,
-} from "@chakra-ui/react";
+} from '@chakra-ui/react'
 
-import { Form, useAppForm } from "@workspace/ui/form";
+import { Form, useAppForm } from '@workspace/ui/form'
 
-import { type ColorMode, useColorMode } from "#components/color-mode";
+import { type ColorMode, useColorMode } from '#components/color-mode.tsx'
 
-import { OnboardingStep } from "./onboarding-step";
-import { appearanceSchema } from "./schema/appearance.schema";
+import { OnboardingStep } from './onboarding-step'
+import { appearanceSchema } from './schema/appearance.schema'
 
-interface ThemeOptionProps extends Omit<StackProps, "onSelect"> {
-  mode: ColorMode;
-  isSelected: boolean;
-  onSelect: (mode: ColorMode) => void;
+interface ThemeOptionProps extends Omit<StackProps, 'onSelect'> {
+  mode: ColorMode
+  isSelected: boolean
+  onSelect: (mode: ColorMode) => void
 }
 
 function ThemeOption({
@@ -34,7 +34,7 @@ function ThemeOption({
       role="radio"
       aria-checked={isSelected}
       cursor="pointer"
-      _hover={{ bg: "bg.muted" }}
+      _hover={{ bg: 'bg.muted' }}
       onClick={() => onSelect(mode)}
       {...stackProps}
     >
@@ -46,9 +46,9 @@ function ThemeOption({
         overflow="hidden"
         borderWidth="1px"
         bg="bg"
-        data-selected={isSelected ? "" : undefined}
+        data-selected={isSelected ? '' : undefined}
         _selected={{
-          borderColor: "accent.solid",
+          borderColor: 'accent.solid',
         }}
       >
         <Image
@@ -61,12 +61,12 @@ function ThemeOption({
         {mode}
       </Text>
     </Stack>
-  );
+  )
 }
 
 export function AppearanceStep() {
-  const stepper = useStepsContext();
-  const { colorMode, setColorMode } = useColorMode();
+  const stepper = useStepsContext()
+  const { colorMode, setColorMode } = useColorMode()
 
   const form = useAppForm({
     validators: {
@@ -74,9 +74,9 @@ export function AppearanceStep() {
     },
     defaultValues: {},
     onSubmit: () => {
-      stepper.goToNextStep();
+      stepper.goToNextStep()
     },
-  });
+  })
 
   return (
     <Form form={form}>
@@ -89,16 +89,16 @@ export function AppearanceStep() {
         <Flex m="-6" role="radiogroup" aria-label="Select colour theme">
           <ThemeOption
             mode="light"
-            isSelected={colorMode === "light"}
+            isSelected={colorMode === 'light'}
             onSelect={setColorMode}
           />
           <ThemeOption
             mode="dark"
-            isSelected={colorMode === "dark"}
+            isSelected={colorMode === 'dark'}
             onSelect={setColorMode}
           />
         </Flex>
       </OnboardingStep>
     </Form>
-  );
+  )
 }

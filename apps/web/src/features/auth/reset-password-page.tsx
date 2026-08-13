@@ -1,55 +1,54 @@
-"use client";
+'use client'
 
-import { useAuth } from "@saas-ui/auth-provider";
-import { Container, Stack, toast } from "@saas-ui/react";
-import { useMutation } from "@tanstack/react-query";
-import { useNavigate, useSearch } from "@tanstack/react-router";
+import { useAuth } from '@saas-ui/auth-provider'
+import { Container, Stack, toast } from '@saas-ui/react'
+import { useMutation } from '@tanstack/react-query'
+import { useNavigate, useSearch } from '@tanstack/react-router'
 
-import { Form, useAppForm } from "@workspace/ui/form";
+import { Form, useAppForm } from '@workspace/ui/form'
 
-import { Link } from "#components/link";
+import { Link } from '#components/link'
 
-import { AuthCard } from "./components/auth-card";
+import { AuthCard } from './components/auth-card'
 import {
   ResetPasswordFormInput,
   resetPasswordSchema,
-} from "./schema/reset-password.schema";
+} from './schema/reset-password.schema'
 
 export const ResetPasswordPage = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
-  const auth = useAuth();
+  const auth = useAuth()
   const search = useSearch({
-    from: "/_auth/reset-password",
-  });
+    from: '/_auth/reset-password',
+  })
 
   const mutation = useMutation({
     mutationFn: (values: ResetPasswordFormInput) => {
       return auth.updatePassword({
         password: values.newPassword,
         token: search.token,
-      });
+      })
     },
     onSuccess: () => {
       toast.success({
-        title: "Password updated",
-        description: "You can now log in with your new password",
-      });
+        title: 'Password updated',
+        description: 'You can now log in with your new password',
+      })
 
       navigate({
-        to: "/login",
-        search: { redirectTo: undefined },
-      });
+        to: '/login',
+      })
     },
     onError: (error) => {
       toast.error({
-        title: "Could not update your password",
+        title: 'Could not update your password',
         description:
           error.message ??
-          "Please try again or contact us if the problem persists.",
-      });
+          'Please try again or contact us if the problem persists.',
+      })
     },
-  });
+  })
 
   const form = useAppForm({
     validators: {
@@ -57,13 +56,13 @@ export const ResetPasswordPage = () => {
       onSubmit: resetPasswordSchema,
     },
     defaultValues: {
-      newPassword: "",
-      confirmPassword: "",
+      newPassword: '',
+      confirmPassword: '',
     },
     onSubmit: async ({ value }: { value: ResetPasswordFormInput }) => {
-      await mutation.mutateAsync(value);
+      await mutation.mutateAsync(value)
     },
-  });
+  })
 
   return (
     <Stack flex="1" direction="row" minH="100vh" bg="bg.muted">
@@ -78,7 +77,7 @@ export const ResetPasswordPage = () => {
         <Container maxW="sm" py="8">
           <AuthCard
             title="Choose a new password"
-            footer={<Link to="/login" search={{ redirectTo: undefined }}>Back to log in</Link>}
+            footer={<Link to="/login">Back to log in</Link>}
           >
             <Form form={form}>
               <form.AppField name="newPassword">
@@ -99,5 +98,5 @@ export const ResetPasswordPage = () => {
         </Container>
       </Stack>
     </Stack>
-  );
-};
+  )
+}

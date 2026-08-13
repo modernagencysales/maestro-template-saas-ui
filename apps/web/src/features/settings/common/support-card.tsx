@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react'
 
 import {
   Card,
@@ -7,23 +7,24 @@ import {
   LinkOverlayProps,
   Stack,
   Text,
-} from "@chakra-ui/react";
-import { IconBadge } from "@saas-ui/react";
+} from '@chakra-ui/react'
+import { IconBadge } from '@saas-ui/react'
 
 interface SupportCardProps
-  extends Omit<Card.RootProps, "title">, Pick<LinkOverlayProps, "href"> {
-  icon: React.ReactNode;
-  title: React.ReactNode;
-  description: React.ReactNode;
+  extends Omit<Card.RootProps, 'title'>,
+    Pick<LinkOverlayProps, 'href'> {
+  icon: React.ReactNode
+  title: React.ReactNode
+  description: React.ReactNode
 }
 
 export const SupportCard: React.FC<SupportCardProps> = (props) => {
-  const { title, description, icon, href } = props;
+  const { title, description, icon, href } = props
   return (
     <Card.Root
       variant="outline"
       size="sm"
-      _hover={{ borderColor: "border.emphasized" }}
+      _hover={{ borderColor: 'border.emphasized' }}
       asChild
     >
       <LinkBox>
@@ -47,5 +48,5 @@ export const SupportCard: React.FC<SupportCardProps> = (props) => {
         </Card.Body>
       </LinkBox>
     </Card.Root>
-  );
-};
+  )
+}

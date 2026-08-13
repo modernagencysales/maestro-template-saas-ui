@@ -1,16 +1,16 @@
-import { Box, Card, Heading, Icon, Stack, Text } from "@chakra-ui/react";
+import { Box, Card, Heading, Icon, Stack, Text } from '@chakra-ui/react'
 
-interface SettingsCardProps extends Omit<Card.RootProps, "title"> {
-  icon?: React.ReactNode;
-  title?: React.ReactNode;
-  description?: React.ReactNode;
-  avatar?: React.ReactNode;
-  footer?: React.ReactNode;
+interface SettingsCardProps extends Omit<Card.RootProps, 'title'> {
+  icon?: React.ReactNode
+  title?: React.ReactNode
+  description?: React.ReactNode
+  avatar?: React.ReactNode
+  footer?: React.ReactNode
 }
 
 export const SettingsCard: React.FC<SettingsCardProps> = (props) => {
-  const { title, description, footer, avatar, icon, children, ...rest } = props;
-  const showHeader = title || description || avatar || icon;
+  const { title, description, footer, avatar, icon, children, ...rest } = props
+  const showHeader = title || description || avatar || icon
   return (
     <Card.Root size="sm" {...rest}>
       {showHeader ? (
@@ -32,5 +32,5 @@ export const SettingsCard: React.FC<SettingsCardProps> = (props) => {
         {footer}
       </Card.Footer>
     </Card.Root>
-  );
-};
+  )
+}

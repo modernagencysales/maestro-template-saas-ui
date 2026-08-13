@@ -1,7 +1,7 @@
-"use client";
+'use client'
 
-import { AppSidebar } from "../components/app-sidebar";
-import { AppLayout, AppLayoutProps } from "./app-layout";
+import { AppSidebar } from '../components/app-sidebar'
+import { AppLayout, AppLayoutProps } from './app-layout'
 
 /**
  * Default dashboard layout.
@@ -14,5 +14,5 @@ export const DashboardLayout: React.FC<AppLayoutProps> = ({
     <AppLayout sidebar={<AppSidebar />} {...rest}>
       {children}
     </AppLayout>
-  );
-};
+  )
+}

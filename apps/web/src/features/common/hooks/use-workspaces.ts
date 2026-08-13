@@ -1,14 +1,18 @@
-import { useCurrentUser } from "./use-current-user";
-import { useGoldenAdapter } from "../../golden/adapters";
+import { useCurrentUser } from './use-current-user'
 
 /**
  * Get all workspaces of the current user
  */
 export const useWorkspaces = () => {
-  useCurrentUser();
-  const { workspaces } = useGoldenAdapter();
-  return workspaces.map((workspace) => ({
-    ...workspace,
-    href: `/${workspace.slug}`,
-  }));
-};
+  const [currentUser] = useCurrentUser()
+
+  return (
+    currentUser?.workspaces?.map((workspace) => ({
+      id: workspace.id,
+      slug: workspace.slug,
+      label: workspace.name || workspace.id,
+      logo: workspace.logo || undefined,
+      href: `/${workspace.slug}`,
+    })) || []
+  )
+}

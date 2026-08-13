@@ -5,33 +5,34 @@ import {
   type AuthProviderProps,
 } from "@saas-ui/auth-provider";
 
-import { authClient } from "@workspace/better-auth/client";
+import { demoUser } from "#lib/backend-fixtures";
 
-import { goldenFixtures } from "#features/golden/fixtures";
+const session = { id: "parity-session", userId: demoUser.id };
+const storageKey = "maestro-starter-demo-session";
 
-export const client = authClient;
+const isSignedIn = () =>
+  typeof window !== "undefined" && window.localStorage.getItem(storageKey) === "1";
 
-export function isGoldenEvidenceUrl(value: string) {
-  const url = new URL(value);
-  const loopback = new Set(["localhost", "127.0.0.1", "::1"]);
-  const authority = url.searchParams.get("goldenAuthority");
-  return (
-    (loopback.has(url.hostname) || url.hostname === "[::1]") &&
-    (authority === "reference" || authority === "generated")
-  );
-}
+export const client = {
+  getSession: async () => ({
+    data: isSignedIn() ? { session, user: demoUser } : null,
+  }),
+};
 
 export const authService: Pick<
   AuthProviderProps,
   "onLoadUser" | "onLogin" | "onSignup" | "onLogout"
 > = {
-  onLoadUser: async () =>
-    typeof window !== "undefined" && isGoldenEvidenceUrl(window.location.href)
-      ? goldenFixtures.currentUser
-      : null,
-  onLogin: async () => null,
-  onSignup: async () => null,
-  onLogout: async () => undefined,
+  onLoadUser: async () => (isSignedIn() ? demoUser : null),
+  onLogin: async () => {
+    window.localStorage.setItem(storageKey, "1");
+    return demoUser;
+  },
+  onSignup: async () => {
+    window.localStorage.setItem(storageKey, "1");
+    return demoUser;
+  },
+  onLogout: async () => window.localStorage.removeItem(storageKey),
 };
 
 export function AuthProvider(props: { children: React.ReactNode }) {

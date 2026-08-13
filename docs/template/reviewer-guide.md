@@ -193,9 +193,7 @@ If `host-test-slot` is unavailable, run `pnpm verify` directly.
 ```bash
 pnpm build
 pnpm smoke:web-static
-pnpm smoke:golden:browser
-pnpm smoke:golden:a11y
-pnpm smoke:golden:visual
+pnpm smoke:starter-route-parity
 ```
 
 The golden smokes verify the pinned reference and freshly generated target

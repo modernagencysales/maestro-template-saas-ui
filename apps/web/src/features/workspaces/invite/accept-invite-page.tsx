@@ -1,50 +1,53 @@
-"use client";
+'use client'
 
-import { Container, Heading, Stack } from "@chakra-ui/react";
-import { Button, EmptyState, LoadingOverlay, toast } from "@saas-ui/react";
-import { useNavigate } from "@tanstack/react-router";
+import { Container, Heading, Stack } from '@chakra-ui/react'
+import { Button, EmptyState, LoadingOverlay, toast } from '@saas-ui/react'
+import { useNavigate } from '@tanstack/react-router'
 
-import { LogoIcon } from "@workspace/ui/logo";
+import { LogoIcon } from '@workspace/ui/logo'
 
-import { api } from "#lib/trpc/react";
+import { api } from '#lib/trpc/react'
 
 export function AcceptInvitePage({ params }: { params: { token: string } }) {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const { data, isLoading, error } = api.workspaceMembers.invitation.useQuery({
     token: params.token,
-  });
+  })
 
   const mutation = api.workspaceMembers.acceptInvitation.useMutation({
     onSuccess() {
       if (!data?.workspace.slug) {
-        return;
+        return
       }
 
       toast.success({
-        title: "Invitation accepted",
-        description: "You have successfully joined the workspace.",
-      });
+        title: 'Invitation accepted',
+        description: 'You have successfully joined the workspace.',
+      })
 
       navigate({
-        to: "/",
-      });
+        to: '/$workspace',
+        params: {
+          workspace: data.workspace.slug,
+        },
+      })
     },
-    onError(error: { message: string }) {
-      console.error(error);
+    onError(error) {
+      console.error(error)
       toast.error({
-        title: "Failed to accept invitation",
+        title: 'Failed to accept invitation',
         description: error.message,
-      });
+      })
     },
-  });
+  })
 
   if (isLoading) {
     return (
       <LoadingOverlay.Root>
         <LoadingOverlay.Spinner />
       </LoadingOverlay.Root>
-    );
+    )
   }
 
   if (error || !data) {
@@ -53,7 +56,7 @@ export function AcceptInvitePage({ params }: { params: { token: string } }) {
         title="Token invalid or expired"
         description="Please ask the person who invited you to send a new invitation."
       />
-    );
+    )
   }
 
   return (
@@ -71,12 +74,12 @@ export function AcceptInvitePage({ params }: { params: { token: string } }) {
           <Heading as="h2" size="lg" mb="6">
             {data?.invitedBy ? (
               <>
-                {data.invitedBy} invited you to join the {data?.workspace.name}{" "}
+                {data.invitedBy} invited you to join the {data?.workspace.name}{' '}
                 workspace
               </>
             ) : (
               <>
-                You have been invited to join the {data?.workspace.name}{" "}
+                You have been invited to join the {data?.workspace.name}{' '}
                 workspace
               </>
             )}
@@ -89,7 +92,7 @@ export function AcceptInvitePage({ params }: { params: { token: string } }) {
             onClick={() => {
               mutation.mutate({
                 token: params.token,
-              });
+              })
             }}
           >
             Accept invitation
@@ -97,5 +100,5 @@ export function AcceptInvitePage({ params }: { params: { token: string } }) {
         </Container>
       </Stack>
     </Stack>
-  );
+  )
 }

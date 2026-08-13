@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { readFileSync, existsSync } from "node:fs";
 import { dirname, join, relative, resolve, sep } from "node:path";
 
@@ -169,6 +170,18 @@ export const readRequiredStarterReceipt = (
         continue;
       }
       files.push(file as StarterReceiptEntry);
+    }
+    for (const { destination, sha256 } of files) {
+      const destinationPath = resolve(root, destination);
+      if (
+        existsSync(destinationPath) &&
+        createHash("sha256")
+          .update(readFileSync(destinationPath))
+          .digest("hex") !== sha256
+      )
+        errors.push(
+          `starter receipt destination hash mismatch: ${destination}`,
+        );
     }
     const destinations = new Set(files.map(({ destination }) => destination));
     for (const destination of starterDestinations) {

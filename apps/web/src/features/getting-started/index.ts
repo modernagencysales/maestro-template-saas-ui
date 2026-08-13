@@ -1,1 +1,1 @@
-export * from "./getting-started-page";
+export * from './getting-started-page'

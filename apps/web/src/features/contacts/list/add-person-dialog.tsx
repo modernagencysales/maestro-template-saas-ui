@@ -1,70 +1,71 @@
-import { Button, Dialog, toast } from "@saas-ui/react";
-import { useNavigate } from "@tanstack/react-router";
-import { z } from "zod";
+import { Button, Dialog, toast } from '@saas-ui/react'
+import { useNavigate } from '@tanstack/react-router'
+import { z } from 'zod'
 
-import { Form, useAppForm } from "@workspace/ui/form";
+import { Form, useAppForm } from '@workspace/ui/form'
 
-import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
-import { api } from "#lib/trpc/react";
+import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace'
+import { api } from '#lib/trpc/react'
 
 const schema = z.object({
   name: z
     .string()
-    .min(2, "Please enter a name")
-    .max(255, "Name can be at most 255 characters long")
-    .describe("Full name"),
-  email: z.string().email().describe("Email"),
-});
+    .min(2, 'Please enter a name')
+    .max(255, 'Name can be at most 255 characters long')
+    .describe('Full name'),
+  email: z.string().email().describe('Email'),
+})
 
 export interface AddPersonDialogProps extends Omit<
   Dialog.RootProps,
-  "children"
+  'children'
 > {
-  type: "lead" | "customer";
+  type: 'lead' | 'customer'
 }
 
 export function AddPersonDialog(props: AddPersonDialogProps) {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
-  const [workspace] = useCurrentWorkspace();
+  const [workspace] = useCurrentWorkspace()
 
-  const utils = api.useUtils();
+  const utils = api.useUtils()
 
   const createContactMutation = api.contacts.create.useMutation({
     onSettled: () => {
-      utils.contacts.listByType.invalidate({ workspaceId: workspace.id });
+      utils.contacts.listByType.invalidate({ workspaceId: workspace.id })
     },
-    onSuccess: (data: { id: string }) => {
+    onSuccess: (data) => {
       toast.success({
-        title: "Person added",
+        title: 'Person added',
         action: {
-          label: "View person",
+          label: 'View person',
           onClick: () => {
             navigate({
-              to: "/contacts/view/$id",
+              to: '/$workspace/contacts/view/$id',
               params: {
+                workspace: workspace.id,
                 id: data!.id,
               },
-            });
+            })
           },
         },
-      });
+      })
     },
-    onError: (error: Error) => {
-      console.error(error);
+    onError: (error) => {
+      console.error(error)
       toast.error({
-        title: "Failed to add person",
-      });
+        title: 'Failed to add person',
+      })
     },
-  });
+  })
 
   const form = useAppForm({
     validators: {
       onSubmit: schema,
     },
     defaultValues: {
-      name: "",
-      email: "",
+      name: '',
+      email: '',
     },
     onSubmit: async ({ value }) => {
       await createContactMutation.mutateAsync({
@@ -72,9 +73,9 @@ export function AddPersonDialog(props: AddPersonDialogProps) {
         workspaceId: workspace.id,
         type: props.type,
         email: value.email,
-      });
+      })
     },
-  });
+  })
 
   return (
     <Dialog.Root {...props}>
@@ -109,5 +110,5 @@ export function AddPersonDialog(props: AddPersonDialogProps) {
         </Form>
       </Dialog.Content>
     </Dialog.Root>
-  );
+  )
 }

@@ -13,8 +13,7 @@
   criteria.
 - `docs/template/saas-ui-frontend-authority.md`: the single pinned upstream
   frontend source and adaptation boundary.
-- `docs/template/saas-ui-golden-review.md`: paired reference/generated owner
-  review and accessibility evidence.
+- `docs/template/saas-ui-golden-review.md`: pinned Starter route-parity review.
 - `docs/template/knowledge-model.md`: source-backed Brain concepts, claims,
   citations, context packs, markdown codecs, and OKF export.
 - `docs/template/frontend-architecture.md`: shipped map from frontend primitives
@@ -106,9 +105,9 @@
 - `tooling/quality`: deterministic gates and AI gate wrappers.
 - `tooling/workflow`: headless operation projection from the generated Confect
   manifest, CLI/MCP/API metadata, OpenAPI generation, and workflow helpers.
-- `tooling/generators`: template init, quickstart, prototype, golden feature,
-  durable table, seed-demo, handoff, other add-* generators, doctor,
-  private-package import, and upgrade.
+- `tooling/generators`: template init, quickstart, prototype, durable table,
+  seed-demo, handoff, other add-* generators, doctor, private-package import,
+  and upgrade.
 - `tooling/evals`: prompt and source-grounding evaluation fixtures.
 - `tooling/release`: deploy, smoke, rollback, and backup/restore helpers.
 
@@ -124,35 +123,10 @@
 - `apps/web/src/routeTree.gen.ts`: generated route tree once TanStack routes
   land. Never edit directly.
 
-## Planned Routes
+## Frontend Routes
 
-- `/`: Home.
-- `/brain`: Brain pages, sources, context packs, evidence, and trust receipts.
-- `/workflows`: workflow builder, run kickoff, and run inspection.
-- `/capabilities`: capability catalog and runtime-authored definitions.
-- `/agents`: agent seats, tool grants, approvals, and conversations.
-- `/runs`: workflow and agent run history.
-- `/documents`: generated and reviewed documents.
-- `/documents/:documentId`: optional co-editing review surface for source-backed
-  markdown, version history, annotations, and agent suggestions.
-- `/sources`: source intake and upload state.
-- `/integrations`: provider health and configuration.
-- `/api`: API docs and key management.
-- `/onboarding`: first-run setup.
-- `/data-map`: retention, export, delete, and processor inventory.
-- `/data-lifecycle`: dry-run DSAR request review and retention posture backed by
-  the generated `ops.dataLifecycle` Confect surface when Convex is configured.
-- `/notifications`: fake-safe notification center, read-state reference UI, and
-  channel preferences backed by the generated `ops.notifications` Confect
-  surface when a fork wires live data into the route.
-- `/settings`: workspace, users, auth, and Notion settings.
-- `/billing`: package, entitlement, credits, checkout, and portal.
-- `/analytics`: product and workflow analytics.
-- `/health`: fake-safe operator health board with runtime checks and provider
-  readiness.
-- `/admin`: support, audit, data lifecycle, and operator tools.
-
-Every path listed in workspace navigation has a route file under
-`apps/web/src/routes`. Workspace routes render the Saas UI business shell or a
-Saas UI section page, with Confect-backed business behavior kept behind feature
-and adapter boundaries.
+The literal Starter hierarchy under `apps/web/src/routes/_app/` is the route
+authority. It owns workspace dashboard, contacts, inbox, search, getting
+started, and settings routes. Auth routes live under `routes/_auth/`, and API
+handlers under `routes/api/`. Product additions extend this tree; they do not
+restore the legacy `_workspace` or a second business shell/navigation system.

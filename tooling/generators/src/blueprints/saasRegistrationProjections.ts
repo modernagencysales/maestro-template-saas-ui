@@ -689,25 +689,6 @@ const customerAgentPackPackage = (): string => {
   return `${JSON.stringify(value, null, 2)}\n`;
 };
 
-const removeLockfileImporterDependency = (
-  value: string,
-  importerPath: string,
-  nextImporterPath: string,
-  dependency: string,
-): string => {
-  const startMarker = `  ${importerPath}:`;
-  const endMarker = `  ${nextImporterPath}:`;
-  const start = value.indexOf(startMarker);
-  const end = value.indexOf(endMarker);
-  if (start < 0 || end <= start)
-    throw new Error(
-      `Customer lockfile importer boundary is missing: ${importerPath} -> ${nextImporterPath}`,
-    );
-  const importer = value.slice(start, end);
-  const projected = replace(importer, dependency, "");
-  return `${value.slice(0, start)}${projected}${value.slice(end)}`;
-};
-
 const removeLockfileImporter = (
   value: string,
   importerPath: string,
@@ -744,10 +725,13 @@ const removeLockfileImporterDependencyByName = (
   const packages = value.indexOf("\npackages:", importerStart);
   const importerEnd =
     nextImporter === null ? packages : importerBodyStart + nextImporter.index;
-  const dependencyStart = value.indexOf(
-    `      "${dependency}":`,
-    importerStart,
-  );
+  const escapedDependency = dependency.replace(/[.*+?^${}()|[\]\\]/gu, "\\$&");
+  const dependencyMatch = new RegExp(
+    `^ {6}(?:'|")?${escapedDependency}(?:'|")?:$`,
+    "mu",
+  ).exec(value.slice(importerStart, importerEnd));
+  const dependencyStart =
+    dependencyMatch === null ? -1 : importerStart + dependencyMatch.index;
   if (
     importerStart < 0 ||
     importerEnd <= importerStart ||
@@ -771,16 +755,6 @@ const customerLockfile = (
   selection: SaasApplicationPatternSelection,
 ): string => {
   let value = source("pnpm-lock.yaml");
-  const appIdeaEvaluatorFromRoot =
-    '      "@maestro-template/app-idea-evaluator":\n        specifier: workspace:*\n        version: link:../../packages/app-idea-evaluator\n';
-  const appIdeaEvaluatorFromPackage =
-    '      "@maestro-template/app-idea-evaluator":\n        specifier: workspace:*\n        version: link:../app-idea-evaluator\n';
-  value = removeLockfileImporterDependency(
-    value,
-    "apps/web",
-    "packages/app-idea-evaluator",
-    appIdeaEvaluatorFromRoot,
-  );
   if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
     value = removeLockfileImporter(value, "tooling/workflow");
   if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
@@ -796,29 +770,25 @@ const customerLockfile = (
         importer,
         "@maestro-template/workflow-tooling",
       );
-  value = removeLockfileImporterDependency(
+  value = removeLockfileImporterDependencyByName(
     value,
     "packages/convex",
-    "packages/editor-core",
-    appIdeaEvaluatorFromPackage,
+    "@maestro-template/app-idea-evaluator",
   );
-  value = removeLockfileImporterDependency(
+  value = removeLockfileImporterDependencyByName(
     value,
     "tooling/generators",
-    "tooling/quality",
-    appIdeaEvaluatorFromRoot,
+    "@maestro-template/app-idea-evaluator",
   );
-  value = removeLockfileImporterDependency(
+  value = removeLockfileImporterDependencyByName(
     value,
     "apps/cli",
-    "apps/web",
-    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../../tooling/release\n',
+    "@maestro-template/release-tooling",
   );
-  value = removeLockfileImporterDependency(
+  value = removeLockfileImporterDependencyByName(
     value,
     "tooling/generators",
-    "tooling/quality",
-    '      "@maestro-template/release-tooling":\n        specifier: workspace:*\n        version: link:../release\n',
+    "@maestro-template/release-tooling",
   );
   if (
     value.includes("'@maestro-template/app-idea-evaluator':") ||
@@ -1248,43 +1218,8 @@ const confectDocs = (
   );
 };
 
-const routeTree = (current: boolean, recordsSelected: boolean): string => {
-  let value = current
-    ? currentGeneratorSource("blueprints/customer/routeTree.gen.ts.txt")
-    : releasedSource("apps/web/src/routeTree.gen.ts");
-  if (current) {
-    value = replace(
-      value,
-      "import { Route as IndexRouteImport } from './routes/index'",
-      "import { Route as IndexRouteImport } from './routes/index'\nimport { Route as DashboardRouteImport } from './routes/dashboard'",
-    );
-    value = replace(
-      value,
-      "const IndexRoute = IndexRouteImport.update({\n  id: '/',\n  path: '/',\n  getParentRoute: () => rootRouteImport,\n} as any)",
-      "const IndexRoute = IndexRouteImport.update({\n  id: '/',\n  path: '/',\n  getParentRoute: () => rootRouteImport,\n} as any)\nconst DashboardRoute = DashboardRouteImport.update({\n  id: '/dashboard',\n  path: '/dashboard',\n  getParentRoute: () => rootRouteImport,\n} as any)",
-    );
-    value = replaceAll(
-      value,
-      "  '/': typeof IndexRoute",
-      "  '/': typeof IndexRoute\n  '/dashboard': typeof DashboardRoute",
-    );
-    value = replaceAll(value, "    | '/'", "    | '/'\n    | '/dashboard'");
-    value = replace(
-      value,
-      "  IndexRoute: typeof IndexRoute",
-      "  IndexRoute: typeof IndexRoute\n  DashboardRoute: typeof DashboardRoute",
-    );
-    value = replace(
-      value,
-      "  interface FileRoutesByPath {\n    '/': {",
-      "  interface FileRoutesByPath {\n    '/dashboard': {\n      id: '/dashboard'\n      path: '/dashboard'\n      fullPath: '/dashboard'\n      preLoaderRoute: typeof DashboardRouteImport\n      parentRoute: typeof rootRouteImport\n    }\n    '/': {",
-    );
-    value = replace(
-      value,
-      "  IndexRoute: IndexRoute,",
-      "  IndexRoute: IndexRoute,\n  DashboardRoute: DashboardRoute,",
-    );
-  }
+const routeTree = (recordsSelected: boolean): string => {
+  let value = releasedSource("apps/web/src/routeTree.gen.ts");
   if (!recordsSelected) return value;
   value = replace(
     value,
@@ -1420,10 +1355,6 @@ export const buildSaasRegistrationProjections = (
             content: currentSource("scripts/configure-postmark.mts"),
           },
           {
-            path: "apps/web/src/bundle-policy.ts",
-            content: currentSource("apps/web/src/bundle-policy.ts"),
-          },
-          {
             path: "apps/web/scripts/check-client-bundle-budget.mjs",
             content: currentSource(
               "apps/web/scripts/check-client-bundle-budget.mjs",
@@ -1434,10 +1365,6 @@ export const buildSaasRegistrationProjections = (
             content: currentSource(
               "apps/web/scripts/check-client-bundle-budget.test.mjs",
             ),
-          },
-          {
-            path: "apps/web/src/bundle-policy.test.ts",
-            content: currentSource("apps/web/src/bundle-policy.test.ts"),
           },
           {
             path: "apps/web/vite.config.ts",
@@ -1770,22 +1697,6 @@ export const buildSaasRegistrationProjections = (
       : []),
     ...(current
       ? [
-          {
-            path: "apps/web/src/routes/index.tsx",
-            content: currentGeneratorSource(
-              "blueprints/customer/index-route.tsx.txt",
-            ),
-          },
-          {
-            path: "apps/web/src/providers/posthog.tsx",
-            content: currentGeneratorSource(
-              "blueprints/customer/posthog.tsx.txt",
-            ),
-          },
-        ]
-      : []),
-    ...(current
-      ? [
           "privacy/supportBundle.ts",
           "privacy/supportBundleCommand.ts",
           "privacy/nodeSupportBundleExporter.ts",
@@ -1855,10 +1766,14 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
-    {
-      path: "apps/web/src/routeTree.gen.ts",
-      content: routeTree(current, recordsSelected),
-    },
+    ...(!current
+      ? [
+          {
+            path: "apps/web/src/routeTree.gen.ts",
+            content: routeTree(recordsSelected),
+          },
+        ]
+      : []),
     ...(recordsSelected
       ? [
           {

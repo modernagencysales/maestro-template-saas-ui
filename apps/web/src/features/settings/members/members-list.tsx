@@ -1,4 +1,4 @@
-import * as React from "react";
+import * as React from 'react'
 
 import {
   Box,
@@ -8,8 +8,8 @@ import {
   Tag,
   Text,
   useDisclosure,
-} from "@chakra-ui/react";
-import { useSearchQuery } from "@saas-ui/hooks";
+} from '@chakra-ui/react'
+import { useSearchQuery } from '@saas-ui/hooks'
 import {
   Button,
   Dialog,
@@ -17,42 +17,41 @@ import {
   GridList,
   Menu,
   type PersonaPresence,
-} from "@saas-ui/react";
-import { LuEllipsis } from "react-icons/lu";
-import { z } from "zod";
+} from '@saas-ui/react'
+import { LuEllipsis } from 'react-icons/lu'
+import { z } from 'zod'
 
-import { type FieldOptions, Form, useAppForm } from "@workspace/ui/form";
+import { type FieldOptions, Form, useAppForm } from '@workspace/ui/form'
 import {
   InviteData,
   InviteDialog,
   defaultMemberRoles,
-} from "@workspace/ui/invite-dialog";
-import { useModals } from "@workspace/ui/modals";
-import { SearchInput } from "@workspace/ui/search-input";
+} from '@workspace/ui/invite-dialog'
+import { useModals } from '@workspace/ui/modals'
+import { SearchInput } from '@workspace/ui/search-input'
 
-import { UserAvatar } from "#components/user-avatar";
-import { SaasButton } from "#components/ui/saas-ui-compat";
+import { UserAvatar } from '#components/user-avatar'
 
 export interface Member {
-  id: string;
-  email: string;
-  name?: string;
-  status?: "invited" | "active" | "suspended";
-  roles?: string | string[];
-  presence?: PersonaPresence;
+  id: string
+  email: string
+  name?: string
+  status?: 'invited' | 'active' | 'suspended'
+  roles?: string | string[]
+  presence?: PersonaPresence
 }
 
 const Roles = ({ roles }: { roles?: string | string[] }) => {
   if (!roles || !roles.length) {
-    return null;
+    return null
   }
 
-  if (typeof roles === "string") {
+  if (typeof roles === 'string') {
     return (
       <Tag.Root colorPalette="gray" size="sm">
         <Tag.Label>{roles}</Tag.Label>
       </Tag.Root>
-    );
+    )
   }
 
   return (
@@ -63,15 +62,15 @@ const Roles = ({ roles }: { roles?: string | string[] }) => {
         </Tag.Root>
       ))}
     </>
-  );
-};
+  )
+}
 
 interface MemberListItemProps<M> {
-  member: M;
-  onRemove(member: M): void;
-  onResendInvite(member: M): void;
-  onCancelInvite(member: M): void;
-  onChangeRole(member: M): void;
+  member: M
+  onRemove(member: M): void
+  onResendInvite(member: M): void
+  onCancelInvite(member: M): void
+  onChangeRole(member: M): void
 }
 function MembersListItem<M extends Member = Member>({
   member,
@@ -80,9 +79,9 @@ function MembersListItem<M extends Member = Member>({
   onCancelInvite,
   onChangeRole,
 }: MemberListItemProps<M>) {
-  let actions;
+  let actions
 
-  const isInvite = member.status === "invited";
+  const isInvite = member.status === 'invited'
 
   if (isInvite) {
     actions = (
@@ -94,7 +93,7 @@ function MembersListItem<M extends Member = Member>({
           Cancel invitation
         </Menu.Item>
       </>
-    );
+    )
   } else {
     actions = (
       <>
@@ -105,14 +104,14 @@ function MembersListItem<M extends Member = Member>({
           Remove member
         </Menu.Item>
       </>
-    );
+    )
   }
 
   return (
     <GridList.Item
       py="4"
       borderBottomWidth="1px"
-      css={{ "&:last-of-type": { borderWidth: 0 } }}
+      css={{ '&:last-of-type': { borderWidth: 0 } }}
     >
       <GridList.Cell>
         <UserAvatar
@@ -153,30 +152,30 @@ function MembersListItem<M extends Member = Member>({
         </Box>
       </GridList.Cell>
     </GridList.Item>
-  );
+  )
 }
 
 export interface MembersListProps<TMember> extends Omit<
   Card.RootProps,
-  "children"
+  'children'
 > {
-  inviteLabel?: string;
-  searchLabel?: string;
-  noResults?: string;
-  members: Array<TMember>;
-  roles?: FieldOptions;
-  allowInvite?: boolean;
-  multiRoles?: boolean;
-  onRemove(member: TMember): void;
-  onInvite(data: InviteData): Promise<unknown>;
-  onCancelInvite(member: TMember): Promise<unknown>;
-  onUpdateRoles(member: TMember, roles: string[]): Promise<unknown>;
+  inviteLabel?: string
+  searchLabel?: string
+  noResults?: string
+  members: Array<TMember>
+  roles?: FieldOptions
+  allowInvite?: boolean
+  multiRoles?: boolean
+  onRemove(member: TMember): void
+  onInvite(data: InviteData): Promise<any>
+  onCancelInvite(member: TMember): Promise<any>
+  onUpdateRoles(member: TMember, roles: string[]): Promise<any>
 }
 
 export function MembersList<TMember extends Member = Member>({
-  inviteLabel = "Invite people",
-  searchLabel = "Filter by name or email",
-  noResults = "No people found",
+  inviteLabel = 'Invite people',
+  searchLabel = 'Filter by name or email',
+  noResults = 'No people found',
   members,
   roles = defaultMemberRoles,
   allowInvite = true,
@@ -187,26 +186,25 @@ export function MembersList<TMember extends Member = Member>({
   onUpdateRoles,
   ...cardProps
 }: MembersListProps<TMember>) {
-  const modals = useModals();
-  const invite = useDisclosure();
+  const modals = useModals()
+  const invite = useDisclosure()
 
   const { results, ...searchProps } = useSearchQuery<TMember>({
     items: members,
-    fields: ["name", "email"],
-  });
+    fields: ['name', 'email'],
+  })
 
   const onChangeRole = React.useCallback(
     (member: TMember) => {
-      modals.open({
-        component: UpdateRolesDialog,
-        onSubmit: async (roles: string[]) => {
-          onUpdateRoles?.(member, roles);
+      modals.open(UpdateRolesDialog, {
+        onSubmit: async (roles) => {
+          onUpdateRoles?.(member, roles)
         },
         multiRoles,
-      });
+      })
     },
     [modals],
-  );
+  )
 
   return (
     <Card.Root {...cardProps}>
@@ -218,7 +216,7 @@ export function MembersList<TMember extends Member = Member>({
           onChange={(e) => searchProps.setQuery(e.target.value)}
           mr="2"
         />
-        <SaasButton
+        <Button
           onClick={invite.onOpen}
           disabled={!allowInvite}
           colorPalette="accent"
@@ -227,7 +225,7 @@ export function MembersList<TMember extends Member = Member>({
           size="sm"
         >
           {inviteLabel}
-        </SaasButton>
+        </Button>
       </Card.Header>
       {results?.length ? (
         <GridList.Root py="0">
@@ -253,25 +251,25 @@ export function MembersList<TMember extends Member = Member>({
         open={invite.open}
         onOpenChange={(details) => {
           if (details.open) {
-            invite.onOpen();
+            invite.onOpen()
           } else {
-            invite.onClose();
+            invite.onClose()
           }
         }}
         roles={roles}
       />
     </Card.Root>
-  );
+  )
 }
 
 function UpdateRolesDialog(props: {
-  onSubmit: (roles: string[]) => Promise<unknown>;
-  multiRoles?: boolean;
-  open: boolean;
-  onOpenChange: (details: { open: boolean }) => void;
+  onSubmit: (roles: string[]) => Promise<any>
+  multiRoles?: boolean
+  open: boolean
+  onOpenChange: (details: { open: boolean }) => void
   defaultValues?: {
-    roles: string[];
-  };
+    roles: string[]
+  }
 }) {
   const {
     open,
@@ -279,7 +277,7 @@ function UpdateRolesDialog(props: {
     onSubmit,
     multiRoles = false,
     defaultValues,
-  } = props;
+  } = props
 
   const form = useAppForm({
     validators: {
@@ -291,9 +289,9 @@ function UpdateRolesDialog(props: {
       roles: defaultValues?.roles ?? [],
     },
     onSubmit: async ({ value }) => {
-      await onSubmit(value.roles);
+      await onSubmit(value.roles)
     },
-  });
+  })
 
   return (
     <Dialog.Root open={open} onOpenChange={onOpenChange}>
@@ -321,5 +319,5 @@ function UpdateRolesDialog(props: {
         </Form>
       </Dialog.Content>
     </Dialog.Root>
-  );
+  )
 }

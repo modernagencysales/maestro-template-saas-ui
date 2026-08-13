@@ -732,7 +732,7 @@
       "source": "packages/blocks/hooks/use-open-state.ts",
       "destination": "apps/web/src/hooks/use-open-state.ts",
       "sourceSha256": "9187bd31e9386bbafd32b1877ec95945a0c77ba4fccce2996d7b6726da7df374",
-      "sha256": "73dcdaaa3a2e6da5831e1d738c4f1afe0388afd46577c67e965fb1bc7684fab0"
+      "sha256": "90511b80022cdd7036746f09dcae4697a2c93da6f847d0f743e7d63bb97b4970"
     }
   ]
 }

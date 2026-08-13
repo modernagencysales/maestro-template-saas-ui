@@ -1,35 +1,35 @@
-"use client";
+'use client'
 
-import { Alert, Container, Stack } from "@chakra-ui/react";
-import { useAuth } from "@saas-ui/auth-provider";
-import { toast } from "@saas-ui/react";
-import { useMutation } from "@tanstack/react-query";
+import { Alert, Container, Stack } from '@chakra-ui/react'
+import { useAuth } from '@saas-ui/auth-provider'
+import { toast } from '@saas-ui/react'
+import { useMutation } from '@tanstack/react-query'
 
-import { Form, useAppForm } from "@workspace/ui/form";
+import { Form, useAppForm } from '@workspace/ui/form'
 
-import { Link } from "#components/link";
+import { Link } from '#components/link'
 
-import { AuthCard } from "./components/auth-card";
+import { AuthCard } from './components/auth-card'
 import {
   ForgotPasswordFormInput,
   forgotPasswordSchema,
-} from "./schema/forgot-password.schema";
+} from './schema/forgot-password.schema.ts'
 
 export const ForgotPasswordPage = () => {
-  const auth = useAuth();
+  const auth = useAuth()
 
   const mutation = useMutation({
     mutationFn: (params: ForgotPasswordFormInput) =>
       auth.resetPassword(params, {
-        redirectTo: "/reset-password",
+        redirectTo: '/reset-password',
       }),
     onError: (error) => {
       toast.error({
-        title: "Reset password failed",
+        title: 'Reset password failed',
         description: error.message,
-      });
+      })
     },
-  });
+  })
 
   const form = useAppForm({
     validators: {
@@ -37,12 +37,12 @@ export const ForgotPasswordPage = () => {
       onSubmit: forgotPasswordSchema,
     },
     defaultValues: {
-      email: "",
+      email: '',
     },
     onSubmit: async ({ value }: { value: ForgotPasswordFormInput }) => {
-      await mutation.mutateAsync(value);
+      await mutation.mutateAsync(value)
     },
-  });
+  })
 
   return (
     <Stack flex="1" direction="row" minH="100vh" bg="bg.muted">
@@ -57,7 +57,7 @@ export const ForgotPasswordPage = () => {
         <Container maxW="md" py="8">
           <AuthCard
             title="Forgot your password?"
-            footer={<Link to="/login" search={{ redirectTo: undefined }}>Back to log in</Link>}
+            footer={<Link to="/login">Back to log in</Link>}
           >
             {mutation.data ? (
               <Alert.Root
@@ -91,5 +91,5 @@ export const ForgotPasswordPage = () => {
         </Container>
       </Stack>
     </Stack>
-  );
-};
+  )
+}

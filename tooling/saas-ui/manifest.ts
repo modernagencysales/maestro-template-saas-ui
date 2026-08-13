@@ -6,6 +6,11 @@ const source = (path: string) => ({
   destination: `src/${path}`,
 });
 
+const publicSource = (path: string) => ({
+  source: `apps/web/public/${path}`,
+  destination: `public/${path}`,
+});
+
 export const starterCompositions = {
   theme: [
     source("theme/preset.ts"),
@@ -15,6 +20,7 @@ export const starterCompositions = {
   provider: [
     source("features/common/providers/app-provider.tsx"),
     source("features/common/components/hotkeys.tsx"),
+    source("hooks/use-open-state.ts"),
   ],
   shell: [
     source("features/common/layouts/app-layout.tsx"),
@@ -34,7 +40,50 @@ export const starterCompositions = {
     source("features/common/hooks/use-tags.ts"),
     source("features/common/util/get-base-url.ts"),
   ],
+  routes: [
+    source("router.tsx"),
+    source("routeTree.gen.ts"),
+    ...[
+      "__root.tsx",
+      "_app.tsx",
+      "_app/index.tsx",
+      "_app/accept-invite.tsx",
+      "_app/accept-invite/$token.tsx",
+      "_app/getting-started.tsx",
+      "_app/getting-started/index.tsx",
+      "_app/$workspace.tsx",
+      "_app/$workspace/_dashboard.tsx",
+      "_app/$workspace/_dashboard/index.tsx",
+      "_app/$workspace/_dashboard/contacts/index.tsx",
+      "_app/$workspace/_dashboard/contacts/$type.tsx",
+      "_app/$workspace/_dashboard/contacts/view/$id.tsx",
+      "_app/$workspace/_dashboard/inbox.tsx",
+      "_app/$workspace/_dashboard/inbox/$id.tsx",
+      "_app/$workspace/_dashboard/search.tsx",
+      "_app/$workspace/_dashboard/tag/$tag.tsx",
+      "_app/$workspace/settings.tsx",
+      "_app/$workspace/settings/index.tsx",
+      "_app/$workspace/settings/account/index.tsx",
+      "_app/$workspace/settings/account/profile.tsx",
+      "_app/$workspace/settings/account/security.tsx",
+      "_app/$workspace/settings/billing.tsx",
+      "_app/$workspace/settings/members.tsx",
+      "_app/$workspace/settings/plans.tsx",
+      "_app/$workspace/settings/tags.tsx",
+      "_app/$workspace/settings/workspace.tsx",
+      "_auth.tsx",
+      "_auth/forgot-password.tsx",
+      "_auth/login.tsx",
+      "_auth/reset-password.tsx",
+      "_auth/signup.tsx",
+      "api/auth/$.ts",
+      "api/trpc/$.ts",
+      "api/webhooks/stripe.tsx",
+    ].map((path) => source(`routes/${path}`)),
+  ],
   archetypes: [
+    publicSource("img/onboarding/light.svg"),
+    publicSource("img/onboarding/dark.svg"),
     ...[
       "contacts/common/contact-avatar.tsx",
       "contacts/common/contact-status.tsx",

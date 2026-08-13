@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import {
   mkdir,
   mkdtemp,
@@ -406,17 +406,20 @@ function localImportExists(targetRoot: string, specifier: string): boolean {
 async function writeFiles(
   files: readonly SourceFile[],
   targetRoot: string,
+  protectedDestinations: ReadonlySet<string> = new Set(),
 ): Promise<{ hashes: Record<string, string>; records: FileRecord[] }> {
   const hashes: Record<string, string> = {};
   const records: FileRecord[] = [];
   for (const file of files) {
     await mkdir(dirname(file.destination), { recursive: true });
-    const formatted = await prettier.format(file.content, {
-      filepath: file.destination,
-    });
-    await writeFile(file.destination, formatted);
     const path = relative(targetRoot, file.destination).split("/").join("/");
-    const sha256 = hash(formatted);
+    const contents =
+      protectedDestinations.has(resolve(file.destination)) &&
+      existsSync(file.destination)
+        ? await readFile(file.destination, "utf8")
+        : await prettier.format(file.content, { filepath: file.destination });
+    await writeFile(file.destination, contents);
+    const sha256 = hash(contents);
     hashes[path] = sha256;
     records.push({
       path,
@@ -431,6 +434,25 @@ async function writeFiles(
       left.path.localeCompare(right.path, "en"),
     ),
   };
+}
+
+function starterOwnedDestinations(
+  projectRoot: string | undefined,
+): Set<string> {
+  if (!projectRoot) return new Set();
+  const receiptPath = join(
+    projectRoot,
+    "docs/template/saas-ui-starter-files.json",
+  );
+  if (!existsSync(receiptPath)) return new Set();
+  const receipt = JSON.parse(readFileSync(receiptPath, "utf8")) as {
+    files?: readonly { destination?: string }[];
+  };
+  return new Set(
+    (receipt.files ?? []).flatMap(({ destination }) =>
+      destination ? [resolve(projectRoot, destination)] : [],
+    ),
+  );
 }
 
 function projectRootFor(targetRoot: string): string | undefined {
@@ -712,7 +734,11 @@ export async function materializeProRegistry({
     join(resolvedTargetRoot, "components.json"),
     `${JSON.stringify(config, null, 2)}\n`,
   );
-  const written = await writeFiles(resolved.sourceFiles, resolvedTargetRoot);
+  const written = await writeFiles(
+    resolved.sourceFiles,
+    resolvedTargetRoot,
+    starterOwnedDestinations(projectRoot),
+  );
   const uniqueUnresolved = unresolvedImports(
     resolved.sourceFiles,
     resolvedTargetRoot,

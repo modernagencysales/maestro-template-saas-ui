@@ -31,16 +31,13 @@ Rules:
 
 TanStack Start is the committed runtime direction for the template.
 
-Required router/provider shape:
+The checked-in router/provider authority is:
 
-- `ConvexQueryClient` from `@convex-dev/react-query`.
-- `QueryClient` from `@tanstack/react-query`.
-- generated `routeTree`.
-- `setupRouterSsrQueryIntegration`.
-- `defaultPreload: "intent"`.
-- `scrollRestoration: true`.
-- root provider tree containing WorkOS/AuthKit, Convex auth bridge, PostHog,
-  workspace provider, `HeadContent`, `Outlet`, and `Scripts`.
+- `apps/web/src/provider.tsx` for provider composition.
+- `apps/web/src/routes/__root.tsx` for the root document.
+- `apps/web/src/routes/_app.tsx` and its nested `$workspace/_dashboard` tree for
+  authenticated application routes.
+- generated `apps/web/src/routeTree.gen.ts`.
 
 Deployment decision:
 
@@ -53,15 +50,8 @@ Deployment decision:
 
 ## Provider Tree
 
-The intended provider tree is:
-
-```text
-AuthKitProvider
-  ConvexProviderWithAuth
-    PostHogWebProvider
-      WorkspaceProvider
-        route outlet / app shell
-```
+`apps/web/src/provider.tsx` is the provider authority. Extend its existing
+composition instead of introducing a parallel root provider.
 
 Provider rules:
 
@@ -93,7 +83,8 @@ CSS rules:
 
 Block rules:
 
-- `apps/web/src/components` contains the installed Pro registry components.
+- `apps/web/src/components` contains the installed Pro registry components;
+  reusable primitives live in `packages/ui` as `@workspace/ui`.
 - Feature code composes manifest compositions and installed Pro blocks; it
   should not invent route-local layout systems.
 

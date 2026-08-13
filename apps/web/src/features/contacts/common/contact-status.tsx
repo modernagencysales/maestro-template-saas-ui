@@ -1,32 +1,32 @@
-import { StackProps, Tag } from "@chakra-ui/react";
+import { StackProps, Tag } from '@chakra-ui/react'
 
-import { StatusBadge } from "@workspace/ui/status-badge";
+import { StatusBadge } from '@workspace/ui/status-badge'
 
 const contactStatus = {
   active: {
-    label: "Active",
-    color: "green",
+    label: 'Active',
+    color: 'green',
   },
   inactive: {
-    label: "Inactive",
-    color: "orange",
+    label: 'Inactive',
+    color: 'orange',
   },
   new: {
-    label: "New",
-    color: "blue",
+    label: 'New',
+    color: 'blue',
   },
-} as const;
+} as const
 
-export type ContactStatusEnum = keyof typeof contactStatus;
+export type ContactStatusEnum = keyof typeof contactStatus
 
 export interface ContactStatusProps extends StackProps {
-  status: ContactStatusEnum;
-  hideLabel?: boolean;
+  status: ContactStatusEnum
+  hideLabel?: boolean
 }
 
 export const ContactStatus: React.FC<ContactStatusProps> = (props) => {
-  const { status, hideLabel, ...rest } = props;
-  const { color, label } = contactStatus[status] || contactStatus.new;
+  const { status, hideLabel, ...rest } = props
+  const { color, label } = contactStatus[status] || contactStatus.new
   return (
     <Tag.Root
       colorPalette="gray"
@@ -38,5 +38,5 @@ export const ContactStatus: React.FC<ContactStatusProps> = (props) => {
       <StatusBadge colorPalette={color} />
       {!hideLabel && <Tag.Label>{label}</Tag.Label>}
     </Tag.Root>
-  );
-};
+  )
+}

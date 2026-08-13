@@ -61,9 +61,7 @@ pnpm typecheck
 host-test-slot --class full pnpm test
 pnpm build
 pnpm smoke:web-static
-pnpm smoke:golden:browser
-pnpm smoke:golden:a11y
-pnpm smoke:golden:visual
+pnpm smoke:starter-route-parity
 ```
 
 `review:readiness` and `review:completion` are presence/evidence audits. They
@@ -129,17 +127,16 @@ admin/support/privacy -> audited capabilities -> narrow operator surfaces
 
 Concrete files to inspect:
 
-- `apps/web/src/routes/index.tsx`: hosted Saas UI dashboard route.
+- `apps/web/src/routes/_app/$workspace/_dashboard/index.tsx`: pinned Starter
+  dashboard route.
 - `apps/web/src/features/common/layouts/app-layout.tsx`: upstream-derived SaaS
   UI application shell.
 - `docs/design-intake/2026-07-01-template-frontend-stack-source.md`: frontend
   source audit from Maestro into the template.
 - `docs/template/frontend-architecture.md`: frontend layer law, provider tree,
   Saas UI boundary, and TanStack Start acceptance criteria.
-- `tests/e2e/saas-ui-golden.spec.ts`: paired local desktop/mobile browser smoke.
-- `tests/e2e/saas-ui-golden.accessibility.spec.ts`: paired local landmark,
-  route-announcement, and axe WCAG smoke.
-- `tests/e2e/saas-ui-golden.visual.spec.ts`: paired local screenshot-diff smoke.
+- `tests/e2e/saas-ui-starter-route-parity.spec.ts`: literal Starter route-tree
+  parity smoke.
 - `packages/template-core/src/index.ts`: canonical sample registry.
 - `packages/workflow-ui/src/index.tsx`: React Flow workflow canvas primitive.
 - `tooling/workflow/src/index.ts`: API/CLI/MCP/OpenAPI projection.

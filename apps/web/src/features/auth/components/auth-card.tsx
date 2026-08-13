@@ -1,12 +1,12 @@
-import { Heading } from "@chakra-ui/react";
-import { Card } from "@saas-ui/react/card";
+import { Heading } from '@chakra-ui/react'
+import { Card } from '@saas-ui/react/card'
 
-import { Logo } from "@workspace/ui/logo";
+import { Logo } from '@workspace/ui/logo'
 
 export function AuthCard(props: {
-  title: string;
-  children: React.ReactNode;
-  footer: React.ReactNode;
+  title: string
+  children: React.ReactNode
+  footer: React.ReactNode
 }) {
   return (
     <Card.Root
@@ -33,5 +33,5 @@ export function AuthCard(props: {
         {props.footer}
       </Card.Footer>
     </Card.Root>
-  );
+  )
 }

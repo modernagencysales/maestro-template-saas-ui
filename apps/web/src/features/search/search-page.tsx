@@ -1,4 +1,4 @@
-"use client";
+'use client'
 
 import {
   Avatar,
@@ -9,46 +9,47 @@ import {
   LoadingOverlay,
   Page,
   Text,
-} from "@saas-ui/react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+} from '@saas-ui/react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import {
   Link,
   linkOptions,
   useNavigate,
   useSearch,
-} from "@tanstack/react-router";
-import { LuSearch, LuX } from "react-icons/lu";
+} from '@tanstack/react-router'
+import { LuSearch, LuX } from 'react-icons/lu'
 
-import type { ContactDTO } from "@workspace/api/types";
-import { SearchInput } from "@workspace/ui/search-input";
+import type { ContactDTO } from '@workspace/api/types'
+import { SearchInput } from '@workspace/ui/search-input'
 
-import { LinkButton } from "#components/link-button";
+import { LinkButton } from '#components/link-button'
+import { useWorkspaceSlug } from '#features/common/hooks/use-workspace-slug'
 
 export function SearchPage() {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
 
   const { q } = useSearch({
-    from: "/_workspace/_dashboard/search",
-  });
+    from: '/_app/$workspace/_dashboard/search',
+  })
 
   const setSearch = (q: string) => {
     navigate({
-      from: "/search",
-      to: ".",
+      from: '/$workspace/search',
+      to: '.',
       search: {
         q,
       },
-    });
-  };
+    })
+  }
 
   const { data } = useQuery({
-    queryKey: ["search", q],
-    queryFn: async (): Promise<ContactDTO[]> => {
+    queryKey: ['search', q],
+    queryFn: async () => {
       // TODO: Implement search
-      return [];
+      return []
     },
     enabled: !!q,
-  });
+  })
 
   return (
     <Page.Root>
@@ -59,52 +60,52 @@ export function SearchPage() {
         title={
           <SearchInput
             placeholder="Search your workspace..."
-            value={q ?? ""}
+            value={q}
             onChange={(e) => setSearch(e.target.value)}
-            onReset={() => setSearch("")}
+            onReset={() => setSearch('')}
             width="full"
             border="0"
           />
         }
       />
       <Page.Body p="0">
-        {q ? (
-          <SearchResults {...(data ? { data } : {})} search={q} />
-        ) : (
-          <RecentSearches />
-        )}
+        {q ? <SearchResults data={data} search={q} /> : <RecentSearches />}
       </Page.Body>
     </Page.Root>
-  );
+  )
 }
 
 function RecentSearches() {
-  const queryClient = useQueryClient();
+  const queryClient = useQueryClient()
+
+  const workspace = useWorkspaceSlug()
 
   const { data, isLoading } = useQuery({
-    queryKey: ["recent-searches"],
+    queryKey: ['recent-searches'],
     queryFn: async () => {
-      return ["hello", "james", "kira"];
+      return ['hello', 'james', 'kira']
     },
-  });
+  })
 
   const clearRecent = useMutation({
     mutationFn: async () => {
-      queryClient.setQueryData(["recent-searches"], []);
+      queryClient.setQueryData(['recent-searches'], [])
     },
-  });
+  })
 
   const getSearchLinkOptions = (q: string) =>
     linkOptions({
-      to: "/search",
-      params: {},
+      to: '/$workspace/search',
+      params: {
+        workspace,
+      },
       search: {
         q,
       },
-    });
+    })
 
   if (!data?.length) {
-    return null;
+    return null
   }
 
   return (
@@ -134,7 +135,7 @@ function RecentSearches() {
             px="5"
             py="2"
             onClick={() => {
-              clearRecent.mutate();
+              clearRecent.mutate()
             }}
           >
             <GridList.Cell>
@@ -147,17 +148,20 @@ function RecentSearches() {
         </GridList.Root>
       ) : null}
     </Box>
-  );
+  )
 }
 
 function SearchResults(props: { data?: ContactDTO[]; search: string }) {
+  const workspace = useWorkspaceSlug()
+
   const getLinkOptions = (id: string) =>
     linkOptions({
-      to: "/contacts/view/$id",
+      to: '/$workspace/contacts/view/$id',
       params: {
+        workspace,
         id,
       },
-    });
+    })
 
   if (props.search && !props.data?.length) {
     return (
@@ -165,11 +169,11 @@ function SearchResults(props: { data?: ContactDTO[]; search: string }) {
         title="No results"
         description={`No results for for query "${props.search}"`}
       >
-        <LinkButton to="/search" search={{ q: "" }}>
+        <LinkButton to="/$workspace/search" params={{ workspace }}>
           Clear search
         </LinkButton>
       </EmptyState>
-    );
+    )
   }
 
   return (
@@ -183,8 +187,8 @@ function SearchResults(props: { data?: ContactDTO[]; search: string }) {
             <Link {...getLinkOptions(contact.id)}>
               <GridList.Cell>
                 <Avatar
-                  name={contact.name ?? contact.email ?? ""}
-                  {...(contact.avatar ? { src: contact.avatar } : {})}
+                  name={contact.name ?? contact.email ?? ''}
+                  src={contact.avatar ?? undefined}
                   size="2xs"
                 />
               </GridList.Cell>
@@ -196,5 +200,5 @@ function SearchResults(props: { data?: ContactDTO[]; search: string }) {
         ))}
       </GridList.Root>
     </Box>
-  );
+  )
 }
