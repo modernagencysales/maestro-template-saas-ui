@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 
 import {
   loadInitialAuthForConvex,
-  loadInitialAuth,
   stripAccessToken,
 } from "#lib/auth/workos-auth-loader";
 import { fetchWorkosAccessToken } from "#lib/auth/workos-auth";
@@ -42,18 +41,19 @@ describe("WorkOS auth adapter", () => {
 
   it("authenticates the router Convex client without serializing its token", async () => {
     let fetchToken: (() => Promise<string | null>) | undefined;
-    const initialAuth = loadInitialAuthForConvex(
+    const initialAuth = await loadInitialAuthForConvex(
       {
         setAuth: (fetcher) => {
           fetchToken = fetcher;
         },
       },
-      () =>
+      async () =>
         ({
           accessToken: "secret",
           user: { id: "user_1" },
           sessionId: "session_1",
         }) as never,
+      async () => "secret",
     );
 
     expect(initialAuth).toEqual({
@@ -63,19 +63,19 @@ describe("WorkOS auth adapter", () => {
     await expect(fetchToken?.()).resolves.toBe("secret");
   });
 
-  it("returns an unauthenticated initial state when auth context is unavailable", () => {
-    expect(
-      loadInitialAuth(() => {
+  it("returns an unauthenticated initial state when auth context is unavailable", async () => {
+    await expect(
+      loadInitialAuthForConvex({ setAuth: () => undefined }, async () => {
         throw "HTTPError";
       }),
-    ).toEqual({ user: null });
+    ).resolves.toEqual({ user: null });
   });
 
-  it("does not hide unexpected auth failures", () => {
-    expect(() =>
-      loadInitialAuth(() => {
+  it("does not hide unexpected auth failures", async () => {
+    await expect(
+      loadInitialAuthForConvex({ setAuth: () => undefined }, async () => {
         throw new Error("configuration failure");
       }),
-    ).toThrow("configuration failure");
+    ).rejects.toThrow("configuration failure");
   });
 });

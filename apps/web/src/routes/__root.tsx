@@ -27,8 +27,8 @@ export const Route = createRootRouteWithContext<{
   convexClient: import("convex/react").ConvexReactClient;
   convexQueryClient: import("@convex-dev/react-query").ConvexQueryClient;
 }>()({
-  beforeLoad: ({ context }) => ({
-    auth: loadInitialAuthForConvex(context.convexClient),
+  beforeLoad: async ({ context }) => ({
+    auth: await loadInitialAuthForConvex(context.convexClient),
   }),
   loader: ({ context }) => ({ auth: context.auth }),
   head: () => ({

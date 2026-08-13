@@ -1,4 +1,7 @@
-import { getAuthKitContext } from "@workos/authkit-tanstack-react-start";
+import {
+  getAccessTokenAction,
+  getAuth,
+} from "@workos/authkit-tanstack-react-start";
 import type {
   NoUserInfo,
   UserInfo,
@@ -37,26 +40,17 @@ export function stripAccessToken(auth: RawAuth) {
   return safe;
 }
 
-export function loadInitialAuth(
-  getAuth: () => RawAuth = () => getAuthKitContext().auth(),
-) {
-  try {
-    return stripAccessToken(getAuth());
-  } catch (error) {
-    if (!isRecoverableAuthError(error)) throw error;
-    return { user: null };
-  }
-}
-
-export function loadInitialAuthForConvex(
+export async function loadInitialAuthForConvex(
   client: ConvexAuthClient,
-  getAuth: () => RawAuth = () => getAuthKitContext().auth(),
+  readAuth: () => Promise<RawAuth> = getAuth,
+  readAccessToken: () => Promise<
+    string | null | undefined
+  > = getAccessTokenAction,
 ) {
   try {
-    const auth = getAuth();
+    const auth = await readAuth();
     if (auth.user) {
-      const token = auth.accessToken ?? null;
-      client.setAuth(async () => token);
+      client.setAuth(async () => (await readAccessToken()) ?? null);
     }
     return stripAccessToken(auth);
   } catch (error) {

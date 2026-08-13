@@ -10,6 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
+import { chromium } from "@playwright/test";
 import { describe, expect, it, vi } from "vitest";
 
 // Task 7 removed this historical alpha source while the projection still lists
@@ -52,7 +53,7 @@ async function waitForHttp(url: string) {
   while (Date.now() < deadline) {
     try {
       const response = await fetch(url);
-      if (response.status < 500) return response.status;
+      if (response.status === 200) return response.status;
       lastFailure = `${response.status}: ${(await response.text()).slice(-4_000)}`;
     } catch (error) {
       lastFailure = String(error);
@@ -272,9 +273,20 @@ describe("SaaS UI generated target artifact boundary", () => {
       server.stdout.on("data", (chunk) => (output += chunk));
       server.stderr.on("data", (chunk) => (output += chunk));
       try {
-        expect(
-          await waitForHttp(`http://127.0.0.1:${port}/login`),
-        ).toBeLessThan(500);
+        const loginUrl = `http://127.0.0.1:${port}/login`;
+        expect(await waitForHttp(loginUrl)).toBe(200);
+        const browser = await chromium.launch();
+        try {
+          const page = await browser.newPage();
+          const errors: string[] = [];
+          page.on("pageerror", (error) => errors.push(error.message));
+          await page.goto(loginUrl);
+          await page.getByRole("link", { name: "Sign up" }).click();
+          await page.getByRole("heading", { name: "Sign up" }).waitFor();
+          expect(errors).toEqual([]);
+        } finally {
+          await browser.close();
+        }
       } catch (error) {
         throw new Error(`${String(error)}\n${output}`);
       } finally {

@@ -2,9 +2,8 @@ import { describe, expect, it, vi } from "vitest";
 
 vi.mock("@fontsource-variable/inter", () => ({}));
 vi.mock("@workos/authkit-tanstack-react-start", () => ({
-  getAuthKitContext: () => ({
-    auth: () => ({ accessToken: "secret", user: { id: "user_1" } }),
-  }),
+  getAuth: async () => ({ user: { id: "user_1" } }),
+  getAccessTokenAction: async () => "secret",
 }));
 
 import { Route } from "../../routes/__root";
