@@ -1,20 +1,20 @@
+import { Chart, useChart } from "@chakra-ui/charts";
 import { Box, Text } from "@saas-ui/react";
+import {
+  CartesianGrid,
+  Line,
+  LineChart,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from "recharts";
 
-// Adapted from the pinned starter reports/metrics/revenue-chart.tsx with no demo data or chart provider.
+// Adapted from tanstack-start-starter-kit-pro@b76cb451 reports-page.tsx.
+
 export interface ChartPoint {
   readonly label: string;
   readonly value: number;
 }
-
-const pointsFor = (data: readonly ChartPoint[]) => {
-  const maximum = Math.max(...data.map((point) => point.value), 1);
-  return data
-    .map(
-      (point, index) =>
-        `${(index / Math.max(data.length - 1, 1)) * 100},${100 - (point.value / maximum) * 100}`,
-    )
-    .join(" ");
-};
 
 export function AnalyticsChart({
   data,
@@ -23,21 +23,34 @@ export function AnalyticsChart({
   readonly data: readonly ChartPoint[];
   readonly label: string;
 }) {
+  const chart = useChart({
+    data: [...data],
+    series: [{ name: "value", color: "accent.solid" }],
+  });
   return (
-    <Box color="chart.primary">
+    <Box aria-label={label} role="img">
       <Text color="fg.muted" fontSize="sm">
         {label}
       </Text>
-      <svg aria-label={label} role="img" viewBox="0 0 100 100" width="100%">
-        <polyline
-          fill="none"
-          points={pointsFor(data)}
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-        />
-      </svg>
+      <Chart.Root chart={chart} height="15rem">
+        <LineChart data={chart.data} accessibilityLayer>
+          <CartesianGrid
+            stroke={chart.color("border.subtle")}
+            vertical={false}
+          />
+          <XAxis dataKey={chart.key("label")} tickLine={false} />
+          <YAxis tickLine={false} />
+          <Tooltip content={<Chart.Tooltip />} />
+          <Line
+            dataKey={chart.key("value")}
+            dot={false}
+            isAnimationActive={false}
+            stroke={chart.color("accent.solid")}
+            strokeWidth={2}
+            type="monotone"
+          />
+        </LineChart>
+      </Chart.Root>
     </Box>
   );
 }

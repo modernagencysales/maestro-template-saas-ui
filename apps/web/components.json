@@ -4,6 +4,17 @@
   "style": "default",
   "rsc": false,
   "tsx": true,
+  "installed": [
+    "app-shell",
+    "color-mode",
+    "file-upload",
+    "forms",
+    "grid-list",
+    "page",
+    "sidebar",
+    "sidebar1",
+    "theme"
+  ],
   "aliases": {
     "components": "@/components",
     "utils": "@/lib/utils",

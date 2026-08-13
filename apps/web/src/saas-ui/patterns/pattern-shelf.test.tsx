@@ -161,7 +161,8 @@ describe("Saas UI pattern shelf", () => {
       readFileSync(`${patternsRoot}/add-contact-drawer.tsx`, "utf8"),
     ).toContain("Drawer.CloseTrigger");
     const upload = readFileSync(`${patternsRoot}/file-upload.tsx`, "utf8");
-    expect(upload).toContain('type="file"');
+    expect(upload).toContain("FileUpload.Root");
+    expect(upload).toContain("FileUpload.Trigger");
     expect(upload).toContain("onAccept");
     expect(upload).toContain("onRemove");
   });

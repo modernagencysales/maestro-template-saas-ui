@@ -1,8 +1,16 @@
-import type { DragEvent } from "react";
-import { Button, Card, Grid, Heading, Stack, Text } from "@saas-ui/react";
+import {
+  Kanban,
+  KanbanCard,
+  KanbanColumn,
+  KanbanColumnBody,
+  KanbanColumnHeader,
+  KanbanDragOverlay,
+  type KanbanItems,
+} from "@saas-ui-pro/kanban";
+import { Button, Heading, Stack, Text } from "@saas-ui/react";
 import { PageStateView } from "./page-states";
 
-// Derived from saas-js/saas-ui-pro@ac3a40c8dc05e403f9d501a87c092646891d3c40 packages/kanban/src.
+// Adapted from the pinned starter DataBoard and the official Pro Kanban package.
 export interface BoardItem {
   readonly id: string;
   readonly title: string;
@@ -19,6 +27,17 @@ export const moveBoardItem = (
   columnId: string,
 ): BoardItem[] =>
   items.map((item) => (item.id === id ? { ...item, columnId } : item));
+
+const kanbanItems = (
+  columns: readonly BoardColumn[],
+  items: readonly BoardItem[],
+): KanbanItems =>
+  Object.fromEntries(
+    columns.map((column) => [
+      column.id,
+      items.filter((item) => item.columnId === column.id).map(({ id }) => id),
+    ]),
+  );
 
 export function DataBoard({
   columns,
@@ -37,72 +56,92 @@ export function DataBoard({
         title="No board items yet"
       />
     );
+
+  const boardItems = kanbanItems(columns, items);
+  const itemById = new Map(items.map((item) => [item.id, item]));
   return (
-    <Grid
-      gap="4"
-      overflowX="auto"
-      templateColumns={`repeat(${columns.length}, minmax(16rem, 1fr))`}
+    <Kanban
+      items={boardItems}
+      onChange={(next) => {
+        for (const [columnId, ids] of Object.entries(next))
+          for (const id of ids) {
+            const item = itemById.get(String(id));
+            if (item && item.columnId !== columnId) onMove(item.id, columnId);
+          }
+      }}
     >
-      {columns.map((column, columnIndex) => (
-        <Stack
-          aria-label={column.title}
-          as="section"
-          gap="3"
-          key={column.id}
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={(event: DragEvent<HTMLDivElement>) => {
-            const itemId = event.dataTransfer.getData("text/plain");
-            if (itemId) onMove(itemId, column.id);
-          }}
+      {({ activeId, columns: columnIds, items: grouped }) => (
+        <>
+          {columnIds.map((columnId) => {
+            const column = columns.find(({ id }) => id === columnId);
+            return (
+              <KanbanColumn id={columnId} key={columnId} width="20rem">
+                <KanbanColumnHeader>
+                  <Heading size="sm">{column?.title ?? columnId}</Heading>
+                </KanbanColumnHeader>
+                <KanbanColumnBody>
+                  {grouped[columnId]?.map((itemId) => {
+                    const item = itemById.get(String(itemId));
+                    return item ? (
+                      <KanbanCard id={item.id} key={item.id}>
+                        <BoardCard
+                          item={item}
+                          columns={columns}
+                          onMove={onMove}
+                        />
+                      </KanbanCard>
+                    ) : null;
+                  })}
+                </KanbanColumnBody>
+              </KanbanColumn>
+            );
+          })}
+          <KanbanDragOverlay>
+            {activeId ? (
+              <Text>{itemById.get(String(activeId))?.title}</Text>
+            ) : null}
+          </KanbanDragOverlay>
+        </>
+      )}
+    </Kanban>
+  );
+}
+
+function BoardCard({
+  item,
+  columns,
+  onMove,
+}: {
+  readonly item: BoardItem;
+  readonly columns: readonly BoardColumn[];
+  readonly onMove: (id: string, columnId: string) => void;
+}) {
+  const index = columns.findIndex(({ id }) => id === item.columnId);
+  return (
+    <Stack gap="2">
+      <Text>{item.title}</Text>
+      <Stack direction="row">
+        <Button
+          disabled={index === 0}
+          onClick={() =>
+            onMove(item.id, columns[index - 1]?.id ?? item.columnId)
+          }
+          size="xs"
+          variant="ghost"
         >
-          <Heading size="sm">{column.title}</Heading>
-          {items
-            .filter((item) => item.columnId === column.id)
-            .map((item) => (
-              <Card.Root
-                draggable
-                key={item.id}
-                onDragStart={(event: DragEvent<HTMLDivElement>) =>
-                  event.dataTransfer.setData("text/plain", item.id)
-                }
-              >
-                <Card.Body gap="2">
-                  <Text>{item.title}</Text>
-                  <Stack direction="row">
-                    <Button
-                      aria-label={`Move ${item.title} to previous column`}
-                      disabled={columnIndex === 0}
-                      onClick={() =>
-                        onMove(
-                          item.id,
-                          columns[columnIndex - 1]?.id ?? column.id,
-                        )
-                      }
-                      size="xs"
-                      variant="ghost"
-                    >
-                      Move back
-                    </Button>
-                    <Button
-                      aria-label={`Move ${item.title} to next column`}
-                      disabled={columnIndex === columns.length - 1}
-                      onClick={() =>
-                        onMove(
-                          item.id,
-                          columns[columnIndex + 1]?.id ?? column.id,
-                        )
-                      }
-                      size="xs"
-                      variant="ghost"
-                    >
-                      Move forward
-                    </Button>
-                  </Stack>
-                </Card.Body>
-              </Card.Root>
-            ))}
-        </Stack>
-      ))}
-    </Grid>
+          Move back
+        </Button>
+        <Button
+          disabled={index === columns.length - 1}
+          onClick={() =>
+            onMove(item.id, columns[index + 1]?.id ?? item.columnId)
+          }
+          size="xs"
+          variant="ghost"
+        >
+          Move forward
+        </Button>
+      </Stack>
+    </Stack>
   );
 }

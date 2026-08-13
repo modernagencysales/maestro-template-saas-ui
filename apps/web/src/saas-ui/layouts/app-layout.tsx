@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import type { ReactElement, ReactNode } from "react";
 import { AppShell, Sidebar } from "@saas-ui/react";
 
 // Adapted from saas-js/tanstack-start-starter-kit-pro@b76cb4514b9ab47f7db87901cb9b593b4adc3129
@@ -8,10 +8,10 @@ export function AppLayout({
   sidebar,
 }: {
   readonly children: ReactNode;
-  readonly sidebar?: ReactNode;
+  readonly sidebar?: ReactElement;
 }) {
   return (
-    <Sidebar.Provider variant="inset">
+    <Sidebar.Provider>
       <Sidebar.FlyoutTrigger />
       <AppShell bg="sidebar.bg" minH="100dvh" sidebar={sidebar}>
         <Sidebar.Inset minW="0">{children}</Sidebar.Inset>
