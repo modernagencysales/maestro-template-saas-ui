@@ -1,4 +1,4 @@
-import { execFileSync, spawn } from "node:child_process";
+import { execFile, spawn } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
@@ -10,6 +10,7 @@ import {
   writeFileSync,
 } from "node:fs";
 import { tmpdir } from "node:os";
+import { promisify } from "node:util";
 import { chromium } from "@playwright/test";
 import { describe, expect, it, vi } from "vitest";
 
@@ -35,6 +36,7 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 const { buildSaasApplicationTargetPlan } = await import("./saasApplication");
+const execFileAsync = promisify(execFile);
 
 async function availablePort() {
   const server = createServer();
@@ -247,36 +249,37 @@ describe("SaaS UI generated target artifact boundary", () => {
         ),
       ).toBe(false);
 
-      const command = (args: readonly string[]) =>
-        (() => {
-          try {
-            return execFileSync("pnpm", args, {
-              cwd: target,
-              env: {
-                ...process.env,
-                CI: "true",
-                NODE_ENV: "production",
-                VITE_CONVEX_URL: "https://generated-target-test.convex.cloud",
-              },
-              stdio: "pipe",
-              timeout: 180_000,
-            });
-          } catch (error) {
-            const result = error as { stdout?: Buffer; stderr?: Buffer };
-            throw new Error(
-              `${args.join(" ")} failed\n${result.stdout?.toString() ?? ""}${result.stderr?.toString() ?? ""}`,
-            );
-          }
-        })();
-      command(["install", "--frozen-lockfile"]);
-      command(["run", "typecheck:saas-ui:baseline"]);
-      command(["--dir", "apps/web", "typecheck"]);
+      const command = async (args: readonly string[]) => {
+        try {
+          await execFileAsync("pnpm", args, {
+            cwd: target,
+            env: {
+              ...process.env,
+              CI: "true",
+              NODE_ENV: "production",
+              VITE_CONVEX_URL: "https://generated-target-test.convex.cloud",
+            },
+            timeout: 180_000,
+          });
+        } catch (error) {
+          const result = error as {
+            stdout?: string | Buffer;
+            stderr?: string | Buffer;
+          };
+          throw new Error(
+            `${args.join(" ")} failed\n${result.stdout?.toString() ?? ""}${result.stderr?.toString() ?? ""}`,
+          );
+        }
+      };
+      await command(["install", "--frozen-lockfile"]);
+      await command(["run", "typecheck:saas-ui:baseline"]);
+      await command(["--dir", "apps/web", "typecheck"]);
       for (const entry of recordsPlan.entries) {
         const path = join(target, entry.path);
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, entry.content);
       }
-      command(["--dir", "apps/web", "build"]);
+      await command(["--dir", "apps/web", "build"]);
       const routeTree = readFileSync(
         join(target, "apps/web/src/routeTree.gen.ts"),
         "utf8",
