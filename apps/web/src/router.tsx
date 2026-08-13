@@ -9,7 +9,8 @@ import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
   const convexQueryClient = new ConvexQueryClient(
-    import.meta.env.VITE_CONVEX_URL,
+    (import.meta as ImportMeta & { env: { VITE_CONVEX_URL: string } }).env
+      .VITE_CONVEX_URL,
   );
   const queryClient = new QueryClient({
     defaultOptions: {

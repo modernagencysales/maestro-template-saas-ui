@@ -110,8 +110,8 @@ export const SignupPage = () => {
 
           <Text textAlign="center" color="fg.muted" mt="4">
             By signing up, you agree to our{' '}
-            <Link to="/terms">Terms of Service</Link> and{' '}
-            <Link to="/privacy">Privacy Policy</Link>.
+              <a href="/terms">Terms of Service</a> and{' '}
+              <a href="/privacy">Privacy Policy</a>.
           </Text>
         </Container>
       </Stack>

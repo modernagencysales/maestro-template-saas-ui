@@ -43,7 +43,7 @@ import { AppSidebarTags } from './sidebar-tags'
 import { UserMenu } from './user-menu'
 import { WorkspacesMenu } from './workspaces-menu'
 
-export interface AppSidebarProps extends Sidebar.RootProps {}
+export type AppSidebarProps = Sidebar.RootProps;
 
 export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
   const modals = useModals()
@@ -239,7 +239,7 @@ const AppSidebarLink = (props: AppSidebarlink) => {
     <Tooltip
       content={
         <>
-          {label} <Command size="xs">{command}</Command>
+          {label} <Command size="sm">{command}</Command>
         </>
       }
       positioning={{

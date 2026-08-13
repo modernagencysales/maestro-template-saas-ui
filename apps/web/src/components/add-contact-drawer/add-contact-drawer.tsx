@@ -43,7 +43,7 @@ export const AddContactDrawer: React.FC<AddContactDrawerProps> = (props) => {
   });
 
   return (
-    <Drawer.Root {...rest} {...({ open, onOpenChange } as never)}>
+    <Drawer.Root {...(rest as object)} {...({ open, onOpenChange } as never)}>
       <Drawer.Backdrop />
       <Form form={form}>
         <Drawer.Content>

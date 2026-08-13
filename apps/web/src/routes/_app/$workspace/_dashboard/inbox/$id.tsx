@@ -8,21 +8,10 @@ export const Route = createFileRoute('/_app/$workspace/_dashboard/inbox/$id')({
   validateSearch: z.object({
     contactId: z.string(),
   }),
-  loaderDeps: ({ search }) => ({
-    contactId: search.contactId,
-  }),
-  loader: async ({ context, deps }) => {
-    const contact = await context.trpc.contacts.byId.ensureData({
-      workspaceId: context.workspace.id,
-      id: deps.contactId,
-    })
-
-    return { contact }
-  },
-  head: (ctx) => ({
+  head: () => ({
     meta: [
       {
-        title: ctx.loaderData?.contact?.name ?? '',
+        title: 'Inbox',
       },
     ],
   }),

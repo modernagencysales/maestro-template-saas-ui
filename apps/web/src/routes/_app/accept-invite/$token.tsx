@@ -10,5 +10,9 @@ export const Route = createFileRoute('/_app/accept-invite/$token')({
       },
     ],
   }),
-  component: AcceptInvitePage,
+  component: RouteComponent,
 })
+
+function RouteComponent() {
+  return <AcceptInvitePage params={Route.useParams()} />;
+}
