@@ -22,6 +22,9 @@ import { Route as AppWorkspaceRouteImport } from './routes/_app/$workspace'
 import { Route as AppGettingStartedIndexRouteImport } from './routes/_app/getting-started/index'
 import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
+import { Route as ApiAuthSignUpRouteImport } from './routes/api/auth/sign-up'
+import { Route as ApiAuthSignInRouteImport } from './routes/api/auth/sign-in'
+import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as AppAcceptInviteTokenRouteImport } from './routes/_app/accept-invite/$token'
 import { Route as AppWorkspaceSettingsRouteImport } from './routes/_app/$workspace/settings'
@@ -107,6 +110,21 @@ const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   id: '/api/trpc/$',
   path: '/api/trpc/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSignUpRoute = ApiAuthSignUpRouteImport.update({
+  id: '/api/auth/sign-up',
+  path: '/api/auth/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSignInRoute = ApiAuthSignInRouteImport.update({
+  id: '/api/auth/sign-in',
+  path: '/api/auth/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
+  id: '/api/auth/callback',
+  path: '/api/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -255,6 +273,9 @@ export interface FileRoutesByFullPath {
   '/$workspace/settings': typeof AppWorkspaceSettingsRouteWithChildren
   '/accept-invite/$token': typeof AppAcceptInviteTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/api/auth/sign-in': typeof ApiAuthSignInRoute
+  '/api/auth/sign-up': typeof ApiAuthSignUpRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/getting-started/': typeof AppGettingStartedIndexRoute
@@ -288,6 +309,9 @@ export interface FileRoutesByTo {
   '/signup': typeof AuthSignupRoute
   '/accept-invite/$token': typeof AppAcceptInviteTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/api/auth/sign-in': typeof ApiAuthSignInRoute
+  '/api/auth/sign-up': typeof ApiAuthSignUpRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/getting-started': typeof AppGettingStartedIndexRoute
@@ -326,6 +350,9 @@ export interface FileRoutesById {
   '/_app/$workspace/settings': typeof AppWorkspaceSettingsRouteWithChildren
   '/_app/accept-invite/$token': typeof AppAcceptInviteTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/auth/callback': typeof ApiAuthCallbackRoute
+  '/api/auth/sign-in': typeof ApiAuthSignInRoute
+  '/api/auth/sign-up': typeof ApiAuthSignUpRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/_app/getting-started/': typeof AppGettingStartedIndexRoute
@@ -363,6 +390,9 @@ export interface FileRouteTypes {
     | '/$workspace/settings'
     | '/accept-invite/$token'
     | '/api/auth/$'
+    | '/api/auth/callback'
+    | '/api/auth/sign-in'
+    | '/api/auth/sign-up'
     | '/api/trpc/$'
     | '/api/webhooks/stripe'
     | '/getting-started/'
@@ -396,6 +426,9 @@ export interface FileRouteTypes {
     | '/signup'
     | '/accept-invite/$token'
     | '/api/auth/$'
+    | '/api/auth/callback'
+    | '/api/auth/sign-in'
+    | '/api/auth/sign-up'
     | '/api/trpc/$'
     | '/api/webhooks/stripe'
     | '/getting-started'
@@ -433,6 +466,9 @@ export interface FileRouteTypes {
     | '/_app/$workspace/settings'
     | '/_app/accept-invite/$token'
     | '/api/auth/$'
+    | '/api/auth/callback'
+    | '/api/auth/sign-in'
+    | '/api/auth/sign-up'
     | '/api/trpc/$'
     | '/api/webhooks/stripe'
     | '/_app/getting-started/'
@@ -461,6 +497,9 @@ export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
+  ApiAuthSignInRoute: typeof ApiAuthSignInRoute
+  ApiAuthSignUpRoute: typeof ApiAuthSignUpRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
   ApiWebhooksStripeRoute: typeof ApiWebhooksStripeRoute
 }
@@ -556,6 +595,27 @@ declare module '@tanstack/react-router' {
       path: '/api/trpc/$'
       fullPath: '/api/trpc/$'
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/sign-up': {
+      id: '/api/auth/sign-up'
+      path: '/api/auth/sign-up'
+      fullPath: '/api/auth/sign-up'
+      preLoaderRoute: typeof ApiAuthSignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/sign-in': {
+      id: '/api/auth/sign-in'
+      path: '/api/auth/sign-in'
+      fullPath: '/api/auth/sign-in'
+      preLoaderRoute: typeof ApiAuthSignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/callback': {
+      id: '/api/auth/callback'
+      path: '/api/auth/callback'
+      fullPath: '/api/auth/callback'
+      preLoaderRoute: typeof ApiAuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -870,6 +930,9 @@ const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiAuthCallbackRoute: ApiAuthCallbackRoute,
+  ApiAuthSignInRoute: ApiAuthSignInRoute,
+  ApiAuthSignUpRoute: ApiAuthSignUpRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
   ApiWebhooksStripeRoute: ApiWebhooksStripeRoute,
 }
@@ -878,10 +941,11 @@ export const routeTree = rootRouteImport
   ._addFileTypes<FileRouteTypes>()
 
 import type { getRouter } from './router.tsx'
-import type { createStart } from '@tanstack/react-start'
+import type { startInstance } from './start.ts'
 declare module '@tanstack/react-start' {
   interface Register {
     ssr: true
     router: Awaited<ReturnType<typeof getRouter>>
+    config: Awaited<ReturnType<typeof startInstance.getOptions>>
   }
 }

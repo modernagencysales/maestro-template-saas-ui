@@ -1,40 +1,44 @@
-import { withEmotionCache } from '@emotion/react'
-import '@fontsource-variable/inter'
-import { QueryClient } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
+import { withEmotionCache } from "@emotion/react";
+import "@fontsource-variable/inter";
+import { QueryClient } from "@tanstack/react-query";
+import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import {
   HeadContent,
   Outlet,
   Scripts,
   createRootRouteWithContext,
-} from '@tanstack/react-router'
-import { TanStackRouterDevtools } from '@tanstack/react-router-devtools'
-import type { createTRPCQueryUtils } from '@trpc/react-query'
+} from "@tanstack/react-router";
+import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
+import { AuthKitProvider } from "@workos/authkit-tanstack-react-start/client";
+import { ConvexProviderWithAuth } from "convex/react";
+import { I18nProvider } from "@workspace/i18n";
+import { ModalsProvider } from "@workspace/ui/modals";
 
-import type { AppRouter } from '@workspace/api'
-import { I18nProvider } from '@workspace/i18n'
-import { ModalsProvider } from '@workspace/ui/modals'
+import { seo } from "#utils/seo.ts";
 
-import { seo } from '#utils/seo.ts'
-
-import { Provider } from '../provider.tsx'
+import { Provider } from "../provider.tsx";
+import { loadInitialAuth } from "#lib/auth/workos-auth-loader";
+import { useAuthFromAuthKit } from "#lib/auth/workos-auth";
 
 export const Route = createRootRouteWithContext<{
-  queryClient: QueryClient
-  trpc: ReturnType<typeof createTRPCQueryUtils<AppRouter>>
+  queryClient: QueryClient;
+  trpc: any;
+  convexClient: import("convex/react").ConvexReactClient;
+  convexQueryClient: import("@convex-dev/react-query").ConvexQueryClient;
 }>()({
+  loader: () => ({ auth: loadInitialAuth() }),
   head: () => ({
     meta: [
       {
-        charSet: 'utf-8',
+        charSet: "utf-8",
       },
       {
-        name: 'viewport',
-        content: 'width=device-width, initial-scale=1',
+        name: "viewport",
+        content: "width=device-width, initial-scale=1",
       },
       {
-        rel: 'icon',
-        href: '/favicon.ico',
+        rel: "icon",
+        href: "/favicon.ico",
       },
       ...seo(),
     ],
@@ -44,11 +48,11 @@ export const Route = createRootRouteWithContext<{
       <RootDocument>
         <Outlet />
       </RootDocument>
-    )
+    );
   },
-})
+});
 
-const RootDocument = withEmotionCache(BaseRootDocument)
+const RootDocument = withEmotionCache(BaseRootDocument);
 
 function BaseRootDocument(props: { children: React.ReactNode }) {
   return (
@@ -57,14 +61,21 @@ function BaseRootDocument(props: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <Provider>
-          <I18nProvider locale="en" messages={{}}>
-            <ModalsProvider>{props.children}</ModalsProvider>
-          </I18nProvider>
+        <AuthKitProvider initialAuth={Route.useLoaderData().auth as any}>
+          <ConvexProviderWithAuth
+            client={Route.useRouteContext().convexClient}
+            useAuth={useAuthFromAuthKit}
+          >
+            <Provider>
+              <I18nProvider locale="en" messages={{}}>
+                <ModalsProvider>{props.children}</ModalsProvider>
+              </I18nProvider>
 
-          <ReactQueryDevtools buttonPosition="bottom-right" />
-          <TanStackRouterDevtools position="bottom-right" />
-        </Provider>
+              <ReactQueryDevtools buttonPosition="bottom-right" />
+              <TanStackRouterDevtools position="bottom-right" />
+            </Provider>
+          </ConvexProviderWithAuth>
+        </AuthKitProvider>
 
         <div id="app-loader">
           <img src="/img/logo-icon.svg" alt="logo" width="24" height="24" />
@@ -102,5 +113,5 @@ function BaseRootDocument(props: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
-  )
+  );
 }

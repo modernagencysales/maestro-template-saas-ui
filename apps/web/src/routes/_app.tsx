@@ -1,27 +1,20 @@
-import { Outlet, createFileRoute, redirect } from '@tanstack/react-router'
+import { Outlet, createFileRoute } from "@tanstack/react-router";
 
-import { AppLoader } from '@workspace/ui/app-loader'
 
-import { client } from '#features/auth/auth-provider'
+import { requireAuthenticatedRoute } from "#lib/auth/route-auth";
 
-export const Route = createFileRoute('/_app')({
-  beforeLoad: async () => {
-    const { data } = await client.getSession()
-
-    if (!data?.session) {
-      throw redirect({
-        to: '/login',
-      })
-    }
-
+export const Route = createFileRoute("/_app")({
+  beforeLoad: ({ location }) => {
+    const guarded = requireAuthenticatedRoute({ location });
     return {
-      session: data.session,
-      user: data.user,
-    }
+      ...guarded,
+      session: guarded.auth.user ? { id: "workos" } : null,
+      user: guarded.auth.user,
+    } as any;
   },
   staleTime: 5 * 60 * 1000, // 5 minutes
   // pendingComponent: AppLoader,
   component: () => {
-    return <Outlet />
+    return <Outlet />;
   },
-})
+});

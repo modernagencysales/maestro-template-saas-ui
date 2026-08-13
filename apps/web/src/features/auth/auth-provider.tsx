@@ -1,38 +1,44 @@
 import React from "react";
-
 import {
   AuthProvider as BaseAuthProvider,
   type AuthProviderProps,
 } from "@saas-ui/auth-provider";
 
-import { demoUser } from "#lib/backend-fixtures";
-
-const session = { id: "parity-session", userId: demoUser.id };
-const storageKey = "maestro-starter-demo-session";
-
-const isSignedIn = () =>
-  typeof window !== "undefined" && window.localStorage.getItem(storageKey) === "1";
+type StarterUser = {
+  readonly id: string;
+  readonly name?: string;
+  readonly email?: string;
+  readonly image?: string | null;
+};
 
 export const client = {
-  getSession: async () => ({
-    data: isSignedIn() ? { session, user: demoUser } : null,
-  }),
+  getSession: async () => {
+    const response = await fetch("/api/auth/session");
+    if (!response.ok) return { data: null };
+    return (await response.json()) as {
+      data: { session: { id: string }; user: StarterUser } | null;
+    };
+  },
+};
+
+const redirectToAuth = (path: string) => {
+  window.location.assign(
+    `/api/auth/${path}?returnPathname=${encodeURIComponent(window.location.pathname)}`,
+  );
+  return null;
 };
 
 export const authService: Pick<
   AuthProviderProps,
   "onLoadUser" | "onLogin" | "onSignup" | "onLogout"
 > = {
-  onLoadUser: async () => (isSignedIn() ? demoUser : null),
-  onLogin: async () => {
-    window.localStorage.setItem(storageKey, "1");
-    return demoUser;
+  onLoadUser: async () => (await client.getSession()).data?.user ?? null,
+  onLogin: async () => redirectToAuth("sign-in") as never,
+  onSignup: async () => redirectToAuth("sign-up") as never,
+  onLogout: async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    window.location.reload();
   },
-  onSignup: async () => {
-    window.localStorage.setItem(storageKey, "1");
-    return demoUser;
-  },
-  onLogout: async () => window.localStorage.removeItem(storageKey),
 };
 
 export function AuthProvider(props: { children: React.ReactNode }) {

@@ -1,46 +1,54 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
-import { DefaultLoader } from '#components/default-loader'
-import { getLastUsedWorkspace } from '#lib/last-used-workspace'
+import { DefaultLoader } from "#components/default-loader";
+import { getLastUsedWorkspace } from "#lib/last-used-workspace";
+import { convexClient } from "#lib/trpc/react";
+import { templateConfectRefs } from "../../../../../packages/convex/src/refs";
 
-export const Route = createFileRoute('/_app/')({
+export const Route = createFileRoute("/_app/")({
   beforeLoad: async ({ context }) => {
     if (!context.session) {
       throw redirect({
-        to: '/login',
-      })
+        to: "/login",
+      });
     }
 
-    const user = await context.trpc.auth.me.ensureData().catch(() => {
-      return null
-    })
+    await convexClient.mutation(
+      (templateConfectRefs as any).public.access.provisioning.ensureProvisioned,
+      {},
+    );
+
+    const user: any = await context.trpc.auth.me.ensureData().catch(() => {
+      return null;
+    });
 
     if (!user) {
       throw redirect({
-        to: '/login',
-      })
+        to: "/login",
+      });
     }
 
-    const lastUsedWorkspace = getLastUsedWorkspace()
+    const lastUsedWorkspace = getLastUsedWorkspace();
 
     const workspace = lastUsedWorkspace
-      ? (user.workspaces.find(({ slug }) => slug === lastUsedWorkspace) ??
-        user.workspaces[0])
-      : user.workspaces[0]
+      ? (user.workspaces.find(
+          (workspace: { slug: string }) => workspace.slug === lastUsedWorkspace,
+        ) ?? user.workspaces[0])
+      : user.workspaces[0];
 
     if (!workspace) {
       throw redirect({
-        to: '/getting-started',
-      })
+        to: "/getting-started",
+      });
     }
 
     throw redirect({
-      to: '/$workspace',
+      to: "/$workspace",
       params: {
         workspace: workspace.slug,
       },
-    })
+    });
   },
   pendingComponent: DefaultLoader,
   component: () => null,
-})
+});

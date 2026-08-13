@@ -1,69 +1,76 @@
-import { demoUser, demoWorkspace } from "#lib/backend-fixtures";
+import { convexQuery, useConvexQuery } from "@convex-dev/react-query";
+import { ConvexReactClient } from "convex/react";
+import {
+  useQuery,
+  useMutation as useTanstackMutation,
+} from "@tanstack/react-query";
+import { templateConfectRefs } from "../../../../../packages/convex/src/refs";
+import type React from "react";
 
-type Procedure = any;
+const convexUrl = import.meta.env.VITE_CONVEX_URL;
+export const convexClient = convexUrl
+  ? new ConvexReactClient(convexUrl)
+  : new Proxy({} as ConvexReactClient, {
+      get() {
+        throw new Error("VITE_CONVEX_URL is required for Convex access");
+      },
+    });
 
-const query = (path: readonly string[], input?: Procedure): Procedure => {
-  switch (path.join(".")) {
-    case "auth.me":
-      return demoUser;
-    case "workspaces.bySlug":
-      return input?.slug === demoWorkspace.slug ? demoWorkspace : null;
-    case "workspaceMembers.list":
-      return [
-        {
-          id: demoUser.id,
-          email: demoUser.email,
-          name: demoUser.name,
-          avatar: demoUser.image,
-          roles: ["admin"],
-          status: "active",
-        },
-      ];
-    case "billing.plans":
-      return [];
-    case "billing.account":
-      return { id: demoWorkspace.id, email: demoUser.email };
-    case "billing.listInvoices":
-      return [];
-    default:
-      return undefined;
-  }
+const refs = templateConfectRefs as any;
+export const realRefs = {
+  "auth.me": refs.public.auth.workspaces.me,
+  "workspaces.bySlug": refs.public.auth.workspaces.bySlug,
+  "workspaceMembers.list": refs.public.access.members.list,
 };
 
-const procedure = (path: readonly string[]): Procedure =>
-  new Proxy(() => undefined, {
+const neutral = (path: string) => {
+  throw new Error(`No Convex authority is registered for ${path}`);
+};
+export const assertRealAuthority = (path: string) => {
+  if (!(path in realRefs)) neutral(path);
+};
+
+function procedure(path: string[]): any {
+  const key = path.join(".");
+  return new Proxy(() => undefined, {
     get: (_target, property) => {
-      if (property === "useQuery")
-        return (input?: Procedure) => ({
-          data: query(path, input),
-          isLoading: false,
-          isPending: false,
-        });
-      if (property === "useSuspenseQuery")
-        return (input?: Procedure) => [
-          query(path, input),
-          { data: query(path, input) },
-        ];
-      if (property === "useMutation")
-        return () => ({
-          mutate: () => undefined,
-          mutateAsync: async () => undefined,
-          isPending: false,
-          reset: () => undefined,
-        });
-      if (property === "ensureData")
-        return async (input?: Procedure) => query(path, input);
-      if (property === "getData")
-        return (input?: Procedure) => query(path, input);
+      if (property === "useQuery") {
+        const ref = realRefs[key as keyof typeof realRefs];
+        return (input?: Record<string, unknown>) => {
+          if (!ref) neutral(key);
+          return useConvexQuery(ref, input ?? {});
+        };
+      }
+      if (property === "useSuspenseQuery") {
+        const ref = realRefs[key as keyof typeof realRefs];
+        return (input?: Record<string, unknown>) => {
+          if (!ref) neutral(key);
+          const result = useQuery(convexQuery(ref, input ?? {}));
+          return [result.data, result];
+        };
+      }
+      if (property === "ensureData") {
+        const ref = realRefs[key as keyof typeof realRefs];
+        return async (input?: Record<string, unknown>) => {
+          if (!ref) neutral(key);
+          return convexClient.query(ref, input ?? {});
+        };
+      }
+      if (property === "getData") return () => undefined;
+      if (property === "useMutation") {
+        return () =>
+          useTanstackMutation({ mutationFn: async () => neutral(key) });
+      }
       if (property === "invalidate") return async () => undefined;
       return procedure([...path, String(property)]);
     },
   });
+}
 
 export const api = new Proxy(procedure([]), {
   get: (target, property) =>
     property === "useUtils" ? () => target : Reflect.get(target, property),
-}) as Procedure;
+}) as any;
 
 export const trpc = procedure([]);
 

@@ -1,17 +1,38 @@
 import { createRouter as createTanstackRouter } from "@tanstack/react-router";
+import { ConvexQueryClient } from "@convex-dev/react-query";
+import { QueryClient } from "@tanstack/react-query";
+import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
-import { getQueryClient } from "#lib/react-query";
 import { trpc } from "#lib/trpc/react";
 
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
-  return createTanstackRouter({
+  const convexQueryClient = new ConvexQueryClient(
+    import.meta.env.VITE_CONVEX_URL,
+  );
+  const queryClient = new QueryClient({
+    defaultOptions: {
+      queries: {
+        queryKeyHashFn: convexQueryClient.hashFn(),
+        queryFn: convexQueryClient.queryFn(),
+      },
+    },
+  });
+  convexQueryClient.connect(queryClient);
+  const router = createTanstackRouter({
     routeTree,
-    context: { queryClient: getQueryClient(), trpc },
+    context: {
+      queryClient,
+      trpc,
+      convexClient: convexQueryClient.convexClient,
+      convexQueryClient,
+    },
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
   });
+  setupRouterSsrQueryIntegration({ router, queryClient });
+  return router;
 }
 
 declare module "@tanstack/react-router" {
