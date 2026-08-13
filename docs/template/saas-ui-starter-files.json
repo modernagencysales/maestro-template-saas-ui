@@ -34,7 +34,7 @@
       "source": "apps/web/src/features/auth/auth-provider.tsx",
       "destination": "apps/web/src/features/auth/auth-provider.tsx",
       "sourceSha256": "9185809368d94f20e4ab16a5ba0a0c33760f8393c66e60bd316abdb69a3f9280",
-      "sha256": "12e7a9a52b5d452acb1973c7c8ab0cf19d8752295b5fdccb69eeb3ae0ded3793",
+      "sha256": "f094e4396dcc80d5e721ac3bf2a45e100e6d59266eddfea06132dea7a6cbbf71",
       "adapted": true
     },
     {
@@ -762,14 +762,14 @@
       "source": "apps/web/src/router.tsx",
       "destination": "apps/web/src/router.tsx",
       "sourceSha256": "766662f448c564c65a9fce2ac3de05141e4bb2afa2e2ae0d7259deacc8c42785",
-      "sha256": "23acbabd48c32c3c2cefe3e3785deb1fd16d603eef946d84fa97208f69937739",
+      "sha256": "163365cbe884348eb792565df2d3a38bccc148e31d60c82e6857a0c3ac640959",
       "adapted": true
     },
     {
       "source": "apps/web/src/routes/__root.tsx",
       "destination": "apps/web/src/routes/__root.tsx",
       "sourceSha256": "875a4f123b593820dc5d561bd714ab09fd2407c0054f2008dcb4dbabded6c701",
-      "sha256": "c14050f69442817f1b9acf903997384c3920ddc01dfc5f5768c1691a0ba1aa22",
+      "sha256": "e8f29245c5c436694f576dfabcd45bab7715327af11170388c4c88d03a63c412",
       "adapted": true
     },
     {
@@ -951,15 +951,15 @@
       "source": "apps/web/src/routes/_app/index.tsx",
       "destination": "apps/web/src/routes/_app/index.tsx",
       "sourceSha256": "1863f77e8fdd28809250795c60b4a453462d91a2240e13bb9698a9aeef08525b",
-      "sha256": "7ef48bd0fe77dcc87aebcc8402509a33884efa3036bcb3ef261b1cdebc695586",
+      "sha256": "e788faccd4c3a155ca9bd183951510cef07228d3d96bb4ba0c18812e34cff704",
       "adapted": true
     },
     {
       "source": "apps/web/src/routes/_auth.tsx",
       "destination": "apps/web/src/routes/_auth.tsx",
       "sourceSha256": "9b0ee0371edac0a345e18f9dc970e7ccc7b86c8726aa99cb8013d738bda2baf7",
-      "sha256": "9b0ee0371edac0a345e18f9dc970e7ccc7b86c8726aa99cb8013d738bda2baf7",
-      "adapted": false
+      "sha256": "18e3c0b8452634def0e7b206874514f39b23d1c89e174f64b0627bc05585c9b7",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_auth/forgot-password.tsx",
@@ -993,7 +993,7 @@
       "source": "apps/web/src/routes/api/auth/$.ts",
       "destination": "apps/web/src/routes/api/auth/$.ts",
       "sourceSha256": "d7b07bf5aeec13884106876f5d5d9e6c4a3e3a6df81758d51b5fd08900f4009b",
-      "sha256": "e2aa3f5737b9944841f79f6197dd81b950181d697b336d08ce3391a540c7067e",
+      "sha256": "351e09872aeb6f5c87ca27f0a5cc26f60e41c9cd6070277d1aa5e39a631814b4",
       "adapted": true
     },
     {

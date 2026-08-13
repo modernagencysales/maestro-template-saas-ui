@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  loadInitialAuthForConvex,
   loadInitialAuth,
   stripAccessToken,
 } from "#lib/auth/workos-auth-loader";
@@ -37,6 +38,29 @@ describe("WorkOS auth adapter", () => {
         sessionId: "session_1",
       } as never),
     ).toEqual({ user: { id: "user_1" }, sessionId: "session_1" });
+  });
+
+  it("authenticates the router Convex client without serializing its token", async () => {
+    let fetchToken: (() => Promise<string | null>) | undefined;
+    const initialAuth = loadInitialAuthForConvex(
+      {
+        setAuth: (fetcher) => {
+          fetchToken = fetcher;
+        },
+      },
+      () =>
+        ({
+          accessToken: "secret",
+          user: { id: "user_1" },
+          sessionId: "session_1",
+        }) as never,
+    );
+
+    expect(initialAuth).toEqual({
+      user: { id: "user_1" },
+      sessionId: "session_1",
+    });
+    await expect(fetchToken?.()).resolves.toBe("secret");
   });
 
   it("returns an unauthenticated initial state when auth context is unavailable", () => {

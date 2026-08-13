@@ -5,6 +5,11 @@ import type {
 } from "@workos/authkit-tanstack-react-start";
 
 type RawAuth = UserInfo | NoUserInfo;
+type ConvexAuthClient = {
+  readonly setAuth: (fetchToken: () => Promise<string | null>) => void;
+};
+const isHttpErrorStatus = (status: unknown) =>
+  typeof status === "number" && status >= 400;
 
 export function isRecoverableAuthError(error: unknown): boolean {
   if (error === "HTTPError") return true;
@@ -19,9 +24,8 @@ export function isRecoverableAuthError(error: unknown): boolean {
   return (
     candidate.name === "HTTPError" ||
     candidate.message === "HTTPError" ||
-    (typeof candidate.status === "number" && candidate.status >= 400) ||
-    (typeof candidate.response?.status === "number" &&
-      candidate.response.status >= 400) ||
+    isHttpErrorStatus(candidate.status) ||
+    isHttpErrorStatus(candidate.response?.status) ||
     isRecoverableAuthError(candidate.cause)
   );
 }
@@ -38,6 +42,23 @@ export function loadInitialAuth(
 ) {
   try {
     return stripAccessToken(getAuth());
+  } catch (error) {
+    if (!isRecoverableAuthError(error)) throw error;
+    return { user: null };
+  }
+}
+
+export function loadInitialAuthForConvex(
+  client: ConvexAuthClient,
+  getAuth: () => RawAuth = () => getAuthKitContext().auth(),
+) {
+  try {
+    const auth = getAuth();
+    if (auth.user) {
+      const token = auth.accessToken ?? null;
+      client.setAuth(async () => token);
+    }
+    return stripAccessToken(auth);
   } catch (error) {
     if (!isRecoverableAuthError(error)) throw error;
     return { user: null };

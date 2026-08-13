@@ -8,7 +8,12 @@ import {
 } from "./workos-cookie-session-storage";
 
 export function isLogoutRequest(request: Request): boolean {
-  return new URL(request.url).pathname.endsWith("/logout");
+  const url = new URL(request.url);
+  return (
+    request.method === "POST" &&
+    url.pathname.endsWith("/logout") &&
+    request.headers.get("Origin") === url.origin
+  );
 }
 
 export async function handleWorkosLogout(request: Request): Promise<Response> {

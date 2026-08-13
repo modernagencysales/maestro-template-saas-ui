@@ -1,4 +1,6 @@
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawn } from "node:child_process";
+import { once } from "node:events";
+import { createServer } from "node:net";
 import { dirname, join } from "node:path";
 import {
   mkdtempSync,
@@ -32,6 +34,35 @@ vi.mock("node:fs", async (importOriginal) => {
 });
 
 const { buildSaasApplicationTargetPlan } = await import("./saasApplication");
+
+async function availablePort() {
+  const server = createServer();
+  await new Promise<void>((resolve) => server.listen(0, "127.0.0.1", resolve));
+  const address = server.address();
+  const port = typeof address === "object" && address ? address.port : 0;
+  await new Promise<void>((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
+  return port;
+}
+
+async function waitForHttp(url: string) {
+  const deadline = Date.now() + 20_000;
+  let lastFailure = "no response";
+  while (Date.now() < deadline) {
+    try {
+      const response = await fetch(url);
+      if (response.status < 500) return response.status;
+      lastFailure = `${response.status}: ${(await response.text()).slice(-4_000)}`;
+    } catch (error) {
+      lastFailure = String(error);
+    }
+    await new Promise((resolve) => setTimeout(resolve, 100));
+  }
+  throw new Error(
+    `Generated server did not become ready at ${url}: ${lastFailure}`,
+  );
+}
 
 describe("SaaS UI generated target artifact boundary", () => {
   it("projects SSR-safe provider and resizer seams for upstream screens", () => {
@@ -148,7 +179,7 @@ describe("SaaS UI generated target artifact boundary", () => {
     ).toContain("Button");
   });
 
-  it("builds a freshly materialized customer target with frozen dependencies", () => {
+  it("builds and starts a freshly materialized customer target with frozen dependencies", async () => {
     const plan = buildSaasApplicationTargetPlan({ name: "Build Proof" });
     const target = mkdtempSync(join(tmpdir(), "saas-ui-generated-build-"));
     try {
@@ -212,7 +243,7 @@ describe("SaaS UI generated target artifact boundary", () => {
           try {
             return execFileSync("pnpm", args, {
               cwd: target,
-              env: { ...process.env, CI: "true" },
+              env: { ...process.env, CI: "true", NODE_ENV: "production" },
               stdio: "pipe",
               timeout: 180_000,
             });
@@ -225,6 +256,33 @@ describe("SaaS UI generated target artifact boundary", () => {
         })();
       command(["install", "--frozen-lockfile"]);
       command(["--dir", "apps/web", "build"]);
+
+      const port = await availablePort();
+      const server = spawn("node", [".output/server/index.mjs"], {
+        cwd: join(target, "apps/web"),
+        env: {
+          ...process.env,
+          HOST: "127.0.0.1",
+          NODE_ENV: "production",
+          PORT: String(port),
+        },
+        stdio: "pipe",
+      });
+      let output = "";
+      server.stdout.on("data", (chunk) => (output += chunk));
+      server.stderr.on("data", (chunk) => (output += chunk));
+      try {
+        expect(
+          await waitForHttp(`http://127.0.0.1:${port}/login`),
+        ).toBeLessThan(500);
+      } catch (error) {
+        throw new Error(`${String(error)}\n${output}`);
+      } finally {
+        if (server.exitCode === null) {
+          server.kill("SIGTERM");
+          await once(server, "exit");
+        }
+      }
     } finally {
       rmSync(target, { recursive: true, force: true });
     }

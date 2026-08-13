@@ -7,23 +7,35 @@ import {
 import { templateConfectRefs } from "@maestro-template/convex/refs";
 import type React from "react";
 
-const convexUrl = import.meta.env.VITE_CONVEX_URL;
-export const convexClient = convexUrl
-  ? new ConvexReactClient(convexUrl)
-  : new Proxy({} as ConvexReactClient, {
-      get() {
-        throw new Error("VITE_CONVEX_URL is required for Convex access");
-      },
-    });
-
 export const realRefs = {
   "auth.me": templateConfectRefs.public.auth.workspaces.me,
   "workspaces.bySlug": templateConfectRefs.public.auth.workspaces.bySlug,
   "workspaceMembers.list": templateConfectRefs.public.access.members.list,
 };
 
-type QueryResult = {
-  readonly data: unknown;
+export type CurrentUser = {
+  readonly id: string;
+  readonly email: string;
+  readonly name: string;
+  readonly image: null;
+  readonly workspaces: readonly Workspace[];
+};
+export type Workspace = {
+  readonly id: string;
+  readonly slug: string;
+  readonly name: string;
+  readonly logo?: string | null;
+};
+export type WorkspaceMember = {
+  readonly id: string;
+  readonly email: string;
+  readonly name: string;
+  readonly avatar: null;
+  readonly roles: readonly ("viewer" | "editor" | "admin" | "owner")[];
+  readonly status: "active";
+};
+type QueryResult<TData = unknown> = {
+  readonly data: TData;
   readonly isLoading?: boolean;
   readonly isPending?: boolean;
 };
@@ -33,29 +45,29 @@ type MutationResult = {
   readonly isPending: boolean;
   readonly reset: () => void;
 };
-type StarterProcedure = {
-  readonly useQuery: (input?: Record<string, unknown>) => QueryResult;
+type StarterProcedure<TData = unknown> = {
+  readonly useQuery: (input?: Record<string, unknown>) => QueryResult<TData>;
   readonly useSuspenseQuery: (
     input?: Record<string, unknown>,
-  ) => readonly [unknown, QueryResult];
-  readonly ensureData: (input?: Record<string, unknown>) => Promise<unknown>;
-  readonly getData: (input?: Record<string, unknown>) => unknown;
+  ) => readonly [TData, QueryResult<TData>];
+  readonly ensureData: (input?: Record<string, unknown>) => Promise<TData>;
+  readonly getData: (input?: Record<string, unknown>) => TData | undefined;
   readonly useMutation: (options?: Record<string, unknown>) => MutationResult;
   readonly invalidate: () => Promise<void>;
 };
 export type CompatibilityApi = {
   readonly auth: {
-    readonly me: StarterProcedure;
+    readonly me: StarterProcedure<CurrentUser>;
     readonly listAccounts: StarterProcedure;
   };
   readonly workspaces: {
-    readonly bySlug: StarterProcedure;
+    readonly bySlug: StarterProcedure<Workspace | null>;
     readonly create: StarterProcedure;
     readonly slugAvailable: StarterProcedure;
     readonly update: StarterProcedure;
   };
   readonly workspaceMembers: {
-    readonly list: StarterProcedure;
+    readonly list: StarterProcedure<readonly WorkspaceMember[]>;
     readonly invite: StarterProcedure;
     readonly removeMember: StarterProcedure;
     readonly updateRoles: StarterProcedure;
@@ -145,7 +157,10 @@ const neutralData = (path: string) => (path === "billing.account" ? null : []);
 export const neutralMutationValue = (path: string) =>
   isNeutral(path) ? null : neutral(path);
 
-function procedure(path: string[]): StarterProcedure {
+function procedure<TData = unknown>(
+  path: string[],
+  client?: Pick<ConvexReactClient, "query">,
+): StarterProcedure<TData> {
   const key = path.join(".");
   const ref = realRefs[key as keyof typeof realRefs];
   return {
@@ -155,23 +170,29 @@ function procedure(path: string[]): StarterProcedure {
         const data = neutralData(key);
         return { data, isLoading: false, isPending: false };
       }
-      return useConvexQuery(ref, input ?? {});
+      return useConvexQuery(ref, input ?? {}) as QueryResult<TData>;
     },
     useSuspenseQuery: (input) => {
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) {
         const data = neutralData(key);
-        return [data, { data, isLoading: false, isPending: false }];
+        return [
+          data as TData,
+          { data: data as TData, isLoading: false, isPending: false },
+        ];
       }
       const result = useQuery(convexQuery(ref, input ?? {}));
-      return [result.data, result];
+      return [result.data as TData, result as QueryResult<TData>];
     },
     ensureData: async (input) => {
       if (!ref && !isNeutral(key)) neutral(key);
-      if (!ref) return neutralData(key);
-      return convexClient.query(ref, input ?? {});
+      if (!ref) return neutralData(key) as TData;
+      if (!client)
+        throw new Error(`Router Convex client is required for ${key}`);
+      return client.query(ref, input ?? {}) as Promise<TData>;
     },
-    getData: () => (isNeutral(key) ? neutralData(key) : undefined),
+    getData: () =>
+      (isNeutral(key) ? neutralData(key) : undefined) as TData | undefined,
     useMutation: () =>
       useTanstackMutation({
         mutationFn: async () => neutralMutationValue(key),
@@ -180,67 +201,77 @@ function procedure(path: string[]): StarterProcedure {
   };
 }
 
-export const api: CompatibilityApi = {
-  auth: {
-    me: procedure(["auth", "me"]),
-    listAccounts: procedure(["auth", "listAccounts"]),
-  },
-  workspaces: {
-    bySlug: procedure(["workspaces", "bySlug"]),
-    create: procedure(["workspaces", "create"]),
-    slugAvailable: procedure(["workspaces", "slugAvailable"]),
-    update: procedure(["workspaces", "update"]),
-  },
-  workspaceMembers: {
-    list: procedure(["workspaceMembers", "list"]),
-    invite: procedure(["workspaceMembers", "invite"]),
-    removeMember: procedure(["workspaceMembers", "removeMember"]),
-    updateRoles: procedure(["workspaceMembers", "updateRoles"]),
-    notificationSettings: procedure([
-      "workspaceMembers",
-      "notificationSettings",
-    ]),
-    updateNotificationSettings: procedure([
-      "workspaceMembers",
-      "updateNotificationSettings",
-    ]),
-    invitation: procedure(["workspaceMembers", "invitation"]),
-    acceptInvitation: procedure(["workspaceMembers", "acceptInvitation"]),
-  },
-  contacts: {
-    listByType: procedure(["contacts", "listByType"]),
-    byId: procedure(["contacts", "byId"]),
-    activitiesById: procedure(["contacts", "activitiesById"]),
-    create: procedure(["contacts", "create"]),
-    update: procedure(["contacts", "update"]),
-    updateTags: procedure(["contacts", "updateTags"]),
-    addComment: procedure(["contacts", "addComment"]),
-    removeComment: procedure(["contacts", "removeComment"]),
-  },
-  notifications: { inbox: procedure(["notifications", "inbox"]) },
-  billing: {
-    plans: procedure(["billing", "plans"]),
-    account: procedure(["billing", "account"]),
-    listInvoices: procedure(["billing", "listInvoices"]),
-    updateBillingDetails: procedure(["billing", "updateBillingDetails"]),
-    createBillingPortalSession: procedure([
-      "billing",
-      "createBillingPortalSession",
-    ]),
-    createCheckoutSession: procedure(["billing", "createCheckoutSession"]),
-    setSubscriptionPlan: procedure(["billing", "setSubscriptionPlan"]),
-  },
-  users: {
-    subscribeToNewsletter: procedure(["users", "subscribeToNewsletter"]),
-    updateProfile: procedure(["users", "updateProfile"]),
-  },
-  tags: {
-    create: procedure(["tags", "create"]),
-    update: procedure(["tags", "update"]),
-    delete: procedure(["tags", "delete"]),
-  },
-  useUtils: () => api,
+export const createCompatibilityApi = (
+  client?: Pick<ConvexReactClient, "query">,
+): CompatibilityApi => {
+  const api: CompatibilityApi = {
+    auth: {
+      me: procedure<CurrentUser>(["auth", "me"], client),
+      listAccounts: procedure(["auth", "listAccounts"], client),
+    },
+    workspaces: {
+      bySlug: procedure<Workspace | null>(["workspaces", "bySlug"], client),
+      create: procedure(["workspaces", "create"], client),
+      slugAvailable: procedure(["workspaces", "slugAvailable"], client),
+      update: procedure(["workspaces", "update"], client),
+    },
+    workspaceMembers: {
+      list: procedure<readonly WorkspaceMember[]>(
+        ["workspaceMembers", "list"],
+        client,
+      ),
+      invite: procedure(["workspaceMembers", "invite"]),
+      removeMember: procedure(["workspaceMembers", "removeMember"]),
+      updateRoles: procedure(["workspaceMembers", "updateRoles"]),
+      notificationSettings: procedure([
+        "workspaceMembers",
+        "notificationSettings",
+      ]),
+      updateNotificationSettings: procedure([
+        "workspaceMembers",
+        "updateNotificationSettings",
+      ]),
+      invitation: procedure(["workspaceMembers", "invitation"]),
+      acceptInvitation: procedure(["workspaceMembers", "acceptInvitation"]),
+    },
+    contacts: {
+      listByType: procedure(["contacts", "listByType"]),
+      byId: procedure(["contacts", "byId"]),
+      activitiesById: procedure(["contacts", "activitiesById"]),
+      create: procedure(["contacts", "create"]),
+      update: procedure(["contacts", "update"]),
+      updateTags: procedure(["contacts", "updateTags"]),
+      addComment: procedure(["contacts", "addComment"]),
+      removeComment: procedure(["contacts", "removeComment"]),
+    },
+    notifications: { inbox: procedure(["notifications", "inbox"]) },
+    billing: {
+      plans: procedure(["billing", "plans"]),
+      account: procedure(["billing", "account"]),
+      listInvoices: procedure(["billing", "listInvoices"]),
+      updateBillingDetails: procedure(["billing", "updateBillingDetails"]),
+      createBillingPortalSession: procedure([
+        "billing",
+        "createBillingPortalSession",
+      ]),
+      createCheckoutSession: procedure(["billing", "createCheckoutSession"]),
+      setSubscriptionPlan: procedure(["billing", "setSubscriptionPlan"]),
+    },
+    users: {
+      subscribeToNewsletter: procedure(["users", "subscribeToNewsletter"]),
+      updateProfile: procedure(["users", "updateProfile"]),
+    },
+    tags: {
+      create: procedure(["tags", "create"]),
+      update: procedure(["tags", "update"]),
+      delete: procedure(["tags", "delete"]),
+    },
+    useUtils: () => api,
+  };
+  return api;
 };
+
+export const api = createCompatibilityApi();
 
 export const trpc = api;
 

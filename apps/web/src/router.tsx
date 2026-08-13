@@ -3,7 +3,7 @@ import { ConvexQueryClient } from "@convex-dev/react-query";
 import { QueryClient } from "@tanstack/react-query";
 import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
-import { trpc } from "#lib/trpc/react";
+import { createCompatibilityApi } from "#lib/trpc/react";
 
 import { routeTree } from "./routeTree.gen";
 
@@ -24,7 +24,7 @@ export function getRouter() {
     routeTree,
     context: {
       queryClient,
-      trpc,
+      trpc: createCompatibilityApi(convexQueryClient.convexClient),
       convexClient: convexQueryClient.convexClient,
       convexQueryClient,
     },

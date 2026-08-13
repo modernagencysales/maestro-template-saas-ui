@@ -36,7 +36,11 @@ export const authService: Pick<
   onLogin: async () => redirectToAuth("sign-in"),
   onSignup: async () => redirectToAuth("sign-up"),
   onLogout: async () => {
-    window.location.assign("/api/auth/logout");
+    const form = document.createElement("form");
+    form.method = "post";
+    form.action = "/api/auth/logout";
+    document.body.append(form);
+    form.submit();
   },
 };
 

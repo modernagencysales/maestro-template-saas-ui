@@ -17,7 +17,7 @@ import { ModalsProvider } from "@workspace/ui/modals";
 import { seo } from "#utils/seo.ts";
 
 import { Provider } from "../provider.tsx";
-import { loadInitialAuth } from "#lib/auth/workos-auth-loader";
+import { loadInitialAuthForConvex } from "#lib/auth/workos-auth-loader";
 import { useAuthFromAuthKit } from "#lib/auth/workos-auth";
 import type { CompatibilityApi } from "#lib/trpc/react";
 
@@ -27,7 +27,10 @@ export const Route = createRootRouteWithContext<{
   convexClient: import("convex/react").ConvexReactClient;
   convexQueryClient: import("@convex-dev/react-query").ConvexQueryClient;
 }>()({
-  loader: () => ({ auth: loadInitialAuth() }),
+  beforeLoad: ({ context }) => ({
+    auth: loadInitialAuthForConvex(context.convexClient),
+  }),
+  loader: ({ context }) => ({ auth: context.auth }),
   head: () => ({
     meta: [
       {

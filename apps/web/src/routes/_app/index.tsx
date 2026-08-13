@@ -2,12 +2,7 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { DefaultLoader } from "#components/default-loader";
 import { getLastUsedWorkspace } from "#lib/last-used-workspace";
-import { convexClient } from "#lib/trpc/react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
-
-type CurrentUser = {
-  readonly workspaces: readonly { readonly slug: string }[];
-};
 
 export const Route = createFileRoute("/_app/")({
   beforeLoad: async ({ context }) => {
@@ -17,14 +12,12 @@ export const Route = createFileRoute("/_app/")({
       });
     }
 
-    await convexClient.mutation(
+    await context.convexClient.mutation(
       templateConfectRefs.public.access.provisioning.ensureProvisioned,
       {},
     );
 
-    const user = (await context.trpc.auth.me
-      .ensureData()
-      .catch(() => null)) as CurrentUser | null;
+    const user = await context.trpc.auth.me.ensureData().catch(() => null);
 
     if (!user) {
       throw redirect({
