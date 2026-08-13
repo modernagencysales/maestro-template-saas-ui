@@ -219,6 +219,41 @@ describe("saas application blueprint", () => {
     ).toBe(true);
   });
 
+  it("projects a tsconfig for every retained root project reference", () => {
+    const selections = [
+      { label: "neutral", patterns: [] as const },
+      { label: "records", patterns: ["records-example"] as const },
+      { label: "workflow", patterns: ["workflow-automation"] as const },
+    ];
+
+    const missingBySelection = selections.map(({ label, patterns }) => {
+      const plan = buildSaasApplicationTargetPlan({
+        name: "Selected App",
+        patterns,
+      });
+      const rootTsconfig = plan.entries.find(
+        ({ path }) => path === "tsconfig.json",
+      );
+      if (rootTsconfig === undefined) throw new Error("missing root tsconfig");
+      const root = JSON.parse(rootTsconfig.content) as {
+        readonly references?: readonly { readonly path?: string }[];
+      };
+      const entries = new Set(plan.entries.map(({ path }) => path));
+      const missing = (root.references ?? [])
+        .map(({ path }) => path?.replace(/^\.\//u, ""))
+        .filter(
+          (path): path is string =>
+            path !== undefined && !entries.has(`${path}/tsconfig.json`),
+        );
+
+      return { label, missing };
+    });
+
+    expect(
+      missingBySelection.filter(({ missing }) => missing.length > 0),
+    ).toEqual([]);
+  });
+
   it("projects workflow data resources only when workflow is selected", () => {
     const resources = (patterns: readonly "workflow-automation"[] = []) => {
       const entry = buildSaasApplicationTargetPlan({
@@ -1900,6 +1935,22 @@ Feature: Reconcile disputed invoices
         ".npmrc",
         ".prettierignore",
         "tsconfig.json",
+        "apps/cli/tsconfig.json",
+        "packages/convex/tsconfig.json",
+        "packages/editor-core/tsconfig.json",
+        "packages/editor-react/tsconfig.json",
+        "packages/workflow-ui/tsconfig.json",
+        "packages/template-core/tsconfig.json",
+        "packages/integrations/tsconfig.json",
+        "packages/notifications/tsconfig.json",
+        "packages/storage/tsconfig.json",
+        "packages/observability/tsconfig.json",
+        "packages/search/tsconfig.json",
+        "tooling/agent-pack/tsconfig.json",
+        "tooling/quality/tsconfig.json",
+        "tooling/generators/tsconfig.json",
+        "tooling/evals/tsconfig.json",
+        "tooling/release/tsconfig.json",
         "package.json",
         "pnpm-lock.yaml",
         "patches/@confect__cli@10.0.0-next.9.patch",

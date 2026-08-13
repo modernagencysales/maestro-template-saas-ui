@@ -338,6 +338,25 @@ export const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
   "tooling/quality/mutation-script.test.mts",
 ] as const;
 
+export const CURRENT_CUSTOMER_PROJECT_TSCONFIGS = [
+  "apps/cli/tsconfig.json",
+  "packages/convex/tsconfig.json",
+  "packages/editor-core/tsconfig.json",
+  "packages/editor-react/tsconfig.json",
+  "packages/workflow-ui/tsconfig.json",
+  "packages/template-core/tsconfig.json",
+  "packages/integrations/tsconfig.json",
+  "packages/notifications/tsconfig.json",
+  "packages/storage/tsconfig.json",
+  "packages/observability/tsconfig.json",
+  "packages/search/tsconfig.json",
+  "tooling/agent-pack/tsconfig.json",
+  "tooling/quality/tsconfig.json",
+  "tooling/generators/tsconfig.json",
+  "tooling/evals/tsconfig.json",
+  "tooling/release/tsconfig.json",
+] as const;
+
 const exclusionArguments = (
   paths: readonly string[],
   packagePrefix = "",
@@ -1497,6 +1516,10 @@ export const buildSaasRegistrationProjections = (
             path: "tsconfig.json",
             content: customerRootTsconfig(workflowSelected),
           },
+          ...CURRENT_CUSTOMER_PROJECT_TSCONFIGS.map((path) => ({
+            path,
+            content: currentSource(path),
+          })),
         ]
       : []),
     { path: "package.json", content: customerPackage(current, options) },

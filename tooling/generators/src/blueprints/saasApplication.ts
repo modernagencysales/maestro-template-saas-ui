@@ -651,6 +651,20 @@ export const SAAS_APPLICATION_PARAMETERIZED_ENTRIES = [
 ] as const;
 
 const SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS = [
+  ["apps/cli/tsconfig.json", "copy"],
+  ["packages/convex/tsconfig.json", "copy"],
+  ["packages/editor-core/tsconfig.json", "copy"],
+  ["packages/editor-react/tsconfig.json", "copy"],
+  ["packages/workflow-ui/tsconfig.json", "copy"],
+  ["packages/template-core/tsconfig.json", "copy"],
+  ["packages/integrations/tsconfig.json", "copy"],
+  ["packages/notifications/tsconfig.json", "copy"],
+  ["packages/storage/tsconfig.json", "copy"],
+  ["packages/observability/tsconfig.json", "copy"],
+  ["packages/search/tsconfig.json", "copy"],
+  ["tooling/agent-pack/tsconfig.json", "copy"],
+  ["tooling/quality/tsconfig.json", "copy"],
+  ["tooling/generators/tsconfig.json", "copy"],
   [".claude/settings.json", "generate"],
   [".npmrc", "copy"],
   [".prettierignore", "copy"],
