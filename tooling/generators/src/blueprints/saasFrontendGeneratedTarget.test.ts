@@ -247,7 +247,12 @@ describe("SaaS UI generated target artifact boundary", () => {
           try {
             return execFileSync("pnpm", args, {
               cwd: target,
-              env: { ...process.env, CI: "true", NODE_ENV: "production" },
+              env: {
+                ...process.env,
+                CI: "true",
+                NODE_ENV: "production",
+                VITE_CONVEX_URL: "https://generated-target-test.convex.cloud",
+              },
               stdio: "pipe",
               timeout: 180_000,
             });
@@ -271,6 +276,7 @@ describe("SaaS UI generated target artifact boundary", () => {
           HOST: "127.0.0.1",
           NODE_ENV: "production",
           PORT: String(port),
+          VITE_CONVEX_URL: "https://generated-target-test.convex.cloud",
         },
         stdio: "pipe",
       });
