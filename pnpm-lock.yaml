@@ -62,9 +62,6 @@ importers:
       "@stryker-mutator/vitest-runner":
         specifier: 9.6.1
         version: 9.6.1(@stryker-mutator/core@9.6.1(@types/node@22.20.0))(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(jsdom@30.0.1)(lightningcss@1.33.0)(tsx@4.22.4)(yaml@2.9.0))
-      "@trivago/prettier-plugin-sort-imports":
-        specifier: ^6.0.2
-        version: 6.0.2(prettier@3.9.5)
       "@types/node":
         specifier: ^22.0.0
         version: 22.20.0
@@ -90,7 +87,7 @@ importers:
         specifier: 1.10.5
         version: 1.10.5
       prettier:
-        specifier: 3.9.5
+        specifier: ^3.0.0
         version: 3.9.5
       tsx:
         specifier: ^4.0.0
@@ -5559,28 +5556,6 @@ packages:
       "@tiptap/core": 3.30.0
       "@tiptap/pm": 3.30.0
 
-  "@trivago/prettier-plugin-sort-imports@6.0.2":
-    resolution:
-      {
-        integrity: sha512-3DgfkukFyC/sE/VuYjaUUWoFfuVjPK55vOFDsxD56XXynFMCZDYFogH2l/hDfOsQAm1myoU/1xByJ3tWqtulXA==,
-      }
-    engines: { node: ">= 20" }
-    peerDependencies:
-      "@vue/compiler-sfc": 3.x
-      prettier: 2.x - 3.x
-      prettier-plugin-ember-template-tag: ">= 2.0.0"
-      prettier-plugin-svelte: 3.x
-      svelte: 4.x || 5.x
-    peerDependenciesMeta:
-      "@vue/compiler-sfc":
-        optional: true
-      prettier-plugin-ember-template-tag:
-        optional: true
-      prettier-plugin-svelte:
-        optional: true
-      svelte:
-        optional: true
-
   "@ts-morph/common@0.27.0":
     resolution:
       {
@@ -10144,12 +10119,6 @@ packages:
         integrity: sha512-OGlZQpz2yfahA/Rd1Y8Cd9SIEsqvXkLVoSw/cgwhnhFMDbsQFeZYoJJ7bIZBS9BcamUW96asq/npPWugM+RQBw==,
       }
 
-  javascript-natural-sort@0.7.1:
-    resolution:
-      {
-        integrity: sha512-nO6jcEfZWQXDhOiBtG2KvKyEptz7RVbpGP4vTD2hLBdmNQSsCiicO2Ioinv6UI4y9ukqnBpy+XZ9H6uLNgJTlw==,
-      }
-
   jiti@2.7.0:
     resolution:
       {
@@ -10602,12 +10571,6 @@ packages:
         integrity: sha512-gvVijfZvn7R+2qyPX8mAuKcFGDf6Nc61GdvGafQsHL0sBIxfKzA+usWn4GFC/bk+QdwPUD4kWFJLhElipq+0VA==,
       }
     engines: { node: ^12.20.0 || ^14.13.1 || >=16.0.0 }
-
-  lodash-es@4.18.1:
-    resolution:
-      {
-        integrity: sha512-J8xewKD/Gk22OZbhpOVSwcs60zhd95ESDwezOFuA3/099925PdHJ7OFHNTGtajL3AlZkykD32HykiMo+BIBI8A==,
-      }
 
   lodash._reinterpolate@3.0.0:
     resolution:
@@ -11302,12 +11265,6 @@ packages:
       }
     engines: { node: ">=6" }
 
-  parse-imports-exports@0.2.4:
-    resolution:
-      {
-        integrity: sha512-4s6vd6dx1AotCx/RCI2m7t7GCh5bDRUtGNvRfHSP2wbBQdMi67pPe7mtzmgwcaQ8VKK/6IB7Glfyu3qdZJPybQ==,
-      }
-
   parse-json@5.2.0:
     resolution:
       {
@@ -11328,12 +11285,6 @@ packages:
         integrity: sha512-TXfryirbmq34y8QBwgqCVLi+8oA3oWx2eAnSn62ITyEhEYaWRlVZ2DvMM9eZbMs/RfxPu/PK/aBLyGj4IrqMHw==,
       }
     engines: { node: ">=18" }
-
-  parse-statements@1.0.11:
-    resolution:
-      {
-        integrity: sha512-HlsyYdMBnbPQ9Jr/VgJ1YF4scnldvJpJxCVx6KgqPL4dxppsWrJHCIIxQXMJrqGnsRkNPATbeMJ8Yxu7JMsYcA==,
-      }
 
   parse5@8.0.1:
     resolution:
@@ -17216,20 +17167,6 @@ snapshots:
       "@tiptap/core": 3.30.0(@tiptap/pm@3.30.0)
       "@tiptap/pm": 3.30.0
 
-  "@trivago/prettier-plugin-sort-imports@6.0.2(prettier@3.9.5)":
-    dependencies:
-      "@babel/generator": 7.29.7
-      "@babel/parser": 7.29.7
-      "@babel/traverse": 7.29.7
-      "@babel/types": 7.29.7
-      javascript-natural-sort: 0.7.1
-      lodash-es: 4.18.1
-      minimatch: 9.0.9
-      parse-imports-exports: 0.2.4
-      prettier: 3.9.5
-    transitivePeerDependencies:
-      - supports-color
-
   "@ts-morph/common@0.27.0":
     dependencies:
       fast-glob: 3.3.3
@@ -20772,8 +20709,6 @@ snapshots:
     optionalDependencies:
       "@pkgjs/parseargs": 0.11.0
 
-  javascript-natural-sort@0.7.1: {}
-
   jiti@2.7.0: {}
 
   jose@6.2.3: {}
@@ -21031,8 +20966,6 @@ snapshots:
   locate-path@7.2.0:
     dependencies:
       p-locate: 6.0.0
-
-  lodash-es@4.18.1: {}
 
   lodash._reinterpolate@3.0.0: {}
 
@@ -21470,10 +21403,6 @@ snapshots:
     dependencies:
       callsites: 3.1.0
 
-  parse-imports-exports@0.2.4:
-    dependencies:
-      parse-statements: 1.0.11
-
   parse-json@5.2.0:
     dependencies:
       "@babel/code-frame": 7.29.7
@@ -21488,8 +21417,6 @@ snapshots:
       type-fest: 4.41.0
 
   parse-ms@4.0.0: {}
-
-  parse-statements@1.0.11: {}
 
   parse5@8.0.1:
     dependencies:
