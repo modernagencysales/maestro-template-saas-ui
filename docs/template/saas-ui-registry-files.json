@@ -6,7 +6,8 @@
       "source": "packages/blocks/drawers/add-contact-drawer/add-contact-drawer.tsx",
       "destination": "apps/web/src/components/add-contact-drawer/add-contact-drawer.tsx",
       "sourceSha256": "1481c3d483c0edc654cc00388cd02796dc143192edb4feeac9f7feec64f483a7",
-      "sha256": "85654903ed35676e49148a921afb18c9ee0bc11df4c2d7571173ab850a286056"
+      "sha256": "85654903ed35676e49148a921afb18c9ee0bc11df4c2d7571173ab850a286056",
+      "adapted": true
     },
     {
       "source": "packages/blocks/communication/chat-details/chat-details.tsx",
@@ -732,7 +733,8 @@
       "source": "packages/blocks/hooks/use-open-state.ts",
       "destination": "apps/web/src/hooks/use-open-state.ts",
       "sourceSha256": "9187bd31e9386bbafd32b1877ec95945a0c77ba4fccce2996d7b6726da7df374",
-      "sha256": "90511b80022cdd7036746f09dcae4697a2c93da6f847d0f743e7d63bb97b4970"
+      "sha256": "90511b80022cdd7036746f09dcae4697a2c93da6f847d0f743e7d63bb97b4970",
+      "adapted": true
     }
   ]
 }

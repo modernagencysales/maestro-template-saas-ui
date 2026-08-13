@@ -208,6 +208,7 @@ describe("complete Saas UI Pro registry materialization", () => {
         destination: `apps/web/${path}`,
         sourceSha256,
         sha256,
+        adapted: false,
       })),
     );
     expect(

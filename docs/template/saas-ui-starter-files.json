@@ -17,6 +17,27 @@
       "adapted": false
     },
     {
+      "source": "apps/web/src/components/default-error-page.tsx",
+      "destination": "apps/web/src/components/default-error-page.tsx",
+      "sourceSha256": "a3ea441ab56d65d6b8b4a4ce3efcd8de0db6cfe33e908088916822dd32d6a091",
+      "sha256": "a3ea441ab56d65d6b8b4a4ce3efcd8de0db6cfe33e908088916822dd32d6a091",
+      "adapted": false
+    },
+    {
+      "source": "apps/web/src/components/default-loader.tsx",
+      "destination": "apps/web/src/components/default-loader.tsx",
+      "sourceSha256": "04534f73fc800a0b806a137f247d85edd7d54acc7303c266c0a03eb8e450fb10",
+      "sha256": "04534f73fc800a0b806a137f247d85edd7d54acc7303c266c0a03eb8e450fb10",
+      "adapted": false
+    },
+    {
+      "source": "apps/web/src/components/link-button.tsx",
+      "destination": "apps/web/src/components/link-button.tsx",
+      "sourceSha256": "ecae7fb77347b80b6e142c4442582971ba08a9baee47832e82cc12712b91e019",
+      "sha256": "ecae7fb77347b80b6e142c4442582971ba08a9baee47832e82cc12712b91e019",
+      "adapted": false
+    },
+    {
       "source": "apps/web/src/config/hotkeys.config.ts",
       "destination": "apps/web/src/config/hotkeys.config.ts",
       "sourceSha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",

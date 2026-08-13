@@ -37,6 +37,7 @@ type RegistryReceipt = Readonly<{
     destination: string;
     sourceSha256: string;
     sha256: string;
+    adapted: boolean;
   }>[];
 }>;
 
@@ -455,6 +456,46 @@ function starterOwnedDestinations(
   );
 }
 
+function adaptedRegistryFiles(
+  projectRoot: string | undefined,
+): Map<string, { source: string; sourceSha256: string; sha256: string }> {
+  if (!projectRoot) return new Map();
+  const path = join(projectRoot, "docs/template/saas-ui-registry-files.json");
+  if (!existsSync(path)) return new Map();
+  const files =
+    (
+      JSON.parse(readFileSync(path, "utf8")) as {
+        files?: readonly {
+          source?: string;
+          destination?: string;
+          sourceSha256?: string;
+          sha256?: string;
+          adapted?: boolean;
+        }[];
+      }
+    ).files ?? [];
+  return new Map(
+    files.flatMap((file) =>
+      file.adapted &&
+      file.source &&
+      file.destination &&
+      file.sourceSha256 &&
+      file.sha256
+        ? [
+            [
+              resolve(projectRoot, file.destination),
+              {
+                source: file.source,
+                sourceSha256: file.sourceSha256,
+                sha256: file.sha256,
+              },
+            ] as const,
+          ]
+        : [],
+    ),
+  );
+}
+
 function projectRootFor(targetRoot: string): string | undefined {
   let current = resolve(targetRoot);
   while (true) {
@@ -471,6 +512,7 @@ function registryReceipt(
   proRoot: string,
   targetRoot: string,
   records: readonly FileRecord[],
+  adaptedFiles: ReadonlyMap<string, { sha256: string }>,
 ): RegistryReceipt {
   return {
     schemaVersion: 1,
@@ -483,7 +525,8 @@ function registryReceipt(
         ? relative(projectRoot, join(targetRoot, path)).split("/").join("/")
         : path,
       sourceSha256,
-      sha256,
+      sha256: adaptedFiles.get(resolve(targetRoot, path))?.sha256 ?? sha256,
+      adapted: adaptedFiles.has(resolve(targetRoot, path)),
     })),
   };
 }
@@ -712,6 +755,7 @@ export async function materializeProRegistry({
     sourceFiles,
   );
   const { declarations } = resolved;
+  const adaptedFiles = adaptedRegistryFiles(projectRoot);
   await updatePackageManifest(resolvedTargetRoot, declarations);
 
   const config = {
@@ -737,7 +781,7 @@ export async function materializeProRegistry({
   const written = await writeFiles(
     resolved.sourceFiles,
     resolvedTargetRoot,
-    starterOwnedDestinations(projectRoot),
+    new Set([...starterOwnedDestinations(projectRoot), ...adaptedFiles.keys()]),
   );
   const uniqueUnresolved = unresolvedImports(
     resolved.sourceFiles,
@@ -748,6 +792,7 @@ export async function materializeProRegistry({
     resolvedProRoot,
     resolvedTargetRoot,
     written.records,
+    adaptedFiles,
   );
   await writeRegistryReceipt(projectRoot, receipt);
   await updateRegistryManifest(projectRoot, installed);
@@ -781,6 +826,7 @@ function difference(
     );
 }
 
+// eslint-disable-next-line complexity -- compares one pinned projection and its receipt atomically.
 export async function compareProRegistryProjection({
   proRoot,
   targetRoot,
@@ -867,10 +913,11 @@ export async function compareProRegistryProjection({
       const expectedSource = file.source.startsWith("registry:")
         ? file.source
         : relative(resolvedProRoot, file.source).split("/").join("/");
+      const adapted = receiptFile?.adapted === true;
       if (
         receiptFile?.source !== expectedSource ||
         receiptFile?.sourceSha256 !== file.sourceSha256 ||
-        receiptFile?.sha256 !== file.sha256
+        (!adapted && receiptFile?.sha256 !== file.sha256)
       )
         differences.push(
           `registry receipt projection mismatch: ${destination}`,
@@ -879,7 +926,11 @@ export async function compareProRegistryProjection({
         const actualHash = hash(
           await readFile(join(resolvedTargetRoot, file.path), "utf8"),
         );
-        if (actualHash !== file.sha256)
+        if (
+          adapted
+            ? actualHash !== receiptFile?.sha256
+            : actualHash !== file.sha256
+        )
           differences.push(`editable registry source drift: ${destination}`);
       } catch {
         differences.push(`editable registry source missing: ${destination}`);
