@@ -5,7 +5,9 @@ import {
   lstatSync,
   readFileSync,
   realpathSync,
+  readdirSync,
   statSync,
+  unlinkSync,
   writeFileSync,
 } from "node:fs";
 import { dirname, join, relative, resolve } from "node:path";
@@ -156,7 +158,9 @@ function assertEvidencePath(value: string): void {
   assertSafeMetadata(value, "evidence path");
   if (
     !value.startsWith("artifacts/saas-ui-golden/") ||
-    value.split("/").some((part) => part === "..")
+    value.split("/").some((part) => part === "..") ||
+    value.split("/").includes("playwright") ||
+    /(?:^|\/)server-errors-[^/]+\.jsonl$/u.test(value)
   ) {
     throw new Error(
       `evidence path must be repository-relative under artifacts/saas-ui-golden/: ${value}`,
@@ -196,6 +200,32 @@ function assertFreshEvidence(
         `Golden evidence path is not fresh for the recorded run: ${relativePath}`,
       );
   }
+}
+
+const CURATED_PNG =
+  /^(.+)-(reference|generated)-(desktop|mobile)-(light|dark)\.png$/u;
+
+export function curatedPngEvidencePaths(
+  repositoryRoot: string,
+): readonly string[] {
+  const evidenceRoot = resolve(repositoryRoot, "artifacts/saas-ui-golden");
+  const pngs = readdirSync(evidenceRoot)
+    .filter((name) => name.endsWith(".png"))
+    .sort((left, right) => left.localeCompare(right, "en"));
+  const pairs = new Map<string, Set<string>>();
+  for (const name of pngs) {
+    const match = CURATED_PNG.exec(name);
+    if (!match) throw new Error(`Invalid curated golden PNG name: ${name}`);
+    const key = `${match[1]}-${match[3]}-${match[4]}`;
+    const authorities = pairs.get(key) ?? new Set<string>();
+    authorities.add(match[2]);
+    pairs.set(key, authorities);
+  }
+  for (const [key, authorities] of pairs) {
+    if (authorities.size !== 2)
+      throw new Error(`Golden PNG evidence pair is incomplete: ${key}`);
+  }
+  return pngs.map((name) => `artifacts/saas-ui-golden/${name}`);
 }
 
 function statusFor(commands: readonly GoldenCommandResult[]) {
@@ -391,6 +421,14 @@ export function buildGoldenSummaryInput(input: {
     receipt.startedAt,
     receipt.finishedAt,
   );
+  const curatedPngs = curatedPngEvidencePaths(repositoryRoot);
+  if (
+    curatedPngs.some((path) => !receipt.evidencePaths.includes(path)) ||
+    receipt.evidencePaths.some(
+      (path) => path.endsWith(".png") && !curatedPngs.includes(path),
+    )
+  )
+    throw new Error("Golden receipt PNG evidence inventory is incomplete");
   return {
     generatedAt: receipt.generatedAt,
     finalHead,
@@ -438,6 +476,8 @@ export function runGoldenSummaryCommands(
   const commands = REQUIRED_GOLDEN_COMMANDS.map((command) => {
     const commandStartedAt = new Date().toISOString();
     const outputFile = playwrightOutputFileForCommand(command, root);
+    if (outputFile !== undefined && existsSync(outputFile))
+      unlinkSync(outputFile);
     const exitCode = execute({
       command,
       argv: commandArgv(command),
@@ -459,6 +499,7 @@ export function runGoldenSummaryCommands(
   if (exactHead(root) !== finalHead)
     throw new Error("Repository HEAD changed while golden commands ran");
   const finishedAt = new Date().toISOString();
+  const curatedPngs = curatedPngEvidencePaths(root);
   const resultInventoryEntries = (
     ["interaction", "accessibility"] as const
   ).flatMap((kind) => {
@@ -473,8 +514,6 @@ export function runGoldenSummaryCommands(
       if (!isRecord(suite)) return;
       const title = typeof suite.title === "string" ? suite.title : "";
       const file = typeof suite.file === "string" ? suite.file : "";
-      const project =
-        typeof suite.projectName === "string" ? suite.projectName : "";
       const specs = Array.isArray(suite.specs) ? suite.specs : [];
       for (const spec of specs) {
         if (!isRecord(spec)) continue;
@@ -484,6 +523,8 @@ export function runGoldenSummaryCommands(
           if (!isRecord(test)) continue;
           const status =
             typeof test.status === "string" ? test.status : "unknown";
+          const project =
+            typeof test.projectName === "string" ? test.projectName : "";
           entries.push({
             file,
             title: [...parents, title, specTitle].filter(Boolean).join(" > "),
@@ -524,6 +565,7 @@ export function runGoldenSummaryCommands(
       ...(resultInventories?.accessibility === undefined
         ? []
         : ["artifacts/saas-ui-golden/accessibility-results.json"]),
+      ...curatedPngs,
     ],
     commands,
     ...(resultInventories === undefined ? {} : { resultInventories }),

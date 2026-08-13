@@ -14,6 +14,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   buildGoldenSummaryInput,
+  curatedPngEvidencePaths,
   assertSafeSummaryOutput,
   REQUIRED_GOLDEN_COMMANDS,
   playwrightOutputFileForCommand,
@@ -21,6 +22,55 @@ import {
   writeGoldenSummaries,
 } from "./golden-summaries";
 import { main as writeGoldenSummariesCli } from "./write-golden-summaries.mts";
+
+function writeInventoryReport(
+  path: string,
+  file: string,
+  title: string,
+  projectName: string,
+) {
+  writeFileSync(
+    path,
+    JSON.stringify({
+      suites: [
+        {
+          file,
+          title: "suite",
+          specs: [
+            {
+              title,
+              tests: [{ status: "passed", projectName }],
+            },
+          ],
+        },
+      ],
+    }),
+  );
+}
+
+function writeInventoryForCommand(
+  command: string,
+  outputFile: string | undefined,
+) {
+  if (!outputFile) return;
+  const reports: Record<
+    string,
+    [file: string, title: string, projectName: string]
+  > = {
+    "pnpm smoke:golden:browser": [
+      "tests/e2e/saas-ui-golden.spec.ts",
+      "browser",
+      "desktop-chromium",
+    ],
+    "pnpm smoke:golden:a11y": [
+      "tests/e2e/saas-ui-golden.accessibility.spec.ts",
+      "accessibility",
+      "mobile-chromium",
+    ],
+  };
+  const report = reports[command];
+  if (report) writeInventoryReport(outputFile, ...report);
+}
 
 const input = {
   generatedAt: "2026-08-12T12:00:00.000Z",
@@ -79,11 +129,16 @@ function validReceipt(repositoryRoot: string) {
       ),
     ) as { digest: string }
   ).digest;
-  const evidenceMtime = statSync(
-    join(repositoryRoot, "artifacts/saas-ui-golden/authority-generated.json"),
-  ).mtimeMs;
-  const startedAt = new Date(evidenceMtime - 1_000).toISOString();
-  const finishedAt = new Date(evidenceMtime + 1_000).toISOString();
+  const evidenceMtimes = [
+    statSync(
+      join(repositoryRoot, "artifacts/saas-ui-golden/authority-generated.json"),
+    ).mtimeMs,
+    ...curatedPngEvidencePaths(repositoryRoot).map(
+      (path) => statSync(join(repositoryRoot, path)).mtimeMs,
+    ),
+  ];
+  const startedAt = new Date(Math.min(...evidenceMtimes) - 1_000).toISOString();
+  const finishedAt = new Date(Date.now() + 1_000).toISOString();
   return {
     schemaVersion: 2 as const,
     createdBy: "saas-ui:golden-summary-runner" as const,
@@ -94,7 +149,10 @@ function validReceipt(repositoryRoot: string) {
     pins,
     generatedDigest,
     deviations: [],
-    evidencePaths: ["artifacts/saas-ui-golden/authority-generated.json"],
+    evidencePaths: [
+      "artifacts/saas-ui-golden/authority-generated.json",
+      ...curatedPngEvidencePaths(repositoryRoot),
+    ],
     commands: REQUIRED_GOLDEN_COMMANDS.map((command) => ({
       command,
       startedAt,
@@ -107,6 +165,25 @@ function validReceipt(repositoryRoot: string) {
 }
 
 describe("golden Task 12 summaries", () => {
+  it("enumerates only complete curated reference/generated PNG pairs", () => {
+    const root = mkdtempSync(join(tmpdir(), "golden-png-pairs-"));
+    const evidence = join(root, "artifacts/saas-ui-golden");
+    mkdirSync(evidence, { recursive: true });
+    for (const authority of ["reference", "generated"]) {
+      writeFileSync(
+        join(evidence, `dashboard-ready-${authority}-desktop-light.png`),
+        "png",
+      );
+    }
+    writeFileSync(join(evidence, "server-errors-reference.jsonl"), "raw");
+    expect(curatedPngEvidencePaths(root)).toEqual([
+      "artifacts/saas-ui-golden/dashboard-ready-generated-desktop-light.png",
+      "artifacts/saas-ui-golden/dashboard-ready-reference-desktop-light.png",
+    ]);
+    unlinkSync(join(evidence, "dashboard-ready-generated-desktop-light.png"));
+    expect(() => curatedPngEvidencePaths(root)).toThrow(/pair|incomplete/u);
+  });
+
   it("writes all four summaries with pins, results, ledger, digest, and evidence", () => {
     const root = mkdtempSync(join(tmpdir(), "golden-summary-test-"));
     const repositoryRoot = join(root, "repo");
@@ -210,6 +287,25 @@ describe("golden Task 12 summaries", () => {
     ).toThrow(/repository-relative|absolute|temporary/u);
   });
 
+  it("rejects disposable Playwright and server-error evidence", () => {
+    const root = mkdtempSync(join(tmpdir(), "golden-summary-disposable-"));
+    const repositoryRoot = join(root, "repo");
+    mkdirSync(join(repositoryRoot, "artifacts/saas-ui-golden"), {
+      recursive: true,
+    });
+    for (const path of [
+      "artifacts/saas-ui-golden/playwright/trace.zip",
+      "artifacts/saas-ui-golden/server-errors-generated.jsonl",
+    ])
+      expect(() =>
+        writeGoldenSummaries(
+          join(repositoryRoot, "artifacts/saas-ui-golden"),
+          { ...input, evidencePaths: [path] },
+          repositoryRoot,
+        ),
+      ).toThrow(/evidence path|disposable|playwright|server-errors/u);
+  });
+
   it("binds receipt summaries to the current head and authority metadata", () => {
     const repositoryRoot = process.cwd();
     const receipt = validReceipt(repositoryRoot);
@@ -304,49 +400,28 @@ describe("golden Task 12 summaries", () => {
       root,
       "artifacts/saas-ui-golden/accessibility-results.json",
     );
-    const writeReport = (path: string, file: string, title: string) =>
-      writeFileSync(
-        path,
-        JSON.stringify({
-          suites: [
-            {
-              file,
-              title: "suite",
-              specs: [
-                {
-                  title,
-                  tests: [{ status: "passed" }],
-                },
-              ],
-            },
-          ],
-        }),
-      );
     try {
       const receipt = runGoldenSummaryCommands(
         root,
         ({ command, outputFile }) => {
-          if (command === "pnpm smoke:golden:browser" && outputFile)
-            writeReport(
-              outputFile,
-              "tests/e2e/saas-ui-golden.spec.ts",
-              "browser",
-            );
-          if (command === "pnpm smoke:golden:a11y" && outputFile)
-            writeReport(
-              outputFile,
-              "tests/e2e/saas-ui-golden.accessibility.spec.ts",
-              "accessibility",
-            );
+          writeInventoryForCommand(command, outputFile);
           return 0;
         },
       );
-      expect(receipt.resultInventories?.interaction?.[0]?.file).toBe(
-        "tests/e2e/saas-ui-golden.spec.ts",
-      );
-      expect(receipt.resultInventories?.accessibility?.[0]?.file).toBe(
-        "tests/e2e/saas-ui-golden.accessibility.spec.ts",
-      );
+      expect(receipt.resultInventories).toMatchObject({
+        interaction: [
+          {
+            file: "tests/e2e/saas-ui-golden.spec.ts",
+            project: "desktop-chromium",
+          },
+        ],
+        accessibility: [
+          {
+            file: "tests/e2e/saas-ui-golden.accessibility.spec.ts",
+            project: "mobile-chromium",
+          },
+        ],
+      });
     } finally {
       for (const path of [interactionPath, accessibilityPath]) {
         try {
@@ -437,6 +512,30 @@ describe("golden Task 12 summaries", () => {
             ...command,
             startedAt: "2000-01-01T00:00:00.000Z",
             finishedAt: "2000-01-01T00:00:01.000Z",
+          })),
+        },
+      }),
+    ).toThrow(/fresh|run|timestamp/u);
+  });
+
+  it("rejects stale curated PNG evidence", () => {
+    const repositoryRoot = process.cwd();
+    const receipt = validReceipt(repositoryRoot);
+    const png = curatedPngEvidencePaths(repositoryRoot)[0];
+    if (!png) throw new Error("expected committed curated PNG evidence");
+    expect(() =>
+      buildGoldenSummaryInput({
+        repositoryRoot,
+        receipt: {
+          ...receipt,
+          evidencePaths: [...receipt.evidencePaths, png],
+          startedAt: "2000-01-01T00:00:00.000Z",
+          finishedAt: "2000-01-01T00:00:01.000Z",
+          commands: receipt.commands.map((command) => ({
+            ...command,
+            startedAt: "2000-01-01T00:00:00.000Z",
+            finishedAt: "2000-01-01T00:00:01.000Z",
+            completedAt: "2000-01-01T00:00:01.000Z",
           })),
         },
       }),

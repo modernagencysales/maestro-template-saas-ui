@@ -61,10 +61,9 @@ pnpm typecheck
 host-test-slot --class full pnpm test
 pnpm build
 pnpm smoke:web-static
-pnpm smoke:hosted
-pnpm smoke:hosted:browser
-pnpm smoke:hosted:a11y
-pnpm smoke:hosted:visual
+pnpm smoke:golden:browser
+pnpm smoke:golden:a11y
+pnpm smoke:golden:visual
 ```
 
 `review:readiness` and `review:completion` are presence/evidence audits. They
@@ -131,8 +130,8 @@ admin/support/privacy -> audited capabilities -> narrow operator surfaces
 Concrete files to inspect:
 
 - `apps/web/src/routes/index.tsx`: hosted Saas UI dashboard route.
-- `apps/web/src/saas-ui/business-shell.tsx`: Saas UI business shell and section
-  pages.
+- `apps/web/src/features/common/layouts/app-layout.tsx`: upstream-derived SaaS
+  UI application shell.
 - `docs/design-intake/2026-07-01-template-frontend-stack-source.md`: frontend
   source audit from Maestro into the template.
 - `docs/template/frontend-architecture.md`: frontend layer law, provider tree,

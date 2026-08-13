@@ -87,22 +87,38 @@ const createFixture = (
       files: [{ destination, sha256: "0".repeat(64) }],
     }),
   );
-  if (options.starterReceiptDestination) {
-    writeFileSync(
-      join(root, "docs/template/saas-ui-starter-files.json"),
-      JSON.stringify({
-        schemaVersion: 1,
-        sourceCommit: pins.starter,
-        files: [{ destination: options.starterReceiptDestination }],
-      }),
-    );
-    mkdirSync(dirname(join(root, options.starterReceiptDestination)), {
-      recursive: true,
-    });
-    writeFileSync(
-      join(root, options.starterReceiptDestination),
-      "starter paid source\n",
-    );
+  const receiptFiles = [
+    {
+      source: "apps/web/src/fixture.tsx",
+      destination,
+      sourceSha256: "1".repeat(64),
+      sha256: "2".repeat(64),
+      adapted: false,
+    },
+    ...(options.starterReceiptDestination === undefined
+      ? []
+      : [
+          {
+            source: "apps/web/src/starter-paid.ts",
+            destination: options.starterReceiptDestination,
+            sourceSha256: "3".repeat(64),
+            sha256: "4".repeat(64),
+            adapted: true,
+          },
+        ]),
+  ];
+  writeFileSync(
+    join(root, "docs/template/saas-ui-starter-files.json"),
+    JSON.stringify({
+      schemaVersion: 1,
+      sourceCommit: pins.starter,
+      files: receiptFiles,
+    }),
+  );
+  for (const file of receiptFiles) {
+    mkdirSync(dirname(join(root, file.destination)), { recursive: true });
+    if (file.destination !== destination)
+      writeFileSync(join(root, file.destination), "starter paid source\n");
   }
   return root;
 };

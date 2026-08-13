@@ -96,6 +96,33 @@ describe("SaaS UI generated target artifact boundary", () => {
     ).toBe(false);
   });
 
+  it("projects every entrypoint needed by advertised SaaS UI commands", () => {
+    const plan = buildSaasApplicationTargetPlan({ name: "Command closure" });
+    const paths = new Set(plan.entries.map(({ path }) => path));
+    const packageJson = JSON.parse(
+      plan.entries.find(({ path }) => path === "package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Record<string, string> };
+    for (const script of [
+      "check:saas-ui-foundation",
+      "check:saas-ui-artifact-safety",
+      "smoke:golden:browser",
+      "smoke:golden:a11y",
+      "smoke:golden:visual",
+    ])
+      expect(packageJson.scripts?.[script], script).toBeTypeOf("string");
+    for (const path of [
+      "tooling/quality/check-saas-ui-foundation.mts",
+      "tooling/quality/check-saas-ui-artifact-safety.mts",
+      "tooling/quality/src/direct-run.mts",
+      "tooling/saas-ui/golden-authority.mts",
+      "tooling/saas-ui/golden-authority-command.ts",
+      "tooling/saas-ui/golden-authority-runtime.ts",
+      "tests/e2e/fixtures/saas-ui-golden.ts",
+      "tests/e2e/fixtures/saas-ui-golden-test.ts",
+    ])
+      expect(paths.has(path), path).toBe(true);
+  });
+
   it("projects the shared Saas UI compatibility seam for pinned upstream props", () => {
     const sources = new Map(
       buildSaasApplicationTargetPlan({

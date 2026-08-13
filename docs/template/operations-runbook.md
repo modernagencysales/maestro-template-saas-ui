@@ -38,10 +38,10 @@
    `VITE_CONVEX_URL` with the exact selected environment binding before building
    the hosted application.
 7. Require the backend liveness canary after Convex deployment. After Pages
-   deployment, require `pnpm smoke:hosted`, `pnpm smoke:hosted:browser`,
-   `pnpm smoke:hosted:a11y`, and `pnpm smoke:hosted:visual`. Upload the guarded
-   deployment receipt only after all five canaries pass and before staging
-   records `staged-sha` or production completes.
+   deployment, require `pnpm smoke:golden:browser`, `pnpm smoke:golden:a11y`,
+   and `pnpm smoke:golden:visual`. Upload the guarded deployment receipt only
+   after all five canaries pass and before staging records `staged-sha` or
+   production completes.
 8. Promote production through the human approval block with the same
    independent-control-plane requirements.
 

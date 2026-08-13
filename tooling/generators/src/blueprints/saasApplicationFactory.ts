@@ -313,7 +313,7 @@ const customerDocumentationCommandReplacements: Readonly<
       "5. Run `pnpm build` and the deployment owner's static smoke.",
     ],
     [
-      "deployment, require `pnpm smoke:hosted`, `pnpm smoke:hosted:browser`,\n   `pnpm smoke:hosted:a11y`, and `pnpm smoke:hosted:visual`. Upload the guarded",
+      "deployment, require `pnpm smoke:golden:browser`, `pnpm smoke:golden:a11y`,\n   and `pnpm smoke:golden:visual`. Upload the guarded",
       "deployment, require the deployment owner's hosted liveness and the\n   paired local golden browser, accessibility, and visual evidence. Upload the guarded",
     ],
   ],

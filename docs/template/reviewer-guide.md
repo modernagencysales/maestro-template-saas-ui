@@ -193,15 +193,11 @@ If `host-test-slot` is unavailable, run `pnpm verify` directly.
 ```bash
 pnpm build
 pnpm smoke:web-static
-pnpm smoke:hosted
-pnpm smoke:hosted:browser
-pnpm smoke:hosted:a11y
-pnpm smoke:hosted:visual
+pnpm smoke:golden:browser
+pnpm smoke:golden:a11y
+pnpm smoke:golden:visual
 ```
 
-The smoke verifies the static web output under `apps/web/dist`, which can be
-served by Vercel, Cloudflare Pages, Netlify, or another static host. The visual
-smoke adds desktop and mobile screenshot-diff coverage for the investor-visible
-first viewport and the workflow/trust receipt section. The a11y smoke runs
-Playwright navigation checks plus axe WCAG 2 A/AA scans against key hosted
-reference routes.
+The golden smokes verify the pinned reference and freshly generated target
+through the shared upstream shell. Browser and visual runs cover desktop/mobile
+interactions and paired captures; the a11y run adds axe WCAG 2 A/AA scans.
