@@ -113,7 +113,6 @@ export const neutralPaths = [
   "billing.createBillingPortalSession",
   "billing.createCheckoutSession",
   "billing.setSubscriptionPlan",
-  "search.all",
   "workspaceMembers.invite",
   "workspaceMembers.removeMember",
   "workspaceMembers.updateRoles",
@@ -143,6 +142,8 @@ const isNeutral = (path: string) =>
   (neutralPaths as readonly string[]).includes(path);
 
 const neutralData = (path: string) => (path === "billing.account" ? null : []);
+export const neutralMutationValue = (path: string) =>
+  isNeutral(path) ? null : neutral(path);
 
 function procedure(path: string[]): StarterProcedure {
   const key = path.join(".");
@@ -173,7 +174,7 @@ function procedure(path: string[]): StarterProcedure {
     getData: () => (isNeutral(key) ? neutralData(key) : undefined),
     useMutation: () =>
       useTanstackMutation({
-        mutationFn: async () => (isNeutral(key) ? null : neutral(key)),
+        mutationFn: async () => neutralMutationValue(key),
       }),
     invalidate: async () => undefined,
   };

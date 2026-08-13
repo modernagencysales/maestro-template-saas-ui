@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { assertRealAuthority, neutralPaths, realRefs } from "#lib/trpc/react";
+import {
+  assertRealAuthority,
+  neutralMutationValue,
+  neutralPaths,
+  realRefs,
+} from "#lib/trpc/react";
 
 describe("Convex starter query compatibility", () => {
   it("maps auth, workspace, and member paths to exact generated refs", () => {
@@ -21,7 +26,6 @@ describe("Convex starter query compatibility", () => {
         "contacts.listByType",
         "notifications.inbox",
         "billing.account",
-        "search.all",
         "workspaceMembers.notificationSettings",
         "workspaceMembers.updateNotificationSettings",
         "workspaceMembers.invitation",
@@ -37,5 +41,11 @@ describe("Convex starter query compatibility", () => {
         "tags.delete",
       ]),
     );
+  });
+
+  it("makes neutral member mutations deterministic no-ops", () => {
+    expect(neutralMutationValue("workspaceMembers.invite")).toBeNull();
+    expect(neutralMutationValue("workspaceMembers.removeMember")).toBeNull();
+    expect(neutralMutationValue("workspaceMembers.updateRoles")).toBeNull();
   });
 });

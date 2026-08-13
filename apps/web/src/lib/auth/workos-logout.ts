@@ -7,6 +7,10 @@ import {
   StartCookieSessionStorage,
 } from "./workos-cookie-session-storage";
 
+export function isLogoutRequest(request: Request): boolean {
+  return new URL(request.url).pathname.endsWith("/logout");
+}
+
 export async function handleWorkosLogout(request: Request): Promise<Response> {
   const auth = createAuthService<Request, Response>({
     sessionStorageFactory: (config) => new StartCookieSessionStorage(config),

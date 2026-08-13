@@ -6,7 +6,7 @@ import type {
 
 type RawAuth = UserInfo | NoUserInfo;
 
-function isRecoverableAuthError(error: unknown): boolean {
+export function isRecoverableAuthError(error: unknown): boolean {
   if (error === "HTTPError") return true;
   if (typeof error !== "object" || error === null) return false;
   const candidate = error as {

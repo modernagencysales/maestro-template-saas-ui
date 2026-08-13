@@ -1,20 +1,25 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { getAuthKitContext } from "@workos/authkit-tanstack-react-start";
-import { handleWorkosLogout } from "#lib/auth/workos-logout";
+import { handleWorkosLogout, isLogoutRequest } from "#lib/auth/workos-logout";
+import { isRecoverableAuthError } from "#lib/auth/workos-auth-loader";
 
 export const Route = createFileRoute("/api/auth/$")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        if (new URL(request.url).pathname.endsWith("/session")) {
+        const pathname = new URL(request.url).pathname;
+        if (isLogoutRequest(request)) return handleWorkosLogout(request);
+        if (pathname.endsWith("/session")) {
           try {
-            const { accessToken: _accessToken, ...auth } =
-              getAuthKitContext().auth() as Record<string, unknown>;
+            const auth = getAuthKitContext().auth();
+            if (!auth.user) return Response.json({ data: null });
+            const { accessToken: _accessToken, ...safeAuth } = auth;
             void _accessToken;
             return Response.json({
-              data: auth.user ? { session: auth, user: auth.user } : null,
+              data: { session: safeAuth, user: safeAuth.user },
             });
-          } catch {
+          } catch (error) {
+            if (!isRecoverableAuthError(error)) throw error;
             return Response.json({ data: null });
           }
         }

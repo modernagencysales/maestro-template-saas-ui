@@ -33,8 +33,8 @@ export const authService: Pick<
   "onLoadUser" | "onLogin" | "onSignup" | "onLogout"
 > = {
   onLoadUser: async () => (await client.getSession()).data?.user ?? null,
-  onLogin: async () => redirectToAuth("sign-in") as never,
-  onSignup: async () => redirectToAuth("sign-up") as never,
+  onLogin: async () => redirectToAuth("sign-in"),
+  onSignup: async () => redirectToAuth("sign-up"),
   onLogout: async () => {
     window.location.assign("/api/auth/logout");
   },

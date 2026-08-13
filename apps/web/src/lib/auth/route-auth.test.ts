@@ -24,4 +24,12 @@ describe("protected route auth", () => {
       }),
     ).toEqual({ auth: { user: { id: "user_1" } } });
   });
+
+  it("redirects when the real AuthKit route context has no user", () => {
+    expect(() =>
+      requireAuthenticatedRoute({
+        location: { pathname: "/awesome-inc", searchStr: "?tab=all" },
+      }),
+    ).toThrow();
+  });
 });
