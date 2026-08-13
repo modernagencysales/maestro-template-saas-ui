@@ -1,4 +1,5 @@
 import { QueryClientProvider } from "@tanstack/react-query";
+import { useEffect } from "react";
 
 import { ColorModeProvider } from "#components/color-mode";
 import { AuthProvider } from "#features/auth/auth-provider";
@@ -8,6 +9,10 @@ import { TRPCReactProvider } from "#lib/trpc/react";
 
 export function Provider(props: { children: React.ReactNode }) {
   const queryClient = getQueryClient();
+
+  useEffect(() => {
+    document.documentElement.classList.add("loaded");
+  }, []);
 
   return (
     <AuthProvider>

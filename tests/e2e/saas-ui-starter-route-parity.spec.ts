@@ -1,5 +1,12 @@
 import { expect, test } from "@playwright/test";
 
+test("hides the root loader after hydration", async ({ page }) => {
+  await page.goto("/login");
+
+  await expect(page.locator('input[type="email"]')).toBeVisible();
+  await expect(page.locator("#app-loader")).toHaveCSS("opacity", "0");
+});
+
 test("uses the purchased starter workspace route and keeps its shell mounted", async ({
   page,
 }) => {
