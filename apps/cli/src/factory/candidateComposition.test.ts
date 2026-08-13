@@ -76,6 +76,7 @@ const git = (repository: string, args: readonly string[]): Buffer =>
 type SaasPlanBuilder = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
+  readonly sourceRoot?: string;
 }) => ReturnType<typeof buildSaasApplicationTargetPlan>;
 
 const buildSelectedSaasPlan: SaasPlanBuilder = (options) =>
@@ -147,6 +148,7 @@ const buildCandidateReleaseFixture = (
   const plan = buildPlan({
     name: input.name,
     firstOutcome: input.outcome,
+    sourceRoot: candidateRoot,
   });
   const materializedPaths = new Set(plan.entries.map((entry) => entry.path));
   const optionalPatternPaths = new Set(
