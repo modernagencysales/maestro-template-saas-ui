@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { runReviewedGenerator } from "@maestro-template/generators";
 import {
@@ -210,6 +211,12 @@ describe("maestro-template CLI", () => {
     }>("../../web/vite.config");
 
     expect(config.default.server).not.toHaveProperty("proxy");
+  });
+
+  it("does not regenerate the purchased route-tree receipt during builds", () => {
+    expect(
+      readFileSync(`${repoRoot}/apps/web/vite.config.ts`, "utf8"),
+    ).toContain("enableRouteGeneration: false");
   });
 
   it("describes the shared workflow template", () => {

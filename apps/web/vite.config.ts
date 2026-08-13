@@ -15,6 +15,7 @@ export default defineConfig({
   },
   plugins: [
     tanstackStart({
+      enableRouteGeneration: false,
       spa: {
         enabled: true,
       },
