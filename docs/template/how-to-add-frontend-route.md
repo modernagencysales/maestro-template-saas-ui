@@ -42,8 +42,10 @@ to reuse/extend the existing slice or choose a deliberately reviewed name.
 5. If durable state is required, run `template:add-table` with the complete
    tenant, sensitivity, PII, export, delete, and retention posture.
 6. Keep workspace routes beneath the existing pathless `_workspace` boundary.
-   Compose the checked-in Saas UI patterns before adapting new purchased source;
-   do not add a second shell or speculative route.
+   Start feature and screen UI from the checked-in purchased composition shelf.
+   Native controls and local foundational substitutes are lint errors. Add a
+   custom visual composition only when no checked-in, public, or Pro primitive
+   covers the need; do not add a second shell or speculative route.
 
 ## Tests And Gates
 

@@ -6,7 +6,10 @@
  * getPolicy/getPolicyVersion) are forward-guards — these tests are their proof.
  */
 import { RuleTester } from "eslint";
+import { readFileSync } from "node:fs";
+import { URL } from "node:url";
 import tseslint from "typescript-eslint";
+import { describe, expect, it } from "vitest";
 
 import typedConvexErrors from "../typed-convex-errors.mjs";
 import noThrowInEffectHandler from "../no-throw-in-effect-handler.mjs";
@@ -834,14 +837,51 @@ tester.run("prefer-saas-ui-primitives", preferSaasUiPrimitives, {
       filename: "apps/web/src/routes/index.tsx",
       code: "export const Example = () => <button>Public action</button>;",
     },
+    {
+      filename: "apps/web/src/features/accounts/accounts-view.tsx",
+      code: "import { Button } from '@saas-ui/react'; export const AccountsView = () => <Button>Save</Button>;",
+    },
+    {
+      filename: "apps/web/src/screens/accounts-screen.tsx",
+      code: "import { Page } from '@saas-ui/react'; export const AccountsScreen = () => <Page.Root />;",
+    },
   ],
-  invalid: ["button", "input", "select", "textarea", "table", "dialog"].map(
-    (element) => ({
-      filename: WORKSPACE_EXAMPLE,
-      code: `export const Example = () => <${element}>Example</${element}>;`,
+  invalid: [
+    ...["button", "input", "select", "textarea", "table", "dialog"].map(
+      (element) => ({
+        filename: WORKSPACE_EXAMPLE,
+        code: `export const Example = () => <${element}>Example</${element}>;`,
+        errors: [{ messageId: "preferPrimitive" }],
+      }),
+    ),
+    {
+      filename: "apps/web/src/features/accounts/accounts-view.tsx",
+      code: "export const Example = () => <select><option>Active</option></select>;",
       errors: [{ messageId: "preferPrimitive" }],
-    }),
-  ),
+    },
+    {
+      filename: "apps/web/src/screens/accounts-screen.tsx",
+      code: "export function Page() { return <section />; }",
+      errors: [{ messageId: "foundationalSubstitute" }],
+    },
+    {
+      filename: "apps/web/src/features/accounts/accounts-view.tsx",
+      code: "import { Button } from './button'; export const Example = () => <Button />;",
+      errors: [{ messageId: "foundationalSubstitute" }],
+    },
+  ],
+});
+
+describe("Saas UI primitive lint coverage", () => {
+  it("applies the rule to generated feature and screen directories", () => {
+    const config = readFileSync(
+      new URL("../../../../eslint.config.mjs", import.meta.url),
+      "utf8",
+    );
+
+    expect(config).toContain('"apps/web/src/features/**/*.{ts,tsx}"');
+    expect(config).toContain('"apps/web/src/screens/**/*.{ts,tsx}"');
+  });
 });
 
 tester.run("require-semantic-colors", requireSemanticColors, {

@@ -100,6 +100,10 @@ layers, add the missing boundary instead.
 - Keep reusable UI in blocks and package UI primitives.
 - Use Saas UI primitives for the visible business-app shell when they cover the
   need.
+- Feature and screen UI starts from the checked-in purchased composition shelf.
+  Native controls and local foundational substitutes are lint errors. Add a new
+  visual composition only when no checked-in, public, or Pro primitive covers
+  the need.
 - Feature components may use feature adapters; blocks may not import Convex,
   Confect refs, route modules, provider SDKs, or workspace auth internals.
 - React Flow belongs in workflow UI and workflow feature surfaces only.

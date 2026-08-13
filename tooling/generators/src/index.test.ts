@@ -2413,6 +2413,9 @@ describe("template app factory generators", () => {
     const feature = result.files.find(({ path }) =>
       path.endsWith("/accountSignals/account-signals-feature.tsx"),
     )?.content;
+    const view = result.files.find(({ path }) =>
+      path.endsWith("/accountSignals/account-signals-view.tsx"),
+    )?.content;
     const generated = result.files.map(({ content }) => content).join("\n");
     const route = result.files.find(({ path }) =>
       path.endsWith("/_workspace.account-signals.tsx"),
@@ -2422,6 +2425,10 @@ describe("template app factory generators", () => {
         path ===
         "docs/template/generated/provenance/add-feature/accountSignals.json",
     );
+    const generatedDoc = result.files.find(
+      ({ path }) =>
+        path === "docs/template/generated/features/accountSignals.md",
+    )?.content;
 
     expect(paths).toEqual(
       expect.arrayContaining([
@@ -2432,12 +2439,16 @@ describe("template app factory generators", () => {
         "apps/web/src/features/accountSignals/adapter.ts",
         "apps/web/src/features/accountSignals/adapter.test.ts",
         "apps/web/src/features/accountSignals/account-signals-feature.tsx",
+        "apps/web/src/features/accountSignals/account-signals-view.tsx",
         "apps/web/src/screens/account-signals-screen.tsx",
         "apps/web/src/routes/_workspace.account-signals.tsx",
         "docs/template/generated/features/accountSignals.md",
       ]),
     );
     expect(contract).toContain('system: "knowledge-brain"');
+    expect(contract).toContain("readonly _id: string");
+    expect(contract).toContain("readonly _creationTime: number");
+    expect(contract).not.toContain("readonly id: string");
     expect(contract).toContain(
       'export type AccountSignalsStatus = "planned" | "active" | "complete"',
     );
@@ -2457,8 +2468,8 @@ describe("template app factory generators", () => {
     expect(model).toContain('status: "typed-error"');
     expect(model).toContain('status: "transport-error"');
     expect(model).toContain('status: "success"');
-    expect(adapter).toContain("createAccountSignalsAdapter");
-    expect(adapter).toContain("delete:");
+    expect(adapter).toContain("presentAccountSignalsState");
+    expect(adapter).toContain("TemplateDataState");
     expect(generated).toContain(
       "Schema.Union([Unauthorized, ValidationFailed, Forbidden, NotFound])",
     );
@@ -2469,8 +2480,23 @@ describe("template app factory generators", () => {
     expect(generated).toContain(
       'FunctionImpl.make(databaseSchema, group, "remove"',
     );
-    expect(feature).toContain('aria-label="AccountSignals title"');
-    expect(feature).toContain("Delete accountSignals");
+    expect(feature).toContain("useTemplateQuery");
+    expect(feature).toContain("useTemplateMutation");
+    expect(feature).toContain("useWorkspace");
+    expect(feature).toContain("presentAccountSignalsState");
+    expect(view).toContain("PageStateView");
+    expect(view).toContain("RecordListDetail");
+    expect(view).toContain("FormSection");
+    expect(view).toContain("NativeSelect");
+    expect(view).toContain('aria-label="AccountSignals title"');
+    expect(view).toContain("Delete accountSignals");
+    expect(generated).not.toContain("Date.now");
+    expect(generated).not.toContain("new Map");
+    expect(generated).not.toContain("sharedAdapter");
+    expect(generated).not.toContain("demo-workspace");
+    expect(generated).not.toContain("<select");
+    expect(generatedDoc).toContain("workspace-scoped Confect operations");
+    expect(generatedDoc).not.toContain("fake adapter");
     expect(generated).not.toContain("Synthetic fixture");
     expect(generated).not.toContain('status: "accepted"');
     expect(generated).not.toContain("Replace fake fixtures");

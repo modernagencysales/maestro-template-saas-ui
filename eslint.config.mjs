@@ -112,7 +112,9 @@ export default [
   },
   {
     files: [
+      "apps/web/src/features/**/*.{ts,tsx}",
       "apps/web/src/saas-ui/**/*.{ts,tsx}",
+      "apps/web/src/screens/**/*.{ts,tsx}",
       "apps/web/src/routes/_workspace*.{ts,tsx}",
     ],
     ignores: ["**/*.test.{ts,tsx}"],
