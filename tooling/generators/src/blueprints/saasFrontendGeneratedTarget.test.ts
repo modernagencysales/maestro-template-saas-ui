@@ -259,6 +259,7 @@ describe("SaaS UI generated target artifact boundary", () => {
           }
         })();
       command(["install", "--frozen-lockfile"]);
+      command(["run", "typecheck:saas-ui:baseline"]);
       command(["--dir", "apps/web", "typecheck"]);
       command(["--dir", "apps/web", "build"]);
 

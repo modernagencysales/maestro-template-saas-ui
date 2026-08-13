@@ -31,6 +31,8 @@ export type SaasUiTypecheckBaseline = Readonly<{
   diagnosticsSha256: string;
 }>;
 
+export const saasUiTypecheckBaselinePath = BASELINE;
+
 type ReceiptFile = Readonly<{
   destination: string;
   sha256: string;
@@ -50,6 +52,21 @@ const diagnosticKey = (diagnostic: SaasUiTypecheckDiagnostic): string =>
 const diagnosticsDigest = (
   diagnostics: readonly SaasUiTypecheckDiagnostic[],
 ): string => sha256([...diagnostics].map(diagnosticKey).sort().join("\n"));
+
+export const createSaasUiTypecheckBaseline = (
+  root: string,
+  output: string,
+  typescriptVersion: string,
+): SaasUiTypecheckBaseline => {
+  const diagnostics = parseSaasUiTypecheckDiagnostics(root, output);
+  return {
+    schemaVersion: 1,
+    pnpmLockSha256: sha256(readFileSync(resolve(root, LOCKFILE))),
+    typescriptVersion,
+    diagnosticCount: diagnostics.length,
+    diagnosticsSha256: diagnosticsDigest(diagnostics),
+  };
+};
 
 const readJson = <T,>(path: string): T =>
   JSON.parse(readFileSync(path, "utf8")) as T;

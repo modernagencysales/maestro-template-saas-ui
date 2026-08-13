@@ -47,6 +47,7 @@ const FRONTEND_SUPPORT_PATHS = [
   "tooling/eslint-plugin-template/saas-ui-registry-receipt.mjs",
   "tooling/quality/check-saas-ui-artifact-safety.mts",
   "tooling/quality/check-saas-ui-typecheck.mts",
+  "tooling/quality/generate-saas-ui-typecheck-baseline.mts",
   "tooling/quality/check-saas-ui-foundation.mts",
   "tooling/quality/src/direct-run.mts",
   "tooling/quality/saas-ui-foundation.ts",

@@ -360,6 +360,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "lint",
   "typecheck",
   "typecheck:saas-ui",
+  "typecheck:saas-ui:baseline",
   "check:effect-diagnostics",
   "test",
   "test:runtime-longevity",
