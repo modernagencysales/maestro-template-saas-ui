@@ -5,6 +5,7 @@ import {
   readFileSync,
   statSync,
   unlinkSync,
+  writeFileSync,
 } from "node:fs";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -15,6 +16,7 @@ import {
   buildGoldenSummaryInput,
   assertSafeSummaryOutput,
   REQUIRED_GOLDEN_COMMANDS,
+  playwrightOutputFileForCommand,
   runGoldenSummaryCommands,
   writeGoldenSummaries,
 } from "./golden-summaries";
@@ -248,6 +250,112 @@ describe("golden Task 12 summaries", () => {
     expect(receipt.commands[0]?.exitCode).toBe(7);
     expect(receipt.commands).toHaveLength(REQUIRED_GOLDEN_COMMANDS.length);
     expect(receipt.deviations).toHaveLength(18);
+  });
+
+  it("routes only browser and accessibility commands to distinct inventories", () => {
+    const root = process.cwd();
+    expect(
+      playwrightOutputFileForCommand("pnpm smoke:golden:browser", root),
+    ).toBe(join(root, "artifacts/saas-ui-golden/interaction-results.json"));
+    expect(playwrightOutputFileForCommand("pnpm smoke:golden:a11y", root)).toBe(
+      join(root, "artifacts/saas-ui-golden/accessibility-results.json"),
+    );
+    for (const command of [
+      "pnpm check:saas-ui-foundation",
+      "pnpm check:saas-ui-artifact-safety",
+      "pnpm --dir tooling/generators test -- saasFrontendFoundation.test.ts saasFrontendGeneratedTarget.test.ts",
+      "pnpm smoke:golden:visual",
+    ]) {
+      expect(playwrightOutputFileForCommand(command, root)).toBeUndefined();
+    }
+  });
+
+  it("does not reuse a prior inventory when its producing command fails", () => {
+    const root = process.cwd();
+    const calls: Array<{ command: string; outputFile?: string }> = [];
+    const receipt = runGoldenSummaryCommands(
+      root,
+      ({ command, outputFile }) => {
+        calls.push({ command, outputFile });
+        return command === "pnpm smoke:golden:browser" ? 1 : 0;
+      },
+    );
+    expect(
+      calls.find(({ command }) => command === "pnpm smoke:golden:browser"),
+    ).toMatchObject({
+      outputFile: join(
+        root,
+        "artifacts/saas-ui-golden/interaction-results.json",
+      ),
+    });
+    expect(
+      calls.find(({ command }) => command === "pnpm smoke:golden:visual"),
+    ).toEqual({ command: "pnpm smoke:golden:visual", outputFile: undefined });
+    expect(receipt.resultInventories).toBeUndefined();
+  });
+
+  it("keeps browser and accessibility inventories bound to their own suites", () => {
+    const root = process.cwd();
+    const interactionPath = join(
+      root,
+      "artifacts/saas-ui-golden/interaction-results.json",
+    );
+    const accessibilityPath = join(
+      root,
+      "artifacts/saas-ui-golden/accessibility-results.json",
+    );
+    const writeReport = (path: string, file: string, title: string) =>
+      writeFileSync(
+        path,
+        JSON.stringify({
+          suites: [
+            {
+              file,
+              title: "suite",
+              specs: [
+                {
+                  title,
+                  tests: [{ status: "passed" }],
+                },
+              ],
+            },
+          ],
+        }),
+      );
+    try {
+      const receipt = runGoldenSummaryCommands(
+        root,
+        ({ command, outputFile }) => {
+          if (command === "pnpm smoke:golden:browser" && outputFile)
+            writeReport(
+              outputFile,
+              "tests/e2e/saas-ui-golden.spec.ts",
+              "browser",
+            );
+          if (command === "pnpm smoke:golden:a11y" && outputFile)
+            writeReport(
+              outputFile,
+              "tests/e2e/saas-ui-golden.accessibility.spec.ts",
+              "accessibility",
+            );
+          return 0;
+        },
+      );
+      expect(receipt.resultInventories?.interaction?.[0]?.file).toBe(
+        "tests/e2e/saas-ui-golden.spec.ts",
+      );
+      expect(receipt.resultInventories?.accessibility?.[0]?.file).toBe(
+        "tests/e2e/saas-ui-golden.accessibility.spec.ts",
+      );
+    } finally {
+      for (const path of [interactionPath, accessibilityPath]) {
+        try {
+          unlinkSync(path);
+        } catch {
+          // The focused test may have no output for a command.
+        }
+      }
+    }
   });
 
   it("rejects garbage and out-of-bounds timestamps", () => {

@@ -75,7 +75,25 @@ export type GoldenCommandExecutor = (input: {
   command: string;
   argv: readonly string[];
   cwd: string;
+  outputFile?: string;
 }) => number;
+
+export function playwrightOutputFileForCommand(
+  command: string,
+  cwd: string,
+): string | undefined {
+  switch (command) {
+    case "pnpm smoke:golden:browser":
+      return resolve(cwd, "artifacts/saas-ui-golden/interaction-results.json");
+    case "pnpm smoke:golden:a11y":
+      return resolve(
+        cwd,
+        "artifacts/saas-ui-golden/accessibility-results.json",
+      );
+    default:
+      return undefined;
+  }
+}
 
 const commandArgv = (command: (typeof REQUIRED_GOLDEN_COMMANDS)[number]) => {
   switch (command) {
@@ -389,15 +407,14 @@ export function runGoldenSummaryCommands(
   repositoryRoot: string,
   execute: GoldenCommandExecutor = ({ command, argv, cwd }) => {
     try {
-      const kind = command.includes(":a11y") ? "accessibility" : "interaction";
-      const outputFile = resolve(
-        cwd,
-        `artifacts/saas-ui-golden/${kind}-results.json`,
-      );
+      const outputFile = playwrightOutputFileForCommand(command, cwd);
+      const env = { ...process.env };
+      delete env.GOLDEN_SUMMARY_PLAYWRIGHT_OUTPUT;
+      if (outputFile) env.GOLDEN_SUMMARY_PLAYWRIGHT_OUTPUT = outputFile;
       execFileSync("pnpm", argv, {
         cwd,
         stdio: "inherit",
-        env: { ...process.env, GOLDEN_SUMMARY_PLAYWRIGHT_OUTPUT: outputFile },
+        env,
       });
       return 0;
     } catch (error) {
@@ -417,13 +434,18 @@ export function runGoldenSummaryCommands(
   if (typeof authority.digest !== "string")
     throw new Error("Generated authority digest is missing");
   const startedAt = new Date().toISOString();
+  const resultFiles = new Set<string>();
   const commands = REQUIRED_GOLDEN_COMMANDS.map((command) => {
     const commandStartedAt = new Date().toISOString();
+    const outputFile = playwrightOutputFileForCommand(command, root);
     const exitCode = execute({
       command,
       argv: commandArgv(command),
       cwd: root,
+      outputFile,
     });
+    if (exitCode === 0 && outputFile !== undefined && existsSync(outputFile))
+      resultFiles.add(outputFile);
     const finishedAt = new Date().toISOString();
     return {
       command,
@@ -437,51 +459,52 @@ export function runGoldenSummaryCommands(
   if (exactHead(root) !== finalHead)
     throw new Error("Repository HEAD changed while golden commands ran");
   const finishedAt = new Date().toISOString();
-  const resultInventories = Object.fromEntries(
-    (["interaction", "accessibility"] as const).flatMap((kind) => {
-      const path = resolve(
-        root,
-        `artifacts/saas-ui-golden/${kind}-results.json`,
-      );
-      if (!existsSync(path)) return [];
-      const report = JSON.parse(readFileSync(path, "utf8")) as {
-        suites?: readonly unknown[];
-      };
-      const entries: GoldenResultInventoryEntry[] = [];
-      // eslint-disable-next-line complexity -- flattens the bounded Playwright JSON report schema.
-      const visit = (suite: unknown, parents: readonly string[] = []): void => {
-        if (!isRecord(suite)) return;
-        const title = typeof suite.title === "string" ? suite.title : "";
-        const file = typeof suite.file === "string" ? suite.file : "";
-        const project =
-          typeof suite.projectName === "string" ? suite.projectName : "";
-        const specs = Array.isArray(suite.specs) ? suite.specs : [];
-        for (const spec of specs) {
-          if (!isRecord(spec)) continue;
-          const specTitle = typeof spec.title === "string" ? spec.title : "";
-          const results = Array.isArray(spec.tests) ? spec.tests : [];
-          for (const test of results) {
-            if (!isRecord(test)) continue;
-            const status =
-              typeof test.status === "string" ? test.status : "unknown";
-            entries.push({
-              file,
-              title: [...parents, title, specTitle].filter(Boolean).join(" > "),
-              project,
-              status,
-            });
-          }
+  const resultInventoryEntries = (
+    ["interaction", "accessibility"] as const
+  ).flatMap((kind) => {
+    const path = resolve(root, `artifacts/saas-ui-golden/${kind}-results.json`);
+    if (!resultFiles.has(path)) return [];
+    const report = JSON.parse(readFileSync(path, "utf8")) as {
+      suites?: readonly unknown[];
+    };
+    const entries: GoldenResultInventoryEntry[] = [];
+    // eslint-disable-next-line complexity -- flattens the bounded Playwright JSON report schema.
+    const visit = (suite: unknown, parents: readonly string[] = []): void => {
+      if (!isRecord(suite)) return;
+      const title = typeof suite.title === "string" ? suite.title : "";
+      const file = typeof suite.file === "string" ? suite.file : "";
+      const project =
+        typeof suite.projectName === "string" ? suite.projectName : "";
+      const specs = Array.isArray(suite.specs) ? suite.specs : [];
+      for (const spec of specs) {
+        if (!isRecord(spec)) continue;
+        const specTitle = typeof spec.title === "string" ? spec.title : "";
+        const results = Array.isArray(spec.tests) ? spec.tests : [];
+        for (const test of results) {
+          if (!isRecord(test)) continue;
+          const status =
+            typeof test.status === "string" ? test.status : "unknown";
+          entries.push({
+            file,
+            title: [...parents, title, specTitle].filter(Boolean).join(" > "),
+            project,
+            status,
+          });
         }
-        for (const child of Array.isArray(suite.suites) ? suite.suites : [])
-          visit(child, [...parents, title]);
-      };
-      for (const suite of report.suites ?? []) visit(suite);
-      return [[kind, entries] as const];
-    }),
-  ) as {
-    interaction?: readonly GoldenResultInventoryEntry[];
-    accessibility?: readonly GoldenResultInventoryEntry[];
-  };
+      }
+      for (const child of Array.isArray(suite.suites) ? suite.suites : [])
+        visit(child, [...parents, title]);
+    };
+    for (const suite of report.suites ?? []) visit(suite);
+    return [[kind, entries] as const];
+  });
+  const resultInventories =
+    resultInventoryEntries.length === 0
+      ? undefined
+      : (Object.fromEntries(resultInventoryEntries) as {
+          interaction?: readonly GoldenResultInventoryEntry[];
+          accessibility?: readonly GoldenResultInventoryEntry[];
+        });
   return {
     schemaVersion: 2,
     createdBy: "saas-ui:golden-summary-runner",
@@ -495,15 +518,15 @@ export function runGoldenSummaryCommands(
     evidencePaths: [
       "artifacts/saas-ui-golden/authority-generated.json",
       "artifacts/saas-ui-golden/authority-reference.json",
-      ...(resultInventories.interaction === undefined
+      ...(resultInventories?.interaction === undefined
         ? []
         : ["artifacts/saas-ui-golden/interaction-results.json"]),
-      ...(resultInventories.accessibility === undefined
+      ...(resultInventories?.accessibility === undefined
         ? []
         : ["artifacts/saas-ui-golden/accessibility-results.json"]),
     ],
     commands,
-    resultInventories,
+    ...(resultInventories === undefined ? {} : { resultInventories }),
   };
 }
 
