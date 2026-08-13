@@ -1,68 +1,1504 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-12T22:32:01.311Z",
+  "generatedAt": "2026-08-13T00:13:25.288Z",
   "status": "passed",
-  "finalHead": "c86205ecaa9a517181901f8b52440dad872c1aa2",
+  "finalHead": "fd18ffb3bd3cceae46bf2cbc3693394efa63efa8",
   "pins": {
     "template": "acf0bc4be38dea842f321831387fc77cf7242439",
     "starter": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
     "pro": "ac3a40c8dc05e403f9d501a87c092646891d3c40"
   },
-  "generatedDigest": "d9e0f8ae0639d514a5ebeb74fe6d267343c6f511fef1cc3947b8879498ff0f24",
+  "generatedDigest": "c2691cf83fb9c98dbc24487f9a01edff77c935116cbd9cc82defa131eb4b7959",
   "evidencePaths": [
     "artifacts/saas-ui-golden/authority-generated.json",
-    "artifacts/saas-ui-golden/authority-reference.json"
+    "artifacts/saas-ui-golden/authority-reference.json",
+    "artifacts/saas-ui-golden/interaction-results.json",
+    "artifacts/saas-ui-golden/accessibility-results.json"
   ],
   "commands": [
     {
       "command": "pnpm check:saas-ui-foundation",
-      "startedAt": "2026-08-12T22:25:27.253Z",
-      "finishedAt": "2026-08-12T22:25:28.222Z",
-      "completedAt": "2026-08-12T22:25:28.222Z",
+      "startedAt": "2026-08-13T00:05:21.183Z",
+      "finishedAt": "2026-08-13T00:05:22.198Z",
+      "completedAt": "2026-08-13T00:05:22.198Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm check:saas-ui-artifact-safety",
-      "startedAt": "2026-08-12T22:25:28.222Z",
-      "finishedAt": "2026-08-12T22:25:29.109Z",
-      "completedAt": "2026-08-12T22:25:29.109Z",
+      "startedAt": "2026-08-13T00:05:22.198Z",
+      "finishedAt": "2026-08-13T00:05:23.162Z",
+      "completedAt": "2026-08-13T00:05:23.162Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm --dir tooling/generators test -- saasFrontendFoundation.test.ts saasFrontendGeneratedTarget.test.ts",
-      "startedAt": "2026-08-12T22:25:29.109Z",
-      "finishedAt": "2026-08-12T22:26:36.050Z",
-      "completedAt": "2026-08-12T22:26:36.050Z",
+      "startedAt": "2026-08-13T00:05:23.162Z",
+      "finishedAt": "2026-08-13T00:06:37.275Z",
+      "completedAt": "2026-08-13T00:06:37.275Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm smoke:golden:browser",
-      "startedAt": "2026-08-12T22:26:36.051Z",
-      "finishedAt": "2026-08-12T22:27:56.088Z",
-      "completedAt": "2026-08-12T22:27:56.088Z",
+      "startedAt": "2026-08-13T00:06:37.275Z",
+      "finishedAt": "2026-08-13T00:08:27.371Z",
+      "completedAt": "2026-08-13T00:08:27.371Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm smoke:golden:a11y",
-      "startedAt": "2026-08-12T22:27:56.088Z",
-      "finishedAt": "2026-08-12T22:30:02.702Z",
-      "completedAt": "2026-08-12T22:30:02.702Z",
+      "startedAt": "2026-08-13T00:08:27.371Z",
+      "finishedAt": "2026-08-13T00:11:07.541Z",
+      "completedAt": "2026-08-13T00:11:07.541Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm smoke:golden:visual",
-      "startedAt": "2026-08-12T22:30:02.702Z",
-      "finishedAt": "2026-08-12T22:32:01.277Z",
-      "completedAt": "2026-08-12T22:32:01.277Z",
+      "startedAt": "2026-08-13T00:11:07.541Z",
+      "finishedAt": "2026-08-13T00:13:25.271Z",
+      "completedAt": "2026-08-13T00:13:25.271Z",
       "exitCode": 0,
       "result": "exitCode=0"
     }
   ],
+  "resultInventories": {
+    "interaction": [
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dark mode changes computed theme and screenshot evidence",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings readiness reaches profile on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > app-shell ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dashboard-report ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > data-grid ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > filterable-collection ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > list-detail ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > split-inbox ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > record-aside ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > form ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > onboarding ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > kanban ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > auth ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > billing ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > search-command ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > app-shell ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dashboard-report ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > data-grid ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > filterable-collection ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > list-detail ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > split-inbox ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > record-aside ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > form ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > onboarding ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > kanban ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > auth ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > billing ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > search-command ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states loading light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states loading dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states empty light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states empty dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-edit light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-edit dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-success light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-success dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-failure light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-failure dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states error light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states error dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states not-found light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states not-found dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states permission-denied light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states permission-denied dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dark mode changes computed theme and screenshot evidence",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings readiness reaches profile on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > app-shell ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dashboard-report ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > data-grid ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > filterable-collection ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > list-detail ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > split-inbox ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > record-aside ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > form ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > onboarding ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > kanban ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > auth ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > billing ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > search-command ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-read light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > app-shell ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > dashboard-report ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > data-grid ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > filterable-collection ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > list-detail ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > split-inbox ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > record-aside ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > settings ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > form ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > onboarding ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > kanban ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > auth ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > billing ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > search-command ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-read dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states loading light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states loading dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states empty light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states empty dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-edit light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states ready-edit dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-success light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-success dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-failure light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states mutation-failure dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states error light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states error dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states not-found light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states not-found dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states permission-denied light captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > states permission-denied dark captures both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > mobile shell geometry > reserves a lane for the sidebar trigger",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > mobile shell geometry > keeps page headings clear of the sidebar trigger",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > mobile shell geometry > reserves a lane for the sidebar trigger",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.visual.spec.ts",
+        "title": "saas-ui-golden.visual.spec.ts > paired Saas UI golden visual evidence > mobile shell geometry > keeps page headings clear of the sidebar trigger",
+        "project": "",
+        "status": "expected"
+      }
+    ],
+    "accessibility": [
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > reduced motion is honored by both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > inert reduced-motion CSS does not count as behavior",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox activity editor and timeline use valid semantics",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > reduced motion is honored by both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > inert reduced-motion CSS does not count as behavior",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states reference has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states generated has no serious or critical axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states exposes names and visible keyboard focus on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox activity editor and timeline use valid semantics",
+        "project": "",
+        "status": "skipped"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden data-grid semantics > reference keeps sorting semantics on column headers and names row actions",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden data-grid semantics > generated keeps sorting semantics on column headers and names row actions",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden data-grid semantics > reference keeps sorting semantics on column headers and names row actions",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden data-grid semantics > generated keeps sorting semantics on column headers and names row actions",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding progress semantics > reference exposes the visual step indicator as named progress",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding progress semantics > generated exposes the visual step indicator as named progress",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding progress semantics > reference exposes the visual step indicator as named progress",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding progress semantics > generated exposes the visual step indicator as named progress",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding dark-mode accessibility > reference has no serious or critical dark-mode axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding dark-mode accessibility > generated has no serious or critical dark-mode axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding dark-mode accessibility > reference has no serious or critical dark-mode axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding dark-mode accessibility > generated has no serious or critical dark-mode axe violations",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > app-shell reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > dashboard-report reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > data-grid reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > filterable-collection reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > list-detail reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > split-inbox reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > record-aside reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > settings reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > form reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > onboarding reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > kanban reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > auth reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > billing reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > search-command reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > states reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > app-shell reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > dashboard-report reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > data-grid reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > filterable-collection reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > list-detail reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > split-inbox reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > record-aside reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > settings reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > form reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > onboarding reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > kanban reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > auth reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > billing reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > search-command reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      },
+      {
+        "file": "saas-ui-golden.accessibility.spec.ts",
+        "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > states reflows without document overflow on both authorities",
+        "project": "",
+        "status": "expected"
+      }
+    ]
+  },
   "kind": "deviation",
   "deviationCount": 18,
   "deviations": [

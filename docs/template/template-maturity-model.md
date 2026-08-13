@@ -19,9 +19,9 @@ typed architectural direction.
 `apps/web/src/saas-ui/business-shell.tsx`, visual smoke snapshots,
 `docs/template/reviewer-guide.md`.
 
-**Required commands:** `pnpm check:format`, `pnpm smoke:web-static`,
-`pnpm smoke:hosted:browser`, `pnpm smoke:hosted:a11y`,
-`pnpm smoke:hosted:visual`.
+**Required commands:** `pnpm check:format`, `pnpm build`,
+`pnpm smoke:golden:browser`, `pnpm smoke:golden:a11y`,
+`pnpm smoke:golden:visual`.
 
 **Investor inference:** the story is inspectable, but this level alone is not a
 client implementation platform.

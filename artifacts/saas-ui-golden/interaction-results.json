@@ -1,0 +1,3553 @@
+{
+  "config": {
+    "argv": [
+      "/opt/homebrew/Cellar/node/26.3.0/bin/node",
+      "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/node_modules/@playwright/test/cli.js",
+      "test",
+      "tests/e2e/saas-ui-golden.visual.spec.ts"
+    ],
+    "configFile": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/playwright.config.ts",
+    "rootDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 2
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/artifacts/saas-ui-golden/playwright",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "desktop-chromium",
+        "name": "desktop-chromium",
+        "testDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e",
+        "testIgnore": [],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/artifacts/saas-ui-golden/playwright",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e",
+        "testIgnore": [],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/artifacts/saas-ui-golden/interaction-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 6,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "saas-ui-golden.visual.spec.ts",
+      "file": "saas-ui-golden.visual.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "paired Saas UI golden visual evidence",
+          "file": "saas-ui-golden.visual.spec.ts",
+          "line": 9,
+          "column": 6,
+          "specs": [
+            {
+              "title": "dark mode changes computed theme and screenshot evidence",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1932,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:11:59.423Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-7b416bb8fce4b73ddd80",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 78,
+              "column": 7
+            },
+            {
+              "title": "settings readiness reaches profile on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1625,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:01.361Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-0fe0708b06a411150676",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 134,
+              "column": 7
+            },
+            {
+              "title": "app-shell ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1629,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:02.992Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-b4578fe5c52fb2e0aa1c",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "dashboard-report ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2108,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:04.628Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-114605080c04ffeb2ec3",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "data-grid ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1740,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:06.742Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-3450c7fe990dbb444a01",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "filterable-collection ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1712,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:08.488Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-b5611571c6c036be8bce",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "list-detail ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2019,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:10.206Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-a0d030e472c437368090",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "split-inbox ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1917,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:12.231Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-aecb45dc499f836da1a3",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "record-aside ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1647,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:14.154Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-e4ba34ef4953cc15fa38",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "settings ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1591,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:15.806Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-d563002ddca3f8655542",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "form ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1965,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:17.402Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-c8918e02cc3d74f0ecd2",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "onboarding ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1626,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:19.373Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-75a9c903c108e6719257",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "kanban ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1616,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:21.005Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-fea894fc1f10d8089a92",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "auth ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1600,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:22.627Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-562424c1b91f694a5ad9",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "billing ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1631,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:24.234Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-b1b512a50cff2f5ba3e6",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "search-command ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1621,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:25.871Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-d358c1a516825598fa6c",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "states ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1600,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:27.498Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-b5a4279511aa5d5a90cc",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "app-shell ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1631,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:29.103Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-339e9adac676e6719c04",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "dashboard-report ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1697,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:30.739Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-f037a2d55099be0fe833",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "data-grid ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1795,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:32.441Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-6aea195e4482e3b37688",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "filterable-collection ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1957,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:34.243Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-ee0c22ae0de7ec02fd43",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "list-detail ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1944,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:36.206Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-4de98890656de921ae78",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "split-inbox ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1993,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:38.155Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-4cfe03ccd5f543aacf87",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "record-aside ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1693,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:40.156Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-12607aa723879a080005",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "settings ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1640,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:41.855Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-e7d7b8f32f357aa6ae2c",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "form ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1632,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:43.501Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-ae4e2b78bf9ec7bf535e",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "onboarding ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1626,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:45.137Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-6484e924c436ec9f7eb0",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "kanban ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1611,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:46.768Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-1c9f5bc36f472b121fab",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "auth ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1547,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:48.384Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-e8737534bd3b092c2bdd",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "billing ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1613,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:49.935Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-23674d2e03f3911a65ac",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "search-command ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1593,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:51.553Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-a14f076f180bd046b398",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "states ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1597,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:53.150Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-e36b6be6fbbaf8006d8c",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "states loading light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1572,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:54.752Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-48856a8dec90f96dd98c",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states loading dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1595,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:56.337Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-df1a5560d2c8cf8d7139",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states empty light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1593,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:57.937Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-a6f0caf7eccb9a8b086f",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states empty dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1591,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:59.535Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-5f470cca244dcb50209c",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states ready-edit light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1582,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:01.131Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-6b487424e339809bd382",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states ready-edit dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1600,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:02.717Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-82234c0de25c6821719e",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states mutation-success light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1605,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:04.323Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-294df50dbbb88d11c0c8",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states mutation-success dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1682,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:05.933Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-571c5327341d1df32e6b",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states mutation-failure light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1620,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:07.623Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-b6196b1d2078e82b4052",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states mutation-failure dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1607,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:09.253Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-a02b6fd8171885665784",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states error light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1611,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:10.865Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-7b89348da70a36a70e82",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states error dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1618,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:12.481Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-38f507054e63302bf8d9",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states not-found light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1613,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:14.103Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-69bda6813af6fa81bf97",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states not-found dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1605,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:15.721Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-9db557846fc05bb59dc9",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states permission-denied light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1597,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:17.331Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-e34c4cbf02c705b037fe",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states permission-denied dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1594,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:18.934Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-c5f5c5d30b014ac1d6e5",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "dark mode changes computed theme and screenshot evidence",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1654,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:02.930Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-0daf3e97dee9da9fd83f",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 78,
+              "column": 7
+            },
+            {
+              "title": "settings readiness reaches profile on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1958,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:04.589Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-bf6a7a9b0a0615e00417",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 134,
+              "column": 7
+            },
+            {
+              "title": "app-shell ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1671,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:06.553Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-9ccaf5a5fffb7ac3ec9b",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "dashboard-report ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1706,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:08.230Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-9d81e2e164ff287b784e",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "data-grid ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1829,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:09.941Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-915eb0c3cdaff521f75d",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "filterable-collection ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1795,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:11.776Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-509aa10835802165ebfe",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "list-detail ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1734,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:13.577Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-2f149ad6fb8fc1c12371",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "split-inbox ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1655,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:15.317Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-3a453ace0f0b7335b8ee",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "record-aside ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 2081,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:16.977Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-2567e52b992c5f746bcf",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "settings ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1710,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:19.063Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-7b1730ad57915d0653aa",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "form ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1644,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:20.778Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-a07abe82a2f17538083c",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "onboarding ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1635,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:22.427Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-8c77ce4f84bb4a3ce02f",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "kanban ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1671,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:24.067Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-c25a6bb56f8d762839b5",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "auth ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1647,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:25.743Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-635be1dfa286b8ad2314",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "billing ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1691,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:27.395Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-b3b33eb4536e8d219834",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "search-command ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1662,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:29.092Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-9d872b6aba318f35cfb8",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "states ready-read light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1690,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:30.760Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-2d05fe87dbe2fcc96b74",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "app-shell ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1699,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:32.458Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-43dd2c86e3a581cb2301",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "dashboard-report ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1932,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:34.163Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-bb899bd6844f07127de0",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "data-grid ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 2079,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:36.100Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-ae1bf70c3b7fb0422fe0",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "filterable-collection ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1842,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:38.185Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-def9d8142804770641b3",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "list-detail ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1775,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:40.032Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-9fdf5c2723d1bb0cac05",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "split-inbox ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1710,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:41.812Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-e5108eaf3eb63bd65736",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "record-aside ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1751,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:43.527Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-f697430780047b70b7d5",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "settings ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1663,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:45.283Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-6568e2f9e66143a605ba",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "form ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1669,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:46.953Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-27e811f7d333f4531893",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "onboarding ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1643,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:48.627Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-8a03064435ec3f3914a9",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "kanban ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1628,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:50.277Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-f15af69acd21393c7a90",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "auth ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1585,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:51.909Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-fe99e4445dfbbda30ea5",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "billing ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1682,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:53.499Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-d29e7f494c424cfb1f1f",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "search-command ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1651,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:55.186Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-01ba0ce2f2a53b136e81",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "states ready-read dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1643,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:56.842Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-7f57e7fa0a1776ba52b5",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 153,
+              "column": 11
+            },
+            {
+              "title": "states loading light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1612,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:12:58.489Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-c29bfc8c7d486c69dada",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states loading dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1629,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:00.105Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-ef0ff662a6708536616a",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states empty light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1645,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:01.738Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-42cd22169df6a5317a72",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states empty dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1662,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:03.388Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-043f5673b64729b66fb9",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states ready-edit light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1665,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:05.055Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-eafd189993bffaa8d323",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states ready-edit dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1662,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:06.724Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-d350ee86d2a7034537b5",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states mutation-success light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1709,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:08.392Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-62f0b3022f999024ba24",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states mutation-success dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1695,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:10.107Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-5c1b777fdfc9bd38f668",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states mutation-failure light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1663,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:11.807Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-6fcc50fc7fe097fcc5d8",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states mutation-failure dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1677,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:13.474Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-aac8827e317323bfa7b6",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states error light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1645,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:15.157Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-7e1c193ab8960c21ee67",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states error dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1663,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:16.807Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-91a8a1ea9f331c41de4a",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states not-found light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1646,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:18.474Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-cdac49e4bc21be44550d",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states not-found dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1652,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:20.125Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-485c7a53fdcda8fff6f5",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states permission-denied light captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1635,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:21.783Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-45924f48ae1f8139bc43",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            },
+            {
+              "title": "states permission-denied dark captures both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1675,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:13:23.423Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "d776f436950c1b487a9c-34433e89ef166a85f219",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 178,
+              "column": 11
+            }
+          ],
+          "suites": [
+            {
+              "title": "mobile shell geometry",
+              "file": "saas-ui-golden.visual.spec.ts",
+              "line": 10,
+              "column": 8,
+              "specs": [
+                {
+                  "title": "reserves a lane for the sidebar trigger",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mobile shell geometry is mobile-scoped.",
+                          "location": {
+                            "file": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e/saas-ui-golden.visual.spec.ts",
+                            "line": 13,
+                            "column": 16
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 269,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-08-13T00:11:58.558Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Mobile shell geometry is mobile-scoped.",
+                              "location": {
+                                "file": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e/saas-ui-golden.visual.spec.ts",
+                                "line": 13,
+                                "column": 16
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "d776f436950c1b487a9c-1c873a0312ccc04b59d0",
+                  "file": "saas-ui-golden.visual.spec.ts",
+                  "line": 21,
+                  "column": 9
+                },
+                {
+                  "title": "keeps page headings clear of the sidebar trigger",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Mobile shell geometry is mobile-scoped.",
+                          "location": {
+                            "file": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e/saas-ui-golden.visual.spec.ts",
+                            "line": 13,
+                            "column": 16
+                          }
+                        }
+                      ],
+                      "expectedStatus": "skipped",
+                      "projectId": "desktop-chromium",
+                      "projectName": "desktop-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 0,
+                          "parallelIndex": 0,
+                          "status": "skipped",
+                          "duration": 103,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-08-13T00:11:59.313Z",
+                          "annotations": [
+                            {
+                              "type": "skip",
+                              "description": "Mobile shell geometry is mobile-scoped.",
+                              "location": {
+                                "file": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e/saas-ui-golden.visual.spec.ts",
+                                "line": 13,
+                                "column": 16
+                              }
+                            }
+                          ],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "skipped"
+                    }
+                  ],
+                  "id": "d776f436950c1b487a9c-e056c8e283204b8d73d1",
+                  "file": "saas-ui-golden.visual.spec.ts",
+                  "line": 46,
+                  "column": 9
+                },
+                {
+                  "title": "reserves a lane for the sidebar trigger",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "mobile-chromium",
+                      "projectName": "mobile-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 2145,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-08-13T00:11:58.558Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "d776f436950c1b487a9c-d71b4fed57d1984a9228",
+                  "file": "saas-ui-golden.visual.spec.ts",
+                  "line": 21,
+                  "column": 9
+                },
+                {
+                  "title": "keeps page headings clear of the sidebar trigger",
+                  "ok": true,
+                  "tags": [],
+                  "tests": [
+                    {
+                      "timeout": 30000,
+                      "annotations": [],
+                      "expectedStatus": "passed",
+                      "projectId": "mobile-chromium",
+                      "projectName": "mobile-chromium",
+                      "results": [
+                        {
+                          "workerIndex": 1,
+                          "parallelIndex": 1,
+                          "status": "passed",
+                          "duration": 1735,
+                          "errors": [],
+                          "stdout": [],
+                          "stderr": [],
+                          "retry": 0,
+                          "startTime": "2026-08-13T00:12:01.189Z",
+                          "annotations": [],
+                          "attachments": []
+                        }
+                      ],
+                      "status": "expected"
+                    }
+                  ],
+                  "id": "d776f436950c1b487a9c-cdb713b6c66baba002c6",
+                  "file": "saas-ui-golden.visual.spec.ts",
+                  "line": 46,
+                  "column": 9
+                }
+              ]
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-08-13T00:11:13.325Z",
+    "duration": 131926.668,
+    "expected": 98,
+    "skipped": 2,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}

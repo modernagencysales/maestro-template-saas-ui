@@ -318,6 +318,10 @@ const customerDocumentationCommandReplacements: Readonly<
     ],
   ],
   "docs/template/template-maturity-model.md": [
+    [
+      "**Required commands:** `pnpm check:format`, `pnpm build`,\n`pnpm smoke:golden:browser`, `pnpm smoke:golden:a11y`,\n`pnpm smoke:golden:visual`.",
+      "**Required commands:** `pnpm check:format`, `pnpm build`, and the deployment owner's paired browser, accessibility, and visual evidence.",
+    ],
     ["`pnpm review:completion`.", "`pnpm review:contract`."],
     ["`pnpm evals`.", "`pnpm test`."],
     ["`pnpm deploy:doctor`.", "`pnpm verify`."],

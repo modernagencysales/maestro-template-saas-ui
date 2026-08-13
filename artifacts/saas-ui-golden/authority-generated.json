@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "authority": "generated",
   "root": "materialized-generated-target",
-  "digest": "d9e0f8ae0639d514a5ebeb74fe6d267343c6f511fef1cc3947b8879498ff0f24",
+  "digest": "c2691cf83fb9c98dbc24487f9a01edff77c935116cbd9cc82defa131eb4b7959",
   "provenance": {
     "repository": "generated-target",
     "source": "buildSaasApplicationTargetPlan",
-    "contentDigest": "d9e0f8ae0639d514a5ebeb74fe6d267343c6f511fef1cc3947b8879498ff0f24"
+    "contentDigest": "c2691cf83fb9c98dbc24487f9a01edff77c935116cbd9cc82defa131eb4b7959"
   }
 }

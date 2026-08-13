@@ -1,0 +1,4847 @@
+{
+  "config": {
+    "argv": [
+      "/opt/homebrew/Cellar/node/26.3.0/bin/node",
+      "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/node_modules/@playwright/test/cli.js",
+      "test",
+      "tests/e2e/saas-ui-golden.accessibility.spec.ts"
+    ],
+    "configFile": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/playwright.config.ts",
+    "rootDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e",
+    "failOnFlakyTests": false,
+    "forbidOnly": false,
+    "fullyParallel": false,
+    "globalSetup": null,
+    "globalTeardown": null,
+    "globalTimeout": 0,
+    "grep": {},
+    "grepInvert": null,
+    "maxFailures": 0,
+    "metadata": {
+      "actualWorkers": 2
+    },
+    "preserveOutput": "always",
+    "projects": [
+      {
+        "outputDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/artifacts/saas-ui-golden/playwright",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "desktop-chromium",
+        "name": "desktop-chromium",
+        "testDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e",
+        "testIgnore": [],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
+        "timeout": 30000
+      },
+      {
+        "outputDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/artifacts/saas-ui-golden/playwright",
+        "repeatEach": 1,
+        "retries": 0,
+        "metadata": {
+          "actualWorkers": 2
+        },
+        "id": "mobile-chromium",
+        "name": "mobile-chromium",
+        "testDir": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e",
+        "testIgnore": [],
+        "testMatch": ["**/*.@(spec|test).?(c|m)[jt]s?(x)"],
+        "timeout": 30000
+      }
+    ],
+    "quiet": false,
+    "reporter": [
+      [
+        "json",
+        {
+          "outputFile": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/artifacts/saas-ui-golden/accessibility-results.json"
+        }
+      ]
+    ],
+    "reportSlowTests": {
+      "max": 5,
+      "threshold": 300000
+    },
+    "shard": null,
+    "tags": [],
+    "updateSnapshots": "missing",
+    "updateSourceMethod": "patch",
+    "version": "1.61.1",
+    "workers": 6,
+    "webServer": null
+  },
+  "suites": [
+    {
+      "title": "saas-ui-golden.accessibility.spec.ts",
+      "file": "saas-ui-golden.accessibility.spec.ts",
+      "column": 0,
+      "line": 0,
+      "specs": [],
+      "suites": [
+        {
+          "title": "paired Saas UI golden accessibility",
+          "file": "saas-ui-golden.accessibility.spec.ts",
+          "line": 12,
+          "column": 6,
+          "specs": [
+            {
+              "title": "reduced motion is honored by both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 2315,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:28.918Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-93fb5cd1e5179de2374f",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 13,
+              "column": 7
+            },
+            {
+              "title": "inert reduced-motion CSS does not count as behavior",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 75,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:31.524Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e30ca4535dcfd30f9f1c",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "app-shell reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1105,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:31.605Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-3b543f6c429a73cae182",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "app-shell generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1143,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:32.715Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-f4d293e2639df6687990",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "dashboard-report reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1423,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:33.864Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-c3863f30b5bec29532f3",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "dashboard-report generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1421,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:35.293Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-ee1a91ae2952d6347dc8",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "data-grid reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1551,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:36.719Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-113dfad325b17fc616fd",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "data-grid generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1551,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:38.276Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-042bffffe8a07c80959f",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "filterable-collection reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1532,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:39.833Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-387824cdf5d792e6b580",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "filterable-collection generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1528,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:41.370Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e2e4201dc3ec9ffb6b89",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "list-detail reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1284,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:42.903Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-435a0e7324387c3062f9",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "list-detail generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1339,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:44.192Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-753abaebe29cc29ebfdc",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "split-inbox reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1295,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:45.537Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e8942cddcf7308f687b3",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "split-inbox generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1309,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:46.837Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-06a86fa79da8e8998346",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "record-aside reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1165,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:48.151Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-0dbcf0637a63ca35f313",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "record-aside generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1183,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:49.320Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-fd558ac5f9fc6d67e9bd",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "settings reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1113,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:50.508Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e6414bfe5a84006e99c7",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "settings generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1080,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:51.626Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-6ad636f3d790e8256d3f",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "form reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1073,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:52.711Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-c53ffe9c0d48584d0b1e",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "form generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1090,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:53.789Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-3d78c9a61c450babda48",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "onboarding reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1091,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:54.884Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-8d0da71b763cd795126b",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "onboarding generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1075,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:55.980Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-6ed281e4638d0052530a",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "kanban reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1115,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:57.059Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-9d2a1cb4326e69c4093b",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "kanban generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1106,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:58.180Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-487d2cbb4a30b3c6375c",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "auth reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1041,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:59.291Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-22c94420f1f00ee2f9ea",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "auth generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1036,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:00.336Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-b507796a2462cacae508",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "billing reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1113,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:01.378Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e74f6b3315bb66e13d5f",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "billing generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1118,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:02.497Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-744b71ae6cea352303e2",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "search-command reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1118,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:03.620Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-ef07ec0a44a6431e1596",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "search-command generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1126,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:04.743Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-0a85aa63c460765b505c",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "states reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1075,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:05.876Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-10921dc35021de06cbb9",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "states generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1100,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:06.959Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-57c273cba9f3fa2194f7",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "app-shell exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1588,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:08.063Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-71767767c1696a2cbe99",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "dashboard-report exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1636,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:09.657Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-13426fa135a0427c0693",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "data-grid exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1719,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:11.297Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-ee0d7a8485d6d925f6e7",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "filterable-collection exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1706,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:13.021Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-ffde140ab63bda73179b",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "list-detail exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1649,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:14.731Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-f7ca87a510c71f0527a8",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "split-inbox exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1858,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:16.385Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-8aeb5b38ed3b803a4742",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "record-aside exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1642,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:18.248Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e21fea54b89f4e7b407b",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "settings exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1557,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:19.895Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-74e628e7cd5ad5a6aa82",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "form exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1576,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:21.457Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-02748d0457020bdb4e54",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "onboarding exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1574,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:23.038Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-14234d7b510c4a00cc14",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "kanban exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1611,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:24.618Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-36f8d4b3236c019e8d66",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "auth exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1566,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:26.233Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-c95b83a586b5ddf2a27f",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "billing exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1577,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:27.805Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-601ba1f24770eb24df05",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "search-command exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1587,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:29.387Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-769b19b3386dd3924200",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "states exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1589,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:30.988Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e38ccae905a254a555b2",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "split-inbox activity editor and timeline use valid semantics",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1828,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:32.582Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-9c093fecbacae41c2b1b",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 104,
+              "column": 7
+            },
+            {
+              "title": "reduced motion is honored by both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 2314,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:28.918Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-8953103eec8c171a67a9",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 13,
+              "column": 7
+            },
+            {
+              "title": "inert reduced-motion CSS does not count as behavior",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 72,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:31.523Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-5a53bdb081860b75ebee",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 28,
+              "column": 7
+            },
+            {
+              "title": "app-shell reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1100,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:31.605Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-4398fa6972daeba6b23c",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "app-shell generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1147,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:32.710Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-35616fab48d1d74eae83",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "dashboard-report reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1418,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:33.864Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-7050428c84986ad47c82",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "dashboard-report generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1416,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:35.287Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-9535104078c7ac945bcb",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "data-grid reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1558,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:36.709Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-b1fdc5aab956945f0a5e",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "data-grid generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1530,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:38.274Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-1159fac4fb76ecaa687c",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "filterable-collection reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1482,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:39.809Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e3ab310a4410975287e5",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "filterable-collection generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1520,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:41.297Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-d20c160660f0b63f669c",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "list-detail reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1344,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:42.822Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-eb4e894b8e4da012649d",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "list-detail generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1344,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:44.171Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-8f2981a014dbaf7bc0ec",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "split-inbox reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1099,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:45.519Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-caecf139f0b13a9aaaef",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "split-inbox generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1126,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:46.624Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-9c038236cd74783fd858",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "record-aside reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1152,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:47.755Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-5c8453429ab6ee53b872",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "record-aside generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1169,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:48.911Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-14f7b4be75e241dad51a",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "settings reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1099,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:50.085Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-88fe04458850e6a79127",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "settings generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1093,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:51.189Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-d479bc7681d1dd21fd46",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "form reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1077,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:52.286Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-d2ed73afc4c48642eec3",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "form generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1087,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:53.368Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-c5bcb0fc9c1fc6e5895d",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "onboarding reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1077,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:54.459Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-ecfc43bed082fb0dad15",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "onboarding generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1066,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:55.541Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-1b23f0aa58bd09b708d4",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "kanban reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1119,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:56.613Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-935481755ba43303f5cc",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "kanban generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1177,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:57.738Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-f48631135c0d2966b034",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "auth reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1073,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:58.919Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-066934aa7fcd6d50c78f",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "auth generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1072,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:09:59.997Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-3acb2cc84600e16f14bd",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "billing reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1135,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:01.075Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-7c0490a325bbf6568293",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "billing generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1120,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:02.215Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-d1e54bd3b56ad21d8c09",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "search-command reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1112,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:03.341Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-849fefe4d5e364bc49de",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "search-command generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1102,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:04.457Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-7263b91f1bb1bf1eef8e",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "states reference has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1082,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:05.564Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-fff1d28cbb6e0f6b8901",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "states generated has no serious or critical axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1106,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:06.651Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-bb3aa2664c10975358f3",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 42,
+              "column": 11
+            },
+            {
+              "title": "app-shell exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1617,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:07.762Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-826547da641dc7320014",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "dashboard-report exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1644,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:09.383Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-c72d82bd2d5e6bc3ed59",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "data-grid exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1738,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:11.033Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-068f41971ed51be26b1b",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "filterable-collection exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1718,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:12.775Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-6aefcff4aff32c11b1c8",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "list-detail exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1707,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:14.497Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-30bb2a0e4b515143ec91",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "split-inbox exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1603,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:16.209Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-0fc3b1d41edcb2f99da5",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "record-aside exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1657,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:17.816Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-1fbb76062606888735ab",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "settings exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1581,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:19.479Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e4674a5a4ff90b0bca1f",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "form exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1579,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:21.065Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-86e20d6e647fd30cb02f",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "onboarding exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1563,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:22.648Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-3f69b73bdb1adb19d86e",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "kanban exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1606,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:24.215Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-07bd4f7299db3610c677",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "auth exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1584,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:25.826Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-f9badf208a271a06da1b",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "billing exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1583,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:27.414Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-fd475549eed426a4db4b",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "search-command exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1603,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:29.002Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-7b4ca5614d6ea85fa60d",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "states exposes names and visible keyboard focus on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1607,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:30.610Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-ff0fe6a98204b8d0c7ba",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 62,
+              "column": 9
+            },
+            {
+              "title": "split-inbox activity editor and timeline use valid semantics",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [
+                    {
+                      "type": "skip",
+                      "description": "Split-inbox mobile intentionally renders one list pane without the activity editor or timeline.",
+                      "location": {
+                        "file": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e/saas-ui-golden.accessibility.spec.ts",
+                        "line": 107,
+                        "column": 14
+                      }
+                    }
+                  ],
+                  "expectedStatus": "skipped",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "skipped",
+                      "duration": 46,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:32.221Z",
+                      "annotations": [
+                        {
+                          "type": "skip",
+                          "description": "Split-inbox mobile intentionally renders one list pane without the activity editor or timeline.",
+                          "location": {
+                            "file": "/Users/headless/.codex-worktrees/maestro-template-saas-ui-upstream-transplant/tests/e2e/saas-ui-golden.accessibility.spec.ts",
+                            "line": 107,
+                            "column": 14
+                          }
+                        }
+                      ],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "skipped"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-cde0b041edb1c1ea19f3",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 104,
+              "column": 7
+            }
+          ]
+        },
+        {
+          "title": "paired Saas UI golden data-grid semantics",
+          "file": "saas-ui-golden.accessibility.spec.ts",
+          "line": 133,
+          "column": 6,
+          "specs": [
+            {
+              "title": "reference keeps sorting semantics on column headers and names row actions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 831,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:34.415Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-1325ca9cab905bdf150e",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 135,
+              "column": 9
+            },
+            {
+              "title": "generated keeps sorting semantics on column headers and names row actions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 829,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:35.251Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-a5dfcc7164e24b0f5193",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 135,
+              "column": 9
+            },
+            {
+              "title": "reference keeps sorting semantics on column headers and names row actions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 843,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:32.272Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-58af38e1cc814ab43b36",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 135,
+              "column": 9
+            },
+            {
+              "title": "generated keeps sorting semantics on column headers and names row actions",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 845,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:33.119Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-87d021491a7505411c6c",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 135,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "paired onboarding progress semantics",
+          "file": "saas-ui-golden.accessibility.spec.ts",
+          "line": 157,
+          "column": 6,
+          "specs": [
+            {
+              "title": "reference exposes the visual step indicator as named progress",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 778,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:36.085Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-70a05b2a6f53b1f33999",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 165,
+              "column": 9
+            },
+            {
+              "title": "generated exposes the visual step indicator as named progress",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 782,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:36.867Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-b21f4cf4ba5abd0eff59",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 165,
+              "column": 9
+            },
+            {
+              "title": "reference exposes the visual step indicator as named progress",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 794,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:33.970Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-0c72c5819c0bfa0324a5",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 165,
+              "column": 9
+            },
+            {
+              "title": "generated exposes the visual step indicator as named progress",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 786,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:34.769Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-ef77999bfbfeedc2f27a",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 165,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "paired onboarding dark-mode accessibility",
+          "file": "saas-ui-golden.accessibility.spec.ts",
+          "line": 178,
+          "column": 6,
+          "specs": [
+            {
+              "title": "reference has no serious or critical dark-mode axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1504,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:37.654Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-2469d051efdcc2bf630e",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 186,
+              "column": 9
+            },
+            {
+              "title": "generated has no serious or critical dark-mode axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1503,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:39.163Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-30ecd6146103b4d1d6d6",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 186,
+              "column": 9
+            },
+            {
+              "title": "reference has no serious or critical dark-mode axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1542,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:35.561Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-feee6913a36fb30a9f97",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 186,
+              "column": 9
+            },
+            {
+              "title": "generated has no serious or critical dark-mode axe violations",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1518,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:37.109Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-3849910e2749804fd786",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 186,
+              "column": 9
+            }
+          ]
+        },
+        {
+          "title": "paired mobile 320px reflow",
+          "file": "saas-ui-golden.accessibility.spec.ts",
+          "line": 217,
+          "column": 6,
+          "specs": [
+            {
+              "title": "app-shell reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1507,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:40.671Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-76b205035ce793998097",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "dashboard-report reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1555,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:42.183Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-1e2ab1ec2e70c6e04490",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "data-grid reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1655,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:43.747Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-9db9c0199e274c1f7fb4",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "filterable-collection reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1611,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:45.408Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-7c6cef31355ab084febb",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "list-detail reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1565,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:47.024Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-fc86e4d5e0148004d448",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "split-inbox reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1554,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:48.593Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-9f67202b52efdae38b17",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "record-aside reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1585,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:50.152Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-1341a477c5c46c3f0c1f",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "settings reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1509,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:51.742Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-58f96625db8c658a2358",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "form reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1531,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:53.256Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-62bbbc6859d7c5e77208",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "onboarding reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1485,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:54.792Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-91e85f9390f4e640e6be",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "kanban reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1534,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:56.282Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-2c4cf66ce09bbe266d0d",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "auth reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1509,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:57.820Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-7c8512b4f595e0155973",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "billing reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1530,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:59.335Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e70b17e5e65aca0cce49",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "search-command reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 4947,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:11:00.870Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-04e681ef566b20379643",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "states reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "desktop-chromium",
+                  "projectName": "desktop-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 0,
+                      "parallelIndex": 0,
+                      "status": "passed",
+                      "duration": 1557,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:11:05.824Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-12ad9ce177a46b5cc4a6",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "app-shell reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1543,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:38.632Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-4da1f5c3255d44f49051",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "dashboard-report reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1586,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:40.181Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-2950fb34b6b04107a705",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "data-grid reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1595,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:41.771Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-53d5a2e18243f1dbce43",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "filterable-collection reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1580,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:43.370Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-a31970a82ab7610ec418",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "list-detail reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1601,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:44.955Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-8bfbb892c414b7f4a3af",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "split-inbox reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1556,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:46.561Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-6cfd55f3e754dfc73e6c",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "record-aside reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1587,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:48.123Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e1cd6354133ef806345e",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "settings reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1541,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:49.715Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-e5e7aef803c6f543dc82",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "form reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1543,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:51.261Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-edc121ceca903c527419",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "onboarding reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1512,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:52.810Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-31b4313c6cb12b683375",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "kanban reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1566,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:54.326Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-b812aa81021f30b9a810",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "auth reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1485,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:55.899Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-412cf8fd42816fcf9172",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "billing reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1524,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:57.389Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-f4716d5ac69b7d149320",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "search-command reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 1524,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:10:58.918Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-646fdcb81d809b534549",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            },
+            {
+              "title": "states reflows without document overflow on both authorities",
+              "ok": true,
+              "tags": [],
+              "tests": [
+                {
+                  "timeout": 30000,
+                  "annotations": [],
+                  "expectedStatus": "passed",
+                  "projectId": "mobile-chromium",
+                  "projectName": "mobile-chromium",
+                  "results": [
+                    {
+                      "workerIndex": 1,
+                      "parallelIndex": 1,
+                      "status": "passed",
+                      "duration": 5170,
+                      "errors": [],
+                      "stdout": [],
+                      "stderr": [],
+                      "retry": 0,
+                      "startTime": "2026-08-13T00:11:00.447Z",
+                      "annotations": [],
+                      "attachments": []
+                    }
+                  ],
+                  "status": "expected"
+                }
+              ],
+              "id": "ad750b9cfc84b63792f9-00a7d2df9f751f4ba6ad",
+              "file": "saas-ui-golden.accessibility.spec.ts",
+              "line": 221,
+              "column": 9
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "stats": {
+    "startTime": "2026-08-13T00:08:42.617Z",
+    "duration": 144899.497,
+    "expected": 137,
+    "skipped": 1,
+    "unexpected": 0,
+    "flaky": 0
+  }
+}
