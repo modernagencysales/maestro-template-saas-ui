@@ -60,6 +60,7 @@ const candidateRelease = (input: {
   const plan = buildSaasApplicationTargetPlan({
     name: input.name,
     firstOutcome: input.outcome,
+    sourceRoot: root,
   });
   const materializedPaths = new Set(plan.entries.map((entry) => entry.path));
   const optionalPatternPaths = new Set(
@@ -67,6 +68,7 @@ const candidateRelease = (input: {
       name: input.name,
       firstOutcome: input.outcome,
       patterns: ["records-example", "workflow-automation"],
+      sourceRoot: root,
     }).entries.map((entry) => entry.path),
   );
   const blueprintOwnedPaths = new Set(
