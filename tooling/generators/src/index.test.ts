@@ -1090,7 +1090,7 @@ describe("template app factory generators", () => {
     const agentResource = runGeneratorCli([
       "systems",
       "--query",
-      "present canonical agent seats",
+      "present the editable Saas UI Pro Kanban block",
     ]);
     const unknown = runGeneratorCli([
       "systems",
@@ -1110,7 +1110,7 @@ describe("template app factory generators", () => {
     });
     expect(JSON.parse(agentResource.stdout)).toMatchObject({
       matches: [expect.objectContaining({ id: "workflow-runtime" })],
-      resources: [expect.objectContaining({ id: "route:agents" })],
+      resources: [expect.objectContaining({ id: "route:$workspace/kanban" })],
     });
     expect(JSON.parse(unknown.stdout)).toMatchObject({
       matches: [],

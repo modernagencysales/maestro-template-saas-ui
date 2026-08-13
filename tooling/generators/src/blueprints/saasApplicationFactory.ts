@@ -230,6 +230,7 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
         "apps/web/src/features/records/model.ts",
         "apps/web/src/features/records/records-surface.tsx",
         "apps/web/src/screens/records-screen.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
         "features/records.feature",
         "features/step_definitions/records.journeys.ts",
         "features/step_definitions/records.steps.ts",
@@ -314,8 +315,25 @@ const customerDocumentationCommandReplacements: Readonly<
       "5. Run `pnpm build` and `pnpm smoke:web-static`.",
       "5. Run `pnpm build` and the deployment owner's static smoke.",
     ],
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/saas-ui-golden-review.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/investor-reviewer-packet.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/hosting.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/golden-path-business-slice.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/reviewer-guide.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
   ],
   "docs/template/template-maturity-model.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
     ["`pnpm review:completion`.", "`pnpm review:contract`."],
     ["`pnpm evals`.", "`pnpm test`."],
     ["`pnpm deploy:doctor`.", "`pnpm verify`."],
@@ -516,16 +534,35 @@ export const buildAlpha1SaasApplicationFiles = (options: {
   readonly firstOutcome?: string;
 }): readonly GeneratedFile[] => [
   ...buildSaasApplicationFiles(options).map((file) =>
-    file.path ===
-    "generated/blueprints/saas-application/application-contract.json"
+    file.path === "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"
       ? {
           ...file,
-          content: file.content.replace(
-            "packages/convex/confect/records.{spec,impl}.ts",
-            "packages/convex/confect/records/*",
-          ),
+          path: "apps/web/src/routes/_workspace.records.tsx",
+          content: file.content
+            .replace(
+              "../../../../screens/records-screen.js",
+              "../screens/records-screen.js",
+            )
+            .replace(
+              "/_app/$workspace/_dashboard/records",
+              "/_workspace/records",
+            ),
         }
-      : file,
+      : file.path ===
+          "generated/blueprints/saas-application/application-contract.json"
+        ? {
+            ...file,
+            content: file.content
+              .replace(
+                "packages/convex/confect/records.{spec,impl}.ts",
+                "packages/convex/confect/records/*",
+              )
+              .replace(
+                "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
+                "apps/web/src/routes/_workspace.records.tsx",
+              ),
+          }
+        : file,
   ),
   ...buildSaasRegistrationProjections({ current: false }),
 ];

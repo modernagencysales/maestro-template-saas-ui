@@ -1782,7 +1782,7 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
-    ...(recordsSelected
+    ...(!current && recordsSelected
       ? [
           {
             path: "apps/web/src/routeRegistry.generated.ts",

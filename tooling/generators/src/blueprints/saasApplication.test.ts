@@ -157,9 +157,9 @@ describe("saas application blueprint", () => {
 
     const neutral = paths();
     expect(neutral.has("features/records.feature")).toBe(false);
-    expect(neutral.has("apps/web/src/routes/_workspace.records.tsx")).toBe(
-      false,
-    );
+    expect(
+      neutral.has("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"),
+    ).toBe(false);
     expect(neutral.has("tooling/workflow/package.json")).toBe(false);
     expect(
       neutral.has("packages/convex/confect/workflows/graphCurrent.ts"),
@@ -170,9 +170,9 @@ describe("saas application blueprint", () => {
 
     const records = paths(["records-example"]);
     expect(records.has("features/records.feature")).toBe(true);
-    expect(records.has("apps/web/src/routes/_workspace.records.tsx")).toBe(
-      true,
-    );
+    expect(
+      records.has("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"),
+    ).toBe(true);
     expect(records.has("tooling/workflow/package.json")).toBe(false);
     for (const path of [
       "features/step_definitions/records.journeys.ts",
@@ -621,7 +621,7 @@ describe("saas application blueprint", () => {
       name: "records",
       ownership: { system: "knowledge-brain", disposition: "extend" },
       generatedPaths: expect.arrayContaining([
-        "apps/web/src/routes/_workspace.records.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
       ]),
     });
   });
@@ -1409,9 +1409,12 @@ Feature: Reconcile disputed invoices
         readonly scripts?: Readonly<Record<string, string>>;
       };
       const references = projectedEntries.flatMap(({ path, content }) =>
-        [...content.matchAll(/pnpm (check:workflow[^\s`"',&)\\]+)/gu)].flatMap(
-          (match) =>
-            match[1] === undefined ? [] : [{ command: match[1], path }],
+        [
+          ...content.matchAll(
+            /pnpm (check:workflow[^\s.`"',&)\\]+)(?=$|[\s`"',&)\\])/gu,
+          ),
+        ].flatMap((match) =>
+          match[1] === undefined ? [] : [{ command: match[1], path }],
         ),
       );
       const scripts = root.scripts ?? {};
@@ -1821,7 +1824,7 @@ Feature: Reconcile disputed invoices
         "apps/web/src/features/records/model.ts",
         "apps/web/src/features/records/records-surface.tsx",
         "apps/web/src/screens/records-screen.tsx",
-        "apps/web/src/routes/_workspace.records.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
         "apps/web/src/adapters/records/http.ts",
         "features/records.feature",
         "features/step_definitions/records.journeys.ts",
@@ -1849,13 +1852,12 @@ Feature: Reconcile disputed invoices
         "scripts/maestro-bootstrap.mjs",
         "scripts/maestro-bootstrap.test.mjs",
         "scripts/configure-postmark.mts",
-        "apps/web/src/bundle-policy.ts",
         "apps/web/scripts/check-client-bundle-budget.mjs",
         "apps/web/scripts/check-client-bundle-budget.test.mjs",
-        "apps/web/src/bundle-policy.test.ts",
         "apps/web/vite.config.ts",
         "pnpm-workspace.yaml",
         "packages/convex/package.json",
+        "packages/convex/src/refs.ts",
         "tooling/quality/check-convex-generation.mts",
         "apps/cli/src/factory/customerComposition.ts",
         "apps/cli/src/factory/contracts.ts",
@@ -1911,6 +1913,13 @@ Feature: Reconcile disputed invoices
         "packages/convex/confect/workflows/graphValidationCurrent.ts",
         "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
         "packages/convex/confect/_generated/docs.ts",
+        "packages/convex/confect/_generated/tables/workspaces.ts",
+        "packages/convex/confect/access/members.spec.ts",
+        "packages/convex/confect/access/provisioning.spec.ts",
+        "packages/convex/confect/access/roles.ts",
+        "packages/convex/confect/auth/workspaces.spec.ts",
+        "packages/convex/confect/errors.ts",
+        "packages/convex/confect/tables/workspaces.ts",
         "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
         ...CURRENT_EMAIL_CLOSURE,
         ...CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
@@ -1967,8 +1976,6 @@ Feature: Reconcile disputed invoices
         "tooling/agent-pack/src/mcp/protocol.test.ts",
         "tooling/agent-pack/src/mcp/server.test.ts",
         "tooling/agent-pack/src/nodeAdapters.test.ts",
-        "apps/web/src/routes/index.tsx",
-        "apps/web/src/providers/posthog.tsx",
         "tooling/agent-pack/src/privacy/supportBundle.ts",
         "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
         "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
@@ -1985,7 +1992,6 @@ Feature: Reconcile disputed invoices
         "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
         "packages/convex/convex/records/records.ts",
         "apps/web/src/routeTree.gen.ts",
-        "apps/web/src/routeRegistry.generated.ts",
         "docs/template/env-manifest.json",
         "docs/template/env-manifest.md",
         "docs/template/operations-runbook.md",
@@ -2010,11 +2016,8 @@ Feature: Reconcile disputed invoices
     const routeTree = first.find(
       ({ path }) => path === "apps/web/src/routeTree.gen.ts",
     )?.content;
-    expect(routeTree).toContain("path: '/records'");
+    expect(routeTree).toContain("AppWorkspaceDashboardIndexRouteImport");
     expect(routeTree).not.toContain("saasApplicationRoutes");
-    expect(routeTree?.indexOf("'/_workspace/runs': {")).toBeLessThan(
-      routeTree?.indexOf("'/_workspace/records': {") ?? -1,
-    );
     expect(
       first.find(
         ({ path }) => path === "tooling/quality/install-lefthook-if-git.mjs",
@@ -2065,7 +2068,7 @@ Feature: Reconcile disputed invoices
       "apps/web/src/features/records/model.ts",
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
-      "apps/web/src/routes/_workspace.records.tsx",
+      "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
     ]);
     const executable = first.filter(({ path }) => executablePaths.has(path));
     for (const file of executable) {
@@ -2238,19 +2241,25 @@ Feature: Reconcile disputed invoices
       /templateConfectRefs\.public\.records\.(?:list|create)/u,
     );
 
-    const indexRoute = files.get("apps/web/src/routes/index.tsx") ?? "";
-    expect(indexRoute).toContain("DashboardPage");
-    expect(indexRoute).not.toContain("public-funnel");
-    const posthog = files.get("apps/web/src/providers/posthog.tsx") ?? "";
-    expect(posthog).toContain("shouldEnableAnalyticsCapture");
-    expect(posthog).not.toContain("app-idea-evaluator");
-    expect(posthog).not.toContain("public-funnel");
+    const recordsRoute =
+      files.get("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx") ??
+      "";
+    expect(recordsRoute).toContain(
+      'createFileRoute("/_app/$workspace/_dashboard/records")',
+    );
+    expect(recordsRoute).not.toContain("BusinessAppShell");
+    expect(recordsRoute).not.toContain("BusinessPageRoot");
+
     const routeTree = files.get("apps/web/src/routeTree.gen.ts") ?? "";
-    expect(routeTree).toContain("DashboardRouteImport");
-    expect(routeTree).toContain("WorkspaceRecordsRouteImport");
-    expect(routeTree).not.toContain("EvaluateRouteImport");
-    expect(routeTree).not.toContain("CheckoutReturnRouteImport");
-    expect(routeTree).not.toContain("BuildPackPackIdRouteImport");
+    expect(routeTree).toContain("AppWorkspaceDashboardIndexRouteImport");
+    expect(routeTree).not.toContain("saasApplicationRoutes");
+    for (const obsoletePath of [
+      "apps/web/src/bundle-policy.ts",
+      "apps/web/src/bundle-policy.test.ts",
+      "apps/web/src/routes/index.tsx",
+      "apps/web/src/providers/posthog.tsx",
+    ])
+      expect(files.has(obsoletePath), obsoletePath).toBe(false);
   });
 
   // eslint-disable-next-line complexity -- AP-008 tracks splitting this declarative script-closure assertion.
@@ -2269,11 +2278,9 @@ Feature: Reconcile disputed invoices
       "scripts/maestro-bootstrap.mjs",
       "scripts/maestro-bootstrap.test.mjs",
       "scripts/configure-postmark.mts",
-      "apps/web/src/bundle-policy.ts",
       "apps/web/package.json",
       "apps/web/scripts/check-client-bundle-budget.mjs",
       "apps/web/scripts/check-client-bundle-budget.test.mjs",
-      "apps/web/src/bundle-policy.test.ts",
       "apps/web/vite.config.ts",
       "pnpm-workspace.yaml",
       "pnpm-lock.yaml",
@@ -2437,6 +2444,7 @@ Feature: Reconcile disputed invoices
         continue;
       }
       if (
+        root.scripts[name] !== undefined &&
         !omittedScripts.has(name) &&
         !rewritten.has(name) &&
         (!REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(

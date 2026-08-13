@@ -184,7 +184,10 @@ describe("SaaS UI generated target artifact boundary", () => {
   });
 
   it("builds and starts a freshly materialized customer target with frozen dependencies", async () => {
-    const plan = buildSaasApplicationTargetPlan({ name: "Build Proof" });
+    const plan = buildSaasApplicationTargetPlan({
+      name: "Build Proof",
+      patterns: ["records-example"],
+    });
     const target = mkdtempSync(join(tmpdir(), "saas-ui-generated-build-"));
     try {
       for (const entry of plan.entries) {
@@ -208,6 +211,7 @@ describe("SaaS UI generated target artifact boundary", () => {
         "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
         "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
         "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
         "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
         "apps/web/src/routes/_app/$workspace/settings/account/profile.tsx",
       ]) {
@@ -267,6 +271,12 @@ describe("SaaS UI generated target artifact boundary", () => {
       command(["run", "typecheck:saas-ui:baseline"]);
       command(["--dir", "apps/web", "typecheck"]);
       command(["--dir", "apps/web", "build"]);
+      const routeTree = readFileSync(
+        join(target, "apps/web/src/routeTree.gen.ts"),
+        "utf8",
+      );
+      expect(routeTree).toContain("AppWorkspaceDashboardRecordsRouteImport");
+      expect(routeTree).toContain("path: '/records'");
 
       const port = await availablePort();
       const server = spawn("node", [".output/server/index.mjs"], {
