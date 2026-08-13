@@ -452,33 +452,35 @@ const readNativePlaywrightListing = (
   sourceRoot: string,
 ): ParsedPlaywrightJsonReport => {
   const initialCheckoutState = snapshotCheckoutState(sourceRoot);
-  const configPath = repoPath(
-    repoRoot,
-    sourceRoot,
-    "playwright.acceptance.config.ts",
-  );
-  const output = execFileSync(
-    "pnpm",
-    [
-      "exec",
-      "playwright",
-      "test",
-      "--config",
-      configPath,
-      "--list",
-      "--pass-with-no-tests",
-      "--reporter=json",
-    ],
-    { cwd: repoRoot, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
-  );
-  assertCheckoutState(
-    initialCheckoutState,
-    sourceRoot,
-    "Product contract checkout/source mutation during discovery",
-  );
-  const report = parsePlaywrightJsonReport(JSON.parse(output) as unknown);
-  validateNativeAcceptanceReportBoundary({ sourceRoot, report });
-  return report;
+  try {
+    const configPath = repoPath(
+      repoRoot,
+      sourceRoot,
+      "playwright.acceptance.config.ts",
+    );
+    const output = execFileSync(
+      "pnpm",
+      [
+        "exec",
+        "playwright",
+        "test",
+        "--config",
+        configPath,
+        "--list",
+        "--pass-with-no-tests",
+        "--reporter=json",
+      ],
+      { cwd: repoRoot, encoding: "utf8", maxBuffer: 32 * 1024 * 1024 },
+    );
+    const report = parsePlaywrightJsonReport(JSON.parse(output) as unknown);
+    validateNativeAcceptanceReportBoundary({ sourceRoot, report });
+    return report;
+  } finally {
+    assertCheckoutState(
+      initialCheckoutState,
+      "Product contract checkout/source mutation during discovery",
+    );
+  }
 };
 
 type DiscoveryOptions = {

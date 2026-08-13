@@ -486,6 +486,94 @@ describe("acceptance runtime validation", () => {
 });
 
 describe("runAcceptance", () => {
+  it("rejects a root checkout mutation when nested discovery throws", async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), "maestro-acceptance-root-checkout-"),
+    );
+    roots.push(root);
+    await writeRequiredContract(root);
+    await writeFile(join(root, "README.md"), "original\n");
+    initializeGitCheckout(root);
+
+    await expect(
+      runAcceptance({
+        repoRoot: root,
+        sourceRoot: "source",
+        scope: "required",
+        processRunner: async () => {
+          execFileSync(
+            "git",
+            ["update-index", "--assume-unchanged", "README.md"],
+            {
+              cwd: root,
+            },
+          );
+          await writeFile(join(root, "README.md"), "counterfeit\n");
+          execFileSync(
+            "git",
+            ["config", "core.worktree", join(root, "redirected")],
+            {
+              cwd: root,
+            },
+          );
+          throw new Error("native discovery failed");
+        },
+      }),
+    ).rejects.toThrow(/checkout.*source mutation.*discovery/i);
+  });
+
+  it("rejects a checkout mutation when runtime is nonzero with invalid JSON", async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), "maestro-acceptance-runtime-failure-"),
+    );
+    roots.push(root);
+    await writeRequiredContract(root);
+    await writeFile(join(root, "README.md"), "original\n");
+    initializeGitCheckout(root);
+
+    await expect(
+      runAcceptance({
+        repoRoot: root,
+        sourceRoot: "source",
+        scope: "required",
+        processRunner: async (args, environment) => {
+          if (args.includes("--list")) {
+            await writeFile(
+              environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
+              JSON.stringify(
+                rawNativeReport(
+                  [{ id: "required", tag: "@BHV-REC-001-R1" }],
+                  join(root, "source"),
+                ),
+              ),
+            );
+            return { exitCode: 0, stdout: "", stderr: "" };
+          }
+          execFileSync(
+            "git",
+            ["update-index", "--assume-unchanged", "README.md"],
+            {
+              cwd: root,
+            },
+          );
+          await writeFile(join(root, "README.md"), "counterfeit\n");
+          execFileSync(
+            "git",
+            ["config", "core.worktree", join(root, "redirected")],
+            {
+              cwd: root,
+            },
+          );
+          await writeFile(
+            environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
+            "not JSON",
+          );
+          return { exitCode: 1, stdout: "", stderr: "native failure" };
+        },
+      }),
+    ).rejects.toThrow(/checkout.*source mutation.*runtime/i);
+  });
+
   it.each([
     ["assume-unchanged", "--assume-unchanged"],
     ["skip-worktree", "--skip-worktree"],

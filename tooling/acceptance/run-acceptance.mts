@@ -365,28 +365,31 @@ export const runAcceptance = async (
   try {
     const configPath = join(sourceRoot, configName);
     const discoveryPath = join(temporaryDirectory, "discovery.json");
-    const discovery = await executeReport({
-      runner,
-      args: [
-        "exec",
-        "playwright",
-        "test",
-        "--config",
-        configPath,
-        "--list",
-        "--pass-with-no-tests",
-        "--reporter=json",
-      ],
-      environment: { PLAYWRIGHT_JSON_OUTPUT_NAME: discoveryPath },
-      reportPath: discoveryPath,
-      failureMessage: "Playwright acceptance discovery failed",
-      failOnNonzero: true,
-    });
-    assertCheckoutState(
-      initialCheckoutState,
-      sourceRoot,
-      "Acceptance checkout/source mutation during discovery",
-    );
+    let discovery: Awaited<ReturnType<typeof executeReport>>;
+    try {
+      discovery = await executeReport({
+        runner,
+        args: [
+          "exec",
+          "playwright",
+          "test",
+          "--config",
+          configPath,
+          "--list",
+          "--pass-with-no-tests",
+          "--reporter=json",
+        ],
+        environment: { PLAYWRIGHT_JSON_OUTPUT_NAME: discoveryPath },
+        reportPath: discoveryPath,
+        failureMessage: "Playwright acceptance discovery failed",
+        failOnNonzero: true,
+      });
+    } finally {
+      assertCheckoutState(
+        initialCheckoutState,
+        "Acceptance checkout/source mutation during discovery",
+      );
+    }
     const discovered = discovery.report;
     validateReport(sourceRoot, discovered, options.processRunner === undefined);
     const tags = options.scope === "required" ? requiredTags : [];
@@ -400,19 +403,22 @@ export const runAcceptance = async (
       ...(tags.length === 0 ? [] : ["--grep", escapedTagPattern(tags)]),
       "--reporter=json",
     ];
-    const runtime = await executeReport({
-      runner,
-      args: runtimeArgs,
-      environment: { PLAYWRIGHT_JSON_OUTPUT_NAME: runtimePath },
-      reportPath: runtimePath,
-      failureMessage: "Playwright acceptance runtime failed",
-      failOnNonzero: false,
-    });
-    assertCheckoutState(
-      initialCheckoutState,
-      sourceRoot,
-      "Acceptance checkout/source mutation during runtime",
-    );
+    let runtime: Awaited<ReturnType<typeof executeReport>>;
+    try {
+      runtime = await executeReport({
+        runner,
+        args: runtimeArgs,
+        environment: { PLAYWRIGHT_JSON_OUTPUT_NAME: runtimePath },
+        reportPath: runtimePath,
+        failureMessage: "Playwright acceptance runtime failed",
+        failOnNonzero: false,
+      });
+    } finally {
+      assertCheckoutState(
+        initialCheckoutState,
+        "Acceptance checkout/source mutation during runtime",
+      );
+    }
     validateReport(
       sourceRoot,
       runtime.report,

@@ -1,4 +1,11 @@
-import { chmod, mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
+import {
+  chmod,
+  mkdtemp,
+  mkdir,
+  readFile,
+  realpath,
+  writeFile,
+} from "node:fs/promises";
 import { writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -17,6 +24,10 @@ import {
   parsePlanFrontmatter,
   validateAcceptanceDiscovery,
 } from "./product-contract.mts";
+import {
+  assertCheckoutState,
+  snapshotCheckoutState,
+} from "./checkout-state.mts";
 import type { ParsedPlaywrightJsonReport } from "./playwright-report.mts";
 
 const contractPath = "product.contract.yaml";
@@ -197,6 +208,32 @@ const withBehavior = (
 ): ProductContract => ({ ...source, behaviors: [item] });
 
 describe("product contract tooling", () => {
+  it("binds shared config for a nested linked worktree source", async () => {
+    const root = await mkdtemp(join(tmpdir(), "product-contract-linked-"));
+    const sourceRoot = join(root, "nested", "source");
+    await mkdir(join(sourceRoot, "docs"), { recursive: true });
+    await writeFile(
+      join(sourceRoot, "product.contract.yaml"),
+      contractYaml("draft"),
+    );
+    await writeFile(
+      join(sourceRoot, "docs", "records.md"),
+      planYaml([["route:records", "template-gap", "records"]]),
+    );
+    await initGit(root, "nested/source");
+    const worktree = join(root, "linked");
+    execFileSync("git", ["worktree", "add", "--detach", worktree, "HEAD"], {
+      cwd: root,
+    });
+    const initial = snapshotCheckoutState(join(worktree, "nested", "source"));
+    execFileSync("git", ["config", "core.worktree", join(root, "redirected")], {
+      cwd: root,
+    });
+    expect(() => assertCheckoutState(initial, "checkout changed")).toThrow(
+      "checkout changed",
+    );
+  });
+
   it("rejects a checkout mutation from native Playwright discovery", async () => {
     const root = await mkdtemp(join(tmpdir(), "product-contract-checkout-"));
     const sourceRoot = root;
@@ -262,7 +299,8 @@ describe("product contract tooling", () => {
 
   it("checks native discovery from a bounded nested source root", async () => {
     const root = await mkdtemp(join(tmpdir(), "product-contract-nested-"));
-    const sourceRoot = join(root, "nested", "source");
+    const repoRoot = await realpath(root);
+    const sourceRoot = join(repoRoot, "nested", "source");
     await mkdir(join(sourceRoot, "docs"), { recursive: true });
     await mkdir(join(sourceRoot, "tests", "acceptance"), { recursive: true });
     await writeFile(
@@ -320,12 +358,53 @@ describe("product contract tooling", () => {
     process.env.PATH = `${bin}:${previousPath ?? ""}`;
     try {
       const findings = await checkProductContract({
-        repoRoot: root,
+        repoRoot,
         sourceRoot: "nested/source",
         allowFirstContract: true,
         resolveAppMapNodeIds: async () => new Set(["route:records"]),
       });
       expect(findings.join("\n")).not.toMatch(/Playwright discovery failed/i);
+    } finally {
+      process.env.PATH = previousPath;
+    }
+  });
+
+  it("rejects root checkout mutation when nested discovery exits nonzero", async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), "product-contract-root-checkout-"),
+    );
+    const sourceRoot = join(root, "nested", "source");
+    await mkdir(join(sourceRoot, "docs"), { recursive: true });
+    await mkdir(join(sourceRoot, "tests", "acceptance"), { recursive: true });
+    await writeFile(
+      join(sourceRoot, "product.contract.yaml"),
+      contractYaml("draft"),
+    );
+    await writeFile(
+      join(sourceRoot, "docs", "records.md"),
+      planYaml([["route:records", "template-gap", "records"]]),
+    );
+    await writeFile(
+      join(sourceRoot, "tests", "acceptance", "records.spec.ts"),
+      "original\n",
+    );
+    await initGit(root, "nested/source");
+    const bin = join(root, "bin");
+    await mkdir(bin);
+    await writeFile(
+      join(bin, "pnpm"),
+      "#!/bin/sh\ngit update-index --assume-unchanged README.md\nprintf 'counterfeit\\n' > README.md\ngit config core.worktree \"$PWD/redirected\"\nexit 1\n",
+    );
+    await chmod(join(bin, "pnpm"), 0o755);
+    const previousPath = process.env.PATH;
+    process.env.PATH = `${bin}:${previousPath ?? ""}`;
+    try {
+      await expect(
+        generateProductContract({
+          repoRoot: root,
+          sourceRoot: "nested/source",
+        }),
+      ).rejects.toThrow(/checkout.*source mutation.*discovery/i);
     } finally {
       process.env.PATH = previousPath;
     }

@@ -71,6 +71,9 @@ full-batch/frozen-delivery check, not the default proof for every small task.
   strength, declared-surface usefulness, and semantic test quality remain
   advisory review obligations. Fix flakes rather than masking them with retries
   or parallelism.
+- Generated acceptance runtime/fixtures and verifier/gate code are reviewed
+  trusted harness authorities; checkout integrity cannot make a modified trusted
+  harness self-proving.
 - Promote a draft behavior only with its revision-bound passing example.
 - Product and capability tests include authentication, role and cross-workspace
   denial, invalid input, typed errors, idempotency, and side-effect ordering
