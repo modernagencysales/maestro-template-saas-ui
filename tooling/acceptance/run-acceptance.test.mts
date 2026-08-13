@@ -486,44 +486,92 @@ describe("acceptance runtime validation", () => {
 });
 
 describe("runAcceptance", () => {
-  it("rejects a hidden checkout/source mutation before discovery", async () => {
-    const root = await mkdtemp(join(tmpdir(), "maestro-acceptance-checkout-"));
+  it.each([
+    ["assume-unchanged", "--assume-unchanged"],
+    ["skip-worktree", "--skip-worktree"],
+  ])(
+    "rejects a hidden %s checkout mutation before discovery",
+    async (_name, flag) => {
+      const root = await mkdtemp(
+        join(tmpdir(), "maestro-acceptance-checkout-"),
+      );
+      roots.push(root);
+      await writeRequiredContract(root);
+      const sourceRoot = join(root, "source");
+      execFileSync("git", ["init", "--quiet"], { cwd: sourceRoot });
+      execFileSync("git", ["config", "user.email", "acceptance@example.test"], {
+        cwd: sourceRoot,
+      });
+      execFileSync("git", ["config", "user.name", "Acceptance Test"], {
+        cwd: sourceRoot,
+      });
+      execFileSync("git", ["add", "."], { cwd: sourceRoot });
+      execFileSync(
+        "git",
+        [
+          "-c",
+          "core.hooksPath=/dev/null",
+          "commit",
+          "--quiet",
+          "-m",
+          "initial acceptance",
+        ],
+        { cwd: sourceRoot },
+      );
+      execFileSync(
+        "git",
+        ["update-index", flag, "tests/acceptance/records.spec.ts"],
+        { cwd: sourceRoot },
+      );
+      await writeFile(
+        join(sourceRoot, "tests", "acceptance", "records.spec.ts"),
+        "counterfeit",
+      );
+      const processRunner = vi.fn(
+        async (
+          args: readonly string[],
+          environment: Readonly<Record<string, string>>,
+        ): Promise<PlaywrightProcessResult> => {
+          const discovery = args.includes("--list");
+          await writeFile(
+            environment.PLAYWRIGHT_JSON_OUTPUT_NAME as string,
+            JSON.stringify(
+              rawNativeReport(
+                [
+                  {
+                    id: "required",
+                    tag: "@BHV-REC-001-R1",
+                    ...(discovery ? {} : { status: "passed" }),
+                  },
+                ],
+                sourceRoot,
+              ),
+            ),
+          );
+          return { exitCode: 0, stdout: "", stderr: "" };
+        },
+      );
+
+      await expect(
+        runAcceptance({
+          repoRoot: root,
+          sourceRoot: "source",
+          scope: "required",
+          processRunner,
+        }),
+      ).rejects.toThrow(/could not capture Git checkout state/i);
+      expect(processRunner).not.toHaveBeenCalled();
+    },
+  );
+
+  it("rejects a checkout/source mutation during runtime", async () => {
+    const root = await mkdtemp(
+      join(tmpdir(), "maestro-acceptance-runtime-mutation-"),
+    );
     roots.push(root);
     await writeRequiredContract(root);
     const sourceRoot = join(root, "source");
-    execFileSync("git", ["init", "--quiet"], { cwd: sourceRoot });
-    execFileSync("git", ["config", "user.email", "acceptance@example.test"], {
-      cwd: sourceRoot,
-    });
-    execFileSync("git", ["config", "user.name", "Acceptance Test"], {
-      cwd: sourceRoot,
-    });
-    execFileSync("git", ["add", "."], { cwd: sourceRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "core.hooksPath=/dev/null",
-        "commit",
-        "--quiet",
-        "-m",
-        "initial acceptance",
-      ],
-      { cwd: sourceRoot },
-    );
-    execFileSync(
-      "git",
-      [
-        "update-index",
-        "--assume-unchanged",
-        "tests/acceptance/records.spec.ts",
-      ],
-      { cwd: sourceRoot },
-    );
-    await writeFile(
-      join(sourceRoot, "tests", "acceptance", "records.spec.ts"),
-      "counterfeit",
-    );
+    initializeGitCheckout(sourceRoot);
     const processRunner = vi.fn(
       async (
         args: readonly string[],
@@ -545,6 +593,11 @@ describe("runAcceptance", () => {
             ),
           ),
         );
+        if (!discovery)
+          await writeFile(
+            join(sourceRoot, "tests", "acceptance", "records.spec.ts"),
+            "counterfeit",
+          );
         return { exitCode: 0, stdout: "", stderr: "" };
       },
     );
@@ -556,8 +609,8 @@ describe("runAcceptance", () => {
         scope: "required",
         processRunner,
       }),
-    ).rejects.toThrow(/could not capture Git checkout state/i);
-    expect(processRunner).not.toHaveBeenCalled();
+    ).rejects.toThrow(/checkout.*source mutation.*runtime/i);
+    expect(processRunner).toHaveBeenCalledTimes(2);
   });
 
   it("executes discovery and the current required grep against native reports", async () => {

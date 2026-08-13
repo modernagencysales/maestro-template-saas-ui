@@ -809,7 +809,7 @@ export const checkProductContract = async (
   try {
     const report = await loadAcceptanceDiscovery(
       options.repoRoot,
-      options.sourceRoot,
+      sourceRoot,
       options,
     );
     validateAcceptanceReportBoundary({ sourceRoot, report });

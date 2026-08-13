@@ -260,6 +260,77 @@ describe("product contract tooling", () => {
     }
   });
 
+  it("checks native discovery from a bounded nested source root", async () => {
+    const root = await mkdtemp(join(tmpdir(), "product-contract-nested-"));
+    const sourceRoot = join(root, "nested", "source");
+    await mkdir(join(sourceRoot, "docs"), { recursive: true });
+    await mkdir(join(sourceRoot, "tests", "acceptance"), { recursive: true });
+    await writeFile(
+      join(sourceRoot, "product.contract.yaml"),
+      contractYaml("draft"),
+    );
+    await writeFile(
+      join(sourceRoot, "docs", "records.md"),
+      planYaml([["route:records", "template-gap", "records"]]),
+    );
+    await writeFile(
+      join(sourceRoot, "tests", "acceptance", "records.spec.ts"),
+      "original\n",
+    );
+    await initGit(root, "nested/source");
+    execFileSync(
+      "git",
+      ["add", "nested/source/tests/acceptance/records.spec.ts"],
+      {
+        cwd: root,
+      },
+    );
+    execFileSync("git", ["commit", "-qm", "acceptance spec"], {
+      cwd: root,
+      env: { ...process.env, LEFTHOOK: "0" },
+    });
+    const report = JSON.stringify({
+      config: reportFor("tests/acceptance/records.spec.ts", sourceRoot).config,
+      suites: [
+        {
+          file: "tests/acceptance/records.spec.ts",
+          specs: [
+            {
+              id: "spec-001",
+              title: "record appears",
+              tags: ["BHV-REC-001-R1"],
+              tests: [
+                {
+                  projectName: "acceptance-chromium",
+                  expectedStatus: "passed",
+                  annotations: [],
+                  results: [],
+                },
+              ],
+            },
+          ],
+        },
+      ],
+    });
+    const bin = join(root, "bin");
+    await mkdir(bin);
+    await writeFile(join(bin, "pnpm"), `#!/bin/sh\nprintf '%s' '${report}'\n`);
+    await chmod(join(bin, "pnpm"), 0o755);
+    const previousPath = process.env.PATH;
+    process.env.PATH = `${bin}:${previousPath ?? ""}`;
+    try {
+      const findings = await checkProductContract({
+        repoRoot: root,
+        sourceRoot: "nested/source",
+        allowFirstContract: true,
+        resolveAppMapNodeIds: async () => new Set(["route:records"]),
+      });
+      expect(findings.join("\n")).not.toMatch(/Playwright discovery failed/i);
+    } finally {
+      process.env.PATH = previousPath;
+    }
+  });
+
   it("loads only a leading typed plan frontmatter block", () => {
     expect(
       parsePlanFrontmatter("# Untyped\n", "docs/plain.md"),
