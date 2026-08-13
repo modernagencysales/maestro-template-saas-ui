@@ -8,6 +8,7 @@ vi.mock("@workos/authkit-tanstack-react-start", () => ({
 
 import { Route } from "../../routes/__root";
 import { Route as AuthRoute } from "../../routes/_auth";
+import { Route as AppRoute } from "../../routes/_app";
 
 describe("root auth context", () => {
   it("authenticates Convex before child beforeLoad hooks run", async () => {
@@ -38,5 +39,14 @@ describe("auth route context", () => {
         context: { auth: { user: null } },
       } as never),
     ).toBeUndefined();
+  });
+
+  it("uses root auth for protected client navigation", () => {
+    expect(
+      AppRoute.options.beforeLoad?.({
+        context: { auth: { user: { id: "user_1" } } },
+        location: { pathname: "/workspace", searchStr: "" },
+      } as never),
+    ).toEqual({ auth: { user: { id: "user_1" } } });
   });
 });

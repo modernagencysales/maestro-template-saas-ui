@@ -776,7 +776,7 @@
       "source": "apps/web/src/routes/_app.tsx",
       "destination": "apps/web/src/routes/_app.tsx",
       "sourceSha256": "cd3c1e5b89d2954f26c29340cdce2e0688a6a74f018282e128d102e883dcdab4",
-      "sha256": "fae66341cd400a83395c0c8a4ec6b8eaeb8851d479bd2f822da92d5f8fdaca9e",
+      "sha256": "ca75932e899dba0f7f31164da8c60138a7bcc0c2fb2069cfb06c78679fefb398",
       "adapted": true
     },
     {
