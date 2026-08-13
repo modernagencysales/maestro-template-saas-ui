@@ -77,14 +77,13 @@ function ShowcasePage() {
             }}
           />
         </Stack>
-        <AddContactDrawer
-          {...({
-            open: drawerOpen,
-            onOpenChange: (details: { open: boolean }) =>
-              setDrawerOpen(details.open),
-            onSubmit: () => setDrawerOpen(false),
-          } as unknown as React.ComponentProps<typeof AddContactDrawer>)}
-        />
+        {drawerOpen ? (
+          <AddContactDrawer
+            defaultOpen
+            onOpenChange={(details) => setDrawerOpen(details.open)}
+            onSubmit={() => setDrawerOpen(false)}
+          />
+        ) : null}
         <FeedbackModal
           open={modalOpen}
           onOpenChange={(details) => setModalOpen(details.open)}
