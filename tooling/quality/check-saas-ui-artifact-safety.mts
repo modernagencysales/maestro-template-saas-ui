@@ -270,8 +270,18 @@ export function assertSaasUiArtifactSafety(root: string): readonly string[] {
   }
 
   try {
-    for (const file of readSaasUiRegistryFiles(root).files)
+    for (const file of readSaasUiRegistryFiles(root).files) {
       addPaidPath(paid, file.destination, "registry", errors);
+      const destination = resolve(root, file.destination);
+      if (
+        existsSync(destination) &&
+        createHash("sha256").update(readFileSync(destination)).digest("hex") !==
+          file.sha256
+      )
+        errors.push(
+          `registry receipt destination hash mismatch: ${file.destination}`,
+        );
+    }
   } catch (error) {
     errors.push(
       `unable to read Saas UI registry receipt: ${error instanceof Error ? error.message : String(error)}`,

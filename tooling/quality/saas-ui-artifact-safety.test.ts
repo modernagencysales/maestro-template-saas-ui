@@ -87,7 +87,13 @@ const createFixture = (
     JSON.stringify({
       schemaVersion: 1,
       sourceCommit: pins.pro,
-      files: [{ destination, sha256: "0".repeat(64) }],
+      files: [
+        {
+          destination,
+          sha256: hash("paid source\n"),
+          adapted: true,
+        },
+      ],
     }),
   );
   const receiptFiles = [
@@ -200,6 +206,18 @@ describe("Saas UI artifact safety", () => {
       writeFileSync(join(root, "src/paid.ts"), "changed paid source\n");
       expect(assertSaasUiArtifactSafety(root)).toContain(
         "starter receipt destination hash mismatch: src/paid.ts",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an adapted registry source whose receipt hash no longer matches", () => {
+    const root = createFixture();
+    try {
+      writeFileSync(join(root, "src/paid.ts"), "changed paid source\n");
+      expect(assertSaasUiArtifactSafety(root)).toContain(
+        "registry receipt destination hash mismatch: src/paid.ts",
       );
     } finally {
       rmSync(root, { recursive: true, force: true });

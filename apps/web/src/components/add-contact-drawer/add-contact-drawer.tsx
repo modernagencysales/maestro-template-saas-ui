@@ -6,7 +6,7 @@ import * as Drawer from "@/components/ui/drawer/drawer";
 import * as FileUpload from "@/components/ui/file-upload/file-upload";
 import { Form, useAppForm } from "@/components/forms/index";
 import { Avatar } from "@/components/ui/avatar/avatar";
-import { Button } from "@saas-ui/react";
+import { Button } from "@/components/ui/button/button";
 
 export interface AddContactFormValues {
   profileImage: File | null;
@@ -43,7 +43,10 @@ export const AddContactDrawer: React.FC<AddContactDrawerProps> = (props) => {
   });
 
   return (
-    <Drawer.Root {...(rest as object)} {...({ open, onOpenChange } as never)}>
+    <Drawer.Root
+      {...(rest as Drawer.RootProps)}
+      {...({ open, onOpenChange } as Drawer.RootProps)}
+    >
       <Drawer.Backdrop />
       <Form form={form}>
         <Drawer.Content>
@@ -67,9 +70,8 @@ export const AddContactDrawer: React.FC<AddContactDrawerProps> = (props) => {
                         field.state.value ? [field.state.value] : []
                       }
                       onFileAccept={(details) => {
-                        if (details.files?.length) {
-                          field.handleChange(details.files[0]);
-                        }
+                        const file = details.files?.[0];
+                        if (file) field.handleChange(file);
                       }}
                     >
                       <FileUpload.Dropzone>
@@ -122,7 +124,7 @@ export const AddContactDrawer: React.FC<AddContactDrawerProps> = (props) => {
             <Drawer.CloseTrigger asChild>
               <Button>Cancel</Button>
             </Drawer.CloseTrigger>
-            <form.SubmitButton>Create</form.SubmitButton>
+            {React.createElement(form.SubmitButton, undefined, "Create")}
           </Drawer.Footer>
         </Drawer.Content>
       </Form>

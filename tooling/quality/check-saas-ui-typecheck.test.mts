@@ -38,7 +38,7 @@ const writeJson = (path: string, value: unknown) => {
   writeFileSync(path, `${JSON.stringify(value, null, 2)}\n`);
 };
 
-const fixture = () => {
+const fixture = (registryAdapted = false) => {
   const root = mkdtempSync(join(tmpdir(), "saas-ui-typecheck-"));
   const paidPath = "apps/web/src/components/paid.tsx";
   const paidSource = "export const paid = true;\n";
@@ -49,20 +49,32 @@ const fixture = () => {
   writeJson(join(root, "docs/template/saas-ui-starter-files.json"), {
     schemaVersion: 1,
     sourceCommit: "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
-    files: [
-      {
-        source: "apps/web/src/components/paid.tsx",
-        destination: paidPath,
-        sourceSha256: hash(paidSource),
-        sha256: hash(paidSource),
-        adapted: false,
-      },
-    ],
+    files: registryAdapted
+      ? []
+      : [
+          {
+            source: "apps/web/src/components/paid.tsx",
+            destination: paidPath,
+            sourceSha256: hash(paidSource),
+            sha256: hash(paidSource),
+            adapted: false,
+          },
+        ],
   });
   writeJson(join(root, "docs/template/saas-ui-registry-files.json"), {
     schemaVersion: 1,
     sourceCommit: "ac3a40c8dc05e403f9d501a87c092646891d3c40",
-    files: [],
+    files: registryAdapted
+      ? [
+          {
+            source: "registry:fixture/paid.tsx",
+            destination: paidPath,
+            sourceSha256: hash("upstream paid source\n"),
+            sha256: hash(paidSource),
+            adapted: true,
+          },
+        ]
+      : [],
   });
   return { root, lockSha256: hash(lock) };
 };
@@ -101,6 +113,23 @@ describe("Saas UI receipt-aware typecheck", () => {
         validate(root, diagnostic("apps/web/src/lib/mutable.ts"), value),
       ).toContain(
         "diagnostic path is not receipt-verified: apps/web/src/lib/mutable.ts",
+      );
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an adapted registry diagnostic", () => {
+    const { root, lockSha256 } = fixture(true);
+    try {
+      expect(
+        validate(
+          root,
+          diagnostic("apps/web/src/components/paid.tsx"),
+          baseline(lockSha256),
+        ),
+      ).toContain(
+        "diagnostic path is not receipt-verified: apps/web/src/components/paid.tsx",
       );
     } finally {
       rmSync(root, { recursive: true, force: true });

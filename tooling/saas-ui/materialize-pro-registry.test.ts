@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { mkdir, readFile, mkdtemp, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -14,6 +15,8 @@ import {
 
 const proRoot = "/Users/headless/.cache/codex-research/saas-ui-pro";
 const targets: string[] = [];
+const hash = (source: string): string =>
+  createHash("sha256").update(source).digest("hex");
 
 afterEach(async () => {
   const { rm } = await import("node:fs/promises");
@@ -166,7 +169,9 @@ describe("complete Saas UI Pro registry materialization", () => {
     await mkdir(join(projectRoot, "docs/template"), { recursive: true });
     await writeFile(
       join(projectRoot, "docs/template/saas-ui-upstream.json"),
-      JSON.stringify({ registry: {} }),
+      JSON.stringify({
+        registry: { sourceCommit: "ac3a40c8dc05e403f9d501a87c092646891d3c40" },
+      }),
     );
     await mkdir(target, { recursive: true });
     await writeFile(
@@ -239,5 +244,67 @@ describe("complete Saas UI Pro registry materialization", () => {
       expect(content).not.toMatch(/workspace:|@\/registry\/|#registry\//);
       expect(content).not.toContain(proRoot);
     }
+  }, 30_000);
+
+  it("preserves receipted adapted bytes and reports subsequent registry drift", async () => {
+    const projectRoot = await mkdtemp(
+      join(tmpdir(), "maestro-saas-ui-adapted-registry-"),
+    );
+    const target = join(projectRoot, "apps/web");
+    targets.push(projectRoot);
+    await mkdir(join(projectRoot, "docs/template"), { recursive: true });
+    await writeFile(
+      join(projectRoot, "docs/template/saas-ui-upstream.json"),
+      JSON.stringify({
+        registry: { sourceCommit: "ac3a40c8dc05e403f9d501a87c092646891d3c40" },
+      }),
+    );
+    await mkdir(target, { recursive: true });
+    await writeFile(
+      join(target, "package.json"),
+      JSON.stringify({ name: "fixture", private: true, dependencies: {} }),
+    );
+
+    const first = await materializeProRegistry({ proRoot, targetRoot: target });
+    const file = first.files[0];
+    if (!file) throw new Error("registry materialization produced no files");
+    const destination = `apps/web/${file.path}`;
+    const filePath = join(target, file.path);
+    const adaptedSource = `${await readFile(filePath, "utf8")}\n// adapter\n`;
+    await writeFile(filePath, adaptedSource);
+    const receiptPath = join(
+      projectRoot,
+      "docs/template/saas-ui-registry-files.json",
+    );
+    const receipt = JSON.parse(await readFile(receiptPath, "utf8")) as {
+      files: Array<{ destination: string; sha256: string; adapted?: boolean }>;
+    };
+    const entry = receipt.files.find(
+      (value) => value.destination === destination,
+    );
+    if (!entry) throw new Error(`receipt is missing ${destination}`);
+    entry.sha256 = hash(adaptedSource);
+    entry.adapted = true;
+    await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+
+    const second = await materializeProRegistry({
+      proRoot,
+      targetRoot: target,
+    });
+    expect(await readFile(filePath, "utf8")).toBe(adaptedSource);
+    expect(
+      second.receipt.files.find((value) => value.destination === destination),
+    ).toMatchObject({ adapted: true, sha256: hash(adaptedSource) });
+    expect(
+      (await compareProRegistryProjection({ proRoot, targetRoot: target }))
+        .differences,
+    ).toEqual([]);
+
+    await writeFile(filePath, `${adaptedSource}// drift\n`);
+    await expect(
+      compareProRegistryProjection({ proRoot, targetRoot: target }),
+    ).resolves.toMatchObject({
+      differences: [`editable registry source drift: ${destination}`],
+    });
   }, 30_000);
 });

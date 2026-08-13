@@ -54,18 +54,14 @@ const diagnosticsDigest = (
 const readJson = <T,>(path: string): T =>
   JSON.parse(readFileSync(path, "utf8")) as T;
 
-const receiptPaths = (
-  root: string,
-  path: string,
-  starter: boolean,
-): Set<string> => {
+const receiptPaths = (root: string, path: string): Set<string> => {
   const receipt = readJson<Receipt>(resolve(root, path));
   const verified = new Set<string>();
   for (const file of receipt.files) {
     if (
       typeof file.destination !== "string" ||
       typeof file.sha256 !== "string" ||
-      (starter && file.adapted !== false)
+      file.adapted === true
     )
       continue;
     const destination = normalize(file.destination);
@@ -79,8 +75,8 @@ const receiptPaths = (
 
 const verifiedReceiptPaths = (root: string): Set<string> =>
   new Set([
-    ...receiptPaths(root, STARTER_RECEIPT, true),
-    ...receiptPaths(root, REGISTRY_RECEIPT, false),
+    ...receiptPaths(root, STARTER_RECEIPT),
+    ...receiptPaths(root, REGISTRY_RECEIPT),
   ]);
 
 export const parseSaasUiTypecheckDiagnostics = (
