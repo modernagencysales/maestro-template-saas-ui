@@ -2372,6 +2372,10 @@ Feature: Reconcile disputed invoices
       "smoke:hosted:browser",
       "smoke:hosted:a11y",
       "smoke:hosted:visual",
+      "smoke:golden",
+      "smoke:golden:browser",
+      "smoke:golden:a11y",
+      "smoke:golden:visual",
       "review:readiness",
       "review:completion",
       "deploy:doctor",
@@ -2385,7 +2389,6 @@ Feature: Reconcile disputed invoices
       "check:workflow-version-immutability",
       "check:workflow-publication-generation",
       "saas-ui:materialize",
-      "saas-ui:write-summaries",
     ]);
     const factory = JSON.parse(
       readFileSync(join(repoRoot, "package.json"), "utf8"),

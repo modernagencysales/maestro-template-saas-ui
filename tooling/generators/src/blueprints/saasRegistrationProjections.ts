@@ -352,10 +352,6 @@ const currentCustomerRootTestExclusions = (): string =>
 export const CUSTOMER_ROOT_SCRIPTS = [
   "check:saas-ui-foundation",
   "check:saas-ui-artifact-safety",
-  "smoke:golden",
-  "smoke:golden:browser",
-  "smoke:golden:a11y",
-  "smoke:golden:visual",
   "maestro",
   "acceptance:syntax",
   "acceptance:check",
