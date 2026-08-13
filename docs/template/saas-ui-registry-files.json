@@ -13,7 +13,8 @@
       "source": "packages/blocks/communication/chat-details/chat-details.tsx",
       "destination": "apps/web/src/components/chat-details/chat-details.tsx",
       "sourceSha256": "ca4b747302a362f3f61733eb85df65b8b711acb83db36f0fe1bffdc1d4f268a0",
-      "sha256": "c7ca705076d3200b4a62fae03efed7be2fa8592253d3e5522f1e12b896b6284d"
+      "sha256": "cd8ccf4da9c404c5eca40317990b11522fbb508f152f1c7d91ec964888107dfb",
+      "adapted": true
     },
     {
       "source": "packages/blocks/modals/feedback-modal/feedback-modal.tsx",
@@ -205,7 +206,8 @@
       "source": "packages/blocks/kpi-cards/metric-card-simple/metric-card-simple.tsx",
       "destination": "apps/web/src/components/metric-card-simple/metric-card-simple.tsx",
       "sourceSha256": "9c3657c64b92e7eb98df0f58de262ba6e49dd9fba02cfd0f80fea58770262d0f",
-      "sha256": "3b96e8a64ad472a7eac41d3ab1be39f9851a9205957f021efb4914bed37aa85c"
+      "sha256": "aa72d2c573d29252aff72c72a880f5ed19651b1752a1f8c51e40af53842debfd",
+      "adapted": true
     },
     {
       "source": "packages/blocks/kpi-cards/metric-card-with-button/metric-card-with-button.tsx",
@@ -343,7 +345,8 @@
       "source": "registry:button/ui/button/button.ts",
       "destination": "apps/web/src/components/ui/button/button.ts",
       "sourceSha256": "23f8d71e2a769b77ff3670e8c20b5a0387dfb7c43cf43369070efd8a0db89742",
-      "sha256": "505d1f63ce287d897ead4a2875dad233c8baaf443ce9be4deb8936ab3ca796ea"
+      "sha256": "70996d4ffa8405c465dbb8dd641b310e4beaa525b3d6da8f7d019d50bc33ad0d",
+      "adapted": true
     },
     {
       "source": "registry:button/ui/button/index.ts",

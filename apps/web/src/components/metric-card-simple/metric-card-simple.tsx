@@ -24,7 +24,7 @@ export const MetricCard: React.FC<MetricCardProps> = (props) => {
           </Stat.ValueText>
           <Stat.HelpText color="fg.muted" display="inline-block">
             {isPositive ? (
-              <Flex alignItems="fg.center">
+              <Flex alignItems="center">
                 <Icon as={LuArrowUpRight} color="green.solid" />{" "}
                 <Box as="span" color="green.solid" fontWeight="medium">
                   {difference}

@@ -196,7 +196,7 @@ const checkDescriptorDefinitions = {
         file: "package.json",
         includes: [
           '"verify"',
-          '"typecheck": "turbo run typecheck --concurrency=1"',
+          '"typecheck": "turbo run typecheck --concurrency=1 --filter=!@workspace/ui --filter=!@maestro-template/web && pnpm typecheck:saas-ui"',
           '"test:release-filesystem"',
           '"test:app-map"',
           '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',

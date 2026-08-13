@@ -14,7 +14,9 @@ describe("check:ci-completeness", () => {
   it("pins topology, lifecycle, and promotion enforcement in every required lane", () => {
     const requirements = JSON.stringify(descriptor.requirements);
 
-    expect(requirements).toContain("turbo run typecheck --concurrency=1");
+    expect(requirements).toContain(
+      "turbo run typecheck --concurrency=1 --filter=!@workspace/ui --filter=!@maestro-template/web && pnpm typecheck:saas-ui",
+    );
     expect(requirements).toContain(
       "pnpm --dir packages/convex test:workflow-conformance",
     );

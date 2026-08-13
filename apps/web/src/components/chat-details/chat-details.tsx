@@ -50,7 +50,7 @@ export function ChatDetails(props: { chat: Chat; currentUser: User }) {
   const [message, setMessage] = React.useState("");
 
   const submitMessage = React.useCallback(() => {
-    setItems([
+    setItems((items) => [
       ...items,
       {
         id: String(items.length + 1),
@@ -64,7 +64,7 @@ export function ChatDetails(props: { chat: Chat; currentUser: User }) {
       },
     ]);
     setMessage("");
-  }, [currentUser]);
+  }, [currentUser, message]);
 
   return (
     <Card.Root height="500px" maxW="container.sm" mx="auto">
