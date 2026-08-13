@@ -1,66 +1,250 @@
 {
   "schemaVersion": 1,
-  "generatedAt": "2026-08-13T00:33:18.740Z",
+  "generatedAt": "2026-08-13T01:30:15.391Z",
   "status": "passed",
-  "finalHead": "6bc5aaf42f2f50df3c6a1ac02490f3ce9689ef17",
+  "finalHead": "76a958d8f01dd490491e94d6feb0ca75115b618b",
   "pins": {
     "template": "acf0bc4be38dea842f321831387fc77cf7242439",
     "starter": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
     "pro": "ac3a40c8dc05e403f9d501a87c092646891d3c40"
   },
-  "generatedDigest": "c2691cf83fb9c98dbc24487f9a01edff77c935116cbd9cc82defa131eb4b7959",
+  "generatedDigest": "4fd55152cc72b9f4ce2d88cfd8cad9d8b9b3899e10d33bce873524006964c154",
   "evidencePaths": [
     "artifacts/saas-ui-golden/authority-generated.json",
     "artifacts/saas-ui-golden/authority-reference.json",
     "artifacts/saas-ui-golden/interaction-results.json",
-    "artifacts/saas-ui-golden/accessibility-results.json"
+    "artifacts/saas-ui-golden/accessibility-results.json",
+    "artifacts/saas-ui-golden/app-shell-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/app-shell-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/app-shell-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/app-shell-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/app-shell-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/app-shell-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/app-shell-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/app-shell-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/auth-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/auth-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/auth-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/auth-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/auth-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/auth-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/auth-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/auth-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/billing-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/billing-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/billing-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/billing-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/billing-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/billing-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/billing-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/billing-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/dashboard-report-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/dashboard-report-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/dashboard-report-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/dashboard-report-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/dashboard-report-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/dashboard-report-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/dashboard-report-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/dashboard-report-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/data-grid-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/data-grid-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/data-grid-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/data-grid-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/data-grid-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/data-grid-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/data-grid-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/data-grid-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/filterable-collection-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/filterable-collection-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/filterable-collection-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/filterable-collection-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/filterable-collection-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/filterable-collection-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/filterable-collection-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/filterable-collection-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/form-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/form-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/form-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/form-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/form-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/form-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/form-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/form-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/kanban-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/kanban-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/kanban-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/kanban-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/kanban-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/kanban-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/kanban-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/kanban-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/list-detail-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/list-detail-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/list-detail-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/list-detail-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/list-detail-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/list-detail-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/list-detail-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/list-detail-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/onboarding-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/onboarding-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/onboarding-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/onboarding-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/onboarding-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/onboarding-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/onboarding-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/onboarding-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/record-aside-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/record-aside-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/record-aside-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/record-aside-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/record-aside-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/record-aside-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/record-aside-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/record-aside-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/search-command-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/search-command-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/search-command-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/search-command-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/search-command-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/search-command-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/search-command-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/search-command-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/settings-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/settings-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/settings-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/settings-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/settings-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/settings-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/settings-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/settings-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/split-inbox-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/split-inbox-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/split-inbox-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/split-inbox-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/split-inbox-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/split-inbox-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/split-inbox-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/split-inbox-ready-read-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/states-empty-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-empty-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/states-empty-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-empty-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/states-empty-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-empty-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/states-empty-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-empty-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/states-error-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-error-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/states-error-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-error-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/states-error-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-error-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/states-error-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-error-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/states-loading-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-loading-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/states-loading-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-loading-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/states-loading-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-loading-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/states-loading-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-loading-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/states-mutation-failure-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-mutation-failure-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/states-mutation-failure-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-mutation-failure-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/states-mutation-failure-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-mutation-failure-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/states-mutation-failure-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-mutation-failure-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/states-mutation-success-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-mutation-success-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/states-mutation-success-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-mutation-success-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/states-mutation-success-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-mutation-success-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/states-mutation-success-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-mutation-success-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/states-not-found-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-not-found-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/states-not-found-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-not-found-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/states-not-found-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-not-found-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/states-not-found-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-not-found-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/states-permission-denied-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-permission-denied-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/states-permission-denied-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-permission-denied-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/states-permission-denied-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-permission-denied-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/states-permission-denied-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-permission-denied-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/states-ready-edit-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-ready-edit-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/states-ready-edit-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-ready-edit-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/states-ready-edit-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-ready-edit-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/states-ready-edit-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-ready-edit-reference-mobile-light.png",
+    "artifacts/saas-ui-golden/states-ready-read-generated-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-ready-read-generated-desktop-light.png",
+    "artifacts/saas-ui-golden/states-ready-read-generated-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-ready-read-generated-mobile-light.png",
+    "artifacts/saas-ui-golden/states-ready-read-reference-desktop-dark.png",
+    "artifacts/saas-ui-golden/states-ready-read-reference-desktop-light.png",
+    "artifacts/saas-ui-golden/states-ready-read-reference-mobile-dark.png",
+    "artifacts/saas-ui-golden/states-ready-read-reference-mobile-light.png"
   ],
   "commands": [
     {
       "command": "pnpm check:saas-ui-foundation",
-      "startedAt": "2026-08-13T00:25:59.118Z",
-      "finishedAt": "2026-08-13T00:26:00.136Z",
-      "completedAt": "2026-08-13T00:26:00.136Z",
+      "startedAt": "2026-08-13T01:22:24.790Z",
+      "finishedAt": "2026-08-13T01:22:25.813Z",
+      "completedAt": "2026-08-13T01:22:25.813Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm check:saas-ui-artifact-safety",
-      "startedAt": "2026-08-13T00:26:00.136Z",
-      "finishedAt": "2026-08-13T00:26:01.102Z",
-      "completedAt": "2026-08-13T00:26:01.102Z",
+      "startedAt": "2026-08-13T01:22:25.813Z",
+      "finishedAt": "2026-08-13T01:22:26.769Z",
+      "completedAt": "2026-08-13T01:22:26.769Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm --dir tooling/generators test -- saasFrontendFoundation.test.ts saasFrontendGeneratedTarget.test.ts",
-      "startedAt": "2026-08-13T00:26:01.102Z",
-      "finishedAt": "2026-08-13T00:27:05.675Z",
-      "completedAt": "2026-08-13T00:27:05.675Z",
+      "startedAt": "2026-08-13T01:22:26.769Z",
+      "finishedAt": "2026-08-13T01:23:32.741Z",
+      "completedAt": "2026-08-13T01:23:32.741Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm smoke:golden:browser",
-      "startedAt": "2026-08-13T00:27:05.675Z",
-      "finishedAt": "2026-08-13T00:28:42.256Z",
-      "completedAt": "2026-08-13T00:28:42.256Z",
+      "startedAt": "2026-08-13T01:23:32.741Z",
+      "finishedAt": "2026-08-13T01:25:18.616Z",
+      "completedAt": "2026-08-13T01:25:18.616Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm smoke:golden:a11y",
-      "startedAt": "2026-08-13T00:28:42.256Z",
-      "finishedAt": "2026-08-13T00:31:03.716Z",
-      "completedAt": "2026-08-13T00:31:03.716Z",
+      "startedAt": "2026-08-13T01:25:18.616Z",
+      "finishedAt": "2026-08-13T01:27:56.934Z",
+      "completedAt": "2026-08-13T01:27:56.934Z",
       "exitCode": 0,
       "result": "exitCode=0"
     },
     {
       "command": "pnpm smoke:golden:visual",
-      "startedAt": "2026-08-13T00:31:03.716Z",
-      "finishedAt": "2026-08-13T00:33:18.725Z",
-      "completedAt": "2026-08-13T00:33:18.725Z",
+      "startedAt": "2026-08-13T01:27:56.934Z",
+      "finishedAt": "2026-08-13T01:30:15.376Z",
+      "completedAt": "2026-08-13T01:30:15.376Z",
       "exitCode": 0,
       "result": "exitCode=0"
     }
@@ -70,925 +254,925 @@
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > app-shell renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > dashboard-report renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > data-grid renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > filterable-collection renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > list-detail renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > split-inbox renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > record-aside renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > settings renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > form renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > onboarding renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > kanban renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > auth renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > billing renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > search-command renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > states renders its mapped composition on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > app-shell renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > dashboard-report renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > data-grid renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > filterable-collection renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > list-detail renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > split-inbox renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > record-aside renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > settings renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > form renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > onboarding renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > kanban renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > auth renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > billing renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > search-command renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > paired acceptance-map compositions > states renders its mapped composition on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture loading hydrates on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture empty hydrates on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture ready-read hydrates on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture ready-edit hydrates on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture mutation-success hydrates on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture mutation-failure hydrates on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture error hydrates on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture not-found hydrates on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture permission-denied hydrates on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture loading hydrates on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture empty hydrates on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture ready-read hydrates on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture ready-edit hydrates on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture mutation-success hydrates on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture mutation-failure hydrates on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture error hydrates on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture not-found hydrates on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > required state coverage > state fixture permission-denied hydrates on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > golden capture preconditions > seeds dark mode and a consent decision before ready content",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.acceptance.spec.ts",
         "title": "saas-ui-golden.acceptance.spec.ts > golden capture preconditions > seeds dark mode and a consent decision before ready content",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference shell collapse, resize, persistence, and flyout",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference workspace and user menus expose named commands",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference global search accepts keyboard shortcut and query",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference data grid filters, sorts, pages, and selects",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference removes an active collection filter",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference navigates list to detail and switches the record aside",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference selects an inbox item in the split view",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches billing",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches profile",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches security",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference report period selection changes the active period",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference form covers validation, success, and failure",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference advances onboarding after invalid and valid form states",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference drags a Kanban card between columns",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference moves the exact Kanban card by keyboard through the adapter",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference auth form validates credentials and preserves input",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference billing validates email before an update",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference ready-edit state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference mutation-failure state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference error state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference not-found state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference permission-denied state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated shell collapse, resize, persistence, and flyout",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated workspace and user menus expose named commands",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated global search accepts keyboard shortcut and query",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated data grid filters, sorts, pages, and selects",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated removes an active collection filter",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated navigates list to detail and switches the record aside",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated selects an inbox item in the split view",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches billing",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches profile",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches security",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated report period selection changes the active period",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated form covers validation, success, and failure",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated advances onboarding after invalid and valid form states",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated drags a Kanban card between columns",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated moves the exact Kanban card by keyboard through the adapter",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated auth form validates credentials and preserves input",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated billing validates email before an update",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated ready-edit state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated mutation-failure state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated error state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated not-found state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated permission-denied state performs its recovery action",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference shell collapse, resize, persistence, and flyout",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference workspace and user menus expose named commands",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference global search accepts keyboard shortcut and query",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference data grid filters, sorts, pages, and selects",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference removes an active collection filter",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference navigates list to detail and switches the record aside",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference selects an inbox item in the split view",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches billing",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches profile",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference settings navigation reaches security",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference report period selection changes the active period",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference form covers validation, success, and failure",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference advances onboarding after invalid and valid form states",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference drags a Kanban card between columns",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference moves the exact Kanban card by keyboard through the adapter",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference auth form validates credentials and preserves input",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference billing validates email before an update",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference ready-edit state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference mutation-failure state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference error state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference not-found state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > reference permission-denied state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated shell collapse, resize, persistence, and flyout",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated workspace and user menus expose named commands",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated global search accepts keyboard shortcut and query",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated data grid filters, sorts, pages, and selects",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated removes an active collection filter",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated navigates list to detail and switches the record aside",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated selects an inbox item in the split view",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches billing",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches profile",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated settings navigation reaches security",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated report period selection changes the active period",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated form covers validation, success, and failure",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated advances onboarding after invalid and valid form states",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated drags a Kanban card between columns",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated moves the exact Kanban card by keyboard through the adapter",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated auth form validates credentials and preserves input",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated billing validates email before an update",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated ready-edit state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated mutation-failure state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated error state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated not-found state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired Saas UI golden interactions > generated permission-denied state performs its recovery action",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile shell behavior > reference mobile shell keeps the desktop flyout trigger hidden",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile shell behavior > generated mobile shell keeps the desktop flyout trigger hidden",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile shell behavior > reference mobile shell keeps the desktop flyout trigger hidden",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile shell behavior > generated mobile shell keeps the desktop flyout trigger hidden",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile dashboard and data-grid reflow > reference keeps report metrics and data-grid controls usable at 320px",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile dashboard and data-grid reflow > generated keeps report metrics and data-grid controls usable at 320px",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile dashboard and data-grid reflow > reference keeps report metrics and data-grid controls usable at 320px",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile dashboard and data-grid reflow > generated keeps report metrics and data-grid controls usable at 320px",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile inbox behavior > reference switches between one inbox pane at a time",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile inbox behavior > generated switches between one inbox pane at a time",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile inbox behavior > reference switches between one inbox pane at a time",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.interactions.spec.ts",
         "title": "saas-ui-golden.interactions.spec.ts > paired mobile inbox behavior > generated switches between one inbox pane at a time",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.spec.ts",
         "title": "saas-ui-golden.spec.ts > paired Saas UI golden behavior > paired authorities expose the authenticated workspace shell",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.spec.ts",
         "title": "saas-ui-golden.spec.ts > paired Saas UI golden behavior > paired authorities keep the shell keyboard-operable",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.spec.ts",
         "title": "saas-ui-golden.spec.ts > paired Saas UI golden behavior > paired authorities expose the authenticated workspace shell",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.spec.ts",
         "title": "saas-ui-golden.spec.ts > paired Saas UI golden behavior > paired authorities keep the shell keyboard-operable",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       }
     ],
@@ -996,829 +1180,829 @@
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > reduced motion is honored by both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > inert reduced-motion CSS does not count as behavior",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states reference has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states generated has no serious or critical axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox activity editor and timeline use valid semantics",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > reduced motion is honored by both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > inert reduced-motion CSS does not count as behavior",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states reference has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states generated has no serious or critical axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > app-shell exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > dashboard-report exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > data-grid exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > filterable-collection exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > list-detail exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > record-aside exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > settings exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > form exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > onboarding exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > kanban exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > auth exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > billing exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > search-command exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > states exposes names and visible keyboard focus on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden accessibility > split-inbox activity editor and timeline use valid semantics",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "skipped"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden data-grid semantics > reference keeps sorting semantics on column headers and names row actions",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden data-grid semantics > generated keeps sorting semantics on column headers and names row actions",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden data-grid semantics > reference keeps sorting semantics on column headers and names row actions",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired Saas UI golden data-grid semantics > generated keeps sorting semantics on column headers and names row actions",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding progress semantics > reference exposes the visual step indicator as named progress",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding progress semantics > generated exposes the visual step indicator as named progress",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding progress semantics > reference exposes the visual step indicator as named progress",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding progress semantics > generated exposes the visual step indicator as named progress",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding dark-mode accessibility > reference has no serious or critical dark-mode axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding dark-mode accessibility > generated has no serious or critical dark-mode axe violations",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding dark-mode accessibility > reference has no serious or critical dark-mode axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired onboarding dark-mode accessibility > generated has no serious or critical dark-mode axe violations",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > app-shell reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > dashboard-report reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > data-grid reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > filterable-collection reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > list-detail reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > split-inbox reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > record-aside reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > settings reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > form reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > onboarding reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > kanban reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > auth reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > billing reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > search-command reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > states reflows without document overflow on both authorities",
-        "project": "",
+        "project": "desktop-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > app-shell reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > dashboard-report reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > data-grid reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > filterable-collection reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > list-detail reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > split-inbox reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > record-aside reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > settings reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > form reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > onboarding reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > kanban reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > auth reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > billing reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > search-command reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       },
       {
         "file": "saas-ui-golden.accessibility.spec.ts",
         "title": "saas-ui-golden.accessibility.spec.ts > paired mobile 320px reflow > states reflows without document overflow on both authorities",
-        "project": "",
+        "project": "mobile-chromium",
         "status": "expected"
       }
     ]
