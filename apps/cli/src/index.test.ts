@@ -213,10 +213,10 @@ describe("maestro-template CLI", () => {
     expect(config.default.server).not.toHaveProperty("proxy");
   });
 
-  it("does not regenerate the purchased route-tree receipt during builds", () => {
+  it("lets TanStack discover generated product routes during builds", () => {
     expect(
       readFileSync(`${repoRoot}/apps/web/vite.config.ts`, "utf8"),
-    ).toContain("enableRouteGeneration: false");
+    ).not.toContain("enableRouteGeneration: false");
   });
 
   it("describes the shared workflow template", () => {
