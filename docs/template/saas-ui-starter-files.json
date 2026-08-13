@@ -34,7 +34,7 @@
       "source": "apps/web/src/features/auth/auth-provider.tsx",
       "destination": "apps/web/src/features/auth/auth-provider.tsx",
       "sourceSha256": "9185809368d94f20e4ab16a5ba0a0c33760f8393c66e60bd316abdb69a3f9280",
-      "sha256": "47d319babf849668d4d2a7290c3a78af826735304d157cc07448b78ef0a0ee03",
+      "sha256": "12e7a9a52b5d452acb1973c7c8ab0cf19d8752295b5fdccb69eeb3ae0ded3793",
       "adapted": true
     },
     {
@@ -762,22 +762,22 @@
       "source": "apps/web/src/router.tsx",
       "destination": "apps/web/src/router.tsx",
       "sourceSha256": "766662f448c564c65a9fce2ac3de05141e4bb2afa2e2ae0d7259deacc8c42785",
-      "sha256": "d35ebe790caf78a0af18f6333c128c5a0c631795b8a338e83fbe92df995e60ea",
+      "sha256": "23acbabd48c32c3c2cefe3e3785deb1fd16d603eef946d84fa97208f69937739",
       "adapted": true
     },
     {
       "source": "apps/web/src/routes/__root.tsx",
       "destination": "apps/web/src/routes/__root.tsx",
       "sourceSha256": "875a4f123b593820dc5d561bd714ab09fd2407c0054f2008dcb4dbabded6c701",
-      "sha256": "875a4f123b593820dc5d561bd714ab09fd2407c0054f2008dcb4dbabded6c701",
-      "adapted": false
+      "sha256": "c14050f69442817f1b9acf903997384c3920ddc01dfc5f5768c1691a0ba1aa22",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app.tsx",
       "destination": "apps/web/src/routes/_app.tsx",
       "sourceSha256": "cd3c1e5b89d2954f26c29340cdce2e0688a6a74f018282e128d102e883dcdab4",
-      "sha256": "cd3c1e5b89d2954f26c29340cdce2e0688a6a74f018282e128d102e883dcdab4",
-      "adapted": false
+      "sha256": "fae66341cd400a83395c0c8a4ec6b8eaeb8851d479bd2f822da92d5f8fdaca9e",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace.tsx",
@@ -951,8 +951,8 @@
       "source": "apps/web/src/routes/_app/index.tsx",
       "destination": "apps/web/src/routes/_app/index.tsx",
       "sourceSha256": "1863f77e8fdd28809250795c60b4a453462d91a2240e13bb9698a9aeef08525b",
-      "sha256": "1863f77e8fdd28809250795c60b4a453462d91a2240e13bb9698a9aeef08525b",
-      "adapted": false
+      "sha256": "7ef48bd0fe77dcc87aebcc8402509a33884efa3036bcb3ef261b1cdebc695586",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_auth.tsx",
@@ -993,7 +993,7 @@
       "source": "apps/web/src/routes/api/auth/$.ts",
       "destination": "apps/web/src/routes/api/auth/$.ts",
       "sourceSha256": "d7b07bf5aeec13884106876f5d5d9e6c4a3e3a6df81758d51b5fd08900f4009b",
-      "sha256": "005c684cd686752f27c727e0d546b6d57ada21cb6eced283f2d182024418bbb2",
+      "sha256": "e2aa3f5737b9944841f79f6197dd81b950181d697b336d08ce3391a540c7067e",
       "adapted": true
     },
     {
@@ -1014,7 +1014,7 @@
       "source": "apps/web/src/routeTree.gen.ts",
       "destination": "apps/web/src/routeTree.gen.ts",
       "sourceSha256": "45d73c4b308bfb015325284e5b601a8c4edc97e07768436c4eefdedfb000c8fa",
-      "sha256": "618e0da4c0faa7f414bd56b94352f498fc39d043e567fd3593bfb4e580ab25da",
+      "sha256": "ee06711f711c7db95e2a082b95b3c60efe9a6ee23c575627a18f141726a90359",
       "adapted": true
     },
     {
