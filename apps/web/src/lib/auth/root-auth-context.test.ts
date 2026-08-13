@@ -47,6 +47,6 @@ describe("auth route context", () => {
         context: { auth: { user: { id: "user_1" } } },
         location: { pathname: "/workspace", searchStr: "" },
       } as never),
-    ).toEqual({ auth: { user: { id: "user_1" } } });
+    ).toBeUndefined();
   });
 });
