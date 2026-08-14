@@ -122,6 +122,23 @@ describe("Saas UI receipt-aware typecheck", () => {
     }
   });
 
+  it("ignores platform-specific dependency diagnostics", () => {
+    const { root, lockSha256 } = fixture();
+    try {
+      expect(
+        validate(
+          root,
+          `${diagnostic("apps/web/src/components/paid.tsx")}${diagnostic(
+            "node_modules/platform-specific/index.d.ts",
+          )}`,
+          baseline(lockSha256),
+        ),
+      ).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
   it("rejects a mutable diagnostic even when its identity is baselined", () => {
     const { root, lockSha256 } = fixture();
     try {

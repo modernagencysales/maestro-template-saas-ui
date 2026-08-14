@@ -52,12 +52,19 @@ const diagnosticsDigest = (
   diagnostics: readonly SaasUiTypecheckDiagnostic[],
 ): string => sha256([...diagnostics].map(diagnosticKey).sort().join("\n"));
 
+const sourceDiagnostics = (
+  diagnostics: readonly SaasUiTypecheckDiagnostic[],
+): readonly SaasUiTypecheckDiagnostic[] =>
+  diagnostics.filter(({ path }) => !path.startsWith("node_modules/"));
+
 export const createSaasUiTypecheckBaseline = (
   root: string,
   output: string,
   typescriptVersion: string,
 ): SaasUiTypecheckBaseline => {
-  const diagnostics = parseSaasUiTypecheckDiagnostics(root, output);
+  const diagnostics = sourceDiagnostics(
+    parseSaasUiTypecheckDiagnostics(root, output),
+  );
   return {
     schemaVersion: 1,
     pnpmLockSha256: sha256(readFileSync(resolve(root, LOCKFILE))),
@@ -193,11 +200,12 @@ export const assertSaasUiTypecheckDiagnostics = (
   const typescriptVersion =
     options.typescriptVersion ?? currentTypescriptVersion(root);
   const diagnostics = parseSaasUiTypecheckDiagnostics(root, output);
+  const receiptDiagnostics = sourceDiagnostics(diagnostics);
   errors.push(...baselineEnvironmentErrors(root, baseline, typescriptVersion));
   errors.push(...receiptDiagnosticErrors(root, diagnostics));
-  if (diagnostics.length !== baseline.diagnosticCount)
+  if (receiptDiagnostics.length !== baseline.diagnosticCount)
     errors.push("diagnostic count does not match the baseline");
-  if (diagnosticsDigest(diagnostics) !== baseline.diagnosticsSha256)
+  if (diagnosticsDigest(receiptDiagnostics) !== baseline.diagnosticsSha256)
     errors.push("diagnostic identities do not match the baseline");
   return [...new Set(errors)].sort((left, right) => left.localeCompare(right));
 };
