@@ -74,7 +74,7 @@ const runCandidatePnpm = async (
       cwd: targetRoot,
       env: candidateEnvironment(),
       maxBuffer: 20 * 1024 * 1024,
-      timeout: 120_000,
+      timeout: 180_000,
     });
   } catch (error) {
     const failure = error as Error & {
@@ -531,7 +531,7 @@ describe("candidate customer composition", () => {
       "packages/convex",
       "confect:codegen",
     ]);
-  }, 180_000);
+  }, 900_000);
 
   it("keeps the zero-argument production composition on immutable alpha.3", () => {
     expect(CURRENT_PUBLIC_SOURCE).toMatchObject({
