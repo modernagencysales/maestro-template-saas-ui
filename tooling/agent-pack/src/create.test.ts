@@ -183,9 +183,11 @@ describe("customer create command", () => {
         firstOutcome: "Track client requests",
         demoOnly: true,
       },
-      privacy: {
-        maestro: { productTelemetry: "none", automaticUpload: false },
-        privacyDocument: "docs/template/agent-pack-privacy.md",
+      customerExtension: {
+        privacy: {
+          maestro: { productTelemetry: "none", automaticUpload: false },
+          privacyDocument: "docs/template/agent-pack-privacy.md",
+        },
       },
     });
   });

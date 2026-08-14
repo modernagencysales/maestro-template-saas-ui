@@ -11,6 +11,7 @@ describe("customer chassis Woodpecker admission", () => {
       "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a",
     );
     expect(source).not.toMatch(/from_secret|^timeout:/mu);
+    expect(source).not.toContain("failure: cancel");
     expect(source).toContain("- event: pull_request");
     expect(source.match(/^ {2}- name:/gmu)).toHaveLength(1);
   });
@@ -32,8 +33,48 @@ describe("customer chassis Woodpecker admission", () => {
     const project = read(".factory/project.yaml");
     expect(project).toContain("required: []");
     expect(project).not.toContain("required: [qlty]");
-    expect(project).not.toContain("acceptance:cucumber");
     expect(project).toContain("required_contexts: [ci/woodpecker/pr/verify]");
+  });
+
+  it("includes typed product contract and runtime acceptance in root verification", () => {
+    const packageJson = JSON.parse(read("package.json")) as {
+      readonly scripts: Readonly<Record<string, string>>;
+    };
+
+    expect(packageJson.scripts.verify).toContain("pnpm check:product-contract");
+    expect(packageJson.scripts.verify).toContain("pnpm acceptance:required");
+  });
+
+  it("runs fast acceptance tooling from the root test command", () => {
+    const packageJson = JSON.parse(read("package.json")) as {
+      readonly scripts: Readonly<Record<string, string>>;
+    };
+
+    expect(packageJson.scripts["test:acceptance-tooling"]).toBe(
+      "vitest run tooling/acceptance/product-contract.test.mts tooling/acceptance/playwright-report.test.mts tooling/acceptance/run-acceptance.test.mts tooling/acceptance/template-product-contract-admission.test.mts examples/saas-application/seed/source/tests/runtime.test.ts --maxWorkers=1 --no-file-parallelism && vitest run tooling/acceptance/template-product-contract.test.mts --testNamePattern='template product contract adapter' --maxWorkers=1 --no-file-parallelism",
+    );
+    expect(
+      packageJson.scripts.test.match(/pnpm test:acceptance-tooling/gmu),
+    ).toHaveLength(1);
+  });
+
+  it("binds root product admissions directly to non-skippable TSX commands", () => {
+    const packageJson = JSON.parse(read("package.json")) as {
+      readonly scripts: Readonly<Record<string, string>>;
+    };
+
+    expect(packageJson.scripts["check:product-contract"]).toBe(
+      "tsx tooling/acceptance/template-product-contract-admission.mts structural",
+    );
+    expect(packageJson.scripts["acceptance:required"]).toBe(
+      "tsx tooling/acceptance/template-product-contract-admission.mts required",
+    );
+    for (const script of [
+      packageJson.scripts["check:product-contract"],
+      packageJson.scripts["acceptance:required"],
+    ]) {
+      expect(script).not.toMatch(/\bvitest\b|(?:^|\s)-t(?:\s|$)/u);
+    }
   });
 
   it("reaches root verification once and keeps only extra chassis proof", () => {
@@ -71,14 +112,5 @@ describe("customer chassis Woodpecker admission", () => {
     ]) {
       expect(script, duplicate).not.toContain(duplicate);
     }
-  });
-
-  it("binds admission to the selected four-journey records example", () => {
-    const packageJson = JSON.parse(read("apps/cli/package.json")) as {
-      readonly scripts: Readonly<Record<string, string>>;
-    };
-    expect(packageJson.scripts["test:create-root-admission"]).toBe(
-      "vitest run src/factory/createRootIntegration.test.ts -t 'executes the selected records example by journey name' --maxWorkers=1 --no-file-parallelism",
-    );
   });
 });

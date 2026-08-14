@@ -15,7 +15,6 @@ const BROAD_HOOK_COMMANDS = [
   "check:append-only-tables",
   "check:promotion-boundary",
   "acceptance:",
-  "cucumber",
 ] as const;
 
 describe("local hook authority", () => {

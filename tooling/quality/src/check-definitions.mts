@@ -187,7 +187,6 @@ const checkDescriptorDefinitions = {
           "check:append-only-tables",
           "check:promotion-boundary",
           "acceptance:",
-          "cucumber",
         ],
         message:
           "lefthook must keep staged hygiene fast and leave broad admission to Woodpecker",
@@ -1168,6 +1167,14 @@ const checkDescriptorDefinitions = {
     name: "review:contract",
     requirements: [],
   },
+  "product-contract": {
+    name: "check:product-contract",
+    requirements: [],
+  },
+  "acceptance-required": {
+    name: "acceptance:required",
+    requirements: [],
+  },
 } satisfies Record<string, StaticCheckDescriptor>;
 
 type DiagnosticOverride = Pick<StaticCheckDiagnosticMetadata, "evidenceClass"> &
@@ -1314,6 +1321,8 @@ export const checkDescriptors = defineRegisteredStaticCheckDescriptors(
         "Review the reported contract finding at its owning boundary.",
       focusedPathPrefixes: ["apps/", "packages/", "tooling/"],
     },
+    "product-contract": { evidenceClass: "static" },
+    "acceptance-required": { evidenceClass: "runtime" },
   },
 );
 

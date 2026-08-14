@@ -66,7 +66,9 @@ const FACTORY_PRODUCT_TABLES = [
 ] as const;
 
 const FACTORY_ONLY_EXACT = new Set([
+  "apps/cli/src/factory/customerCandidateFixture.ts",
   "CLAUDE.md",
+  "cucumber.cjs",
   "skills-lock.json",
   "schemas/maestro-customer-release-manifest.schema.json",
   "docs/template/do-not-port-register.md",
@@ -144,6 +146,18 @@ const GENERATED_EXACT = new Set([
   "package.json",
   "tsconfig.json",
   "apps/web/src/routeTree.gen.ts",
+  "product.contract.yaml",
+  "product.contract.schema.json",
+  "docs/template/generated/product-contract.md",
+  "playwright.acceptance.config.ts",
+  "tooling/acceptance/checkout-state.mts",
+  "tooling/acceptance/product-contract.mts",
+  "tooling/acceptance/run-acceptance.mts",
+  "tooling/acceptance/playwright-report.mts",
+  "docs/product/records-plan.md",
+  "tests/acceptance/records.spec.ts",
+  "tests/acceptance/support/fixtures.ts",
+  "tests/acceptance/support/runtime.ts",
 ]);
 
 const GENERATED_PREFIXES = ["generated/"] as const;
@@ -155,7 +169,6 @@ const TEMPLATE_PREFIXES = [
   "docs/agent/",
   "docs/template/",
   "examples/generic-ai-ops/",
-  "features/",
   "patches/",
   "packages/",
   "schemas/",
@@ -182,7 +195,6 @@ const TEMPLATE_ROOT_FILES = new Set([
   ".prettierignore",
   ".prettierrc.json",
   "AGENTS.md",
-  "cucumber.cjs",
   "convex.json",
   "coverage-baseline.json",
   "dependency-cruiser.config.cjs",

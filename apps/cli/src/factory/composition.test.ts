@@ -445,6 +445,72 @@ describe("factory CLI composition", () => {
     }
   }, 60_000);
 
+  it("keeps full verification provider metadata available in a factory checkout without a target instance", async () => {
+    await expect(
+      lstat(join(repositoryRoot, "template-instance.json")),
+    ).rejects.toThrow();
+    const bin = await mkdtemp(join(tmpdir(), "maestro-full-verify-pnpm-"));
+    const pnpm = join(bin, "pnpm");
+    await writeFile(pnpm, "#!/bin/sh\nexit 0\n");
+    await chmod(pnpm, 0o755);
+    const originalPath = process.env.PATH;
+    onTestFinished(async () => {
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
+      await rm(bin, { recursive: true, force: true });
+    });
+    process.env.PATH = [bin, originalPath].filter(Boolean).join(delimiter);
+
+    const verify = factoryCliComposition.handlers.find(
+      ({ command }) => command === "verify",
+    );
+    const result = await runHandlerJson(
+      verify,
+      ["verify", "--scope", "full", "--json"],
+      repositoryRoot,
+    );
+
+    expect(result.data.receipt).toMatchObject({
+      scope: { kind: "full", changedPaths: [], partial: false },
+      fingerprints: {
+        providerPosture: expect.stringMatching(
+          /^providers_sha256:(?!unavailable$)[0-9a-f]{64}$/u,
+        ),
+      },
+    });
+  });
+
+  it("keeps provider metadata unavailable for an unmarked directory without a target instance", async () => {
+    const root = await mkdtemp(join(tmpdir(), "maestro-ambiguous-verify-"));
+    const bin = await mkdtemp(join(tmpdir(), "maestro-full-verify-pnpm-"));
+    const pnpm = join(bin, "pnpm");
+    await writeFile(pnpm, "#!/bin/sh\nexit 0\n");
+    await chmod(pnpm, 0o755);
+    const originalPath = process.env.PATH;
+    onTestFinished(async () => {
+      if (originalPath === undefined) delete process.env.PATH;
+      else process.env.PATH = originalPath;
+      await Promise.all([
+        rm(root, { recursive: true, force: true }),
+        rm(bin, { recursive: true, force: true }),
+      ]);
+    });
+    process.env.PATH = [bin, originalPath].filter(Boolean).join(delimiter);
+
+    const verify = factoryCliComposition.handlers.find(
+      ({ command }) => command === "verify",
+    );
+    const result = await runHandlerJson(
+      verify,
+      ["verify", "--scope", "full", "--json"],
+      root,
+    );
+
+    expect(result.data.receipt.fingerprints.providerPosture).toBe(
+      "providers_sha256:unavailable",
+    );
+  });
+
   it("keeps the canonical gate unavailable in real CLI and MCP processes when gitleaks is unavailable", async () => {
     const pnpmExecutable = execFileSync("which", ["pnpm"], {
       encoding: "utf8",

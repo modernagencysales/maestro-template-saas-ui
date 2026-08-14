@@ -68,12 +68,20 @@ change stales the receipt. Raw values and one-value hashes are never returned.
 `taste` and `contract-review` remain advisory. A deterministic required-gate
 failure is blocking; advisory evidence cannot make a required failure pass.
 
-Full scope invokes `pnpm verify`. If that aggregate process fails, Maestro
-replays the canonical package-script argv sequentially for attribution,
-preserves gates that actually pass or fail, and marks only later gates
-unavailable with the exact causal command. The aggregate failure remains a
-blocking diagnostic with `pnpm verify` as its rerun; one process exit is never
-projected as an all-gates verdict.
+Full scope invokes `pnpm verify`. On success, its exact canonical package-script
+members are attributed as passing without rerunning them. If that aggregate
+process fails, Maestro replays the canonical package-script argv sequentially
+for attribution, preserves gates that actually pass or fail, and marks only
+later gates unavailable with the exact causal command. The aggregate failure
+remains a blocking diagnostic with `pnpm verify` as its rerun; one process exit
+is never projected as an all-gates verdict.
+
+For a receipt-producing delivery-batch run, use
+`pnpm maestro -- verify --scope full`, not `pnpm verify`. Remote execution uses
+`maestro-remote-test -- pnpm maestro -- verify --scope full --json`; retain
+stdout's `data.receipt` and confirm its `subject.commit` is the exact frozen
+SHA. The remote worktree is deleted after the command, so do not instruct
+operators to inspect its receipt file afterward.
 
 The machine contract is
 [`schemas/maestro-verification-receipt.schema.json`](../../schemas/maestro-verification-receipt.schema.json).

@@ -1,6 +1,13 @@
 import type { GeneratedFile } from "../index";
 import { createHash } from "node:crypto";
 import { readFileSync } from "node:fs";
+import { parse as parseYaml, stringify as stringifyYaml } from "yaml";
+import {
+  renderProductContractJsonSchema,
+  renderProductContractMarkdown,
+  validateProductContract,
+  type ProductContract,
+} from "@maestro-template/template-core";
 import {
   buildCurrentRecordsExampleFiles,
   buildCurrentSaasApplicationChassisFiles,
@@ -29,8 +36,29 @@ const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "tooling/app-map/src/composition.test.ts",
   "tooling/app-map/src/composition.ts",
   "tooling/app-map/src/schema.ts",
+  "tooling/app-map/src/build.ts",
+  "tooling/app-map/src/gitDiff.ts",
+  "tooling/app-map/src/validate.ts",
+  "tooling/app-map/package.json",
+  "packages/template-core/src/dataResourceCatalog.ts",
+  "packages/template-core/src/productTopology.ts",
+  "packages/template-core/src/systemCatalog.ts",
+  "packages/template-core/src/productContract.ts",
+  "packages/template-core/src/workPackage.ts",
+  "packages/template-core/src/productPlan.ts",
+  "packages/template-core/src/templateInstance/index.ts",
+  "docs/template/generated/workflow-semantics.md",
+  "eslint.config.mjs",
+  "tooling/eslint-plugin-template/index.mjs",
+  "tooling/eslint-plugin-template/rules/acceptance-boundary.mjs",
+  "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
   "tooling/quality/src/env-manifest.test.mts",
 ] as const;
+
+const customerSourcePath = (path: string): string =>
+  path === "packages/convex/confect/workflows/_generated/workflowRegistry.ts"
+    ? `const definePublicationRegistry = <const Registry>(\n  registry: Registry,\n): Registry => registry;\n\nexport const workflowPublicationRegistry = definePublicationRegistry({\n  capabilities: [],\n  workflows: [],\n});\n`
+    : readFileSync(new URL(`../../../../${path}`, import.meta.url), "utf8");
 
 const FACTORY_PRODUCT_TABLES = new Set<string>(CURRENT_FACTORY_PRODUCT_TABLES);
 const CURRENT_CUSTOMER_EMAIL_TABLES = [
@@ -44,10 +72,24 @@ const currentCustomerSource = (
   selection: SaasApplicationPatternSelection,
   // eslint-disable-next-line complexity -- AP-008 tracks splitting path-specific compatibility projections.
 ): string => {
-  let content = readFileSync(
-    new URL(`../../../../${path}`, import.meta.url),
-    "utf8",
-  );
+  let content = customerSourcePath(path);
+  if (
+    (path === "docs/template/generated/workflow-semantics.md" ||
+      path.startsWith("tooling/eslint-plugin-template/rules/")) &&
+    !selectsSaasApplicationPattern(selection, "workflow-automation")
+  )
+    content = content.replaceAll(
+      "pnpm check:workflow:fast",
+      "the workflow semantic check",
+    );
+  if (
+    path === "docs/template/generated/workflow-semantics.md" ||
+    path.startsWith("tooling/eslint-plugin-template/rules/")
+  )
+    content = content.replaceAll(
+      "pnpm check:workflow:fast.",
+      "pnpm check:workflow:fast",
+    );
   if (path === "tooling/generators/src/crud-proof.test.ts") {
     const factoryFixture =
       "examples/saas-application/seed/source/apps/web/src/adapters/records/fake.ts";
@@ -106,6 +148,10 @@ const currentCustomerSource = (
       throw new Error("customer shared env evaluator test markers are missing");
     content = `${content.slice(0, evaluatorTestStart)}${content.slice(retainedTestStart)}`;
   }
+  if (
+    path === "packages/convex/confect/workflows/_generated/workflowRegistry.ts"
+  )
+    return customerSourcePath(path);
   if (path === "apps/web/src/adapters/confect-generated-refs.test.ts") {
     const replacements = [
       [
@@ -189,11 +235,20 @@ const currentCustomerSourceProjections = (
       (selectsSaasApplicationPattern(selection, "records-example") ||
         path !== "tooling/generators/src/crud-proof.test.ts") &&
       (selectsSaasApplicationPattern(selection, "workflow-automation") ||
-        !path.startsWith("packages/convex/confect/workflows/")),
+        !path.startsWith("packages/convex/confect/workflows/") ||
+        path ===
+          "packages/convex/confect/workflows/_generated/workflowRegistry.ts"),
   ).map((path) => ({
     path,
     content: currentCustomerSource(path, selection),
   }));
+
+const slugify = (value: string): string =>
+  value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/gu, "-")
+    .replace(/(^-|-$)/gu, "") || "my-app";
 
 const currentContractFiles = (
   options: {
@@ -202,20 +257,145 @@ const currentContractFiles = (
   } & SaasApplicationPatternSelection,
 ): readonly GeneratedFile[] => {
   const name = options.name.trim() || "My App";
+  const productId = slugify(name);
   const firstOutcome = (
     options.firstOutcome?.trim() || "Deliver the first customer outcome"
   ).replace(/\s+/gu, " ");
+  const sourceContract = validateProductContract(
+    parseYaml(
+      readFileSync(
+        new URL(
+          "../../../../examples/saas-application/seed/source/product.contract.yaml",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    ),
+  );
+  const contract: ProductContract = selectsSaasApplicationPattern(
+    options,
+    "records-example",
+  )
+    ? {
+        ...sourceContract,
+        product: { ...sourceContract.product, id: productId, name },
+      }
+    : {
+        schemaVersion: 1,
+        product: {
+          id: productId,
+          name,
+          summary: `The first product promise for ${name}.`,
+        },
+        behaviors: [
+          {
+            id: "BHV-OUTCOME-001",
+            revision: 1,
+            status: "draft",
+            title: firstOutcome,
+            actor: "workspace member",
+            surfaces: ["web-ui"],
+            preconditions: [],
+            action: `The member completes ${firstOutcome.toLowerCase()}.`,
+            outcomes: [`${firstOutcome} is observable in the app.`],
+          },
+        ],
+      };
+  const links = contract.behaviors.map((behavior) => ({
+    behaviorId: behavior.id,
+    planPaths: selectsSaasApplicationPattern(options, "records-example")
+      ? ["docs/product/records-plan.md"]
+      : [],
+    appMapTargets: selectsSaasApplicationPattern(options, "records-example")
+      ? ["route:records", "headless:records-api"]
+      : [],
+    acceptancePaths: selectsSaasApplicationPattern(options, "records-example")
+      ? ["records.spec.ts"]
+      : [],
+  }));
+  const recordsFiles = selectsSaasApplicationPattern(options, "records-example")
+    ? [
+        "docs/product/records-plan.md",
+        "tests/acceptance/records.spec.ts",
+        "tests/acceptance/support/fixtures.ts",
+        "tests/acceptance/support/runtime.ts",
+      ].map((path) => ({
+        path,
+        content: readFileSync(
+          new URL(
+            `../../../../examples/saas-application/seed/source/${path}`,
+            import.meta.url,
+          ),
+          "utf8",
+        ),
+      }))
+    : [];
   return [
+    {
+      path: "product.contract.yaml",
+      content: stringifyYaml(contract),
+    },
+    {
+      path: "product.contract.schema.json",
+      content: renderProductContractJsonSchema(),
+    },
+    {
+      path: "docs/template/generated/product-contract.md",
+      content: renderProductContractMarkdown({ contract, links }),
+    },
+    {
+      path: "playwright.acceptance.config.ts",
+      content: readFileSync(
+        new URL(
+          "../../../../examples/saas-application/seed/source/playwright.acceptance.config.ts",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    },
+    {
+      path: "tooling/acceptance/checkout-state.mts",
+      content: readFileSync(
+        new URL(
+          "../../../../tooling/acceptance/checkout-state.mts",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    },
+    {
+      path: "tooling/acceptance/product-contract.mts",
+      content: readFileSync(
+        new URL(
+          "../../../../tooling/acceptance/product-contract.mts",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    },
+    {
+      path: "tooling/acceptance/run-acceptance.mts",
+      content: readFileSync(
+        new URL(
+          "../../../../tooling/acceptance/run-acceptance.mts",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    },
+    {
+      path: "tooling/acceptance/playwright-report.mts",
+      content: readFileSync(
+        new URL(
+          "../../../../tooling/acceptance/playwright-report.mts",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    },
+    ...recordsFiles,
     ...(selectsSaasApplicationPattern(options, "records-example")
-      ? [
-          "apps/web/src/adapters/records/http.ts",
-          "features/records.feature",
-          "features/step_definitions/records.journeys.ts",
-          "features/step_definitions/records.steps.ts",
-          "features/support/contracts-scenario.ts",
-          "features/support/contracts-runtime.ts",
-          "features/support/contracts-world.ts",
-        ].map((path) => ({
+      ? ["apps/web/src/adapters/records/http.ts"].map((path) => ({
           path,
           content: readFileSync(
             new URL(
@@ -226,18 +406,6 @@ const currentContractFiles = (
           ),
         }))
       : []),
-    {
-      path: "features/first-outcome.feature",
-      content: `@wip
-Feature: ${firstOutcome}
-  This is the first product promise for ${name}.
-
-  Scenario: Deliver ${firstOutcome.toLowerCase()}
-    Given the product is ready
-    When the first outcome is completed
-    Then ${firstOutcome.toLowerCase()} is observable in the app and CLI
-`,
-    },
   ];
 };
 
@@ -248,7 +416,7 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
       generator: "add-feature",
       commandFamily: "template:add-feature",
       name: "records",
-      ownership: { system: "knowledge-brain", disposition: "extend" },
+      ownership: { system: "record-management", disposition: "extend" },
       generatedPaths: [
         "packages/convex/confect/tables/records.ts",
         "packages/convex/confect/records/records.spec.ts",
@@ -260,12 +428,13 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
         "apps/web/src/features/records/records-surface.tsx",
         "apps/web/src/screens/records-screen.tsx",
         "apps/web/src/routes/_workspace.records.tsx",
-        "features/records.feature",
-        "features/step_definitions/records.journeys.ts",
-        "features/step_definitions/records.steps.ts",
-        "features/support/contracts-scenario.ts",
-        "features/support/contracts-runtime.ts",
-        "features/support/contracts-world.ts",
+        "product.contract.yaml",
+        "product.contract.schema.json",
+        "docs/template/generated/product-contract.md",
+        "playwright.acceptance.config.ts",
+        "tests/acceptance/records.spec.ts",
+        "tests/acceptance/support/fixtures.ts",
+        "tests/acceptance/support/runtime.ts",
       ],
     },
     null,
@@ -392,17 +561,37 @@ const projectWorkflowCommandReferences = (
     customerDocumentationCommandReplacements,
     "Customer documentation command",
   );
+  const normalized = documented.map((file) => ({
+    ...file,
+    content: file.content.replaceAll(
+      "pnpm check:workflow:fast.",
+      "pnpm check:workflow:fast",
+    ),
+  }));
   if (selectsSaasApplicationPattern(selection, "workflow-automation"))
-    return documented;
+    return normalized;
   const projected = applyProjectionReplacements(
-    documented,
+    normalized,
     neutralWorkflowCommandReplacements,
     "Neutral workflow command",
   );
+  const neutralized = projected.map((file) => ({
+    ...file,
+    content: file.content
+      .replaceAll("pnpm check:workflow:fast", "pnpm check:confect-contracts")
+      .replaceAll(
+        "pnpm check:workflow-semantics",
+        "pnpm check:confect-contracts",
+      )
+      .replaceAll(
+        "pnpm check:workflow-graph-boundary",
+        "pnpm check:confect-contracts",
+      ),
+  }));
   const managedPath = ".agents/skills/maestro/references/workflow-authoring.md";
-  const managed = projected.find(({ path }) => path === managedPath);
+  const managed = neutralized.find(({ path }) => path === managedPath);
   const manifestPath = "docs/template/customer-context.manifest.json";
-  const manifestFile = projected.find(({ path }) => path === manifestPath);
+  const manifestFile = neutralized.find(({ path }) => path === manifestPath);
   if (managed === undefined || manifestFile === undefined)
     throw new Error("Neutral workflow customer-context projection is missing.");
   const manifest = JSON.parse(manifestFile.content) as {
@@ -437,7 +626,7 @@ const projectWorkflowCommandReferences = (
     .update(manifestContent)
     .digest("hex")}`;
   const checkerPath = "tooling/quality/check-customer-context.mts";
-  const checker = projected.find(({ path }) => path === checkerPath);
+  const checker = neutralized.find(({ path }) => path === checkerPath);
   const checksumMarker = /const MANIFEST_SHA256 =\n {2}"sha256:[a-f0-9]{64}";/u;
   if (checker === undefined || !checksumMarker.test(checker.content))
     throw new Error("Neutral workflow customer-context checker is missing.");
@@ -445,7 +634,7 @@ const projectWorkflowCommandReferences = (
     checksumMarker,
     `const MANIFEST_SHA256 =\n  "${manifestChecksum}";`,
   );
-  return projected.map((file) => {
+  return neutralized.map((file) => {
     if (file.path === manifestPath)
       return { ...file, content: manifestContent };
     if (file.path === checkerPath) return { ...file, content: checkerContent };
@@ -516,12 +705,17 @@ export const buildFactorySaasApplicationFiles = (options: {
     [
       ...currentSaasApplicationFiles(options),
       ...currentContractFiles(options),
-      ...buildSaasRegistrationProjections({ patterns: options.patterns }),
       ...currentCustomerSourceProjections(options),
+      ...buildSaasRegistrationProjections({ patterns: options.patterns }),
       ...(selectsSaasApplicationPattern(options, "records-example")
         ? [recordsFeatureProvenance()]
         : []),
-    ],
+    ].reduce<GeneratedFile[]>((files, file) => {
+      const existing = files.findIndex(({ path }) => path === file.path);
+      if (existing >= 0) files[existing] = file;
+      else files.push(file);
+      return files;
+    }, []),
     options,
   );
 

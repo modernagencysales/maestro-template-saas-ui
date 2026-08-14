@@ -36,6 +36,10 @@ describe("Woodpecker firewall and epoch pipelines", () => {
     expect(existsSync(resolve(root, ".woodpecker/verify.yml"))).toBe(true);
   });
 
+  it("clones complete history for trusted contract bootstrap", () => {
+    expect(read(".woodpecker/verify.yml")).toContain("depth: 0");
+  });
+
   it("keeps the trusted policy first and exact runner classes", () => {
     const firewall = read(".woodpecker/firewall.yml");
     expect(firewall.indexOf("name: trusted-ci-policy")).toBeLessThan(

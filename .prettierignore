@@ -6,6 +6,8 @@ coverage/
 .stryker-tmp/
 .turbo/
 .maestro/
+.superpowers/sdd/
+packages/convex/.convex/
 .claude/settings.json
 apps/*/dist/
 packages/*/dist/
@@ -16,6 +18,8 @@ repos/
 packages/convex/confect/_generated/
 packages/convex/convex/_generated/
 packages/convex/convex/brain/pages.ts
+examples/saas-application/seed/source/product.contract.schema.json
+examples/saas-application/seed/source/docs/template/generated/product-contract.md
 apps/web/src/routeTree.gen.ts
 .pnpm-store/
 AGENTS.md

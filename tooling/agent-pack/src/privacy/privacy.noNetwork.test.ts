@@ -1,24 +1,18 @@
 import {
-  appendFileSync,
   existsSync,
-  mkdirSync,
   mkdtempSync,
   readFileSync,
   rmSync,
   writeFileSync,
 } from "node:fs";
-import { createHash } from "node:crypto";
 import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { execFileSync, spawn, spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
-import {
-  createCustomerCreateComposition,
-  type CustomerCompositionSource,
-} from "../../../../apps/cli/src/factory/createComposition";
+import { buildCandidateReleaseFixture } from "../../../../apps/cli/src/factory/customerCandidateFixture";
+import { createCustomerCreateComposition } from "../../../../apps/cli/src/factory/createComposition";
 import { buildSaasApplicationTargetPlan } from "../../../../tooling/generators/src/index";
-import { buildCustomerOwnershipInventory } from "../../../../tooling/release/src/customerTarget/ownership";
 import { NO_NETWORK_FACTORY_CASES } from "./networkPolicy.js";
 
 const repositoryRoot = resolve(import.meta.dirname, "../../../..");
@@ -26,186 +20,32 @@ const fixtureRoot = mkdtempSync(join(tmpdir(), "maestro-no-network-"));
 const attemptsPath = join(fixtureRoot, "attempts.ndjson");
 const customerTarget = join(fixtureRoot, "customer-app");
 let candidateReleaseParent: string | undefined;
-const isWorkflowPatternPath = (path: string): boolean =>
-  [
-    "tooling/workflow/",
-    "packages/convex/confect/workflows/",
-    "packages/convex/confect/workflowContracts/",
-    "packages/convex/confect/workflowRunners/",
-    "packages/convex/confect/tables/workflow",
-    "packages/convex/confect/demo/showcase.",
-  ].some((prefix) => path.startsWith(prefix));
 const candidateRelease = (input: {
   readonly name: string;
   readonly outcome: string;
 }): {
   readonly root: string;
   readonly replacements: ReadonlyMap<string, "copy" | "generate" | undefined>;
-  readonly source: CustomerCompositionSource;
+  readonly source: ReturnType<typeof buildCandidateReleaseFixture>["source"];
 } => {
-  candidateReleaseParent = mkdtempSync(
-    join(tmpdir(), "maestro-no-network-candidate-"),
-  );
-  const root = join(candidateReleaseParent, "release");
-  execFileSync(
-    "git",
-    ["clone", "--quiet", "--shared", "--no-tags", repositoryRoot, root],
-    { stdio: "pipe" },
-  );
-  const authorityRoot = join(root, ".candidate-authority");
-  appendFileSync(join(root, ".git/info/exclude"), "\n.candidate-authority/\n");
-  mkdirSync(authorityRoot, { recursive: true });
-  const sourceCommit = git(root, ["rev-parse", "HEAD"]).trim();
-  const tag = "maestro-template-v0.2.0-alpha.3";
   const plan = buildSaasApplicationTargetPlan({
     name: input.name,
     firstOutcome: input.outcome,
   });
-  const materializedPaths = new Set(plan.entries.map((entry) => entry.path));
-  const optionalPatternPaths = new Set(
-    buildSaasApplicationTargetPlan({
-      name: input.name,
-      firstOutcome: input.outcome,
-      patterns: ["records-example", "workflow-automation"],
-    }).entries.map((entry) => entry.path),
-  );
-  const blueprintOwnedPaths = new Set(
-    plan.entries
-      .filter((entry) => entry.replaces === undefined)
-      .map((entry) => entry.path),
-  );
-  const sourcePaths = git(root, ["ls-tree", "-r", "--name-only", sourceCommit])
-    .trim()
-    .split("\n")
-    .filter((path) => path && existsSync(join(repositoryRoot, path)));
-  const paths = [
-    ...buildCustomerOwnershipInventory(sourcePaths).map((entry) =>
-      blueprintOwnedPaths.has(entry.path) ||
-      (optionalPatternPaths.has(entry.path) &&
-        !materializedPaths.has(entry.path)) ||
-      isWorkflowPatternPath(entry.path)
-        ? {
-            path: entry.path,
-            match: "exact" as const,
-            ownership: "factory-only" as const,
-            action: "omit" as const,
-            upgrade: "remove" as const,
-          }
-        : entry,
-    ),
-    {
-      path: "template-instance.json",
-      match: "exact" as const,
-      ownership: "generated" as const,
-      action: "generate" as const,
-      upgrade: "regenerate" as const,
-    },
-  ];
-  const manifest = {
-    $schema: "../../schemas/maestro-customer-release-manifest.schema.json",
-    schemaVersion: 1,
-    materializationStatus: "materializable",
-    release: {
-      version: "0.2.0-alpha.3",
-      tag,
-      sourceCommit,
-      sourceChecksum: hash(
-        execFileSync(
-          "git",
-          ["-C", root, "archive", "--format=tar", sourceCommit],
-          { maxBuffer: 512 * 1024 * 1024 },
-        ),
-      ),
-    },
-    compatibility: { cli: "0.2.x", agentPack: "0.2.x" },
-    paths,
-    expectedHashes: Object.fromEntries(
-      paths
-        .filter((entry) => entry.action === "copy" && entry.match === "exact")
-        .map((entry) => [
-          entry.path,
-          hash(readFileSync(join(root, entry.path))),
-        ]),
-    ),
-    extensionSeams: paths
-      .filter((entry) => entry.ownership === "customer-extension")
-      .map((entry) => ({
-        path: entry.path,
-        description: "No-network candidate customer extension seam.",
-      })),
-  };
-  const manifestPath = join(authorityRoot, "manifest.json");
-  const manifestBytes = writeJson(manifestPath, manifest);
-  const blueprint = {
-    schemaVersion: plan.schemaVersion,
-    id: plan.id,
-    provenance: plan.provenance,
-    registrations: plan.registrations,
-    parameterizedEntries: plan.parameterizedEntries,
-    entries: plan.entries.map((entry) => ({
-      path: entry.path,
-      ownership: entry.ownership,
-      action: entry.action,
-      upgrade: entry.upgrade,
-      sha256: entry.sha256,
-      ...(entry.replaces === undefined ? {} : { replaces: entry.replaces }),
-    })),
-  };
-  const blueprintManifestPath = join(authorityRoot, "blueprint.json");
-  const blueprintManifestBytes = writeJson(blueprintManifestPath, blueprint);
-  const blueprintAuthorityManifestPath = join(
-    authorityRoot,
-    "blueprint-authority.json",
-  );
-  const blueprintAuthorityManifestBytes = writeJson(
-    blueprintAuthorityManifestPath,
-    blueprint,
-  );
-  git(root, ["add", "--force", ".candidate-authority"]);
-  git(root, [
-    "-c",
-    "user.name=Maestro No-Network Fixture",
-    "-c",
-    "user.email=maestro-no-network-fixture@example.invalid",
-    "commit",
-    "--quiet",
-    "--no-verify",
-    "-m",
-    "test: seal no-network candidate authority",
-  ]);
-  git(root, ["tag", "-f", tag]);
+  const fixture = buildCandidateReleaseFixture({
+    repoRoot: repositoryRoot,
+    ...input,
+    buildPlan: () => plan,
+    authority: "alpha.3",
+  });
+  candidateReleaseParent = fixture.parent;
   return {
-    root,
+    root: fixture.candidateRoot,
     replacements: new Map(
       plan.entries.map(({ path, replaces }) => [path, replaces] as const),
     ),
-    source: {
-      repositoryRoot: root,
-      manifestPath,
-      ownershipManifestChecksum: hash(manifestBytes),
-      tag,
-      sourceCommit,
-      blueprintManifestPath,
-      blueprintManifestChecksum: hash(blueprintManifestBytes),
-      blueprintAuthorityManifestPath,
-      blueprintAuthorityManifestChecksum: hash(blueprintAuthorityManifestBytes),
-    },
+    source: fixture.source,
   };
-};
-
-const git = (repository: string, args: readonly string[]): string =>
-  execFileSync("git", ["-C", repository, ...args], {
-    encoding: "utf8",
-    stdio: "pipe",
-  });
-
-const hash = (bytes: string | Buffer): `sha256:${string}` =>
-  `sha256:${createHash("sha256").update(bytes).digest("hex")}`;
-
-const writeJson = (path: string, value: unknown): Buffer => {
-  const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
-  writeFileSync(path, bytes);
-  return bytes;
 };
 
 const createGeneratedCustomer = async (target: string) => {

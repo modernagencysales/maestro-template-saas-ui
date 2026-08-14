@@ -33,18 +33,21 @@ preflight -> recipes/system lookup -> preview -> reviewed write
 
 ## Product Contracts
 
-The natural-language contract under `features/` is the acceptance authority.
-For each promised journey:
+`product.contract.yaml` is the product-contract authority. For each promised
+outcome:
 
-1. Run `pnpm maestro -- contracts add <journey>` or edit its Feature first.
-2. Run `pnpm maestro -- contracts check` while defining its step bindings.
-3. Implement the observable behavior through the real UI and CLI surfaces.
-4. Run `pnpm maestro -- contracts test <journey>` until the Feature passes.
-5. Change `@wip` to `@required` only when the promise is accepted, then run
-   `pnpm maestro -- contracts test --required` before delivery.
+1. Create or select behavior IDs in `product.contract.yaml`.
+2. Write typed plan frontmatter with existing `WorkPackageSchema` classification
+   and current App Map targets.
+3. Design the black-box proof and failure witness before implementation.
+4. Add focused unit/integration tests only for named implementation risks.
+5. Generate docs, check the contract, and run required acceptance.
+6. Promote draft to required only with its revision-bound passing example.
+7. Run `pnpm maestro -- verify --scope full` once on the immutable delivery
+   head and inspect its exact-head receipt.
 
-Do not replace a Feature with a parallel journey manifest, evidence store, or
-source-code wording checker. Cucumber execution is the completion evidence.
+Use `pnpm check:product-contract` for structural contract admission and
+`pnpm acceptance:required` for required runtime acceptance.
 
 After the focused gates pass, review `git status --short` and commit the recipe
 transaction, including its receipt and generated provenance.
@@ -209,6 +212,29 @@ required verification once on its immutable final head. A changed head
 invalidates prior evidence. Woodpecker verification for the current PR head is
 the only blocking full-verification authority; never copy or manufacture status
 across commits.
+
+## Verification And Review Boundary
+
+Verification proves the requested product outcome; it must not become a second
+product or recursively verify its own evidence.
+
+- The frozen commit, required CI definition, verifier/gate implementation, and
+  reviewed test harness are trusted authorities for the delivery batch. Review
+  their actual diff and behavior; do not assume they are malicious, rewritten
+  after review, or conspiring with the candidate code.
+- Adversarial findings must show a concrete bypass controlled by untrusted
+  product input or shipped application code within the documented threat model.
+  Hypothetical malicious harnesses, forged commits, self-modifying gates,
+  compromised runners, and demands that a verifier prove its own honesty are
+  out of scope unless the task explicitly concerns supply-chain or CI security.
+- A reviewer may not expand the threat model. New trust-boundary requirements
+  require owner approval before they become blockers or authorize code changes.
+- After one fix and one re-review of a concrete finding, proceed to the required
+  deterministic gate. Do not start another speculative hardening cycle; record
+  non-blocking ideas as follow-up and finish the requested outcome.
+- After two failed verification cycles for the same batch, stop and ask the
+  owner whether to fix, defer, or remove the failing gate. A third cycle requires
+  explicit owner approval.
 
 ## Testing Doctrine
 

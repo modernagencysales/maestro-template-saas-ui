@@ -13,6 +13,9 @@ providers.
 - The static Cloudflare Pages reference app ships `apps/web/public/_headers`
   with CSP, HSTS, `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`,
   `Referrer-Policy: no-referrer`, and a restrictive `Permissions-Policy`.
+- A fork that adds SSR or server functions must emit the same policy from its
+  Worker responses. Cloudflare `_headers` does not govern responses created by a
+  Worker.
 - Webhook signatures and replay windows are verified.
 - Secrets never enter client bundles.
 - Provider setup follows [env-manifest.md](./env-manifest.md); docs and handoff

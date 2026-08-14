@@ -38,7 +38,6 @@ import {
 } from "./environment";
 import { createPreflightCliHandler } from "./preflight";
 import { createCustomerRecipeCliHandlers } from "./customerRecipes";
-import { createContractsCliHandler } from "./contracts";
 import { createMcpCliAdapter } from "./mcp";
 import {
   createComposedStartCommand,
@@ -197,7 +196,6 @@ export function createCustomerCliComposition(
   });
   const handlers: readonly FactoryCliHandler[] = [
     createStartCliHandler(start, output),
-    createContractsCliHandler(),
     ...recipeHandlers,
     createPreflightCliHandler(preflight),
     createVerifyCliHandler(verify),

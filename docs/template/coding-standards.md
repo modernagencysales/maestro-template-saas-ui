@@ -18,14 +18,15 @@ the rationale, examples, and domain exceptions.
 ## Plans And Acceptance
 
 - Every plan names non-empty quality targets, mechanical architecture rules,
-  Cucumber features, denial cases, focused tests, and conflict domains.
+  product-contract behavior IDs, denial cases, focused tests, and conflict
+  domains.
 - Quality targets must be package scripts and architecture rules must name
   mechanical entries in the enforced engineering rules index; do not restate
   coding prose.
-- Gherkin lifecycle and surface conventions belong to the current customer
-  contract; do not add parallel acceptance metadata.
-- Gherkin describes observable behavior and denial cases, never shell commands,
-  source paths, functions, or database tables.
+- `product.contract.yaml` owns observable behavior and denial cases; pair each
+  required behavior with a revision-bound Playwright proof.
+- Run `pnpm check:product-contract` and `pnpm acceptance:required` for the
+  structural and runtime admissions; do not add parallel acceptance metadata.
 
 ### Multi-table Convex writes
 

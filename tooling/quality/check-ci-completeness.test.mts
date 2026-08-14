@@ -5,10 +5,30 @@ import {
   descriptor,
   validateRootVerifyHostTerms,
 } from "./check-ci-completeness.mts";
+import { checkDescriptors } from "./src/check-definitions.mts";
 
 describe("check:ci-completeness", () => {
   it("passes and fails on its declared requirements", async () => {
     await expectDescriptorPassesAndFails(descriptor);
+  });
+
+  it("registers the required typed product-contract observations", () => {
+    const descriptors: Readonly<Record<string, unknown>> = checkDescriptors;
+
+    expect(descriptors["product-contract"]).toMatchObject({
+      gateId: "product-contract",
+      posture: "required",
+      evidenceClass: "static",
+      argv: ["pnpm", "check:product-contract"],
+      rerun: ["pnpm", "check:product-contract"],
+    });
+    expect(descriptors["acceptance-required"]).toMatchObject({
+      gateId: "acceptance-required",
+      posture: "required",
+      evidenceClass: "runtime",
+      argv: ["pnpm", "acceptance:required"],
+      rerun: ["pnpm", "acceptance:required"],
+    });
   });
 
   it("pins topology, lifecycle, and promotion enforcement in every required lane", () => {
@@ -51,8 +71,6 @@ describe("check:ci-completeness", () => {
     expect(firewallScript?.includes).toContain(
       "if ! bash tooling/ci/install-qlty.sh",
     );
-    expect(firewallScript?.includes).not.toContain("pnpm acceptance:check");
-    expect(firewallScript?.includes).not.toContain("pnpm acceptance:features");
 
     const hook = descriptor.requirements.find(
       ({ file }) => file === "lefthook.yml",
@@ -74,7 +92,6 @@ describe("check:ci-completeness", () => {
         "check:data-resources",
         "check:promotion-boundary",
         "acceptance:",
-        "cucumber",
       ]),
     );
   });

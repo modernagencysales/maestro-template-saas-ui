@@ -110,4 +110,17 @@ export default [
       "template/frontend-route-server-boundary": "error",
     },
   },
+  {
+    files: [
+      "tests/acceptance/**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}",
+      "examples/*/seed/source/tests/acceptance/**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}",
+      "playwright.acceptance.config.ts",
+      "examples/*/seed/source/playwright.acceptance.config.ts",
+    ],
+    plugins: { template: templatePlugin },
+    linterOptions: { noInlineConfig: true },
+    rules: {
+      "template/acceptance-boundary": "error",
+    },
+  },
 ];

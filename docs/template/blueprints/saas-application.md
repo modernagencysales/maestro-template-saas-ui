@@ -34,8 +34,8 @@ infrastructure, provider seams, and the draft first-outcome contract. Two
 source-controlled optional patterns are canonical:
 
 - `records-example`: complete synthetic seeds, table, Confect functions,
-  adapters, feature, screen, route, Gherkin and steps, generated registrations,
-  governance metadata, docs, and provenance;
+  adapters, screen, route, typed product contract, Playwright acceptance proof,
+  generated registrations, governance metadata, docs, and provenance;
 - `workflow-automation`: workflow package, runtime source, tables, generated
   bindings, scripts, dependencies, catalog/topology facts, and lockfile
   importer.

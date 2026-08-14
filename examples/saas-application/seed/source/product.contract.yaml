@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=./product.contract.schema.json
+schemaVersion: 1
+product:
+  id: records-demo
+  name: Records Demo
+  summary:
+    Workspace members manage the same records through the web app and CLI.
+behaviors:
+  - id: BHV-REC-001
+    revision: 1
+    status: required
+    title: A web-created record appears in the CLI
+    actor: workspace member
+    surfaces: [web-ui, cli-process]
+    preconditions: [The member has an active workspace.]
+    action: The member saves a uniquely named record from the web form.
+    outcomes: [Listing records from the CLI includes the saved title.]
+  - id: BHV-REC-002
+    revision: 1
+    status: required
+    title: A CLI-created record appears in the web app
+    actor: workspace member with an API key
+    surfaces: [cli-process, web-ui]
+    preconditions: [The API key is bound to the member's workspace.]
+    action: The member creates a uniquely named record from the CLI.
+    outcomes: [The web record list includes the created title.]
+  - id: BHV-REC-003
+    revision: 1
+    status: required
+    title: A missing API key cannot create a record
+    actor: CLI caller without an API key
+    surfaces: [cli-process, web-ui]
+    preconditions: [The workspace does not contain the proposed title.]
+    action: The caller requests record creation without an API key.
+    outcomes:
+      - The CLI reports that an API key is required.
+      - Independent authorized reads show that the proposed title was not
+        created.
+  - id: BHV-REC-004
+    revision: 1
+    status: required
+    title: A workspace-bound key cannot write to another workspace
+    actor: CLI caller with an API key bound to a different workspace
+    surfaces: [cli-process]
+    preconditions:
+      [The destination workspace does not contain the proposed title.]
+    action: The caller requests record creation in the destination workspace.
+    outcomes:
+      - The CLI reports that the key is bound to a different workspace.
+      - Authorized CLI reads of both workspaces exclude the proposed title.

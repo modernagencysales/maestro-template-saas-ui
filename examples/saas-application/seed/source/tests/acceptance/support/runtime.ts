@@ -1,4 +1,9 @@
-import { chromium, type Browser, type BrowserContext } from "@playwright/test";
+import {
+  chromium,
+  type Browser,
+  type BrowserContext,
+  type Route,
+} from "@playwright/test";
 import { spawn } from "node:child_process";
 import { createHash, randomBytes } from "node:crypto";
 import { createServer } from "node:net";
@@ -20,6 +25,7 @@ export type ContractsScenario = {
 export type ContractsRuntime = {
   readonly browser: Browser;
   readonly webUrl: string;
+  readonly apiBaseUrl: string;
   readonly provisionScenario: () => Promise<ContractsScenario>;
   readonly authorizeBrowserContext: (
     scenario: ContractsScenario,
@@ -82,7 +88,6 @@ export type ContractsRuntimeDependencies = {
     spec: AppSpec,
     output: (stream: "stdout" | "stderr", line: string) => void,
   ) => Promise<ManagedProcess>;
-  readonly fetch?: typeof globalThis.fetch;
   readonly commandTimeoutMs?: number;
   readonly startupTimeoutMs?: number;
   readonly seedTimeoutMs?: number;
@@ -90,12 +95,82 @@ export type ContractsRuntimeDependencies = {
   readonly retryDelayMs?: number;
 };
 
+type ProxyInput = {
+  readonly requestRoute: Route;
+  readonly apiBaseUrl: string;
+  readonly apiKey: string;
+  readonly workspaceSlug: string;
+};
+
+export const proxyContractsRequest = async ({
+  requestRoute: route,
+  apiBaseUrl,
+  apiKey,
+  workspaceSlug,
+}: ProxyInput): Promise<void> => {
+  try {
+    const request = route.request();
+    const rawBody = request.postData();
+    const body: unknown = rawBody ? JSON.parse(rawBody) : {};
+    if (!isObject(body)) throw new Error("Invalid contracts request.");
+    const sourceUrl = new URL(request.url());
+    const targetUrl = `${apiBaseUrl}${sourceUrl.pathname.replace(
+      /^\/__contracts/u,
+      "",
+    )}${sourceUrl.search}`;
+    const response = await route.fetch({
+      method: request.method(),
+      headers: {
+        authorization: `Bearer ${apiKey}`,
+        "content-type": "application/json",
+      },
+      postData: JSON.stringify({ ...body, workspaceSlug }),
+      url: targetUrl,
+    });
+    await route.fulfill({ response });
+  } catch {
+    await route.fulfill({ status: 502 });
+  }
+};
+
+export const redactContractsDiagnostic = (
+  input: unknown,
+  secrets: readonly string[] = [],
+): string => {
+  let safe = input instanceof Error ? input.message : String(input);
+  for (const secret of secrets) {
+    if (secret !== "") safe = safe.replaceAll(secret, "[REDACTED]");
+  }
+  safe = safe
+    .replace(
+      /(\b(?:authorization|set-cookie|cookie)\s*:\s*)[^\r\n]+/giu,
+      "$1[REDACTED]",
+    )
+    .replace(
+      /(["'](?:authorization|cookie|set-cookie)["']\s*:\s*)("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/giu,
+      (_match, prefix: string, value: string) =>
+        `${prefix}${value[0]}[REDACTED]${value[0]}`,
+    )
+    .replace(/(Bearer\s+)[^\s]+/giu, "$1[REDACTED]")
+    .replace(
+      /((?:["']?[A-Z0-9_-]{0,64}(?:TOKEN|API[_-]?KEY|DEPLOY[_-]?KEY|SECRET|PASSWORD|COOKIE|CREDENTIAL)[A-Z0-9_-]{0,64}["']?)\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;]+)/giu,
+      (_match, prefix: string, value: string) => {
+        const quote = value.startsWith('"')
+          ? '"'
+          : value.startsWith("'")
+            ? "'"
+            : "";
+        return `${prefix}${quote}[REDACTED]${quote}`;
+      },
+    );
+  return safe.slice(-19_900);
+};
+
 export const CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS = 120_000;
 export const CONTRACTS_HOOK_TIMEOUT_MS = 150_000;
 
 const allowedEnvironmentNames = new Set([
   "CI",
-  "FORCE_COLOR",
   "HOME",
   "LANG",
   "LANGUAGE",
@@ -114,6 +189,7 @@ const allowedEnvironmentNames = new Set([
   "LC_TIME",
   "LOGNAME",
   "NO_COLOR",
+  "NODE_EXTRA_CA_CERTS",
   "PATH",
   "SHELL",
   "TEMP",
@@ -294,30 +370,8 @@ async function bootContractsRuntime(
   resources: RuntimeResources,
 ) {
   const secrets = new Set<string>();
-  const redact = (input: unknown): string => {
-    let safe = input instanceof Error ? input.message : String(input);
-    for (const secret of secrets) {
-      if (secret !== "") safe = safe.replaceAll(secret, "[REDACTED]");
-    }
-    safe = safe
-      .replace(
-        /(\b(?:authorization|set-cookie|cookie)\s*:\s*)[^\r\n]+/giu,
-        "$1[REDACTED]",
-      )
-      .replace(/(Bearer\s+)[^\s]+/giu, "$1[REDACTED]")
-      .replace(
-        /((?:["']?[A-Z0-9_-]{0,64}(?:TOKEN|API[_-]?KEY|DEPLOY[_-]?KEY|SECRET|PASSWORD|COOKIE|CREDENTIAL)[A-Z0-9_-]{0,64}["']?)\s*[:=]\s*)("[^"]*"|'[^']*'|[^\s,;]+)/giu,
-        (_match, prefix: string, value: string) => {
-          const quote = value.startsWith('"')
-            ? '"'
-            : value.startsWith("'")
-              ? "'"
-              : "";
-          return `${prefix}${quote}[REDACTED]${quote}`;
-        },
-      );
-    return safe.slice(-19_900);
-  };
+  const redact = (input: unknown): string =>
+    redactContractsDiagnostic(input, [...secrets]);
   const inherited = minimalEnvironment(dependencies.environment());
   const localEnvironment = {
     ...inherited,
@@ -374,8 +428,8 @@ async function bootContractsRuntime(
       throw new Error(redact(error));
     }
   };
-  const commandTimeoutMs = dependencies.commandTimeoutMs ?? 30_000;
-  const seedTimeoutMs = dependencies.seedTimeoutMs ?? 30_000;
+  const commandTimeoutMs = dependencies.commandTimeoutMs ?? 120_000;
+  const seedTimeoutMs = dependencies.seedTimeoutMs ?? 120_000;
   const readinessTimeoutMs = dependencies.readinessTimeoutMs ?? 30_000;
   const retryDelayMs = dependencies.retryDelayMs ?? 250;
 
@@ -385,32 +439,16 @@ async function bootContractsRuntime(
       localEnvironment,
       commandTimeoutMs,
     );
-    await executeCommand(
-      [
-        "--silent",
-        "exec",
-        "convex",
-        "env",
-        "set",
-        "MAESTRO_CONTRACT_TEST",
-        "1",
-      ],
-      localEnvironment,
-      commandTimeoutMs,
-    );
-    await executeCommand(
-      [
-        "--silent",
-        "exec",
-        "convex",
-        "env",
-        "set",
-        "POSTHOG_PROJECT_TOKEN",
-        "phc_test_placeholder",
-      ],
-      localEnvironment,
-      commandTimeoutMs,
-    );
+    for (const [name, value] of [
+      ["MAESTRO_CONTRACT_TEST", "1"],
+      ["POSTHOG_PROJECT_TOKEN", "phc_test_placeholder"],
+    ] as const) {
+      await executeCommand(
+        ["--silent", "exec", "convex", "env", "set", name, value],
+        localEnvironment,
+        commandTimeoutMs,
+      );
+    }
     const browser = await dependencies.launchBrowser(inherited);
     if (resources.stopping) {
       await browser.close();
@@ -477,12 +515,10 @@ async function bootContractsRuntime(
         `maestro start announced an unexpected URL\n${safeOutput()}`,
       );
     }
-
     const credentials = new WeakMap<
       ContractsScenario,
       { readonly primary: string; readonly observer: string }
     >();
-    const fetcher = dependencies.fetch ?? globalThis.fetch;
     const runCommand = async (
       args: readonly string[],
       environment: NodeJS.ProcessEnv,
@@ -544,13 +580,13 @@ async function bootContractsRuntime(
         }
       }
       const seeded = parseSeedResult(seedOutput);
-      const scenario: ContractsScenario = {
+      const scenario: ContractsScenario = Object.freeze({
         namespace,
         workspaceSlug: `${namespace}-primary`,
         observerWorkspaceSlug: `${namespace}-observer`,
-        primary: seeded.primary,
-        observer: seeded.observer,
-      };
+        primary: Object.freeze(seeded.primary),
+        observer: Object.freeze(seeded.observer),
+      });
       credentials.set(scenario, { primary: primaryKey, observer: observerKey });
       return scenario;
     };
@@ -562,48 +598,18 @@ async function bootContractsRuntime(
     const runtime: ContractsRuntime = {
       browser,
       webUrl: announcedWebUrl,
+      apiBaseUrl,
       provisionScenario,
       authorizeBrowserContext: async (scenario, context) => {
         const key = requireCredentials(scenario).primary;
-        await context.route("**/__contracts/api/**", async (route) => {
-          try {
-            const request = route.request();
-            const rawBody = request.postData();
-            const body: unknown = rawBody ? JSON.parse(rawBody) : {};
-            if (!isObject(body)) throw new Error("Invalid contracts request.");
-            const sourceUrl = new URL(request.url());
-            const targetUrl = `${apiBaseUrl}${sourceUrl.pathname.replace(
-              /^\/__contracts/u,
-              "",
-            )}${sourceUrl.search}`;
-            const response = await fetcher(targetUrl, {
-              method: request.method(),
-              headers: {
-                authorization: `Bearer ${key}`,
-                "content-type": "application/json",
-              },
-              body: JSON.stringify({
-                ...body,
-                workspaceSlug: scenario.workspaceSlug,
-              }),
-            });
-            await route.fulfill({
-              status: response.status,
-              contentType:
-                response.headers.get("content-type") ?? "application/json",
-              body: Buffer.from(await response.arrayBuffer()),
-            });
-          } catch {
-            await route.fulfill({
-              status: 502,
-              contentType: "application/json",
-              body: JSON.stringify({
-                ok: false,
-                error: { message: "Contract request forwarding failed." },
-              }),
-            });
-          }
-        });
+        await context.route("**/__contracts/api/**", (route) =>
+          proxyContractsRequest({
+            requestRoute: route,
+            apiBaseUrl,
+            apiKey: key,
+            workspaceSlug: scenario.workspaceSlug,
+          }),
+        );
       },
       runCli: (scenario, args, actor = "primary") => {
         const scenarioCredentials = requireCredentials(scenario);
@@ -614,7 +620,7 @@ async function bootContractsRuntime(
         });
       },
     };
-    return runtime;
+    return Object.freeze(runtime);
   } catch (error) {
     throw new Error(redact(error));
   }
