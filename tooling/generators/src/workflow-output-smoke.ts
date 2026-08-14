@@ -39,6 +39,7 @@ const ignoredPathSegments = new Set([
 
 const sharedNodeModulePaths = [
   "node_modules",
+  "apps/web/node_modules",
   "packages/convex/node_modules",
   "tooling/generators/node_modules",
 ] as const;
