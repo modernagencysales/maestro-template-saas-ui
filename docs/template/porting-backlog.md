@@ -716,32 +716,32 @@ Convex component wiring (M).
 
 ## L. Frontend / app shell
 
-119. **TanStack Start + Router bootstrap** — HIGH — no.
-     `apps/web/src/{router.tsx,start.ts,routes/__root.tsx,routeTree.gen.ts}`.
-     SSR router, root document, request middleware, file-based route tree.
-     Template has no routing.
-120. **Convex + @convex-dev/react-query data layer** — HIGH — no.
+119. **TanStack Start + Router bootstrap** — HIGH — shipped.
+     `apps/web/src/{router.tsx,start.ts,routes/__root.tsx,routeTree.gen.ts}` and
+     the literal Starter `_app` route tree are the only current route authority.
+120. **Convex + @convex-dev/react-query data layer** — HIGH — shipped.
      `apps/web/src/router.tsx` (`ConvexQueryClient` + `QueryClient`),
-     `routes/__root.tsx` (`ConvexProviderWithAuth`). The client↔Convex wiring
-     injected into router context. Template instantiates no client.
-121. **WorkOS AuthKit auth flow (web)** — HIGH — no.
-     `apps/web/src/adapters/workos-*.ts`, `adapters/route-auth.ts`,
-     `providers/auth.tsx` (`AuthGate`), routes `sign-in|sign-up|callback`.
-     Server middleware, cookie session, protected-route loader, client auth
-     gate.
-122. **App shell composition (sidebar/topbar/search)** — HIGH — partial.
-     `apps/web/src/saas-ui/business-shell.tsx` now owns the starter business
-     shell. Remaining work is to deepen the shell with real command search,
-     route registry state, and authenticated workspace context.
-123. **Theme scope + dark mode** — HIGH — no. Replace the old evaluated Notion
-     palette idea with a Saas UI/Chakra color mode policy that is portal-safe
-     and verified against TanStack Start SSR.
-124. **Reusable layout/block library** — HIGH — partial.
-     `packages/ui/src/blocks/*` and Saas UI primitives are the approved
-     direction. Remaining work is to promote repeated business-shell patterns
-     into reusable blocks without reintroducing route-local UI systems.
-125. **Empty / loading / skeleton states** — MED — no.
-     `apps/web/src/components/blocks/{empty-state,skeleton-grid,skeleton-stack, surface-skeleton,progress-bar}.tsx`.
+     `routes/__root.tsx` (`ConvexProviderWithAuth`). The client↔Convex wiring is
+     injected into router context and projected into generated targets.
+121. **WorkOS AuthKit auth flow (web)** — HIGH — shipped.
+     `apps/web/src/lib/auth/`, `apps/web/src/start.ts`, and the `api/auth/*`
+     routes own the server session, callback, protected-route, and Convex token
+     seams behind the purchased Starter presentation.
+122. **App shell composition (sidebar/topbar/search)** — HIGH — shipped. The
+     pinned Starter files under `apps/web/src/features/common/` are the single
+     shell authority. Do not restore `business-shell.tsx` or a custom navigation
+     tree.
+123. **Theme scope + dark mode** — HIGH — shipped.
+     `apps/web/src/theme/preset.ts` and its pinned semantic-token closure retain
+     the Starter light/dark system.
+124. **Reusable layout/block library** — HIGH — shipped. The byte-preserved
+     Starter `@workspace/ui` package remains under `packages/ui`, and the
+     complete registry-derived Pro block closure lives under
+     `apps/web/src/components/`. Do not replace either upstream authority with
+     local wrappers or a second package.
+125. **Empty / loading / skeleton states** — MED — shipped through the pinned
+     Starter archetype and route-state files recorded in
+     `docs/template/saas-ui-starter-files.json`.
 126. **Route-level error boundary** — MED — no.
      `apps/web/src/features/maestro-workspace/workspace-view-boundary.tsx`.
      Class boundary with `getDerivedStateFromError` + accessible fallback.
@@ -758,20 +758,18 @@ Convex component wiring (M).
      `@blocknote/react` synced via `@convex-dev/prosemirror-sync/blocknote`.
      _(The full human+agent tracked-proposal surface built on this is Section N,
      items 139–175.)_
-130. **Saas UI design-system canon + boundary guards** — MED — no. Add
-     AST/source tests that forbid route-local one-off layout systems and require
-     Saas UI/shared primitives for business-app surfaces.
-131. **Design-system / component gallery screen** — MED — no. Add a live gallery
-     for the Saas UI/shared primitive set once enough reusable blocks exist to
-     justify it.
-132. **Saas UI settings surface** — MED — partial.
-     `apps/web/src/saas-ui/business-shell.tsx` includes a plain settings route.
-     Remaining work is to extract reusable settings sections and wire durable
-     settings mutations.
-133. **Navigation / sidebar route registry** — MED — partial (static).
-     `apps/web/src/navigation/*`, `components/shell/workspace-sidebar-icons.ts`.
-     Declarative nav model (ids/labels/icons/app-modes). Template nav is a
-     frozen 8-item array.
+130. **Saas UI design-system canon + boundary guards** — MED — shipped. The
+     pinned Starter/Pro receipts, ESLint rules, foundation check, artifact
+     safety check, and empty deviation ledger enforce one frontend authority.
+131. **Design-system / component gallery screen** — MED — shipped as the direct
+     `/$workspace/showcase` Pro surface; it imports installed blocks without a
+     second gallery abstraction.
+132. **Saas UI settings surface** — MED — shipped. The literal Starter settings
+     route tree and components remain authoritative; durable behavior enters
+     only through backend adapters.
+133. **Navigation / sidebar route registry** — MED — shipped.
+     `apps/web/src/features/common/components/app-sidebar.tsx` is the pinned
+     Starter navigation authority, extended only with direct Pro surface links.
 134. **Client + server env/config adapters** — MED — no.
      `apps/web/src/adapters/{env,server-env,react-resizable-panels.ssr, route-head}.ts`.
      Validated `VITE_*`/server env accessors + SSR shims.
