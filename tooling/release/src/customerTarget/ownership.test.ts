@@ -121,6 +121,7 @@ describe("customer ownership inventory", () => {
     ["product.contract.schema.json", "generated", "generate"],
     ["docs/template/generated/product-contract.md", "generated", "generate"],
     ["playwright.acceptance.config.ts", "generated", "generate"],
+    ["tooling/acceptance/checkout-state.mts", "generated", "generate"],
     ["tooling/acceptance/product-contract.mts", "generated", "generate"],
     ["tooling/acceptance/run-acceptance.mts", "generated", "generate"],
     ["tooling/acceptance/playwright-report.mts", "generated", "generate"],

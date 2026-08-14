@@ -212,6 +212,7 @@ describe("saas application blueprint", () => {
       "product.contract.schema.json",
       "docs/template/generated/product-contract.md",
       "playwright.acceptance.config.ts",
+      "tooling/acceptance/checkout-state.mts",
       "tooling/acceptance/product-contract.mts",
       "tooling/acceptance/run-acceptance.mts",
     ])
@@ -1867,6 +1868,7 @@ describe("saas application blueprint", () => {
       "product.contract.schema.json",
       "docs/template/generated/product-contract.md",
       "playwright.acceptance.config.ts",
+      "tooling/acceptance/checkout-state.mts",
       "tooling/acceptance/product-contract.mts",
       "tooling/acceptance/run-acceptance.mts",
       "tooling/acceptance/playwright-report.mts",
