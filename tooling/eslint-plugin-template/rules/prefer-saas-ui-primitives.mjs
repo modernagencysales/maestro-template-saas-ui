@@ -1,3 +1,5 @@
+import { posix } from "node:path";
+
 const prohibitedElements = new Set([
   "button",
   "dialog",
@@ -28,7 +30,7 @@ const approvedComponentSources = new Set([
 
 const approvedComponentSource = (source) =>
   approvedComponentSources.has(source) ||
-  /^(?:\.\.\/)+saas-ui\/patterns(?:\/[^/]+)*$/u.test(source);
+  /^(?:\.\.\/)+saas-ui\/patterns(?:\/[^/]+)*$/u.test(posix.normalize(source));
 
 const normalizedPath = (filename) => filename.split("\\").join("/");
 

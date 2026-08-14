@@ -880,6 +880,11 @@ tester.run("prefer-saas-ui-primitives", preferSaasUiPrimitives, {
       errors: [{ messageId: "foundationalSubstitute" }],
     },
     {
+      filename: "apps/web/src/features/accounts/accounts-view.tsx",
+      code: "import { Button } from '../../saas-ui/patterns/../../legacy-button'; export const Example = () => <Button />;",
+      errors: [{ messageId: "foundationalSubstitute" }],
+    },
+    {
       filename: "packages/ui/src/primitives.tsx",
       code: "export const Example = () => <button>Save changes</button>;",
       errors: [{ messageId: "preferPrimitive" }],
