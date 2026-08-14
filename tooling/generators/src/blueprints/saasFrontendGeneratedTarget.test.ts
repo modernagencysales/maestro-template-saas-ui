@@ -84,6 +84,7 @@ describe("SaaS UI generated target artifact boundary", () => {
     expect(sources.get("apps/web/src/provider.tsx")).toContain(
       "<AuthProvider>",
     );
+    expect(sources.get("apps/web/src/routes/_app.tsx")).toContain("ssr: false");
     for (const path of [
       "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "apps/web/src/features/settings/common/settings-sidebar.tsx",

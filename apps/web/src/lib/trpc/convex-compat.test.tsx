@@ -65,4 +65,12 @@ describe("Convex starter query compatibility", () => {
     expect(neutralMutationValue("workspaceMembers.removeMember")).toBeNull();
     expect(neutralMutationValue("workspaceMembers.updateRoles")).toBeNull();
   });
+
+  it("returns the Starter inbox collection shape when notifications are neutral", () => {
+    const compatibility = createCompatibilityApi();
+
+    expect(compatibility.notifications.inbox.useQuery().data).toEqual({
+      notifications: [],
+    });
+  });
 });

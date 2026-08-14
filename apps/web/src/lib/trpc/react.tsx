@@ -154,7 +154,11 @@ export const assertRealAuthority = (path: string) => {
 const isNeutral = (path: string) =>
   (neutralPaths as readonly string[]).includes(path);
 
-const neutralData = (path: string) => (path === "billing.account" ? null : []);
+const neutralData = (path: string) => {
+  if (path === "billing.account") return null;
+  if (path === "notifications.inbox") return { notifications: [] };
+  return [];
+};
 export const neutralMutationValue = (path: string) =>
   isNeutral(path) ? null : neutral(path);
 
