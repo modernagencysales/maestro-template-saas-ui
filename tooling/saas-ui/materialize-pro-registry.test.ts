@@ -122,6 +122,28 @@ describe("complete Saas UI Pro registry materialization", () => {
       ).files.length,
     );
     expect(comparison.differences).toEqual([]);
+
+    const receiptPath = join(root, "docs/template/saas-ui-registry-files.json");
+    const originalReceipt = await readFile(receiptPath, "utf8");
+    const receipt = JSON.parse(originalReceipt) as {
+      installed: string[];
+    };
+    receipt.installed = receipt.installed.slice(1);
+    await writeFile(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+    try {
+      await expect(
+        compareProRegistryProjection({
+          proRoot,
+          targetRoot: join(root, "apps/web"),
+        }),
+      ).resolves.toMatchObject({
+        differences: expect.arrayContaining([
+          "registry receipt installed registry ids: expected",
+        ]),
+      });
+    } finally {
+      await writeFile(receiptPath, originalReceipt);
+    }
   }, 30_000);
 
   it("records catalog source paths and hashes for every projected destination", async () => {

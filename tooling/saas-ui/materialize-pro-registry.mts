@@ -32,6 +32,7 @@ type FileRecord = Readonly<{
 type RegistryReceipt = Readonly<{
   schemaVersion: 1;
   sourceCommit: string;
+  installed: readonly string[];
   files: readonly Readonly<{
     source: string;
     destination: string;
@@ -258,14 +259,35 @@ export async function discoverInstallableItems(
       },
     ],
   });
-  const unique = new Map<string, { name: string; sourceConfig: string }>();
-  for (const item of items) {
-    if (item.type === "registry:block" && !item.configPath) continue;
+  const discovered = items.flatMap((item) => {
+    if (item.type === "registry:block" && !item.configPath) return [];
     const sourceConfig =
       item.configPath ?? join(item.sourceDirectory, `${item.name}.ts`);
-    unique.set(item.name, { name: item.name, sourceConfig });
-  }
-  return [...unique.values()].sort((left, right) =>
+    return [{ name: item.name, sourceConfig }];
+  });
+  const unique = discovered.filter(
+    (item, index) =>
+      discovered.findIndex(
+        (candidate) =>
+          candidate.name === item.name &&
+          candidate.sourceConfig === item.sourceConfig,
+      ) === index,
+  );
+  const duplicates = [
+    ...new Set(
+      unique
+        .filter(
+          ({ name }, index) =>
+            unique.findIndex((item) => item.name === name) !== index,
+        )
+        .map(({ name }) => name),
+    ),
+  ].sort((left, right) => left.localeCompare(right, "en"));
+  if (duplicates.length > 0)
+    throw new Error(
+      duplicates.map((name) => `duplicate registry root: ${name}`).join("\n"),
+    );
+  return unique.sort((left, right) =>
     left.name.localeCompare(right.name, "en"),
   );
 }
@@ -511,12 +533,14 @@ function registryReceipt(
   projectRoot: string | undefined,
   proRoot: string,
   targetRoot: string,
+  installed: readonly string[],
   records: readonly FileRecord[],
   adaptedFiles: ReadonlyMap<string, { sha256: string }>,
 ): RegistryReceipt {
   return {
     schemaVersion: 1,
     sourceCommit: proSourceCommit,
+    installed,
     files: records.map(({ path, source, sourceSha256, sha256 }) => ({
       source: source.startsWith("registry:")
         ? source
@@ -534,6 +558,11 @@ function registryReceipt(
 function validateRegistryReceipt(receipt: RegistryReceipt): void {
   if (receipt.schemaVersion !== 1 || receipt.sourceCommit !== proSourceCommit)
     throw new Error("Generated registry receipt has invalid authority");
+  if (
+    receipt.installed.length === 0 ||
+    new Set(receipt.installed).size !== receipt.installed.length
+  )
+    throw new Error("Generated registry receipt has invalid installed ids");
   const destinations = receipt.files.map(({ destination }) => destination);
   if (
     destinations.length === 0 ||
@@ -791,6 +820,7 @@ export async function materializeProRegistry({
     projectRoot,
     resolvedProRoot,
     resolvedTargetRoot,
+    installed,
     written.records,
     adaptedFiles,
   );
@@ -883,6 +913,12 @@ export async function compareProRegistryProjection({
         "utf8",
       ),
     ) as RegistryReceipt;
+    difference(
+      differences,
+      "registry receipt installed registry ids",
+      receipt.installed,
+      expected.installed,
+    );
     difference(
       differences,
       "registry receipt Pro source commit",

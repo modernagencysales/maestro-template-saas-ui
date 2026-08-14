@@ -132,4 +132,119 @@ describe("Saas UI foundation authorities", () => {
       rmSync(checkout, { recursive: true, force: true });
     }
   });
+
+  it("rejects a registry receipt catalog that omits an installed root", () => {
+    const checkout = mkdtempSync(join(tmpdir(), "saas-ui-foundation-"));
+
+    try {
+      mkdirSync(join(checkout, "docs/template"), { recursive: true });
+      mkdirSync(join(checkout, "apps/web/src"), { recursive: true });
+      for (const path of [
+        "docs/template/saas-ui-upstream.json",
+        "docs/template/saas-ui-deviations.json",
+        "docs/template/saas-ui-acceptance.json",
+        "docs/template/saas-ui-registry-files.json",
+        "apps/web/components.json",
+      ]) {
+        mkdirSync(join(checkout, path, ".."), { recursive: true });
+        copyFileSync(join(root, path), join(checkout, path));
+      }
+      symlinkSync(
+        join(root, "apps/web/src/components"),
+        join(checkout, "apps/web/src/components"),
+      );
+      const manifest = readSaasUiManifest(root);
+      const receiptPath = join(
+        checkout,
+        "docs/template/saas-ui-registry-files.json",
+      );
+      const receipt = JSON.parse(readFileSync(receiptPath, "utf8")) as {
+        installed: string[];
+      };
+      receipt.installed = [...(manifest.registry.installed ?? [])].slice(1);
+      writeFileSync(receiptPath, `${JSON.stringify(receipt, null, 2)}\n`);
+
+      expect(checkSaasUiFoundation(checkout)).toContain(
+        "registry receipt installed ids do not match its file roots",
+      );
+    } finally {
+      rmSync(checkout, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects an unpinned manifest registry source commit", () => {
+    const checkout = mkdtempSync(join(tmpdir(), "saas-ui-foundation-"));
+
+    try {
+      mkdirSync(join(checkout, "docs/template"), { recursive: true });
+      mkdirSync(join(checkout, "apps/web/src"), { recursive: true });
+      for (const path of [
+        "docs/template/saas-ui-upstream.json",
+        "docs/template/saas-ui-deviations.json",
+        "docs/template/saas-ui-acceptance.json",
+        "docs/template/saas-ui-registry-files.json",
+        "apps/web/components.json",
+      ]) {
+        mkdirSync(join(checkout, path, ".."), { recursive: true });
+        copyFileSync(join(root, path), join(checkout, path));
+      }
+      symlinkSync(
+        join(root, "apps/web/src/components"),
+        join(checkout, "apps/web/src/components"),
+      );
+      const manifestPath = join(
+        checkout,
+        "docs/template/saas-ui-upstream.json",
+      );
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+        registry: { sourceCommit?: string };
+      };
+      manifest.registry.sourceCommit = "unpinned-pro-commit";
+      writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+      expect(checkSaasUiFoundation(checkout)).toContain(
+        "manifest registry source commit is not the approved Pro pin",
+      );
+    } finally {
+      rmSync(checkout, { recursive: true, force: true });
+    }
+  });
+
+  it("requires a manifest registry source commit", () => {
+    const checkout = mkdtempSync(join(tmpdir(), "saas-ui-foundation-"));
+
+    try {
+      mkdirSync(join(checkout, "docs/template"), { recursive: true });
+      mkdirSync(join(checkout, "apps/web/src"), { recursive: true });
+      for (const path of [
+        "docs/template/saas-ui-upstream.json",
+        "docs/template/saas-ui-deviations.json",
+        "docs/template/saas-ui-acceptance.json",
+        "docs/template/saas-ui-registry-files.json",
+        "apps/web/components.json",
+      ]) {
+        mkdirSync(join(checkout, path, ".."), { recursive: true });
+        copyFileSync(join(root, path), join(checkout, path));
+      }
+      symlinkSync(
+        join(root, "apps/web/src/components"),
+        join(checkout, "apps/web/src/components"),
+      );
+      const manifestPath = join(
+        checkout,
+        "docs/template/saas-ui-upstream.json",
+      );
+      const manifest = JSON.parse(readFileSync(manifestPath, "utf8")) as {
+        registry: { sourceCommit?: string };
+      };
+      delete manifest.registry.sourceCommit;
+      writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 2)}\n`);
+
+      expect(checkSaasUiFoundation(checkout)).toContain(
+        "registry.sourceCommit must be a non-empty string",
+      );
+    } finally {
+      rmSync(checkout, { recursive: true, force: true });
+    }
+  });
 });

@@ -53,6 +53,7 @@ const createFixture = (
         catalog: "apps/web/components.json",
         config: "apps/web/components.json",
         installRoot: "apps/web/src/components",
+        sourceCommit: pins.pro,
       },
       compositions: [
         {
@@ -87,8 +88,10 @@ const createFixture = (
     JSON.stringify({
       schemaVersion: 1,
       sourceCommit: pins.pro,
+      installed: [],
       files: [
         {
+          source: "apps/web/src/fixture.tsx",
           destination,
           sha256: hash("paid source\n"),
           adapted: true,

@@ -40,7 +40,7 @@ export type SaasUiManifest = Readonly<{
     config: string;
     installRoot: string;
     sourceRoot?: string;
-    sourceCommit?: string;
+    sourceCommit: string;
     installed?: readonly string[];
   }>;
   compositions: readonly Readonly<{
@@ -77,6 +77,7 @@ export type SaasUiAcceptanceMap = Readonly<{
 export type SaasUiRegistryFiles = Readonly<{
   schemaVersion: 1;
   sourceCommit: string;
+  installed: readonly string[];
   files: readonly Readonly<{
     source: string;
     destination: string;
@@ -180,9 +181,7 @@ function readManifestValue(value: unknown): SaasUiManifest {
       ...(typeof registry.sourceRoot === "string"
         ? { sourceRoot: registry.sourceRoot }
         : {}),
-      ...(typeof registry.sourceCommit === "string"
-        ? { sourceCommit: registry.sourceCommit }
-        : {}),
+      sourceCommit: string(registry.sourceCommit, "registry.sourceCommit"),
       ...(Array.isArray(registry.installed)
         ? { installed: stringArray(registry.installed, "registry.installed") }
         : {}),
@@ -250,6 +249,7 @@ function readRegistryFilesValue(value: unknown): SaasUiRegistryFiles {
   if (root.schemaVersion !== 1)
     throw new Error("registry files schemaVersion must be 1");
   const sourceCommit = string(root.sourceCommit, "registry files.sourceCommit");
+  const installed = stringArray(root.installed, "registry files.installed");
   if (!Array.isArray(root.files))
     throw new Error("registry files.files must be an array");
   const files = root.files.map((fileValue, index) => {
@@ -261,7 +261,7 @@ function readRegistryFilesValue(value: unknown): SaasUiRegistryFiles {
       throw new Error(`registry files.files[${index}] sha256 is invalid`);
     return { source, destination, sha256 };
   });
-  return { schemaVersion: 1, sourceCommit, files };
+  return { schemaVersion: 1, sourceCommit, installed, files };
 }
 
 export function readSaasUiAcceptance(root: string): SaasUiAcceptanceMap {
@@ -376,18 +376,20 @@ function validateRegistryIds(
   const configured = [...components.installed].sort((left, right) =>
     left.localeCompare(right, "en"),
   );
-  if (
-    receiptIds.length !== 28 ||
-    receiptIds.filter((id) => id !== "use-open-state").length !== 27
-  )
-    errors.push(
-      "registry receipt must contain all 27 Pro blocks and the shared hook",
-    );
-  if (JSON.stringify(installed) !== JSON.stringify(receiptIds))
+  const catalog = [...registryFiles.installed].sort((left, right) =>
+    left.localeCompare(right, "en"),
+  );
+  if (catalog.length === 0)
+    errors.push("registry receipt installed ids must not be empty");
+  if (new Set(catalog).size !== catalog.length)
+    errors.push("registry receipt installed ids contain duplicates");
+  if (JSON.stringify(catalog) !== JSON.stringify(receiptIds))
+    errors.push("registry receipt installed ids do not match its file roots");
+  if (JSON.stringify(installed) !== JSON.stringify(catalog))
     errors.push(
       "upstream manifest installed registry ids do not match the pinned receipt",
     );
-  if (JSON.stringify(configured) !== JSON.stringify(receiptIds))
+  if (JSON.stringify(configured) !== JSON.stringify(catalog))
     errors.push(
       "components.json installed registry ids do not match the pinned receipt",
     );
@@ -401,6 +403,12 @@ function validateRegistryFiles(
   root: string,
 ): readonly string[] {
   const errors: string[] = [];
+  if (manifest.registry.sourceCommit !== manifest.pins.pro)
+    errors.push("manifest registry source commit is not the approved Pro pin");
+  if (manifest.registry.sourceCommit !== registryFiles.sourceCommit)
+    errors.push(
+      "manifest registry source commit does not match registry receipt",
+    );
   if (registryFiles.sourceCommit !== manifest.pins.pro)
     errors.push("registry files source commit is not the approved Pro pin");
   const destinations = registryFiles.files.map(
