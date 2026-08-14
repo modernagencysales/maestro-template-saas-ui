@@ -2566,6 +2566,56 @@ describe("template app factory generators", () => {
     }
   });
 
+  it("materializes a generated feature that lints and typechecks", () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "maestro-feature-smoke-"));
+    const cwd = join(tempRoot, "repo");
+    const name = "generatedFeatureSmoke";
+
+    try {
+      copyRepoForSmoke(repoRoot, cwd);
+      runSmokeCommand(cwd, {
+        label: "Generate feature output",
+        command: "pnpm",
+        args: [
+          "--dir",
+          cwd,
+          "template:add-feature",
+          "--",
+          "--name",
+          name,
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--description",
+          "Generated feature smoke check.",
+          "--write",
+        ],
+      });
+      runSmokeCommand(cwd, {
+        label: "Lint generated feature route, screen, feature, and adapter",
+        command: "pnpm",
+        args: [
+          "--dir",
+          cwd,
+          "exec",
+          "eslint",
+          `apps/web/src/routes/_workspace.generated-feature-smoke.tsx`,
+          `apps/web/src/screens/generated-feature-smoke-screen.tsx`,
+          `apps/web/src/features/${name}/generated-feature-smoke-feature.tsx`,
+          `apps/web/src/features/${name}/adapter.ts`,
+        ],
+      });
+      runSmokeCommand(cwd, {
+        label: "Typecheck generated feature web output",
+        command: "pnpm",
+        args: ["--dir", join(cwd, "apps/web"), "typecheck"],
+      });
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it("refuses to overwrite an existing golden feature path", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-clash-"));
     const routePath = join(
