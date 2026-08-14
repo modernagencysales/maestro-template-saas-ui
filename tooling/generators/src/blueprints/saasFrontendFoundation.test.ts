@@ -192,6 +192,17 @@ describe("mandatory SaaS UI frontend foundation", () => {
       for (const fragment of forbidden)
         expect(path.includes(fragment), path).toBe(false);
     }
+    const recordsRoute = buildSaasApplicationTargetPlan({
+      name: "route authority",
+      patterns: ["records-example"],
+    }).entries.find(
+      ({ path }) =>
+        path === "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
+    );
+    expect(recordsRoute?.content).toContain(
+      'createFileRoute("/_app/$workspace/_dashboard/records")',
+    );
+    expect(recordsRoute?.content).not.toContain("_workspace");
   });
 
   it("receipt-binds the literal Starter route authority", () => {

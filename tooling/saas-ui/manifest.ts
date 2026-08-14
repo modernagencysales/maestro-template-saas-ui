@@ -82,6 +82,9 @@ export const starterCompositions = {
     ].map((path) => source(`routes/${path}`)),
   ],
   archetypes: [
+    source("components/default-error-page.tsx"),
+    source("components/default-loader.tsx"),
+    source("components/link-button.tsx"),
     publicSource("img/onboarding/light.svg"),
     publicSource("img/onboarding/dark.svg"),
     ...[

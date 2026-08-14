@@ -2415,7 +2415,7 @@ describe("template app factory generators", () => {
     )?.content;
     const generated = result.files.map(({ content }) => content).join("\n");
     const route = result.files.find(({ path }) =>
-      path.endsWith("/_workspace.account-signals.tsx"),
+      path.endsWith("/_app/$workspace/_dashboard/account-signals.tsx"),
     )?.content;
     const provenance = result.files.find(
       ({ path }) =>
@@ -2433,7 +2433,7 @@ describe("template app factory generators", () => {
         "apps/web/src/features/accountSignals/adapter.test.ts",
         "apps/web/src/features/accountSignals/account-signals-feature.tsx",
         "apps/web/src/screens/account-signals-screen.tsx",
-        "apps/web/src/routes/_workspace.account-signals.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
         "docs/template/generated/features/accountSignals.md",
       ]),
     );
@@ -2476,12 +2476,19 @@ describe("template app factory generators", () => {
     expect(generated).not.toContain("Replace fake fixtures");
     expect(route).toContain("AccountSignalsScreen");
     expect(route).not.toContain("Feature");
+    expect(route).toContain(
+      'createFileRoute("/_app/$workspace/_dashboard/account-signals")',
+    );
+    expect(route).toContain(
+      'from "../../../../screens/account-signals-screen"',
+    );
+    expect(route).not.toContain("_workspace");
     expect(JSON.parse(provenance?.content ?? "{}")).toMatchObject({
       generator: "add-feature",
       ownership: { system: "knowledge-brain", disposition: "extend" },
       generatedPaths: expect.arrayContaining([
         "packages/convex/confect/capabilities/accountSignals.spec.ts",
-        "apps/web/src/routes/_workspace.account-signals.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
       ]),
     });
     const syntaxDiagnostics = result.files
@@ -2524,9 +2531,17 @@ describe("template app factory generators", () => {
       expect(result.exitCode).toBe(0);
       expect(
         existsSync(
-          join(cwd, "apps/web/src/routes/_workspace.account-signals.tsx"),
+          join(
+            cwd,
+            "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
+          ),
         ),
       ).toBe(true);
+      expect(
+        existsSync(
+          join(cwd, "apps/web/src/routes/_workspace.account-signals.tsx"),
+        ),
+      ).toBe(false);
       expect(
         existsSync(
           join(
@@ -2544,7 +2559,7 @@ describe("template app factory generators", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-clash-"));
     const routePath = join(
       cwd,
-      "apps/web/src/routes/_workspace.account-signals.tsx",
+      "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
     );
 
     try {
