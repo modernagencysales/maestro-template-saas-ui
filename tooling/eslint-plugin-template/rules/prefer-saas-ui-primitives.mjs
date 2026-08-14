@@ -19,14 +19,16 @@ const foundationalComponents = new Set([
   "Table",
 ]);
 
+const approvedComponentSources = new Set([
+  "@chakra-ui/react",
+  "@saas-ui/react",
+  "@saas-ui-pro/react",
+  "@saas-ui-pro/kanban",
+]);
+
 const approvedComponentSource = (source) =>
-  source === "@chakra-ui/react" ||
-  source.startsWith("@chakra-ui/react/") ||
-  source === "@saas-ui/react" ||
-  source.startsWith("@saas-ui/react/") ||
-  source === "@saas-ui-pro/react" ||
-  source.startsWith("@saas-ui-pro/") ||
-  source.includes("saas-ui/patterns");
+  approvedComponentSources.has(source) ||
+  /^(?:\.\.\/)+saas-ui\/patterns(?:\/[^/]+)*$/u.test(source);
 
 const normalizedPath = (filename) => filename.split("\\").join("/");
 
@@ -43,7 +45,8 @@ const isProductUi = (filename) => {
   return (
     path.includes("apps/web/src/features/") ||
     path.includes("apps/web/src/screens/") ||
-    path.includes("apps/web/src/routes/_workspace")
+    path.includes("apps/web/src/routes/_workspace") ||
+    path.includes("packages/ui/src/")
   );
 };
 
@@ -102,7 +105,16 @@ export default {
         const source = String(node.source.value);
         if (approvedComponentSource(source)) return;
         for (const specifier of node.specifiers) {
-          reportFoundationalSubstitute(specifier.local, specifier.local.name);
+          const names =
+            specifier.type === "ImportSpecifier"
+              ? [specifier.imported.name, specifier.local.name]
+              : [specifier.local.name];
+          const foundationalName = names.find((name) =>
+            foundationalComponents.has(name),
+          );
+          if (foundationalName !== undefined) {
+            reportFoundationalSubstitute(specifier.local, foundationalName);
+          }
         }
       },
       FunctionDeclaration(node) {

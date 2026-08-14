@@ -116,6 +116,7 @@ export default [
       "apps/web/src/saas-ui/**/*.{ts,tsx}",
       "apps/web/src/screens/**/*.{ts,tsx}",
       "apps/web/src/routes/_workspace*.{ts,tsx}",
+      "packages/ui/src/**/*.{ts,tsx}",
     ],
     ignores: ["**/*.test.{ts,tsx}"],
     plugins: { template: templatePlugin },
