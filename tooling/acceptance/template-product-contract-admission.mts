@@ -114,6 +114,16 @@ const prepareMaterializedCustomer = (targetRoot: string): void => {
     ["--dir", "packages/convex", "confect:codegen"],
     "Generated customer codegen",
   );
+  runPreparedCustomerCommand(
+    targetRoot,
+    ["--dir", "packages/convex", "exec", "convex", "codegen"],
+    "Generated customer Convex codegen",
+  );
+  runPreparedCustomerCommand(
+    targetRoot,
+    ["--dir", "apps/web", "exec", "vite", "build"],
+    "Generated customer route codegen",
+  );
   execFileSync("git", ["add", "-A"], { cwd: targetRoot });
   if (
     spawnSync("git", ["diff", "--cached", "--quiet"], {
