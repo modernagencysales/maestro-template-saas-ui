@@ -1,16 +1,25 @@
 import { convexQuery, useConvexQuery } from "@convex-dev/react-query";
 import { ConvexReactClient } from "convex/react";
 import {
-  useQuery,
   useMutation as useTanstackMutation,
+  useSuspenseQuery as useTanstackSuspenseQuery,
 } from "@tanstack/react-query";
-import { templateConfectRefs } from "@maestro-template/convex/refs";
+import {
+  getFunctionReference,
+  templateConfectRefs,
+} from "@maestro-template/convex/refs";
 import type React from "react";
 
 export const realRefs = {
-  "auth.me": templateConfectRefs.public.auth.workspaces.me,
-  "workspaces.bySlug": templateConfectRefs.public.auth.workspaces.bySlug,
-  "workspaceMembers.list": templateConfectRefs.public.access.members.list,
+  "auth.me": getFunctionReference(
+    templateConfectRefs.public.auth.workspaces.me,
+  ),
+  "workspaces.bySlug": getFunctionReference(
+    templateConfectRefs.public.auth.workspaces.bySlug,
+  ),
+  "workspaceMembers.list": getFunctionReference(
+    templateConfectRefs.public.access.members.list,
+  ),
 };
 
 export type CurrentUser = {
@@ -187,7 +196,10 @@ function procedure<TData = unknown>(
           { data: data as TData, isLoading: false, isPending: false },
         ];
       }
-      const result = useQuery(convexQuery(convexRef, input ?? {}));
+      const options = convexQuery(convexRef, input ?? {}) as Parameters<
+        typeof useTanstackSuspenseQuery
+      >[0];
+      const result = useTanstackSuspenseQuery(options);
       return [result.data as TData, result as QueryResult<TData>];
     },
     ensureData: async (input) => {

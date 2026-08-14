@@ -11,7 +11,7 @@
     },
     "./refs": {
       "types": "./src/refs.ts",
-      "default": "./dist/src/refs.js"
+      "default": "./src/refs.ts"
     }
   },
   "scripts": {

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { getFunctionName } from "convex/server";
 
 import {
   assertRealAuthority,
@@ -26,9 +27,13 @@ describe("Convex starter query compatibility", () => {
   });
 
   it("maps auth, workspace, and member paths to exact generated refs", () => {
-    expect(realRefs["auth.me"]).toBeDefined();
-    expect(realRefs["workspaces.bySlug"]).toBeDefined();
-    expect(realRefs["workspaceMembers.list"]).toBeDefined();
+    expect(getFunctionName(realRefs["auth.me"])).toBe("auth/workspaces:me");
+    expect(getFunctionName(realRefs["workspaces.bySlug"])).toBe(
+      "auth/workspaces:bySlug",
+    );
+    expect(getFunctionName(realRefs["workspaceMembers.list"])).toBe(
+      "access/members:list",
+    );
   });
 
   it("does not silently treat unknown real authorities as empty data", () => {

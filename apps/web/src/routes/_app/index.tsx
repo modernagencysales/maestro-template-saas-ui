@@ -2,7 +2,10 @@ import { createFileRoute, redirect } from "@tanstack/react-router";
 
 import { DefaultLoader } from "#components/default-loader";
 import { getLastUsedWorkspace } from "#lib/last-used-workspace";
-import { templateConfectRefs } from "@maestro-template/convex/refs";
+import {
+  getFunctionReference,
+  templateConfectRefs,
+} from "@maestro-template/convex/refs";
 
 export const Route = createFileRoute("/_app/")({
   beforeLoad: async ({ context }) => {
@@ -13,8 +16,9 @@ export const Route = createFileRoute("/_app/")({
     }
 
     await context.convexClient.mutation(
-      templateConfectRefs.public.access.provisioning
-        .ensureProvisioned as never,
+      getFunctionReference(
+        templateConfectRefs.public.access.provisioning.ensureProvisioned,
+      ) as never,
       {},
     );
 

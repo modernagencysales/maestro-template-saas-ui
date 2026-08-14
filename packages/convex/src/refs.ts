@@ -1,4 +1,4 @@
-import { GroupSpec, Refs, Spec } from "@confect/core";
+import { GroupSpec, Ref, Refs, Spec } from "@confect/core";
 
 import members from "../confect/access/members.spec";
 import provisioning from "../confect/access/provisioning.spec";
@@ -14,5 +14,6 @@ const frontendSpec = Spec.make()
   .addAt("auth", GroupSpec.makeAt("auth").addGroupAt("workspaces", workspaces));
 
 export const templateConfectRefs = Refs.make(frontendSpec);
+export const getFunctionReference = Ref.getFunctionReference;
 
 export type TemplateConfectRefs = typeof templateConfectRefs;
