@@ -1,5 +1,6 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
 import { QueryResult } from "@confect/react";
+import type { CreateToasterReturn } from "@chakra-ui/react/toast";
 import * as Result from "effect/Result";
 import {
   classifyConfectMutationResult,
@@ -137,7 +138,7 @@ describe("Confect React data-state adapter", () => {
     });
   });
 
-  it("maps mutation results to accessible toast announcements", () => {
+  it("maps mutation results to Chakra toast options", () => {
     const success = toastForTemplateMutation(
       normalizeMutationSuccess({ pageId: "page_1" }),
       {
@@ -167,17 +168,12 @@ describe("Confect React data-state adapter", () => {
     expect(success).toEqual({
       title: "Page saved",
       description: "Created page_1.",
-      tone: "success",
-      announcement: "Page saved",
+      type: "success",
     });
     expect(typedFailure).toEqual({
       title: "Page save failed",
       description: "Title is required",
-      tone: "danger",
-      announcement: {
-        message: "Page save failed. Title is required",
-        priority: "assertive",
-      },
+      type: "error",
     });
     expect(loading).toBeNull();
   });
@@ -185,14 +181,11 @@ describe("Confect React data-state adapter", () => {
   it("notifies through the shared toast provider API for mutation failures", () => {
     const emitted: unknown[] = [];
     const toast = {
-      announce: () => "unused",
-      announceAssertive: () => "unused",
-      dismiss: () => {},
-      notify: (input: unknown) => {
+      create: (input: unknown) => {
         emitted.push(input);
         return "toast_1";
       },
-    };
+    } as CreateToasterReturn;
 
     expect(
       notifyTemplateMutation({
@@ -208,11 +201,7 @@ describe("Confect React data-state adapter", () => {
       {
         title: "Save failed",
         description: "network down",
-        tone: "danger",
-        announcement: {
-          message: "Save failed. network down",
-          priority: "assertive",
-        },
+        type: "error",
       },
     ]);
   });
