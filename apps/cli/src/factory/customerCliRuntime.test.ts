@@ -49,7 +49,7 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "pnpm",
-    ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+    ["install", "--prefer-offline", "--frozen-lockfile", "--ignore-scripts"],
     { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 240_000 },
   );
   return taggedReleaseRoot;
