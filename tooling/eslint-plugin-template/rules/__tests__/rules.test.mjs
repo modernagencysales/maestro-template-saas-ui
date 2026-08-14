@@ -869,6 +869,21 @@ tester.run("prefer-saas-ui-primitives", preferSaasUiPrimitives, {
       code: "import { Button } from './button'; export const Example = () => <Button />;",
       errors: [{ messageId: "foundationalSubstitute" }],
     },
+    {
+      filename: "apps/web/src/features/accounts/accounts-view.tsx",
+      code: "import { Button as PrimaryButton } from './button'; export const Example = () => <PrimaryButton />;",
+      errors: [{ messageId: "foundationalSubstitute" }],
+    },
+    {
+      filename: "apps/web/src/features/accounts/accounts-view.tsx",
+      code: "import { Button } from '@untrusted/saas-ui/patterns'; export const Example = () => <Button />;",
+      errors: [{ messageId: "foundationalSubstitute" }],
+    },
+    {
+      filename: "packages/ui/src/primitives.tsx",
+      code: "export const Example = () => <button>Save changes</button>;",
+      errors: [{ messageId: "preferPrimitive" }],
+    },
   ],
 });
 
@@ -881,6 +896,7 @@ describe("Saas UI primitive lint coverage", () => {
 
     expect(config).toContain('"apps/web/src/features/**/*.{ts,tsx}"');
     expect(config).toContain('"apps/web/src/screens/**/*.{ts,tsx}"');
+    expect(config).toContain('"packages/ui/src/**/*.{ts,tsx}"');
   });
 });
 
