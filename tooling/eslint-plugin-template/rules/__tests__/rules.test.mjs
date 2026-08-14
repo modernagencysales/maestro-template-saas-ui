@@ -866,6 +866,11 @@ tester.run("saas-ui-shell-authority", shellAuthority, {
       code: "import { Page } from './page'; export const route = Page;",
       errors: [{ messageId: "shellOnly" }],
     },
+    {
+      filename: "tooling/generators/src/blueprints/customer/page.txt",
+      code: "import { Page } from './page'; export const route = Page;",
+      errors: [{ messageId: "shellOnly" }],
+    },
   ],
 });
 
@@ -899,6 +904,11 @@ tester.run("prefer-saas-ui-primitives", officialPrimitives, {
       filename: "apps/web/src/components/add-contact-drawer/custom-wrapper.tsx",
       code: "import { Button } from './button'; export const Custom = Button;",
       options: [{ receiptPath: REGISTRY_RECEIPT }],
+      errors: [{ messageId: "officialPrimitive" }],
+    },
+    {
+      filename: "tooling/generators/src/blueprints/customer/page.txt",
+      code: "import { Button } from './button'; export const Custom = Button;",
       errors: [{ messageId: "officialPrimitive" }],
     },
   ],
@@ -939,6 +949,12 @@ tester.run("saas-ui-semantic-colors", semanticColors, {
       filename: "apps/web/src/components/add-contact-drawer/custom-wrapper.tsx",
       code: "export function Custom() { return <Box color='#123456' />; }",
       options: [{ receiptPath: REGISTRY_RECEIPT }],
+      errors: [{ messageId: "semanticColor" }],
+    },
+    {
+      filename: "tooling/generators/src/blueprints/customer/page.txt",
+      languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
+      code: "export function Page() { return <Box color='#123456' />; }",
       errors: [{ messageId: "semanticColor" }],
     },
   ],

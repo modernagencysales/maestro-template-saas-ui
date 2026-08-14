@@ -35,7 +35,7 @@ function normalizedFilename(context) {
 function inGuardedScope(filename) {
   return (
     /(?:^|\/)(?:apps|packages)\/.*\.(?:ts|tsx)$/.test(filename) ||
-    /tooling\/generators\/.*\.(?:ts|tsx)$/.test(filename) ||
+    /tooling\/generators\/.*\.(?:ts|tsx|txt)$/.test(filename) ||
     /generated\/.*\.(?:ts|tsx)$/.test(filename)
   );
 }
