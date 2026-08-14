@@ -6,19 +6,16 @@ function FileUploadPattern({
   accept,
   files,
   onAccept,
-  onRemove,
 }: {
   readonly accept?: string;
   readonly files: readonly File[];
   readonly onAccept: (files: readonly File[]) => void;
-  readonly onRemove: (file: File) => void;
 }) {
   return (
     <Card.Root>
       <Card.Body>
         <FileUpload.Root
           accept={accept}
-          acceptedFiles={[...files]}
           maxFiles={20}
           onFileAccept={({ files: accepted }) => onAccept(accepted)}
         >
@@ -26,21 +23,7 @@ function FileUploadPattern({
             <Text>Drop files here or choose files</Text>
             <FileUpload.Trigger>Choose files</FileUpload.Trigger>
           </FileUpload.Dropzone>
-          <FileUpload.ItemGroup>
-            {files.map((file) => (
-              <FileUpload.Item
-                file={file}
-                key={`${file.name}-${file.lastModified}`}
-              >
-                <FileUpload.ItemName />
-                <FileUpload.ItemSizeText />
-                <FileUpload.ItemDeleteTrigger
-                  aria-label={`Remove ${file.name}`}
-                  onClick={() => onRemove(file)}
-                />
-              </FileUpload.Item>
-            ))}
-          </FileUpload.ItemGroup>
+          <FileUpload.List clearable files={[...files]} showSize />
         </FileUpload.Root>
       </Card.Body>
     </Card.Root>

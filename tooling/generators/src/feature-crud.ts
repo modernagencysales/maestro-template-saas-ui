@@ -228,7 +228,8 @@ export function ${pascalName}Feature() {
     },
     {
       path: `${featurePath}/${route}-view.tsx`,
-      content: `import { Button, Field, HStack, Input, NativeSelect, Stack, Text, Textarea } from "@saas-ui/react";
+      content: `import { NativeSelect } from "@chakra-ui/react";
+import { Button, Field, HStack, Input, Stack, Text, Textarea } from "@saas-ui/react";
 import { FormSection, PageStateView, RecordListDetail } from "../../saas-ui/patterns";
 import type { ${pascalName}, ${pascalName}Status } from "./contract";
 import type { ${pascalName}FeatureState } from "./model";
@@ -252,7 +253,7 @@ function ${pascalName}Form({ draft, onCancel, onDraftChange, onSave, title }: Pi
   return <FormSection description="${description}" onSubmit={onSave} title={title}>
     <Field.Root required><Field.Label>Title</Field.Label><Input aria-label="${pascalName} title" onChange={(event) => onDraftChange({ ...draft, title: event.currentTarget.value })} value={draft.title} /></Field.Root>
     <Field.Root><Field.Label>Detail</Field.Label><Textarea aria-label="${pascalName} detail" onChange={(event) => onDraftChange({ ...draft, detail: event.currentTarget.value })} value={draft.detail} /></Field.Root>
-    <Field.Root><Field.Label>Status</Field.Label><NativeSelect aria-label="${pascalName} status" onChange={(event) => onDraftChange({ ...draft, status: event.currentTarget.value as ${pascalName}Status })} value={draft.status}><option value="planned">Planned</option><option value="active">Active</option><option value="complete">Complete</option></NativeSelect></Field.Root>
+    <Field.Root><Field.Label>Status</Field.Label><NativeSelect.Root><NativeSelect.Field aria-label="${pascalName} status" onChange={(event) => onDraftChange({ ...draft, status: event.currentTarget.value as ${pascalName}Status })} value={draft.status}><option value="planned">Planned</option><option value="active">Active</option><option value="complete">Complete</option></NativeSelect.Field><NativeSelect.Indicator /></NativeSelect.Root></Field.Root>
     <Button onClick={onCancel} type="button" variant="ghost">Cancel</Button>
   </FormSection>;
 }
@@ -270,7 +271,7 @@ export function ${pascalName}View(props: ViewProps) {
   const detail = state.status === "detail" ? <PageStateView description={state.item.detail || "No detail provided."} state="read" title={state.item.title}>
     <Stack gap="3"><Text color="fg.muted">Status: {state.item.status}</Text><HStack><Button onClick={() => props.onEdit(state.item)} variant="outline">Edit ${name}</Button><Button onClick={props.onDelete} variant="outline">Delete ${name}</Button></HStack></Stack>
   </PageStateView> : <PageStateView description="Choose a record from the list." state="read" title="Select ${name}" />;
-  return <RecordListDetail detail={detail} onSelect={props.onSelect} records={recordsFor(items)} selectedId={state.status === "detail" ? state.item._id : undefined} />;
+  return <RecordListDetail detail={detail} onSelect={props.onSelect} records={recordsFor(items)} {...(state.status === "detail" ? { selectedId: state.item._id } : {})} />;
 }
 `,
     },

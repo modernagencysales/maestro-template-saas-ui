@@ -6,7 +6,7 @@ import {
   type ReactMutation,
 } from "@confect/react";
 import type { Ref } from "@confect/core";
-import type { CreateToasterReturn } from "@saas-ui/react/toaster";
+import type { CreateToasterReturn } from "@chakra-ui/react/toast";
 import * as Result from "effect/Result";
 
 export type TemplateReadyMode = "read" | "edit";

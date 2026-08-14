@@ -13,7 +13,7 @@ export function AppLayout({
   return (
     <Sidebar.Provider>
       <Sidebar.FlyoutTrigger />
-      <AppShell bg="sidebar.bg" minH="100dvh" sidebar={sidebar}>
+      <AppShell bg="sidebar.bg" minH="100dvh" {...(sidebar ? { sidebar } : {})}>
         <Sidebar.Inset minW="0">{children}</Sidebar.Inset>
       </AppShell>
       <Sidebar.Backdrop />

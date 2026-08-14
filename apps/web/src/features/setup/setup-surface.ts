@@ -1,6 +1,6 @@
 import type { ProviderAdapter } from "@maestro-template/template-core";
 import type { OnboardingStep } from "@maestro-template/ui";
-import type { CreateToasterReturn } from "@saas-ui/react/toaster";
+import type { CreateToasterReturn } from "@chakra-ui/react/toast";
 
 export type SetupDocumentSection = {
   readonly heading: string;

@@ -2487,7 +2487,13 @@ describe("template app factory generators", () => {
     expect(view).toContain("PageStateView");
     expect(view).toContain("RecordListDetail");
     expect(view).toContain("FormSection");
-    expect(view).toContain("NativeSelect");
+    expect(view).toContain('import { NativeSelect } from "@chakra-ui/react"');
+    expect(view).toContain("NativeSelect.Root");
+    expect(view).toContain("NativeSelect.Field");
+    expect(view).toContain("NativeSelect.Indicator");
+    expect(view).toContain(
+      '...(state.status === "detail" ? { selectedId: state.item._id } : {})',
+    );
     expect(view).toContain('aria-label="AccountSignals title"');
     expect(view).toContain("Delete accountSignals");
     expect(generated).not.toContain("Date.now");
@@ -2593,6 +2599,11 @@ describe("template app factory generators", () => {
         ],
       });
       runSmokeCommand(cwd, {
+        label: "Regenerate Confect refs for generated feature output",
+        command: "pnpm",
+        args: ["--dir", cwd, "confect:codegen"],
+      });
+      runSmokeCommand(cwd, {
         label: "Lint generated feature route, screen, feature, and adapter",
         command: "pnpm",
         args: [
@@ -2605,6 +2616,11 @@ describe("template app factory generators", () => {
           `apps/web/src/features/${name}/generated-feature-smoke-feature.tsx`,
           `apps/web/src/features/${name}/adapter.ts`,
         ],
+      });
+      runSmokeCommand(cwd, {
+        label: "Regenerate the generated feature route tree",
+        command: "pnpm",
+        args: ["--dir", join(cwd, "apps/web"), "build"],
       });
       runSmokeCommand(cwd, {
         label: "Typecheck generated feature web output",

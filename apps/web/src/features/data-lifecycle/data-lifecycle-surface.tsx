@@ -1,6 +1,7 @@
 import { useMemo, useState, type ReactNode } from "react";
 import type { ReactMutation } from "@confect/react";
 import type { Ref } from "@confect/core";
+import type { CreateToasterReturn } from "@chakra-ui/react/toast";
 import {
   Badge,
   Box,
@@ -14,7 +15,7 @@ import {
   Stack,
   Text,
 } from "@saas-ui/react";
-import { toast, type CreateToasterReturn } from "@saas-ui/react/toaster";
+import { toast } from "@saas-ui/react/toaster";
 import { AlertTriangle, FileDown, ShieldCheck, Trash2 } from "lucide-react";
 import {
   templateConfectRefs,
