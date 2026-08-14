@@ -163,7 +163,8 @@ describe("Saas UI pattern shelf", () => {
     const upload = readFileSync(`${patternsRoot}/file-upload.tsx`, "utf8");
     expect(upload).toContain("FileUpload.Root");
     expect(upload).toContain("FileUpload.Trigger");
+    expect(upload).toContain("FileUpload.List");
     expect(upload).toContain("onAccept");
-    expect(upload).toContain("onRemove");
+    expect(upload).toContain("clearable");
   });
 });

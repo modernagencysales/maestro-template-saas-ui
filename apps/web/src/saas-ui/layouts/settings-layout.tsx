@@ -25,7 +25,7 @@ export function SettingsLayout({
   ) : undefined;
 
   return (
-    <AppLayout sidebar={sidebar}>
+    <AppLayout {...(sidebar ? { sidebar } : {})}>
       <Box
         as="main"
         id="workspace-main"
