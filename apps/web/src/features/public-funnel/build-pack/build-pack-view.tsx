@@ -1,4 +1,5 @@
 import { Check, Download, FileText, RefreshCw } from "lucide-react";
+import { Button } from "@saas-ui/react";
 
 import type {
   BuildPackStage,
@@ -107,7 +108,7 @@ export function CompleteBuildPackView({
             <h1>Your idea is ready to hand off.</h1>
           </div>
           <div className="idea-pack-downloads">
-            <button
+            <Button
               onClick={() => {
                 capture({
                   name: "build_pack_exported",
@@ -120,8 +121,8 @@ export function CompleteBuildPackView({
             >
               <Download aria-hidden="true" size={17} />
               Download Build Pack
-            </button>
-            <button
+            </Button>
+            <Button
               onClick={() => {
                 capture({
                   name: "build_pack_exported",
@@ -134,7 +135,7 @@ export function CompleteBuildPackView({
             >
               <FileText aria-hidden="true" size={17} />
               Download print-ready HTML
-            </button>
+            </Button>
           </div>
         </header>
         {packSections.map(([label, key]) => {

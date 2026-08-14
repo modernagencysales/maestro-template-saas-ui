@@ -48,7 +48,7 @@ describe("Saas UI shell style contract", () => {
     const network = read("src/navigation/network-state.ts");
 
     expect(root).toContain("WebRouteUxBoundary");
-    expect(root).toContain("TemplateToastProvider");
+    expect(root).toContain("<Toaster />");
     expect(root).toContain("CookieConsentBoundary");
     expect(root).toContain("analyticsConsent={analyticsConsent}");
     expect(root).toContain("useRouterState");
@@ -68,8 +68,8 @@ describe("Saas UI shell style contract", () => {
   it("uses reusable route pending and error surfaces", () => {
     const router = read("src/router.tsx");
 
-    expect(router).toContain("TemplateRoutePending");
-    expect(router).toContain("TemplateRouteError");
+    expect(router).toContain("PageStateView");
+    expect(router).toContain('label: "Return to overview"');
     expect(router).toContain("Return to overview");
     expect(router).not.toContain("defaultPendingComponent: () => null");
     expect(router).not.toContain("<main>Not Found</main>");

@@ -1,5 +1,6 @@
 import type { ProviderAdapter } from "@maestro-template/template-core";
-import type { OnboardingStep, TemplateToastInput } from "@maestro-template/ui";
+import type { OnboardingStep } from "@maestro-template/ui";
+import type { CreateToasterReturn } from "@saas-ui/react/toaster";
 
 export type SetupDocumentSection = {
   readonly heading: string;
@@ -172,7 +173,9 @@ export const buildOnboardingChecklistSteps = ({
 export const toastForOnboardingContinue = ({
   mode,
   steps,
-}: OnboardingContinueToastOptions): TemplateToastInput => {
+}: OnboardingContinueToastOptions): Parameters<
+  CreateToasterReturn["create"]
+>[0] => {
   const blockedStep = steps.find((step) => step.status === "blocked");
 
   if (blockedStep) {
@@ -184,11 +187,7 @@ export const toastForOnboardingContinue = ({
     return {
       title: "Setup blocked",
       description,
-      tone: "danger",
-      announcement: {
-        message: `Setup blocked. ${description}`,
-        priority: "assertive",
-      },
+      type: "error",
     };
   }
 
@@ -197,9 +196,7 @@ export const toastForOnboardingContinue = ({
       title: "Fake-mode setup ready",
       description:
         "Continue building with fake providers. Live handoff still needs provider environment signoff.",
-      tone: "warning",
-      announcement:
-        "Fake-mode setup ready. Continue building with fake providers.",
+      type: "warning",
     };
   }
 
@@ -207,7 +204,6 @@ export const toastForOnboardingContinue = ({
     title: "Onboarding checklist ready",
     description:
       "Workspace setup, provider posture, Brain sources, and first workflow are ready for the next handoff step.",
-    tone: "success",
-    announcement: "Onboarding checklist ready.",
+    type: "success",
   };
 };

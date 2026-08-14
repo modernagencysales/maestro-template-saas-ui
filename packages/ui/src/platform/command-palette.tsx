@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { Button, Input } from "../primitives";
+import { Button, Input } from "@saas-ui/react";
 
 export type PlatformCommandKind = "route" | "action";
 
@@ -75,7 +75,7 @@ export function TemplateCommandPalette({
               key={item.id}
               onClick={item.onSelect}
               type="button"
-              variant="cell"
+              variant="ghost"
             >
               <span className="template-command-icon" aria-hidden="true">
                 {item.icon ?? item.label.slice(0, 1)}

@@ -33,7 +33,7 @@ describe("frontend platform primitives", () => {
     const source = read("src/platform/command-palette.tsx");
 
     expect(source).not.toContain("@notion-kit");
-    expect(source).toContain("../primitives");
+    expect(source).not.toContain("../primitives");
     expect(source).not.toContain("convex/");
     expect(source).not.toContain("@confect/");
   });
@@ -56,7 +56,7 @@ describe("frontend platform primitives", () => {
     const source = read("src/platform/notification-center.tsx");
 
     expect(source).not.toContain("@notion-kit");
-    expect(source).toContain("../primitives");
+    expect(source).not.toContain("../primitives");
     expect(source).toContain("No notifications yet");
     expect(source).toContain("fake");
     expect(source).toContain("test");
@@ -118,7 +118,7 @@ describe("frontend platform primitives", () => {
     const source = read("src/platform/onboarding.tsx");
 
     expect(source).not.toContain("@notion-kit");
-    expect(source).toContain("../primitives");
+    expect(source).not.toContain("../primitives");
     expect(source).toContain("TemplateOnboardingChecklist");
     expect(source).toContain("missingEnv");
     expect(source).toContain("onContinue");

@@ -14,12 +14,12 @@ import {
   Stack,
   Text,
 } from "@saas-ui/react";
+import { toast, type CreateToasterReturn } from "@saas-ui/react/toaster";
 import { AlertTriangle, FileDown, ShieldCheck, Trash2 } from "lucide-react";
 import {
   templateConfectRefs,
   type TemplateConfectRefs,
 } from "@maestro-template/convex/refs";
-import { useTemplateToast, type TemplateToastApi } from "@maestro-template/ui";
 import { describeTypedFailure } from "../../adapters/failure-message";
 import {
   classifyConfectMutationResult,
@@ -221,12 +221,11 @@ const makeFakeDsarRequest = ({
   deletePlan: [],
 });
 
-const notifyFakeDsarRequest = (toast: TemplateToastApi) => {
-  toast.notify({
+const notifyFakeDsarRequest = (toast: CreateToasterReturn) => {
+  toast.create({
     title: "DSAR dry-run planned",
     description: "The fake-safe request was added to the local audit view.",
-    tone: "success",
-    announcement: "DSAR dry-run planned.",
+    type: "success",
   });
 };
 
@@ -240,7 +239,7 @@ const submitLiveDsarRequest = ({
   readonly createDsarRequest: CreateDsarRequestMutation;
   readonly kind: DsarRequestKind;
   readonly requestId: string;
-  readonly toast: TemplateToastApi;
+  readonly toast: CreateToasterReturn;
   readonly workspaceId: WorkspaceId;
 }) => {
   void createDsarRequest({
@@ -300,7 +299,6 @@ const dataLifecycleQueryArgs = (
 
 function useDataLifecycleController(): DataLifecycleController {
   const workspace = useWorkspace();
-  const toast = useTemplateToast();
   const [fakeRequestRows, setFakeRequestRows] = useState<
     readonly DsarRequestData[]
   >([]);

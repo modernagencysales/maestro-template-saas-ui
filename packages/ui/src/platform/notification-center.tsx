@@ -1,5 +1,3 @@
-import { Badge } from "../primitives";
-
 export type NotificationDeliveryState = "fake" | "test" | "live-ready";
 export type NotificationCategory =
   "workspace" | "workflow" | "billing" | "security" | "system";
@@ -128,9 +126,9 @@ function NotificationRow({
           <a href={notification.actionHref}>Open</a>
         ) : null}
         {unread && onMarkRead ? (
-          <button onClick={() => onMarkRead(notification.id)} type="button">
+          <Button onClick={() => onMarkRead(notification.id)} type="button">
             Mark read
-          </button>
+          </Button>
         ) : null}
       </footer>
     </article>
@@ -162,3 +160,4 @@ function NotificationPreferences({
     </section>
   );
 }
+import { Badge, Button } from "@saas-ui/react";

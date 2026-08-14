@@ -1,4 +1,5 @@
 import { PublicFunnelShell } from "../public-shell";
+import { Button } from "@saas-ui/react";
 
 export function FakeHostedCheckoutView({
   amountCents,
@@ -20,9 +21,9 @@ export function FakeHostedCheckoutView({
           This local provider page simulates Dodo. Confirmation is delivered as
           a verified event before you return to the app.
         </p>
-        <button className="idea-primary-action" onClick={onPay} type="button">
+        <Button className="idea-primary-action" onClick={onPay} type="button">
           Pay ${(amountCents / 100).toFixed(2)}
-        </button>
+        </Button>
         <p className="idea-pack-id">
           Session {sessionId} · Report {reportId}
         </p>

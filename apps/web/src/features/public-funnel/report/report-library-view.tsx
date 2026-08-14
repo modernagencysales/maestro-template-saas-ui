@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { Button } from "@saas-ui/react";
 
 import { PublicFunnelShell } from "../public-shell";
 import { verdictLabels } from "./report-view";
@@ -80,33 +81,33 @@ export function ReportLibraryView({
                       >
                         Open share link
                       </a>
-                      <button
+                      <Button
                         onClick={() => onRevokeShare?.(evaluation.id)}
                         type="button"
                       >
                         Revoke share link
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <button
+                    <Button
                       onClick={() => onCreateShare?.(evaluation.id)}
                       type="button"
                     >
                       Create share link
-                    </button>
+                    </Button>
                   )}
                   {deleteCandidate === evaluation.id ? (
                     <div className="idea-delete-confirmation" role="alert">
                       <p>
                         Delete this report and its private answers permanently?
                       </p>
-                      <button
+                      <Button
                         onClick={() => setDeleteCandidate(null)}
                         type="button"
                       >
                         Keep report
-                      </button>
-                      <button
+                      </Button>
+                      <Button
                         onClick={() => {
                           onDelete?.(evaluation.id);
                           setDeleteCandidate(null);
@@ -114,15 +115,15 @@ export function ReportLibraryView({
                         type="button"
                       >
                         Yes, delete report
-                      </button>
+                      </Button>
                     </div>
                   ) : (
-                    <button
+                    <Button
                       onClick={() => setDeleteCandidate(evaluation.id)}
                       type="button"
                     >
                       Delete report
-                    </button>
+                    </Button>
                   )}
                 </article>
               </li>

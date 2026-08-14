@@ -1,7 +1,7 @@
 import { ConvexQueryClient } from "@convex-dev/react-query";
 import { QueryClient } from "@tanstack/react-query";
 import { createRouter } from "@tanstack/react-router";
-import { TemplateRouteError, TemplateRoutePending } from "@maestro-template/ui";
+import { PageStateView } from "./saas-ui/patterns";
 
 import "./react-global";
 import { getWebEnv } from "./env";
@@ -26,13 +26,29 @@ export function getRouter() {
     defaultPreload: "intent",
     defaultPreloadStaleTime: 0,
     scrollRestoration: true,
-    defaultPendingComponent: () => <TemplateRoutePending />,
-    defaultErrorComponent: () => <TemplateRouteError />,
+    defaultPendingComponent: () => (
+      <PageStateView
+        description="Preparing the workspace route."
+        state="loading"
+        title="Loading page"
+      />
+    ),
+    defaultErrorComponent: () => (
+      <PageStateView
+        description="The page could not be loaded. Try again or return to a safe workspace page."
+        state="failure"
+        title="Something went wrong"
+      />
+    ),
     defaultNotFoundComponent: () => (
-      <TemplateRouteError
-        title="Page not found"
+      <PageStateView
+        action={{
+          label: "Return to overview",
+          onClick: () => window.location.assign("/"),
+        }}
         description="This route is not part of the template workspace."
-        action={<a href="/">Return to overview</a>}
+        state="not-found"
+        title="Page not found"
       />
     ),
     context: {

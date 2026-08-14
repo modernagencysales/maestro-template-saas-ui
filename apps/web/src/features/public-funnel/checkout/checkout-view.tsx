@@ -1,5 +1,6 @@
 import { type FormEvent } from "react";
 import { ArrowRight, Check, Clock3, LockKeyhole } from "lucide-react";
+import { Button, Input } from "@saas-ui/react";
 
 import { PublicFunnelShell } from "../public-shell";
 
@@ -62,13 +63,13 @@ export function CheckoutView({
             arrives. You will not be charged again by checking.
           </p>
           <div className="idea-inline-actions">
-            <button
+            <Button
               className="idea-primary-action"
               onClick={onRefresh}
               type="button"
             >
               Check payment status again
-            </button>
+            </Button>
             <a href="/support">Contact support</a>
           </div>
         </main>
@@ -112,7 +113,7 @@ export function CheckoutView({
               <label htmlFor="checkout-email">
                 Email used to save this report
               </label>
-              <input
+              <Input
                 aria-describedby="checkout-email-hint"
                 autoComplete="email"
                 id="checkout-email"
@@ -133,7 +134,7 @@ export function CheckoutView({
               {state.message}
             </p>
           ) : null}
-          <button
+          <Button
             className="idea-primary-action"
             disabled={state._tag === "redirecting"}
             type="submit"
@@ -142,7 +143,7 @@ export function CheckoutView({
               ? "Opening secure checkout…"
               : "Continue to secure checkout"}
             <ArrowRight aria-hidden="true" size={18} />
-          </button>
+          </Button>
           <span>
             <LockKeyhole aria-hidden="true" size={14} />
             Secure payment by Dodo Payments

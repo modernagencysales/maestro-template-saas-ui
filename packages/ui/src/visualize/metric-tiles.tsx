@@ -1,4 +1,3 @@
-import { Badge } from "../primitives";
 import { VisualShell, type VisualState, type VisualTone } from "./shared";
 
 export type MetricTile = {
@@ -36,3 +35,4 @@ export function TemplateMetricTiles({
     </VisualShell>
   );
 }
+import { Badge } from "@saas-ui/react";

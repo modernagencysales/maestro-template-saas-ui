@@ -78,7 +78,7 @@ describe("visualization primitives", () => {
     ).toContain("New claim");
   });
 
-  it("keeps visualization components on local primitives and away from backend imports", () => {
+  it("keeps visualization components away from backend imports", () => {
     const files = [
       "calendar-board.tsx",
       "funnel-view.tsx",
@@ -90,7 +90,7 @@ describe("visualization primitives", () => {
 
     for (const source of files) {
       expect(source).not.toContain("@notion-kit");
-      expect(source).toContain("../primitives");
+      expect(source).not.toContain("../primitives");
       expect(source).not.toContain("convex/");
       expect(source).not.toContain("@confect/");
       expect(source).not.toContain("@tanstack/react-router");

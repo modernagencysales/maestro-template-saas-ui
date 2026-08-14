@@ -1,5 +1,4 @@
 import type { ReactNode } from "react";
-import { Badge } from "../primitives";
 
 export type VisualState = "loading" | "empty" | "ready" | "error";
 export type VisualTone = "neutral" | "good" | "warn" | "critical";
@@ -35,3 +34,4 @@ export function VisualShell({
     </section>
   );
 }
+import { Badge } from "@saas-ui/react";

@@ -1,5 +1,3 @@
-import { Badge, Button } from "../primitives";
-
 export type OnboardingStepStatus = "complete" | "ready" | "blocked";
 
 export type OnboardingStep = {
@@ -41,9 +39,10 @@ export function TemplateOnboardingChecklist({
           </article>
         ))}
       </div>
-      <Button onClick={onContinue} type="button" variant="cell">
+      <Button onClick={onContinue} type="button">
         Continue setup
       </Button>
     </section>
   );
 }
+import { Badge, Button } from "@saas-ui/react";

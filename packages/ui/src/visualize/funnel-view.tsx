@@ -1,4 +1,3 @@
-import { Badge } from "../primitives";
 import { VisualShell, type VisualState } from "./shared";
 
 export type FunnelStage = {
@@ -31,3 +30,4 @@ export function TemplateFunnelView({
     </VisualShell>
   );
 }
+import { Badge } from "@saas-ui/react";

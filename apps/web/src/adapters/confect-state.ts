@@ -6,10 +6,7 @@ import {
   type ReactMutation,
 } from "@confect/react";
 import type { Ref } from "@confect/core";
-import type {
-  TemplateToastApi,
-  TemplateToastInput,
-} from "@maestro-template/ui";
+import type { CreateToasterReturn } from "@saas-ui/react/toaster";
 import * as Result from "effect/Result";
 
 export type TemplateReadyMode = "read" | "edit";
@@ -116,6 +113,8 @@ export type TemplateMutationToastCopy<T, E = unknown> = {
   readonly failureTitle: string;
   readonly failureDescription?: (failure: TemplateFailureState<E>) => string;
 };
+
+type TemplateMutationToast = Parameters<CreateToasterReturn["create"]>[0];
 
 export function isTemplateFailureState<E>(
   state: TemplateDataState<unknown, E> | TemplateMutationState<unknown, E>,
@@ -266,12 +265,11 @@ export function classifyUnknownFailure(
 export function toastForTemplateMutation<T, E>(
   state: TemplateMutationState<T, E>,
   copy: TemplateMutationToastCopy<T, E>,
-): TemplateToastInput | null {
+): TemplateMutationToast | null {
   if (state.status === "ready" && state.mutation === "success") {
     return {
       title: copy.successTitle,
-      tone: "success",
-      announcement: copy.successTitle,
+      type: "success",
       ...(copy.successDescription
         ? { description: copy.successDescription(state.data) }
         : {}),
@@ -285,11 +283,7 @@ export function toastForTemplateMutation<T, E>(
     return {
       title: copy.failureTitle,
       description,
-      tone: "danger",
-      announcement: {
-        message: `${copy.failureTitle}. ${description}`,
-        priority: "assertive",
-      },
+      type: "error",
     };
   }
 
@@ -303,11 +297,11 @@ export function notifyTemplateMutation<T, E>({
 }: {
   readonly copy: TemplateMutationToastCopy<T, E>;
   readonly state: TemplateMutationState<T, E>;
-  readonly toast: TemplateToastApi;
+  readonly toast: CreateToasterReturn;
 }): string | null {
   const notification = toastForTemplateMutation(state, copy);
 
-  return notification ? toast.notify(notification) : null;
+  return notification ? toast.create(notification) : null;
 }
 
 function defaultMutationFailureMessage(

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
 import * as Result from "effect/Result";
 import { Mail, ShieldCheck } from "lucide-react";
+import { Button, Input } from "@saas-ui/react";
 
 import { useTemplateAction } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
@@ -120,7 +121,7 @@ function ReportOwnershipCardSurface({
         <form onSubmit={submit} noValidate>
           <label htmlFor="report-owner-email">Email address</label>
           <div className="idea-ownership-form-row">
-            <input
+            <Input
               autoComplete="email"
               id="report-owner-email"
               inputMode="email"
@@ -131,14 +132,14 @@ function ReportOwnershipCardSurface({
               type="email"
               value={email}
             />
-            <button
+            <Button
               className="idea-primary-action"
               disabled={status._tag === "sending" || !email.trim()}
               type="submit"
             >
               <Mail aria-hidden="true" size={17} />
               {status._tag === "sending" ? "Sending…" : "Email my save link"}
-            </button>
+            </Button>
           </div>
           {status._tag === "error" ? (
             <p className="idea-field-error" role="alert">

@@ -1,4 +1,3 @@
-import { Badge } from "../primitives";
 import { VisualShell, type VisualState } from "./shared";
 
 export type HealthCheck = {
@@ -35,3 +34,4 @@ export function TemplateHealthBoard({
     </VisualShell>
   );
 }
+import { Badge } from "@saas-ui/react";

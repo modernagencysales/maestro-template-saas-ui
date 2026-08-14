@@ -7,8 +7,8 @@ import {
   TemplateNotificationCenter,
   type PlatformNotification,
   type PlatformNotificationPreference,
-  useTemplateToast,
 } from "@maestro-template/ui";
+import { toast } from "@saas-ui/react";
 import {
   buildNotificationCenterView,
   defaultNotificationPreferences,
@@ -208,7 +208,6 @@ export const presentNotificationCenter = (
 
 export function NotificationCenterSurface() {
   const workspace = useWorkspace();
-  const toast = useTemplateToast();
   const [notifications, setNotifications] =
     useState<readonly NotificationRecord[]>(fakeNotifications);
   const workspaceId =
@@ -297,12 +296,11 @@ export function NotificationCenterSurface() {
                 : notification,
             ),
           );
-          toast.notify({
+          toast.create({
             title: "Notification marked read",
             description:
               "The fake-safe starter inbox updated its local read state.",
-            tone: "success",
-            announcement: "Notification marked read.",
+            type: "success",
           });
         }}
         preferences={view.preferences}

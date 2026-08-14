@@ -6,6 +6,7 @@ import type {
   FunnelEvent,
 } from "@maestro-template/app-idea-evaluator";
 import * as Result from "effect/Result";
+import { Button, Textarea } from "@saas-ui/react";
 
 import { useTemplateAction } from "../../../adapters/confect-state";
 import { isConvexConfigured } from "../../../env";
@@ -223,7 +224,7 @@ function AppIdeaIntakeSurface({
                 {view.question.help}
               </p>
               <label htmlFor="idea-answer">Your answer</label>
-              <textarea
+              <Textarea
                 aria-describedby={`answer-help${view.error ? " answer-error" : ""}`}
                 aria-invalid={view.error ? true : undefined}
                 autoFocus
@@ -253,21 +254,21 @@ function AppIdeaIntakeSurface({
               </div>
               <div className="idea-intake-actions">
                 {view.canGoBack ? (
-                  <button onClick={back} type="button">
+                  <Button onClick={back} type="button">
                     <ArrowLeft aria-hidden="true" size={17} />
                     Back
-                  </button>
+                  </Button>
                 ) : (
                   <span />
                 )}
-                <button
+                <Button
                   className="idea-primary-action"
                   disabled={isEvaluating}
                   type="submit"
                 >
                   {isEvaluating ? "Evaluating idea…" : "Save and continue"}
                   <ArrowRight aria-hidden="true" size={17} />
-                </button>
+                </Button>
               </div>
             </form>
           </div>

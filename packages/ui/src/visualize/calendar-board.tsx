@@ -1,4 +1,3 @@
-import { Badge } from "../primitives";
 import { VisualShell, type VisualState } from "./shared";
 
 export type CalendarEvent = {
@@ -32,3 +31,4 @@ export function TemplateCalendarBoard({
     </VisualShell>
   );
 }
+import { Badge } from "@saas-ui/react";

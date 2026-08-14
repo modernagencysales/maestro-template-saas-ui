@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { templateConfectRefs } from "@maestro-template/convex/refs";
 import * as Result from "effect/Result";
 import { RefreshCw } from "lucide-react";
+import { Button, Textarea } from "@saas-ui/react";
 
 import {
   useTemplateAction,
@@ -146,7 +147,7 @@ export function ReportRevisionSurface({
           <label htmlFor="revision-feedback">
             What should the report reconsider?
           </label>
-          <textarea
+          <Textarea
             id="revision-feedback"
             maxLength={2_000}
             minLength={10}
@@ -163,7 +164,7 @@ export function ReportRevisionSurface({
               so check the details and try again.
             </p>
           ) : null}
-          <button
+          <Button
             className="idea-primary-action"
             disabled={state._tag === "revising"}
             type="submit"
@@ -172,7 +173,7 @@ export function ReportRevisionSurface({
             {state._tag === "revising"
               ? "Generating revision…"
               : "Generate revised report"}
-          </button>
+          </Button>
         </form>
       )}
     </section>

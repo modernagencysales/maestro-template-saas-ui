@@ -11,7 +11,7 @@ import type { ConvexQueryClient } from "@convex-dev/react-query";
 import type { QueryClient } from "@tanstack/react-query";
 import type { ReactNode } from "react";
 import "@fontsource-variable/inter";
-import { TemplateToastProvider } from "@maestro-template/ui";
+import { Toaster } from "@saas-ui/react";
 
 import { MaestroSaasUiProvider } from "../saas-ui/provider";
 import { ColorModeProvider } from "../saas-ui/color-mode";
@@ -77,9 +77,8 @@ function RootComponent() {
                         href={location.href}
                         pathname={location.pathname}
                       >
-                        <TemplateToastProvider>
-                          <Outlet />
-                        </TemplateToastProvider>
+                        <Outlet />
+                        <Toaster />
                       </WebRouteUxBoundary>
                     </ColorModeProvider>
                   </MaestroSaasUiProvider>

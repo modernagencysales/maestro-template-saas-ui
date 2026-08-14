@@ -1,4 +1,3 @@
-import { Badge } from "../primitives";
 import { VisualShell, type VisualState } from "./shared";
 
 export type DiffChange = {
@@ -34,3 +33,4 @@ export function TemplateDiffView({
     </VisualShell>
   );
 }
+import { Badge } from "@saas-ui/react";

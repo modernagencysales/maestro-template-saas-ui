@@ -1,5 +1,6 @@
 import { ArrowRight, Check, Download, RotateCcw } from "lucide-react";
 import type { ReactNode } from "react";
+import { Button } from "@saas-ui/react";
 
 import type { StoredEvaluation } from "../intake/evaluation-adapter";
 import { PublicFunnelShell } from "../public-shell";
@@ -99,10 +100,10 @@ export function EvaluationReportView({
         {ownership}
 
         <div className="idea-report-actions">
-          <button onClick={() => downloadReport(evaluation)} type="button">
+          <Button onClick={() => downloadReport(evaluation)} type="button">
             <Download aria-hidden="true" size={17} />
             Download report
-          </button>
+          </Button>
           <a href="/evaluate">
             <RotateCcw aria-hidden="true" size={17} />
             Evaluate another idea

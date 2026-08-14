@@ -1,4 +1,3 @@
-import { Badge } from "../primitives";
 import { VisualShell, type VisualState } from "./shared";
 
 export type LineageNode = {
@@ -33,3 +32,4 @@ export function TemplateLineagePanel({
     </VisualShell>
   );
 }
+import { Badge } from "@saas-ui/react";

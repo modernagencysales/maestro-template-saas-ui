@@ -2,6 +2,7 @@ import type {
   BuildPackStage,
   CompleteBuildPack,
 } from "@maestro-template/app-idea-evaluator";
+import { Button } from "@saas-ui/react";
 
 import { PublicFunnelShell } from "../public-shell";
 import { BuildPackProgress, CompleteBuildPackView } from "./build-pack-view";
@@ -51,9 +52,9 @@ export function BuildPackRouteView({
         </p>
         <p>Support ID: {state.supportId}</p>
         {state.canRetry ? (
-          <button onClick={onRetry} type="button">
+          <Button onClick={onRetry} type="button">
             Retry generation
-          </button>
+          </Button>
         ) : (
           <a href="/support">Contact support</a>
         )}
