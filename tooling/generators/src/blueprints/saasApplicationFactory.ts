@@ -354,6 +354,16 @@ const currentContractFiles = (
       ),
     },
     {
+      path: "tooling/acceptance/checkout-state.mts",
+      content: readFileSync(
+        new URL(
+          "../../../../tooling/acceptance/checkout-state.mts",
+          import.meta.url,
+        ),
+        "utf8",
+      ),
+    },
+    {
       path: "tooling/acceptance/product-contract.mts",
       content: readFileSync(
         new URL(
