@@ -17,6 +17,10 @@ The current frontend closure is mandatory in every current generated blueprint;
 it is not a selectable application pattern. Paid source remains private and must
 retain its notices under `docs/licenses/saas-ui/`.
 
+The installed registry closure is 27 editable Pro block roots plus the shared
+`use-open-state` support hook. The pinned registry receipt and `components.json`
+are the authorities for that closure; do not maintain a second block list.
+
 The active route authority is `apps/web/src/routes/_app/`, rooted by
 `apps/web/src/routes/_app.tsx`; `apps/web/src/provider.tsx` owns the provider
 composition. Legacy `_workspace`, golden feature, business-shell, and custom

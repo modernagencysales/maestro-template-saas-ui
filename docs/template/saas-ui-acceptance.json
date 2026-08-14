@@ -239,7 +239,7 @@
       "factoryDestination": "apps/web/src/features/workspaces",
       "generatedDestination": "apps/web/src/features/workspaces",
       "route": "/$workspace",
-      "behaviorCheck": "loading empty ready read edit success failure error not-found permission and recovery transitions",
+      "behaviorCheck": "loading empty error not-found and retry/recovery transitions",
       "evidence": ["states-ready-read-desktop-light", "paid-artifact-boundary"]
     }
   ]
