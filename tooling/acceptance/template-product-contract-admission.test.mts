@@ -1,3 +1,4 @@
+import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { RecordsCustomerMaterializationError } from "../../apps/cli/src/factory/customerCandidateFixture";
 import {
@@ -7,6 +8,22 @@ import {
 } from "./template-product-contract-admission.mts";
 
 describe("required acceptance admission summary", () => {
+  it("keeps structural preparation independent of a Convex deployment", () => {
+    const source = readFileSync(
+      new URL("./template-product-contract-admission.mts", import.meta.url),
+      "utf8",
+    );
+    const normalized = source.replace(/\s+/gu, " ");
+    expect(normalized).not.toContain(
+      '["--dir", "packages/convex", "exec", "convex", "codegen"]',
+    );
+    expect(normalized).toContain('["--silent", "exec", "convex", "init"]');
+    expect(normalized).toContain(
+      '"convex", "dev", "--once", "--typecheck", "disable"',
+    );
+    expect(normalized).toContain('CONVEX_AGENT_MODE: "anonymous"');
+  });
+
   it("renders failed materialization stdout and stderr as a bounded safe witness", () => {
     const failure = new RecordsCustomerMaterializationError({
       exitCode: 1,

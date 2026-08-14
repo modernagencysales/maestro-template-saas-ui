@@ -74,10 +74,12 @@ const runPreparedCustomerCommand = (
   targetRoot: string,
   args: readonly string[],
   label: string,
+  environment?: NodeJS.ProcessEnv,
 ): string => {
   try {
     return execFileSync("pnpm", args, {
       cwd: targetRoot,
+      ...(environment === undefined ? {} : { env: environment }),
       encoding: "utf8",
       maxBuffer: 512 * 1024,
     });
@@ -103,7 +105,10 @@ const commitGeneratedCustomerArtifacts = (targetRoot: string): void => {
   }
 };
 
-const prepareMaterializedCustomer = (targetRoot: string): void => {
+const prepareMaterializedCustomer = (
+  targetRoot: string,
+  mode: "structural" | "required",
+): void => {
   runPreparedCustomerCommand(
     targetRoot,
     ["install", "--offline", "--ignore-scripts"],
@@ -114,16 +119,43 @@ const prepareMaterializedCustomer = (targetRoot: string): void => {
     ["--dir", "packages/convex", "confect:codegen"],
     "Generated customer codegen",
   );
-  runPreparedCustomerCommand(
-    targetRoot,
-    ["--dir", "packages/convex", "exec", "convex", "codegen"],
-    "Generated customer Convex codegen",
-  );
-  runPreparedCustomerCommand(
-    targetRoot,
-    ["--dir", "apps/web", "exec", "vite", "build"],
-    "Generated customer route codegen",
-  );
+  if (mode === "required") {
+    const localConvexEnvironment = {
+      ...Object.fromEntries(
+        Object.entries(process.env).filter(
+          ([name]) => !name.startsWith("CONVEX_"),
+        ),
+      ),
+      CONVEX_AGENT_MODE: "anonymous",
+    };
+    runPreparedCustomerCommand(
+      targetRoot,
+      ["--silent", "exec", "convex", "init"],
+      "Generated customer local Convex initialization",
+      localConvexEnvironment,
+    );
+    for (const [name, value] of [
+      ["MAESTRO_CONTRACT_TEST", "1"],
+      ["POSTHOG_PROJECT_TOKEN", "phc_test_placeholder"],
+    ] as const)
+      runPreparedCustomerCommand(
+        targetRoot,
+        ["--silent", "exec", "convex", "env", "set", name, value],
+        `Generated customer local Convex environment ${name}`,
+        localConvexEnvironment,
+      );
+    runPreparedCustomerCommand(
+      targetRoot,
+      ["--silent", "exec", "convex", "dev", "--once", "--typecheck", "disable"],
+      "Generated customer local Convex codegen",
+      localConvexEnvironment,
+    );
+    runPreparedCustomerCommand(
+      targetRoot,
+      ["--dir", "apps/web", "exec", "vite", "build"],
+      "Generated customer route codegen",
+    );
+  }
   execFileSync("git", ["add", "-A"], { cwd: targetRoot });
   if (
     spawnSync("git", ["diff", "--cached", "--quiet"], {
@@ -150,7 +182,7 @@ export const runStructuralProductContractAdmission =
         targetRoot,
       });
       if (findings.length > 0) throw new Error(findings.join("\n"));
-      prepareMaterializedCustomer(targetRoot);
+      prepareMaterializedCustomer(targetRoot, "structural");
       runPreparedCustomerCommand(
         targetRoot,
         ["--dir", "packages/convex", "typecheck"],
@@ -166,7 +198,7 @@ export const runStructuralProductContractAdmission =
 
 export const runRequiredAcceptanceAdmission = async (): Promise<void> => {
   await withMaterializedAdmission(async (targetRoot) => {
-    prepareMaterializedCustomer(targetRoot);
+    prepareMaterializedCustomer(targetRoot, "required");
     let stdout: string;
     try {
       ({ stdout } = await execFile("pnpm", ["acceptance:required"], {
