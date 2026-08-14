@@ -35,6 +35,10 @@ export type {
   CustomerReleaseAdapterOptions,
 } from "./createAdapter.contract.js";
 export { blueprintTargetPlanDigest } from "./createAdapter.contract.js";
+export {
+  createReleaseTemplateInstanceConsumer,
+  type ReleaseTemplateInstanceConsumer,
+} from "./templateInstance.js";
 
 export type CustomerCurrentAdapterOptions = CustomerReleaseAdapterOptions & {
   readonly blueprintId: string;

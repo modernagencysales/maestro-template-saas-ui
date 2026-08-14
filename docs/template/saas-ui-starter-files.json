@@ -181,7 +181,7 @@
       "source": "apps/web/src/features/common/components/app-sidebar.tsx",
       "destination": "apps/web/src/features/common/components/app-sidebar.tsx",
       "sourceSha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "sha256": "343377e364ae6fdb2f4bb8a27e46c8f730aa4d3f04a9afbf803a4b0802a878f1",
+      "sha256": "a6cf920cfd473d47c0c95f0cf6061f08ace4af60f1186aab1c88b933280f7567",
       "adapted": true
     },
     {
@@ -783,7 +783,7 @@
       "source": "apps/web/src/router.tsx",
       "destination": "apps/web/src/router.tsx",
       "sourceSha256": "766662f448c564c65a9fce2ac3de05141e4bb2afa2e2ae0d7259deacc8c42785",
-      "sha256": "d5fa5a8950b86e43b40cffddd40806b19039b1fd25070e6e0a8e97759389feb1",
+      "sha256": "f66c4b32415cc0a5be3e0291a3b84fccbba45476a3ff0a144c101442d0b11db6",
       "adapted": true
     },
     {
@@ -972,7 +972,7 @@
       "source": "apps/web/src/routes/_app/index.tsx",
       "destination": "apps/web/src/routes/_app/index.tsx",
       "sourceSha256": "1863f77e8fdd28809250795c60b4a453462d91a2240e13bb9698a9aeef08525b",
-      "sha256": "d78e94db634087f422b89ca6db5694a76541a0a58cbfbb701bfb2af11e530984",
+      "sha256": "343cb2cacf213ebff3ae3863cf520ca17a5d5bedae25be6ed069d3ca7689d168",
       "adapted": true
     },
     {

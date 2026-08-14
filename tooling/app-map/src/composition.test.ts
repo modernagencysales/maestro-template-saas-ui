@@ -24,6 +24,7 @@ afterEach(() => {
 const fixtureRepository = (options?: {
   readonly templateInstance?: boolean;
   readonly featureProvenance?: boolean;
+  readonly featureTopology?: boolean;
 }): {
   readonly root: string;
   readonly revision: string;
@@ -60,6 +61,51 @@ const fixtureRepository = (options?: {
         encoding: "utf8",
       })}\nconst recordsRoute = route.update({ path: routes.records });\ninterface FeatureRoutes { records: { fullPath: "/records" } }\n`,
     );
+    if (options.featureTopology) {
+      const topologyPath = "docs/template/product-topology.json";
+      const topology = JSON.parse(
+        execFileSync("git", ["show", `HEAD:${topologyPath}`], {
+          cwd: root,
+          encoding: "utf8",
+        }),
+      ) as { resources: unknown[] };
+      topology.resources.push({
+        id: "route:records",
+        kind: "route",
+        system: "record-management",
+        path: "apps/web/src/routes/_workspace.records.tsx",
+        responsibility: "present records",
+        surfaces: ["web"],
+        uses: ["access-and-tenancy"],
+        lifecycle: "active",
+      });
+      mkdirSync(join(root, "docs/template"), { recursive: true });
+      writeFileSync(join(root, topologyPath), `${JSON.stringify(topology)}\n`);
+      const systemsPath = "docs/template/system-catalog.json";
+      const systems = JSON.parse(
+        execFileSync("git", ["show", `HEAD:${systemsPath}`], {
+          cwd: root,
+          encoding: "utf8",
+        }),
+      ) as { systems: unknown[] };
+      systems.systems.push({
+        id: "record-management",
+        name: "Record Management",
+        kind: "product-system",
+        lifecycle: "active",
+        implementationStatus: "real",
+        summary: "Owns records.",
+        responsibilities: ["manage records"],
+        aliases: ["records"],
+        tables: [],
+        canonicalEntrypoints: [
+          "packages/convex/confect/records/records.spec.ts",
+        ],
+        decisionRef: "docs/template/system-catalog.md#record-management",
+      });
+      writeFileSync(join(root, systemsPath), `${JSON.stringify(systems)}\n`);
+      execFileSync("git", ["add", topologyPath, systemsPath], { cwd: root });
+    }
     execFileSync("git", ["add", provenancePath, routeTreePath], { cwd: root });
   }
   if (options?.templateInstance !== false) {
@@ -145,6 +191,118 @@ const generatedOverride = (
 };
 
 describe("closed App Map composition", () => {
+  it("accepts a sparse valid Confect manifest with no topology relations", async () => {
+    const fixture = fixtureRepository();
+    const manifestPath =
+      "packages/template-core/src/generated/confectManifest.ts";
+    mkdirSync(join(fixture.root, "packages/template-core/src/generated"), {
+      recursive: true,
+    });
+    writeFileSync(
+      join(fixture.root, manifestPath),
+      'export const confectManifest = { version: 1, functions: [{ operationId: "records.list", surfaces: ["web"] }] } as const;\n',
+    );
+    execFileSync("git", ["add", manifestPath], { cwd: fixture.root });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=App Map Test",
+        "-c",
+        "user.email=app-map@example.invalid",
+        "commit",
+        "-m",
+        "sparse Confect manifest",
+      ],
+      { cwd: fixture.root },
+    );
+    const result = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: fixture.root,
+        encoding: "utf8",
+      }).trim(),
+    });
+    expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+    if (!result.ok) return;
+    for (const sourceId of ["confect-contracts", "headless-registry"])
+      expect(
+        result.input.batches.find(({ source }) => source.id === sourceId)
+          ?.edges,
+      ).toEqual([]);
+  });
+
+  it("distinguishes a missing workflow registry from an empty registry", async () => {
+    const fixture = fixtureRepository();
+    const registryPath =
+      "packages/convex/confect/workflows/_generated/workflowRegistry.ts";
+    execFileSync("git", ["rm", registryPath], {
+      cwd: fixture.root,
+    });
+    execFileSync(
+      "git",
+      [
+        "rm",
+        "docs/template/generated/provenance/add-workflow/publicationFixture.json",
+      ],
+      { cwd: fixture.root },
+    );
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=App Map Test",
+        "-c",
+        "user.email=app-map@example.invalid",
+        "commit",
+        "-m",
+        "missing registry",
+      ],
+      { cwd: fixture.root },
+    );
+    const missing = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: fixture.root,
+        encoding: "utf8",
+      }).trim(),
+    });
+    expect(missing.ok).toBe(false);
+
+    mkdirSync(
+      join(fixture.root, "packages/convex/confect/workflows/_generated"),
+      {
+        recursive: true,
+      },
+    );
+    writeFileSync(
+      join(fixture.root, registryPath),
+      `const definePublicationRegistry = <const Registry>(registry: Registry): Registry => registry;\nexport const workflowPublicationRegistry = definePublicationRegistry({ capabilities: [], workflows: [] });\n`,
+    );
+    execFileSync("git", ["add", registryPath], { cwd: fixture.root });
+    execFileSync(
+      "git",
+      [
+        "-c",
+        "user.name=App Map Test",
+        "-c",
+        "user.email=app-map@example.invalid",
+        "commit",
+        "-m",
+        "empty registry",
+      ],
+      { cwd: fixture.root },
+    );
+    const empty = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: execFileSync("git", ["rev-parse", "HEAD"], {
+        cwd: fixture.root,
+        encoding: "utf8",
+      }).trim(),
+    });
+    expect(empty.ok, empty.ok ? undefined : empty.message).toBe(true);
+  });
+
   it("loads all eleven exact-revision sources and builds byte-stably", async () => {
     const fixture = fixtureRepository();
     const first = await composeAppMap({
@@ -261,6 +419,32 @@ describe("closed App Map composition", () => {
           to: "route:records",
         }),
       ]),
+    );
+  }, 20_000);
+
+  it("keeps add-feature history without duplicating topology ownership", async () => {
+    const fixture = fixtureRepository({
+      featureProvenance: true,
+      featureTopology: true,
+    });
+    const result = await composeAppMap({
+      repoRoot: fixture.root,
+      revision: fixture.revision,
+    });
+    expect(result.ok, result.ok ? undefined : result.message).toBe(true);
+    if (!result.ok) return;
+    const edges = result.input.batches.find(
+      ({ source }) => source.id === "generator-provenance",
+    )?.edges;
+    expect(edges).toContainEqual(
+      expect.objectContaining({
+        id: "generated-by:route:records->package:tooling/generators",
+      }),
+    );
+    expect(edges).not.toContainEqual(
+      expect.objectContaining({
+        id: "owns:system:knowledge-brain->route:records",
+      }),
     );
   }, 20_000);
 

@@ -21,19 +21,13 @@ const allowlist = JSON.parse(
 ) as { artifacts: Array<{ package: string; url: string; integrity: string }> };
 
 describe("protected dependency proxy", () => {
-  it("pins the three C1 roots to exact registry artifacts", () => {
-    expect(allowlist.artifacts).toEqual(
-      expect.arrayContaining([
-        expect.objectContaining({
-          package: "@cucumber/cucumber@13.2.0",
-          url: "https://registry.npmjs.org/@cucumber/cucumber/-/cucumber-13.2.0.tgz",
-          integrity:
-            "sha512-QjhTG6FWVdG66qkj1BGONecAIqEIDx4g+ZnTdaQVmhECDfGPYyfEcBX3k71p/h1YKvWEUWmhol77Y7FZ36pARA==",
-        }),
-        expect.objectContaining({ package: "@cucumber/gherkin@41.0.0" }),
-        expect.objectContaining({ package: "@cucumber/messages@34.0.1" }),
-      ]),
-    );
+  it("does not retain retired-runner artifacts after typed acceptance cutover", () => {
+    const retiredRunner = ["@", "cu", "cumber", "/"].join("");
+    expect(
+      allowlist.artifacts.some(({ package: name }) =>
+        name.startsWith(retiredRunner),
+      ),
+    ).toBe(false);
   });
 
   it("rejects credentials, private destinations and unsafe archives", () => {

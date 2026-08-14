@@ -72,139 +72,33 @@ export function createVerifyCommand(input: {
     execute: async (args, context) => {
       const descriptors = selectDescriptors(registry, args);
       const facts = await input.runner.inspect(context.repo);
-      const selectionDiagnostics =
-        descriptors.length === 0
-          ? [
-              {
-                code: "AGENT_PACK_VERIFY_GATE_SELECTION_EMPTY",
-                severity: "error" as const,
-                message:
-                  "Verification resolved no canonical gates for the requested scope.",
-                safeToContinue: false,
-                nextAction:
-                  "Restore the canonical diagnostic registry or choose changed paths owned by a registered gate.",
-                rerun: "pnpm maestro -- verify --scope focused",
-              },
-            ]
-          : [];
-      const observed =
-        descriptors.length === 0
-          ? []
-          : await input.runner.run({
-              repo: context.repo,
-              scope: args.scope,
-              changed: args.changed,
-              descriptors,
-            });
+      const selectionDiagnostics = selectionDiagnostic(descriptors);
+      const observed = await observeDescriptors(
+        input.runner,
+        context.repo,
+        args,
+        descriptors,
+      );
       const after = await input.runner.inspect(context.repo);
       const observations = completeObservations(descriptors, observed);
       const metadataDiagnostics = verificationContextDiagnostics(facts, after);
-      const runnerDiagnostics = observed.flatMap((observation) =>
-        observation.diagnostic === undefined ? [] : [observation.diagnostic],
+      const receipt = createVerifyReceipt(facts, args, observations);
+      const persistenceDiagnostics = await persistReceipt(
+        input.writer,
+        context.repo,
+        receipt,
+        args.scope,
       );
-      const receipt = createVerificationReceipt({
-        createdAt: facts.createdAt,
-        command: { id: "verify", version: AGENT_PACK_COMMAND_VERSION },
-        subject: facts.subject,
-        repositoryFingerprint: facts.repositoryFingerprint,
-        environmentFingerprint: facts.environmentFingerprint,
-        providerPostureFingerprint: facts.providerPostureFingerprint,
-        scope:
-          args.scope === "full"
-            ? { kind: "full", changedPaths: [], partial: false }
-            : {
-                kind: "focused",
-                changedPaths: args.changed,
-                partial: true,
-              },
-        gates: observations.map(({ descriptor, observation }) => ({
-          gateId: descriptor.gateId,
-          posture: descriptor.posture,
-          evidenceClass: descriptor.evidenceClass,
-          status: observation.status,
-          semanticRuleIds: [...(observation.semanticRuleIds ?? [])],
-        })),
+      return verifyResult({
+        writer: input.writer,
+        descriptors,
+        receipt,
+        observations,
+        selectionDiagnostics,
+        metadataDiagnostics,
+        runnerDiagnostics: runnerDiagnostics(observed),
+        persistenceDiagnostics,
       });
-      const persistenceDiagnostics: AgentPackDiagnostic[] = [];
-      if (input.writer !== undefined) {
-        try {
-          await input.writer.persist(context.repo, receipt);
-        } catch {
-          persistenceDiagnostics.push({
-            code: "AGENT_PACK_VERIFICATION_RECEIPT_PERSIST_FAILED",
-            severity: "error",
-            message:
-              "The complete verification receipt could not be persisted safely.",
-            safeToContinue: false,
-            nextAction:
-              "Restore the bounded .maestro receipt directory and rerun the owned verification command.",
-            rerun: `pnpm maestro -- verify --scope ${args.scope}`,
-          });
-        }
-      }
-      const diagnostics = [
-        ...selectionDiagnostics,
-        ...metadataDiagnostics,
-        ...runnerDiagnostics,
-        ...persistenceDiagnostics,
-        ...observations.flatMap(({ descriptor, observation }) =>
-          observation.status === "pass"
-            ? []
-            : [
-                projectGateDiagnostic(descriptor, {
-                  status: observation.status,
-                  message: observation.message,
-                  ...(observation.semanticRuleIds
-                    ? { semanticRuleIds: observation.semanticRuleIds }
-                    : {}),
-                }),
-              ],
-        ),
-      ];
-      const summarized = summarizeVerificationReceipt(receipt);
-      const summary =
-        descriptors.length === 0
-          ? {
-              status: "fail" as const,
-              requiredFailures: ["maestro/gate-selection"],
-              advisoryFailures: [],
-              unavailable: ["maestro/gate-selection"],
-            }
-          : summarized;
-      const requiredBlocking =
-        selectionDiagnostics.length > 0 ||
-        summary.requiredFailures.length > 0 ||
-        metadataDiagnostics.length > 0 ||
-        persistenceDiagnostics.length > 0 ||
-        runnerDiagnostics.some(({ severity }) => severity === "error");
-      return {
-        mutationPosture:
-          input.writer === undefined
-            ? ("read-only" as const)
-            : ("write" as const),
-        exitClass:
-          diagnostics.length === 0
-            ? ("success" as const)
-            : ("findings" as const),
-        summary:
-          persistenceDiagnostics.length > 0
-            ? "Verification evidence could not be persisted."
-            : diagnostics.length === 0
-              ? "Verification passed."
-              : requiredBlocking
-                ? "Verification found required failures."
-                : "Required verification passed with advisory findings.",
-        diagnostics,
-        data: {
-          receipt,
-          summary,
-          requiredBlocking,
-          receiptPersisted:
-            input.writer === undefined
-              ? null
-              : persistenceDiagnostics.length === 0,
-        },
-      };
     },
   });
 }
@@ -212,40 +106,264 @@ export function createVerifyCommand(input: {
 export function decodeVerifyInput(
   input: unknown,
 ): AgentPackArgumentResult<VerifyInput> {
-  if (
-    typeof input !== "object" ||
-    input === null ||
-    !("scope" in input) ||
-    !Object.keys(input).every((key) => key === "scope" || key === "changed")
-  ) {
+  if (!isVerifyInputRecord(input)) {
     return invalidVerifyInput("Verification input must include a scope.");
   }
-  const scope = input.scope;
-  if ("changed" in input && !Array.isArray(input.changed)) {
+  const parsed = parseVerifyInput(input);
+  if (parsed === null) {
     return invalidVerifyInput("Changed paths must be an array.");
   }
-  const changed =
-    "changed" in input && Array.isArray(input.changed) ? input.changed : [];
-  if (
-    (scope !== "focused" && scope !== "full") ||
-    (scope === "full" && changed.length > 0) ||
-    !changed.every(
-      (path) =>
-        typeof path === "string" &&
-        path.length > 0 &&
-        path.trim() === path &&
-        !path.startsWith("/") &&
-        !path.startsWith("\\") &&
-        !/^[a-zA-Z]:[\\/]/.test(path) &&
-        !path.split(/[\\/]/).includes(".."),
-    )
-  ) {
+  if (!validVerifyInput(parsed)) {
     return invalidVerifyInput(
       "Scope must be focused or full and changed paths must be bounded.",
     );
   }
-  return { ok: true, args: { scope, changed } };
+  return { ok: true, args: parsed };
 }
+
+const selectionDiagnostic = (
+  descriptors: readonly DiagnosticDescriptor[],
+): readonly AgentPackDiagnostic[] =>
+  descriptors.length === 0
+    ? [
+        {
+          code: "AGENT_PACK_VERIFY_GATE_SELECTION_EMPTY",
+          severity: "error",
+          message:
+            "Verification resolved no canonical gates for the requested scope.",
+          safeToContinue: false,
+          nextAction:
+            "Restore the canonical diagnostic registry or choose changed paths owned by a registered gate.",
+          rerun: "pnpm maestro -- verify --scope focused",
+        },
+      ]
+    : [];
+
+const observeDescriptors = async (
+  runner: VerificationRunner,
+  repo: RepositoryContext,
+  args: VerifyInput,
+  descriptors: readonly DiagnosticDescriptor[],
+): Promise<readonly VerificationRunObservation[]> => {
+  if (descriptors.length === 0) return [];
+  return runner.run({
+    repo,
+    scope: args.scope,
+    changed: args.changed,
+    descriptors,
+  });
+};
+
+const runnerDiagnostics = (
+  observations: readonly VerificationRunObservation[],
+): readonly AgentPackDiagnostic[] =>
+  observations.flatMap((observation) =>
+    observation.diagnostic === undefined ? [] : [observation.diagnostic],
+  );
+
+const receiptScope = (input: VerifyInput) =>
+  input.scope === "full"
+    ? {
+        kind: "full" as const,
+        changedPaths: [] as const,
+        partial: false as const,
+      }
+    : {
+        kind: "focused" as const,
+        changedPaths: input.changed,
+        partial: true as const,
+      };
+
+const createVerifyReceipt = (
+  facts: VerificationRuntimeFacts,
+  args: VerifyInput,
+  observations: readonly {
+    readonly descriptor: DiagnosticDescriptor;
+    readonly observation: VerificationRunObservation;
+  }[],
+) =>
+  createVerificationReceipt({
+    createdAt: facts.createdAt,
+    command: { id: "verify", version: AGENT_PACK_COMMAND_VERSION },
+    subject: facts.subject,
+    repositoryFingerprint: facts.repositoryFingerprint,
+    environmentFingerprint: facts.environmentFingerprint,
+    providerPostureFingerprint: facts.providerPostureFingerprint,
+    scope: receiptScope(args),
+    gates: observations.map(({ descriptor, observation }) => ({
+      gateId: descriptor.gateId,
+      posture: descriptor.posture,
+      evidenceClass: descriptor.evidenceClass,
+      status: observation.status,
+      argv: [...descriptor.argv],
+      semanticRuleIds: [...(observation.semanticRuleIds ?? [])],
+    })),
+  });
+
+const persistReceipt = async (
+  writer: VerificationReceiptWriter | undefined,
+  repo: RepositoryContext,
+  receipt: ReturnType<typeof createVerificationReceipt>,
+  scope: VerifyInput["scope"],
+): Promise<readonly AgentPackDiagnostic[]> => {
+  if (writer === undefined) return [];
+  try {
+    await writer.persist(repo, receipt);
+    return [];
+  } catch {
+    return [
+      {
+        code: "AGENT_PACK_VERIFICATION_RECEIPT_PERSIST_FAILED",
+        severity: "error",
+        message:
+          "The complete verification receipt could not be persisted safely.",
+        safeToContinue: false,
+        nextAction:
+          "Restore the bounded .maestro receipt directory and rerun the owned verification command.",
+        rerun: `pnpm maestro -- verify --scope ${scope}`,
+      },
+    ];
+  }
+};
+
+const gateDiagnostics = (
+  observations: readonly {
+    readonly descriptor: DiagnosticDescriptor;
+    readonly observation: VerificationRunObservation;
+  }[],
+): readonly AgentPackDiagnostic[] =>
+  observations.flatMap(({ descriptor, observation }) =>
+    observation.status === "pass"
+      ? []
+      : [
+          projectGateDiagnostic(descriptor, {
+            status: observation.status,
+            message: observation.message,
+            ...(observation.semanticRuleIds
+              ? { semanticRuleIds: observation.semanticRuleIds }
+              : {}),
+          }),
+        ],
+  );
+
+const emptySelectionSummary = {
+  status: "fail" as const,
+  requiredFailures: ["maestro/gate-selection"],
+  advisoryFailures: [],
+  unavailable: ["maestro/gate-selection"],
+};
+
+const verificationSummary = (
+  descriptors: readonly DiagnosticDescriptor[],
+  receipt: ReturnType<typeof createVerificationReceipt>,
+) =>
+  descriptors.length === 0
+    ? emptySelectionSummary
+    : summarizeVerificationReceipt(receipt);
+
+const resultMessage = (input: {
+  readonly diagnostics: readonly AgentPackDiagnostic[];
+  readonly persistenceDiagnostics: readonly AgentPackDiagnostic[];
+  readonly requiredBlocking: boolean;
+}): string => {
+  if (input.persistenceDiagnostics.length > 0)
+    return "Verification evidence could not be persisted.";
+  if (input.diagnostics.length === 0) return "Verification passed.";
+  return input.requiredBlocking
+    ? "Verification found required failures."
+    : "Required verification passed with advisory findings.";
+};
+
+const isRequiredBlocking = (input: {
+  readonly selectionDiagnostics: readonly AgentPackDiagnostic[];
+  readonly metadataDiagnostics: readonly AgentPackDiagnostic[];
+  readonly runnerDiagnostics: readonly AgentPackDiagnostic[];
+  readonly persistenceDiagnostics: readonly AgentPackDiagnostic[];
+  readonly summary: ReturnType<typeof summarizeVerificationReceipt>;
+}): boolean =>
+  input.selectionDiagnostics.length > 0 ||
+  input.summary.requiredFailures.length > 0 ||
+  input.metadataDiagnostics.length > 0 ||
+  input.persistenceDiagnostics.length > 0 ||
+  input.runnerDiagnostics.some(({ severity }) => severity === "error");
+
+const verifyResult = (input: {
+  readonly writer: VerificationReceiptWriter | undefined;
+  readonly descriptors: readonly DiagnosticDescriptor[];
+  readonly receipt: ReturnType<typeof createVerificationReceipt>;
+  readonly observations: readonly {
+    readonly descriptor: DiagnosticDescriptor;
+    readonly observation: VerificationRunObservation;
+  }[];
+  readonly selectionDiagnostics: readonly AgentPackDiagnostic[];
+  readonly metadataDiagnostics: readonly AgentPackDiagnostic[];
+  readonly runnerDiagnostics: readonly AgentPackDiagnostic[];
+  readonly persistenceDiagnostics: readonly AgentPackDiagnostic[];
+}) => {
+  const diagnostics = [
+    ...input.selectionDiagnostics,
+    ...input.metadataDiagnostics,
+    ...input.runnerDiagnostics,
+    ...input.persistenceDiagnostics,
+    ...gateDiagnostics(input.observations),
+  ];
+  const summary = verificationSummary(input.descriptors, input.receipt);
+  const requiredBlocking = isRequiredBlocking({ ...input, summary });
+  return {
+    mutationPosture:
+      input.writer === undefined ? ("read-only" as const) : ("write" as const),
+    exitClass:
+      diagnostics.length === 0 ? ("success" as const) : ("findings" as const),
+    summary: resultMessage({
+      diagnostics,
+      persistenceDiagnostics: input.persistenceDiagnostics,
+      requiredBlocking,
+    }),
+    diagnostics,
+    data: {
+      receipt: input.receipt,
+      summary,
+      requiredBlocking,
+      receiptPersisted:
+        input.writer === undefined
+          ? null
+          : input.persistenceDiagnostics.length === 0,
+    },
+  };
+};
+
+const isVerifyInputRecord = (
+  input: unknown,
+): input is { readonly scope: unknown; readonly changed?: unknown } =>
+  typeof input === "object" &&
+  input !== null &&
+  "scope" in input &&
+  Object.keys(input).every((key) => key === "scope" || key === "changed");
+
+const parseVerifyInput = (input: {
+  readonly scope: unknown;
+  readonly changed?: unknown;
+}): VerifyInput | null => {
+  if (input.changed !== undefined && !Array.isArray(input.changed)) return null;
+  return {
+    scope: input.scope as VerifyInput["scope"],
+    changed: (input.changed ?? []) as readonly string[],
+  };
+};
+
+const validChangedPath = (path: unknown): boolean =>
+  typeof path === "string" &&
+  path.length > 0 &&
+  path.trim() === path &&
+  !path.startsWith("/") &&
+  !path.startsWith("\\") &&
+  !/^[a-zA-Z]:[\\/]/.test(path) &&
+  !path.split(/[\\/]/).includes("..");
+
+const validVerifyInput = (input: VerifyInput): boolean =>
+  (input.scope === "focused" || input.scope === "full") &&
+  !(input.scope === "full" && input.changed.length > 0) &&
+  input.changed.every(validChangedPath);
 
 function verificationContextDiagnostics(
   before: VerificationRuntimeFacts,

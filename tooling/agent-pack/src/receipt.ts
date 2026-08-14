@@ -33,6 +33,7 @@ export type VerificationGateObservation = {
   readonly posture: DiagnosticPosture;
   readonly evidenceClass: EvidenceClass;
   readonly status: GateObservationStatus;
+  readonly argv: readonly string[];
   readonly semanticRuleIds: readonly string[];
 };
 
@@ -146,6 +147,7 @@ export function createVerificationReceipt(
           },
     gates: input.gates.map((gate) => ({
       ...gate,
+      argv: [...gate.argv],
       semanticRuleIds: [...gate.semanticRuleIds],
     })),
   };

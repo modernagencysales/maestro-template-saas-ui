@@ -24,6 +24,16 @@ For each substantive changed file, ask:
 3. Could a naive developer read this file top-to-bottom and understand it?
 4. Is this the right implementation, not merely a working one?
 
+## Outcome-proof questions
+
+1. Would the test fail if the promised user outcome stopped working?
+2. Does it exercise the public surface named by the contract?
+3. Would it still pass against a no-op, canned-success, or mocked product path?
+4. Does it observe the important denial or absence outcome where applicable?
+
+A yes to question 3 or no to questions 1 or 2 is a review finding. Semantic
+usefulness remains advisory judgment, not a deterministic self-certification.
+
 ## Layer law
 
 The repo layer law (AGENTS.md) is blocking contract:

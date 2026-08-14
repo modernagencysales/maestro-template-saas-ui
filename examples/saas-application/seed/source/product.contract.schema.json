@@ -1,0 +1,355 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "properties": {
+    "schemaVersion": {
+      "type": "number",
+      "enum": [
+        1
+      ]
+    },
+    "product": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "allOf": [
+            {
+              "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+            },
+            {
+              "minLength": 1
+            }
+          ]
+        },
+        "name": {
+          "type": "string",
+          "allOf": [
+            {
+              "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+            },
+            {
+              "minLength": 1
+            }
+          ]
+        },
+        "summary": {
+          "type": "string",
+          "allOf": [
+            {
+              "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+            },
+            {
+              "minLength": 1
+            }
+          ]
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "summary"
+      ],
+      "additionalProperties": false
+    },
+    "behaviors": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Union_"
+        }
+      ],
+      "minItems": 1,
+      "items": {
+        "$ref": "#/$defs/Union_"
+      }
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "product",
+    "behaviors"
+  ],
+  "additionalProperties": false,
+  "$defs": {
+    "Arrays_": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "string",
+          "enum": [
+            "web-ui",
+            "cli-process",
+            "public-http"
+          ]
+        }
+      ],
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "enum": [
+          "web-ui",
+          "cli-process",
+          "public-http"
+        ]
+      },
+      "allOf": [
+        {
+          "uniqueItems": true
+        }
+      ]
+    },
+    "Arrays_1": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "allOf": [
+          {
+            "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+          },
+          {
+            "minLength": 1
+          }
+        ]
+      }
+    },
+    "Arrays_2": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "string",
+          "allOf": [
+            {
+              "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+            },
+            {
+              "minLength": 1
+            }
+          ]
+        }
+      ],
+      "minItems": 1,
+      "items": {
+        "type": "string",
+        "allOf": [
+          {
+            "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+          },
+          {
+            "minLength": 1
+          }
+        ]
+      },
+      "allOf": [
+        {
+          "uniqueItems": true
+        }
+      ]
+    },
+    "Union_": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                },
+                {
+                  "pattern": "^BHV-[A-Z0-9]+-[0-9]+$"
+                }
+              ]
+            },
+            "revision": {
+              "type": "integer",
+              "allOf": [
+                {
+                  "exclusiveMinimum": 0
+                }
+              ]
+            },
+            "title": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                }
+              ]
+            },
+            "actor": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                }
+              ]
+            },
+            "surfaces": {
+              "$ref": "#/$defs/Arrays_"
+            },
+            "preconditions": {
+              "$ref": "#/$defs/Arrays_1"
+            },
+            "action": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                }
+              ]
+            },
+            "outcomes": {
+              "$ref": "#/$defs/Arrays_2"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "draft",
+                "required"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "revision",
+            "title",
+            "actor",
+            "surfaces",
+            "preconditions",
+            "action",
+            "outcomes",
+            "status"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                },
+                {
+                  "pattern": "^BHV-[A-Z0-9]+-[0-9]+$"
+                }
+              ]
+            },
+            "revision": {
+              "type": "integer",
+              "allOf": [
+                {
+                  "exclusiveMinimum": 0
+                }
+              ]
+            },
+            "title": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                }
+              ]
+            },
+            "actor": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                }
+              ]
+            },
+            "surfaces": {
+              "$ref": "#/$defs/Arrays_"
+            },
+            "preconditions": {
+              "$ref": "#/$defs/Arrays_1"
+            },
+            "action": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                }
+              ]
+            },
+            "outcomes": {
+              "$ref": "#/$defs/Arrays_2"
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "retired"
+              ]
+            },
+            "retirementReason": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                }
+              ]
+            },
+            "replacementBehaviorId": {
+              "type": "string",
+              "allOf": [
+                {
+                  "pattern": "^\\S[\\s\\S]*\\S$|^\\S$|^$"
+                },
+                {
+                  "minLength": 1
+                },
+                {
+                  "pattern": "^BHV-[A-Z0-9]+-[0-9]+$"
+                }
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "revision",
+            "title",
+            "actor",
+            "surfaces",
+            "preconditions",
+            "action",
+            "outcomes",
+            "status",
+            "retirementReason"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    }
+  }
+}

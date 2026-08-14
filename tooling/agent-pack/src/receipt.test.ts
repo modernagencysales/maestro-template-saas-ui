@@ -22,6 +22,7 @@ const base: VerificationReceiptInput = {
       posture: "required",
       evidenceClass: "static",
       status: "pass",
+      argv: ["pnpm", "check:types"],
       semanticRuleIds: ["typescript/strict"],
     },
   ],
@@ -52,6 +53,7 @@ describe("verification receipt", () => {
       advisoryFailures: [],
       unavailable: [],
     });
+    expect(receipt.gates[0]?.argv).toEqual(["pnpm", "check:types"]);
   });
 
   it("blocks on a required deterministic failure and preserves rule ids", () => {

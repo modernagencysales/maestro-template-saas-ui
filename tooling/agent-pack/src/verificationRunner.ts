@@ -273,23 +273,31 @@ async function runFull(
     return attributeFailedFull(execFile, request, plan, limits);
   }
   const planned = new Set(plan.map(({ argv }) => argvKey(argv)));
-  return Promise.all(
-    request.descriptors.map(async (descriptor) => {
-      if (!planned.has(argvKey(descriptor.argv))) {
-        return unavailable(
-          descriptor,
-          "the gate is not a member of the canonical full verify plan",
-        );
-      }
-      return runDescriptor(
-        execFile,
+  return request.descriptors.map((descriptor) => {
+    if (!validateDiagnosticDescriptor(descriptor).ok) {
+      return unavailable(descriptor);
+    }
+    if (!planned.has(argvKey(descriptor.argv))) {
+      return unavailable(
         descriptor,
-        request.repo.sourceRoot,
-        limits.fullTimeoutMs,
-        limits.maxBufferBytes,
+        "the gate is not a member of the canonical full verify plan",
       );
-    }),
-  );
+    }
+    return successfulFullObservation(descriptor);
+  });
+}
+
+function successfulFullObservation(
+  descriptor: DiagnosticDescriptor,
+): VerificationRunObservation {
+  return {
+    gateId: descriptor.gateId,
+    status: "pass",
+    message: `Verification gate ${descriptor.gateId} passed during the canonical pnpm verify run.`,
+    ...(descriptor.semanticRuleIds
+      ? { semanticRuleIds: descriptor.semanticRuleIds }
+      : {}),
+  };
 }
 
 async function attributeFailedFull(

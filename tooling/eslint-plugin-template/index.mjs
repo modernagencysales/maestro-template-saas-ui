@@ -21,6 +21,7 @@ import frontendRouteServerBoundary from "./rules/frontend-route-server-boundary.
 import saasUiShellAuthority from "./rules/saas-ui-shell-authority.mjs";
 import preferSaasUiPrimitives from "./rules/prefer-saas-ui-primitives.mjs";
 import saasUiSemanticColors from "./rules/saas-ui-semantic-colors.mjs";
+import acceptanceBoundary from "./rules/acceptance-boundary.mjs";
 
 export default {
   meta: { name: "eslint-plugin-template", version: "0.0.0" },
@@ -40,5 +41,6 @@ export default {
     "saas-ui-shell-authority": saasUiShellAuthority,
     "prefer-saas-ui-primitives": preferSaasUiPrimitives,
     "saas-ui-semantic-colors": saasUiSemanticColors,
+    "acceptance-boundary": acceptanceBoundary,
   },
 };

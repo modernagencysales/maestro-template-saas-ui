@@ -279,7 +279,7 @@ function serializeTemplateInstance(
         firstOutcome: input.outcome,
         demoOnly: input.demoOnly,
       },
-      privacy: disclosure,
+      customerExtension: { privacy: disclosure },
     },
     null,
     2,

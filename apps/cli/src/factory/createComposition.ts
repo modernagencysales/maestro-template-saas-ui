@@ -3,6 +3,7 @@ import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
 import {
   blueprintTargetPlanDigest,
   createCustomerReleaseAdapter,
+  type ReleaseTemplateInstanceConsumer,
 } from "@maestro-template/release-tooling/customer-create";
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
@@ -99,11 +100,13 @@ function applyReplacementAuthority(
 export function loadCustomerCreateComposition(
   source: CustomerCompositionSource = CURRENT_PUBLIC_SOURCE,
   buildBlueprintTargetPlan: BlueprintTargetPlanBuilder = buildSaasApplicationTargetPlan,
+  templateInstances?: ReleaseTemplateInstanceConsumer,
 ) {
   return createCustomerCreateComposition(
     source,
     buildBlueprintTargetPlan,
     readBlueprintReplacementAuthority(source),
+    templateInstances,
   );
 }
 
@@ -111,11 +114,15 @@ export function createCustomerCreateComposition(
   source: CustomerCompositionSource,
   buildBlueprintTargetPlan: BlueprintTargetPlanBuilder,
   replacements: BlueprintReplacementAuthority,
+  templateInstances?: ReleaseTemplateInstanceConsumer,
 ) {
-  const release = createCustomerReleaseAdapter({
-    ...source,
-    homeRoot: homedir(),
-  });
+  const release = createCustomerReleaseAdapter(
+    {
+      ...source,
+      homeRoot: homedir(),
+    },
+    templateInstances,
+  );
   const command = createCustomerCreateCommand({
     blueprintTargetPlan: ({ name, outcome }) => {
       const plan = buildBlueprintTargetPlan({

@@ -10,6 +10,7 @@
     "test": "vitest run --passWithNoTests"
   },
   "dependencies": {
+    "@maestro-template/template-core": "workspace:*",
     "effect": "4.0.0-beta.102"
   }
 }

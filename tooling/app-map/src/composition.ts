@@ -406,12 +406,14 @@ const workflowRegistryEntries = (
     local: string;
     path: string;
   }[] = [];
+  let registryFound = false;
   const visit = (nodeValue: ts.Node): void => {
     if (
       ts.isCallExpression(nodeValue) &&
       ts.isIdentifier(nodeValue.expression) &&
       nodeValue.expression.text === "definePublicationRegistry"
     ) {
+      registryFound = true;
       const config = nodeValue.arguments[0];
       if (!config || !ts.isObjectLiteralExpression(config))
         throw new Error("Workflow registry config is invalid.");
@@ -443,7 +445,7 @@ const workflowRegistryEntries = (
     ts.forEachChild(nodeValue, visit);
   };
   visit(file);
-  if (output.length === 0) throw new Error("Workflow registry is empty.");
+  if (!registryFound) throw new Error("Workflow registry is missing.");
   return output.sort((left, right) => compare(left.local, right.local));
 };
 const routePaths = (bytes: string): readonly string[] => {
@@ -624,10 +626,6 @@ const factsFor = (
         );
       }
     }
-    if (relations.size === 0)
-      throw new Error(
-        "Canonical Confect contracts have no topology-backed projections.",
-      );
     return {
       nodes: [],
       edges: [...relations.values()].sort((left, right) =>
@@ -749,10 +747,6 @@ const factsFor = (
         );
       }
     }
-    if (relations.size === 0)
-      throw new Error(
-        "Canonical headless registry has no topology-backed projections.",
-      );
     return {
       nodes: [],
       edges: [...relations.values()].sort((left, right) =>
@@ -831,7 +825,10 @@ const factsFor = (
           }),
         );
       }
-      if (generatedKind || generator === "add-feature") {
+      if (
+        generatedKind ||
+        (generator === "add-feature" && !topologyResourceIds.has(target))
+      ) {
         const system = text(record(value.ownership).system);
         generatedEdges.push(
           edge(entry, revision, source.digest, {

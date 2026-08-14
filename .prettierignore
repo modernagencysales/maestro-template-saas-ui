@@ -7,6 +7,7 @@ coverage/
 .turbo/
 .maestro/
 .superpowers/
+packages/convex/.convex/
 .claude/settings.json
 apps/*/dist/
 packages/*/dist/
@@ -20,6 +21,8 @@ packages/convex/convex/brain/pages.ts
 # Preserve upstream-authorized license text byte-for-byte for provenance checks.
 docs/licenses/saas-ui/pro-NOTICE.md
 docs/licenses/saas-ui/starter-NOTICE.md
+examples/saas-application/seed/source/product.contract.schema.json
+examples/saas-application/seed/source/docs/template/generated/product-contract.md
 apps/web/src/routeTree.gen.ts
 .pnpm-store/
 AGENTS.md

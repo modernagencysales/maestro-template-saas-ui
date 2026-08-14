@@ -49,7 +49,7 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "pnpm",
-    ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+    ["install", "--prefer-offline", "--frozen-lockfile", "--ignore-scripts"],
     { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 240_000 },
   );
   return taggedReleaseRoot;
@@ -810,7 +810,7 @@ describe("materialized customer CLI runtime closure", () => {
         "check:saas-ui-artifact-safety",
       ]
         .map((name) => `pnpm ${name}`)
-        .concat("pnpm maestro -- contracts test --required")
+        .concat("pnpm check:product-contract", "pnpm acceptance:required")
         .join(" && "),
     );
     const settingsPath = join(target, ".claude/settings.json");

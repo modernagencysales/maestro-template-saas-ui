@@ -13,6 +13,7 @@ import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { JsxEmit, ModuleKind, ScriptTarget, transpileModule } from "typescript";
 import { describe, expect, it } from "vitest";
+import * as generatorExports from "./index";
 import { maestroBlueprintCatalog } from "@maestro-template/app-idea-evaluator";
 import {
   buildAgentFiles,
@@ -58,6 +59,18 @@ import {
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, "../../..");
+
+describe("generator package boundary", () => {
+  it("exports customer-composition helpers", () => {
+    expect(generatorExports.isWorkflowAutomationPath).toBeTypeOf("function");
+    expect(generatorExports.isRecordsOnlyWorkflowProvenancePath).toBeTypeOf(
+      "function",
+    );
+    expect(generatorExports.createTemplateInstanceMigration).toBeTypeOf(
+      "function",
+    );
+  });
+});
 
 describe("reviewed generator operation", () => {
   const request = {

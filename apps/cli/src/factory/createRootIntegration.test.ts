@@ -15,7 +15,11 @@ import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { promisify } from "node:util";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { buildSaasApplicationTargetPlan } from "@maestro-template/generators";
+import {
+  buildSaasApplicationTargetPlan,
+  isRecordsOnlyWorkflowProvenancePath,
+  isWorkflowAutomationPath,
+} from "@maestro-template/generators";
 import { buildCustomerOwnershipInventory } from "@maestro-template/release-tooling/customer-ownership";
 import {
   afterAll,
@@ -64,22 +68,6 @@ const installedStoreDir = readFileSync(
 ).match(/^storeDir: (.+)$/m)?.[1];
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
-const isWorkflowPatternPath = (path: string): boolean =>
-  [
-    "tooling/workflow/",
-    "packages/convex/confect/workflows/",
-    "packages/convex/confect/workflowContracts/",
-    "packages/convex/confect/workflowRunners/",
-    "packages/convex/confect/_generated/registeredFunctions/workflow",
-    "packages/convex/confect/_generated/tables/workflow",
-    "packages/convex/confect/tables/workflow",
-    "packages/convex/confect/demo/showcase.",
-    "packages/convex/convex/components/workflow",
-    "packages/convex/convex/workflows/",
-    "packages/convex/convex/workflowContracts/",
-    "packages/convex/convex/workflowRunners/",
-  ].some((prefix) => path.startsWith(prefix));
-
 const runGeneratedPnpm = (
   cwd: string,
   args: readonly string[],
@@ -123,7 +111,9 @@ const shouldOmitCurrentProjectionPath = (input: {
   input.action === "omit" ||
   (input.optionalPatternPaths.has(input.path) &&
     !input.projectedPaths.has(input.path)) ||
-  (!input.workflowSelected && isWorkflowPatternPath(input.path));
+  (!input.workflowSelected &&
+    (isWorkflowAutomationPath(input.path) ||
+      isRecordsOnlyWorkflowProvenancePath(input.path)));
 
 const applyCurrentSaasProjection = (
   root: string,
@@ -229,7 +219,7 @@ const taggedRepository = (): string => {
   );
   execFileSync(
     "pnpm",
-    ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+    ["install", "--prefer-offline", "--frozen-lockfile", "--ignore-scripts"],
     { cwd: taggedReleaseRoot, stdio: "pipe", timeout: 240_000 },
   );
   return taggedReleaseRoot;
@@ -824,176 +814,23 @@ describe("create root integration", () => {
       expect(readFileSync(join(targetRoot, path)), path).toEqual(bytes);
   }, 180_000);
 
-  it("keeps a fresh neutral target red until a required journey is admitted", async () => {
-    const parent = mkdtempSync(join(tmpdir(), "maestro-contract-target-"));
-    temporaryRoots.push(parent);
-    const targetRoot = join(parent, "app");
-    mkdirSync(targetRoot, { recursive: true });
-    applyCurrentSaasProjection(targetRoot, {
-      name: "Contract Prototype",
-      firstOutcome: "Create and review records",
-    });
-    expect(
-      readFileSync(join(targetRoot, "features/first-outcome.feature"), "utf8"),
-    ).toContain("@wip\nFeature: Create and review records");
-    for (const path of [
-      "features/records.feature",
-      "apps/web/src/features/records/records-surface.tsx",
-      "apps/web/src/screens/records-screen.tsx",
-      "apps/web/src/routes/_workspace.records.tsx",
-      "tooling/workflow/package.json",
-    ])
-      expect(existsSync(join(targetRoot, path)), path).toBe(false);
-    expect(
-      existsSync(
-        join(
-          repoRoot,
-          "examples/saas-application/seed/source/features/records.feature",
-        ),
-      ),
-    ).toBe(true);
-    for (const args of [
-      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-      ["confect:codegen"],
-    ]) {
-      const result = spawnSync("pnpm", args, {
-        cwd: targetRoot,
-        encoding: "utf8",
-        timeout: 240_000,
-      });
-      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    }
-
-    execFileSync("git", ["init", "--quiet"], { cwd: targetRoot });
-    execFileSync("git", ["add", "."], { cwd: targetRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Maestro Contracts",
-        "-c",
-        "user.email=contracts@template.local",
-        "commit",
-        "--no-verify",
-        "--quiet",
-        "-m",
-        "test fixture",
-      ],
-      { cwd: targetRoot },
-    );
-
-    const contractArgs = [
-      "--silent",
-      "maestro",
-      "--",
-      "contracts",
-      "test",
-      "--required",
-    ];
-    const contracts = spawnSync("pnpm", contractArgs, {
-      cwd: targetRoot,
-      encoding: "utf8",
-      timeout: 180_000,
-    });
-    expect(
-      contracts.status,
-      `${contracts.stdout}\n${contracts.stderr}`,
-    ).not.toBe(0);
-    expect(`${contracts.stdout}\n${contracts.stderr}`).toContain(
-      "@required must select at least one Cucumber Scenario before delivery.",
-    );
-  }, 300_000);
-
-  it("executes the selected records example by journey name", async () => {
-    const parent = mkdtempSync(join(tmpdir(), "maestro-records-contract-"));
+  it("wires generated customer admission directly to typed product proofs", () => {
+    const parent = mkdtempSync(join(tmpdir(), "maestro-product-admission-"));
     temporaryRoots.push(parent);
     const targetRoot = join(parent, "app");
     mkdirSync(targetRoot, { recursive: true });
     applyCurrentSaasProjection(targetRoot, {
       name: "Records Example",
-      firstOutcome: "Create and review records",
+      firstOutcome: "Manage shared records",
       patterns: ["records-example"],
     });
-    expect(
-      JSON.parse(
-        readFileSync(join(targetRoot, "template-instance.json"), "utf8"),
-      ),
-    ).toMatchObject({
-      blueprint: { id: "saas-application" },
-      personalization: {
-        name: "Records Example",
-        firstOutcome: "Create and review records",
-        demoOnly: true,
-      },
-    });
-    expect(
-      readFileSync(join(targetRoot, "features/records.feature"), "utf8"),
-    ).not.toContain("@required");
-    for (const path of [
-      "features/step_definitions/records.journeys.ts",
-      "features/support/contracts-scenario.ts",
-      "features/support/contracts-runtime.ts",
-      "features/support/contracts-world.ts",
-    ])
-      expect(existsSync(join(targetRoot, path)), path).toBe(true);
-    for (const path of [
-      "packages/convex/confect/_generated/registeredFunctions/workflows/subworkflowLinksCurrent.ts",
-      "packages/convex/convex/components/workflowDeadline/convex.config.ts",
-      "packages/convex/convex/workflows/deadlinesCurrent.ts",
-    ])
-      expect(existsSync(join(targetRoot, path)), path).toBe(false);
-    for (const args of [
-      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
-      ["confect:codegen"],
-    ]) {
-      const result = spawnSync("pnpm", args, {
-        cwd: targetRoot,
-        encoding: "utf8",
-        timeout: 240_000,
-      });
-      expect(result.status, `${result.stdout}\n${result.stderr}`).toBe(0);
-    }
-    execFileSync("git", ["init", "--quiet"], { cwd: targetRoot });
-    execFileSync("git", ["add", "."], { cwd: targetRoot });
-    execFileSync(
-      "git",
-      [
-        "-c",
-        "user.name=Maestro Contracts",
-        "-c",
-        "user.email=contracts@template.local",
-        "commit",
-        "--no-verify",
-        "--quiet",
-        "-m",
-        "records example fixture",
-      ],
-      { cwd: targetRoot },
-    );
+    const packageJson = JSON.parse(
+      readFileSync(join(targetRoot, "package.json"), "utf8"),
+    ) as { readonly scripts: Readonly<Record<string, string>> };
 
-    let contracts: { readonly stdout: string; readonly stderr: string };
-    try {
-      contracts = await execFileAsync(
-        "pnpm",
-        ["--silent", "maestro", "--", "contracts", "test", "records"],
-        {
-          cwd: targetRoot,
-          encoding: "utf8",
-          timeout: 180_000,
-          maxBuffer: 10 * 1024 * 1024,
-        },
-      );
-    } catch (error) {
-      const failure = error as Error & {
-        readonly stdout?: string;
-        readonly stderr?: string;
-      };
-      throw new Error(
-        `${failure.stdout ?? ""}\n${failure.stderr ?? failure.message}`,
-      );
-    }
-    expect(contracts.stdout).toContain("3 scenarios (3 passed)");
-  }, 300_000);
+    expect(packageJson.scripts.verify).toContain("pnpm check:product-contract");
+    expect(packageJson.scripts.verify).toContain("pnpm acceptance:required");
+  });
 });
 
 function snapshotTargetBytes(root: string): Readonly<Record<string, string>> {

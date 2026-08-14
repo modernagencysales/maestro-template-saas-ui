@@ -34,6 +34,20 @@ const agentPackDescriptor = descriptors[0];
 if (agentPackDescriptor === undefined) {
   throw new Error("Expected the Agent Pack diagnostic fixture.");
 }
+const productContractDescriptor: DiagnosticDescriptor = {
+  ...agentPackDescriptor,
+  gateId: "product-contract",
+  evidenceClass: "static",
+  argv: ["pnpm", "check:product-contract"],
+  rerun: ["pnpm", "check:product-contract"],
+};
+const acceptanceRequiredDescriptor: DiagnosticDescriptor = {
+  ...agentPackDescriptor,
+  gateId: "acceptance-required",
+  evidenceClass: "runtime",
+  argv: ["pnpm", "acceptance:required"],
+  rerun: ["pnpm", "acceptance:required"],
+};
 const repo = createRepositoryContext({ cwd: "/repo" });
 const manifest = (
   verify: string,
@@ -313,7 +327,7 @@ describe("execFile verification runner", () => {
     });
   });
 
-  it("replays canonically bound descriptors after unstructured success", async () => {
+  it("attributes canonically bound descriptors from one successful full verification", async () => {
     const execFile = vi.fn<VerificationExecFile>(async () => ({
       exitCode: 0,
       stdout: "all checks completed without a structured frame",
@@ -335,7 +349,8 @@ describe("execFile verification runner", () => {
       {
         gateId: "agent-pack",
         status: "pass",
-        message: "Verification gate agent-pack passed.",
+        message:
+          "Verification gate agent-pack passed during the canonical pnpm verify run.",
         semanticRuleIds: ["agent-pack/result-envelope"],
       },
       {
@@ -345,6 +360,9 @@ describe("execFile verification runner", () => {
           "not a member of the canonical full verify plan",
         ),
       },
+    ]);
+    expect(execFile.mock.calls.map(([file, args]) => [file, ...args])).toEqual([
+      ["pnpm", "verify"],
     ]);
   });
 
@@ -371,7 +389,35 @@ describe("execFile verification runner", () => {
     ]);
     expect(execute.mock.calls.map(([file, args]) => [file, ...args])).toEqual([
       ["pnpm", "verify"],
-      ["pnpm", "check:agent-pack"],
+    ]);
+  });
+
+  it("projects required product gates as passed without replaying them", async () => {
+    const execute = vi.fn<VerificationExecFile>(async () => ({
+      exitCode: 0,
+      stdout: "success",
+      stderr: "",
+    }));
+
+    const observations = await runner(execute, {
+      readFile: async () =>
+        manifest("pnpm check:product-contract && pnpm acceptance:required", {
+          "check:product-contract": "tsx admission structural",
+          "acceptance:required": "tsx admission required",
+        }),
+    }).run({
+      scope: "full",
+      repo,
+      changed: [],
+      descriptors: [productContractDescriptor, acceptanceRequiredDescriptor],
+    });
+
+    expect(observations).toMatchObject([
+      { gateId: "product-contract", status: "pass" },
+      { gateId: "acceptance-required", status: "pass" },
+    ]);
+    expect(execute.mock.calls.map(([file, args]) => [file, ...args])).toEqual([
+      ["pnpm", "verify"],
     ]);
   });
 

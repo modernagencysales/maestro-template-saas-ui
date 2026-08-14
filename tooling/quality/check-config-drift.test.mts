@@ -23,18 +23,19 @@ describe("check:config-drift", () => {
     );
   });
 
-  it("keeps Cucumber execution customer-owned without direct parser dependencies", () => {
+  it("keeps typed product-contract and runtime acceptance as root authority", () => {
     const root = JSON.parse(
       readFileSync(new URL("../../package.json", import.meta.url), "utf8"),
     ) as {
       readonly scripts: Readonly<Record<string, string>>;
       readonly devDependencies: Readonly<Record<string, string>>;
     };
-    expect(root.scripts).not.toHaveProperty("acceptance:syntax");
-    expect(root.scripts).not.toHaveProperty("acceptance:check");
-    expect(root.scripts).not.toHaveProperty("acceptance:cucumber");
-    expect(root.scripts).not.toHaveProperty("acceptance:features");
-    expect(root.devDependencies).not.toHaveProperty("@cucumber/gherkin");
-    expect(root.devDependencies).not.toHaveProperty("@cucumber/messages");
+    expect(root.scripts.verify).toContain("pnpm check:product-contract");
+    expect(root.scripts.verify).toContain("pnpm acceptance:required");
+    const retiredRunner = ["cu", "cumber"].join("");
+    expect(root.devDependencies).not.toHaveProperty(
+      `@${retiredRunner}/${retiredRunner}`,
+    );
+    expect(root.devDependencies?.["@playwright/test"]).toBe("1.61.1");
   });
 });

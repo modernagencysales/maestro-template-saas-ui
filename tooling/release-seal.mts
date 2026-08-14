@@ -197,6 +197,7 @@ function slug(path: string): string {
 const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
+// eslint-disable-next-line complexity -- AP-008 tracks splitting this pre-existing 16-complexity manifest validator; Task 6 changes adjacent release-seal rules.
 function resolvePriorManifest(
   manifestPath: string,
   visited = new Set<string>(),
@@ -282,20 +283,6 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
   {
     path: ".factory/project.yaml",
     match: "exact",
-    ownership: "template-owned",
-    action: "copy",
-    upgrade: "replace",
-  },
-  {
-    path: "cucumber.cjs",
-    match: "exact",
-    ownership: "template-owned",
-    action: "copy",
-    upgrade: "replace",
-  },
-  {
-    path: "features",
-    match: "subtree",
     ownership: "template-owned",
     action: "copy",
     upgrade: "replace",
@@ -441,6 +428,7 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
   },
 ] as const;
 
+// eslint-disable-next-line complexity -- AP-008 tracks splitting this pre-existing 12-complexity reviewed-exclusion validator; Task 6 changes adjacent release-seal rules.
 export function parseReviewedFactoryOnlyExclusions(input: {
   readonly value: unknown;
   readonly sourcePaths: readonly string[];
@@ -449,6 +437,7 @@ export function parseReviewedFactoryOnlyExclusions(input: {
   if (!Array.isArray(input.value))
     throw new Error("Release additionalPaths must be an array.");
   const source = new Set(input.sourcePaths);
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting this pre-existing 12-complexity exclusion schema check; Task 6 changes adjacent release-seal rules.
   const rules = input.value.map((raw, index): CustomerReleasePath => {
     if (
       !isRecord(raw) ||
@@ -602,6 +591,7 @@ export function buildReviewedAdditionalPaths(input: {
   return rules;
 }
 
+// eslint-disable-next-line complexity -- AP-008 tracks splitting this pre-existing 22-complexity release builder; Task 6 changes adjacent release-seal rules.
 async function build(args: Args): Promise<readonly Output[]> {
   assertSource(args);
   const readiness = buildReleaseReadinessPlan({

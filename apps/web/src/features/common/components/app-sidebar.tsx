@@ -239,7 +239,7 @@ const AppSidebarLink = (props: AppSidebarlink) => {
     <Tooltip
       content={
         <>
-          {label} <Command size="xs">{command}</Command>
+          {label} <Command size="sm">{command}</Command>
         </>
       }
       positioning={{

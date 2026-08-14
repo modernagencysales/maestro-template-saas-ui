@@ -46,7 +46,6 @@ const helpResult = (): CliResult =>
       "Generated app loop (preflight -> inspect -> preview -> write -> verify -> run):",
       "  maestro preflight [--mode fake|test|live] [--details|--json]",
       "  maestro recipes list|show <recipe-id> [--human|--details|--json]",
-      "  maestro contracts add <journey> | check | test [journey|--required]",
       "  maestro add <outcome-or-recipe> [--answer <question>=<value>] [--write] [--human|--details|--json]",
       "  maestro verify [--scope focused|full] [--changed <paths>] [--human|--details|--json]",
       "  maestro check [--mode fake|test|live] [--changed <paths>] [--human|--details|--json]",

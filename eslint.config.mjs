@@ -85,12 +85,13 @@ export default [
     },
   },
   {
-    // Existing review providers predate the changed-file complexity ratchet.
-    // Their new bounded coordinator is enforced independently.
+    // Existing review providers and AP-010 App Map composition predate the
+    // changed-file complexity ratchet; their boundaries are checked separately.
     files: [
       "tooling/quality/taste-review.mts",
       "tooling/quality/contract-review.mts",
       "tooling/release/src/index.ts",
+      "tooling/app-map/src/composition.ts",
     ],
     rules: {
       complexity: "off",
@@ -168,4 +169,17 @@ export default [
   },
   ...(saasUiRegistryConfig ? [saasUiRegistryConfig] : []),
   ...(saasUiStarterConfig ? [saasUiStarterConfig] : []),
+  {
+    files: [
+      "tests/acceptance/**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}",
+      "examples/*/seed/source/tests/acceptance/**/*.{js,jsx,ts,tsx,mjs,cjs,mts,cts}",
+      "playwright.acceptance.config.ts",
+      "examples/*/seed/source/playwright.acceptance.config.ts",
+    ],
+    plugins: { template: templatePlugin },
+    linterOptions: { noInlineConfig: true },
+    rules: {
+      "template/acceptance-boundary": "error",
+    },
+  },
 ];

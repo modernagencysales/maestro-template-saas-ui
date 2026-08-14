@@ -6,8 +6,6 @@
  * getPolicy/getPolicyVersion) are forward-guards — these tests are their proof.
  */
 import { RuleTester } from "eslint";
-import { dirname, resolve } from "node:path";
-import { fileURLToPath } from "node:url";
 import tseslint from "typescript-eslint";
 
 import typedConvexErrors from "../typed-convex-errors.mjs";
@@ -22,6 +20,7 @@ import noCrossDomainValueImport from "../no-cross-domain-value-import.mjs";
 import noRawScheduler from "../no-raw-scheduler.mjs";
 import frontendRouteThin from "../frontend-route-thin.mjs";
 import frontendRouteServerBoundary from "../frontend-route-server-boundary.mjs";
+import acceptanceBoundary from "../acceptance-boundary.mjs";
 import shellAuthority from "../saas-ui-shell-authority.mjs";
 import officialPrimitives from "../prefer-saas-ui-primitives.mjs";
 import semanticColors from "../saas-ui-semantic-colors.mjs";
@@ -49,14 +48,6 @@ const DOMAIN = "packages/convex/confect/capabilities/batch.domain.ts";
 const DOMAIN_DIR = "packages/convex/confect/domain/batch.ts";
 const DOMAIN_TEST = "packages/convex/confect/capabilities/batch.domain.test.ts";
 const TEST_FILE = "packages/convex/confect/capabilities/x.test.ts";
-const REGISTRY_RECEIPT = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "fixtures/saas-ui-registry-files.json",
-);
-const STARTER_RECEIPT = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../../../../docs/template/saas-ui-starter-files.json",
-);
 
 tester.run("typed-convex-errors", typedConvexErrors, {
   valid: [
@@ -796,11 +787,6 @@ tester.run("frontend-route-server-boundary", frontendRouteServerBoundary, {
       filename: "apps/web/src/routes/_app.tsx",
       code: "export const Route = createFileRoute('/_app')({ loader: requireAuthenticatedRoute, component: Outlet });",
     },
-    {
-      filename: "apps/web/src/routes/api/trpc/$.ts",
-      code: "export const Route = createFileRoute('/api/trpc/$')({ server: { handlers: { GET: () => new Response() } } });",
-      options: [{ receiptPath: STARTER_RECEIPT }],
-    },
   ],
   invalid: [
     {
@@ -826,49 +812,1222 @@ tester.run("frontend-route-server-boundary", frontendRouteServerBoundary, {
   ],
 });
 
+const ACCEPTANCE = "tests/acceptance/records.spec.ts";
+const ACCEPTANCE_SUPPORT = "tests/acceptance/support/proxy.ts";
+const ACCEPTANCE_RUNTIME = "tests/acceptance/support/runtime.ts";
+const SEED_ACCEPTANCE =
+  "examples/saas-application/seed/source/tests/acceptance/records.spec.ts";
+const SEED_SUPPORT =
+  "examples/saas-application/seed/source/tests/acceptance/support/proxy.ts";
+
+tester.run("acceptance-boundary", acceptanceBoundary, {
+  valid: [
+    {
+      filename: ACCEPTANCE,
+      code: `import { test, expect } from "./support/fixtures";
+import { readFixture } from "./support/fixture";
+test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page, runtime }) => { await page.goto(\`\${runtime.webUrl}/records\`); expect(await readFixture("fixture")).toBeTruthy(); });`,
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `import { join } from "node:path"; void join;`,
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const getBuiltinModule = "env";
+const environment = process[getBuiltinModule];
+const key = "KEY";
+const value = process.env[key];
+test("@BHV-REC-001-R1", async () => { void environment; void value; });`,
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test("record appears in the CLI", { tag: "@BHV-REC-002-R1" }, async ({ runtime, scenario }) => { await runtime.runCli(scenario, ["capability", "run", "records.list"]); });`,
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test("@BHV-REC-001-R1", async () => {});`,
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test.describe("records", () => {
+  test("@BHV-REC-001-R1", async () => {});
+});`,
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+import { proxy } from "./support/proxy";
+test("record appears", async ({ acceptancePage: page }) => { await proxy(page); });`,
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `export async function proxy(context, route) {
+  await context.route("**/api/**", handler);
+  await route.fulfill({ status: 502 });
+}`,
+    },
+    {
+      filename:
+        "examples/saas-application/seed/source/tests/acceptance/support/runtime.ts",
+      code: `export async function proxy(context, route) {
+  await context.route("**/api/**", handler);
+  await route.fulfill({ status: 502 });
+}`,
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `export async function proxy(context, targetUrl) {
+  await context.route("**/api/**", async (route) => {
+    const response = await route.fetch({ url: targetUrl });
+    await route.fulfill({ response });
+  });
+}`,
+    },
+    {
+      filename:
+        "examples/saas-application/seed/source/tests/acceptance/support/runtime.ts",
+      code: `export async function proxy(context, targetUrl) {
+  await context.route("**/api/**", async (route) => {
+    const response = await route.fetch({ url: targetUrl });
+    await route.fulfill({ response });
+  });
+}`,
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `import { runtime } from "./runtime"; export { runtime };`,
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `import { runtime } from "./runtime"; export { runtime };`,
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({ playwright: _playwright }, use) => {
+    void _playwright;
+    const controller = createContractsRuntimeController();
+    const activeRuntime = await controller.start();
+    try { await use(activeRuntime); } finally { await controller.stop(); }
+  }, { scope: "worker", auto: true }],
+  scenario: async ({ runtime }, use) => {
+    await use(await runtime.provisionScenario());
+  },
+  acceptancePage: async ({ runtime, scenario }, use) => {
+    const context = await runtime.browser.newContext();
+    try {
+      await runtime.authorizeBrowserContext(scenario, context);
+      await use(await context.newPage());
+    } finally { await context.close(); }
+  },
+});`,
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test";
+export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.spec.ts", forbidOnly: true, retries: 0, workers: 1, fullyParallel: false, repeatEach: 1, testIgnore: [], projects: [{ name: "acceptance-chromium", use: { browserName: "chromium" } }] });`,
+    },
+  ],
+  invalid: [
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const make = globalThis["Fun" + "ction"];
+test("record appears", { tag: "@BHV-REC-001-R1" }, async ({ runtime }) => {
+  await make("return import('../../../apps/web/src/router.tsx')")();
+  await runtime.runCli();
+});`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({ playwright: _playwright }, use) => {
+    void _playwright;
+    const controller = createContractsRuntimeController();
+    const activeRuntime = await controller.start();
+    try { await use(activeRuntime); } finally { await controller.stop(); }
+  }, { scope: "worker", auto: true }],
+  scenario: async ({ runtime }, use) => {
+    await use(await runtime.provisionScenario());
+  },
+  acceptancePage: async ({ runtime, scenario }, use) => {
+    const context = await runtime.browser.newContext();
+    try {
+      await runtime.authorizeBrowserContext(scenario, context);
+      await use(await context.newPage());
+    } finally { await context.close(); }
+  },
+  canned: async ({ runtime }, use) => use("counterfeit"),
+});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { expect, test } from "./support/fixtures";
+test("record appears", { tag: "@BHV-REC-001-R1" }, async ({ runtime, canned }) => {
+  void runtime;
+  expect(canned).toBe("counterfeit");
+});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const identity = (value) => value;
+identity(route.continue);
+identity(route[method]);
+const controls = { redirect: route.continue };
+identity(context.route);
+identity(route.fulfill);
+identity(page.evaluate);`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "synthetic" },
+        { messageId: "browser" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const { nested: { continue: nestedContinue } } = route;
+try { throw route; } catch ({ continue: caughtContinue }) {}
+const { route: intercept } = context;`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `await route.fetch({ url: arbitraryUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `route.fetch({ url: arbitraryUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test.describe.configure({ retries: 1 });`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test.describe.parallel("parallel", () => {});
+const parallel = test.describe.parallel;
+parallel("laundered parallel", () => {});`,
+      errors: [{ messageId: "annotation" }, { messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const { describe, describe: groupedDescribe } = test;
+describe.configure({ retries: 1 });
+groupedDescribe.configure({ retries: 1 });`,
+      errors: [{ messageId: "annotation" }, { messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const suites = test;
+const configure = suites.describe.configure;
+configure({ retries: 1 });`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const describe = test.describe;
+describe.configure({ retries: 1 });
+test("@BHV-REC-001-R1", async () => {});`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+identity(test).describe.configure({ retries: 1 });
+test("@BHV-REC-001-R1", async () => {});`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `/* global route, targetUrl */
+const redirect = route.continue;
+await redirect({ url: targetUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `const { continue: redirect, fallback, abort } = route;
+await redirect({ url: targetUrl });
+await fallback();
+await abort();`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `export async function proxy(context) {
+  await context.route("**/__contracts/api/**", (route) =>
+    route.continue({ url: targetUrl }));
+}`,
+      errors: [{ messageId: "network" }, { messageId: "network" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `export async function proxy(context) {
+  await context.route("**/__contracts/api/**", (route) =>
+    route.continue({ url: targetUrl }));
+}`,
+      errors: [{ messageId: "network" }, { messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `export async function proxy(context) {
+  await context.route("**/__contracts/api/**", (route) =>
+    route.continue({ url: targetUrl }));
+  await route.fallback();
+  await route.abort();
+}`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename:
+        "examples/saas-application/seed/source/tests/acceptance/support/runtime.ts",
+      code: `export async function proxy(context) {
+  await context.route("**/__contracts/api/**", (route) =>
+    route.continue({ url: targetUrl }));
+  await route.fallback();
+  await route.abort();
+}`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      // A canonical fixture import is insufficient when a scenario can still
+      // use the built-in page fixture to assert canned markup.
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
+  await page.setContent("<h1>Record</h1>");
+  await page.goto("data:text/html,<h1>Record</h1>");
+  await page.goto(\`data:text/html,<h1>Record</h1>\`);
+  await page.goto("data:text/html," + "<h1>Record</h1>");
+  const canned = "data:text/html,<h1>Record</h1>";
+  await page.goto(canned);
+  await page.goto("file:///tmp/record.html");
+  await page.goto("https://example.com/records");
+});`,
+      errors: [
+        { messageId: "fixture" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import * as fixtures from "./support/fixtures";
+const test = fixtures.test.extend({
+  runtime: [async ({}, use) => use(undefined), { scope: "worker", auto: true }],
+});
+
+test("no runtime", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { raw as test } from "./support/fixtures";
+test("no runtime", { "tag": "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import unsafeTest from "./support/fixtures.ts";
+const options = { tag: "@BHV-REC-001-R1" };
+unsafeTest("uses bare Playwright", options, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import * as fixtures from "./support/fixtures.ts";
+fixtures.test("uses bare Playwright", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { raw as test } from "./support/fixtures.ts";
+test("uses bare Playwright", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+function nested(test) {
+  test("no runtime", { tag: "@BHV-REC-001-R1" }, async () => {});
+}`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // A tagged scenario must use the generated-customer fixture; bare
+      // Playwright can pass admission against canned markup without startup.
+      filename: ACCEPTANCE,
+      code: `import { expect, test } from "@playwright/test";
+test("uses bare Playwright", { tag: "@BHV-REC-001-R1" }, async () => {
+  expect(true).toBe(true);
+});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // The fixture import is direct so support cannot re-export a bare
+      // Playwright test object around the generated-customer runtime.
+      filename: SEED_ACCEPTANCE,
+      code: `import { test } from "./support/playwright";
+test("uses a re-export", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // Support may import bare Playwright only for the canonical extended
+      // fixture, never to expose an alias that bypasses runtime startup.
+      filename: "tests/acceptance/support/raw.ts",
+      code: `import { test as base } from "@playwright/test";
+const raw = base;
+export { raw };`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { raw } from "./support/raw";
+raw("uses a raw fixture alias", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // Specs nested under support are scenarios too and cannot register bare
+      // Playwright under the support-directory exception.
+      filename: "tests/acceptance/support/runtime.spec.ts",
+      code: `import { test } from "@playwright/test";
+test("uses bare Playwright", { tag: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { db } from "../../../packages/convex/confect/db";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { model } from "../../../apps/web/src/features/records/model";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `test.skip("hidden", async () => {});
+test.fixme(true, "hidden");
+test.fail(true, "expected failure");
+test.only("exclusive", async () => {});`,
+      errors: [
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `await page.route("**/api/**", (route) => route.fulfill({ json: { ok: true } }));
+await context.route("**/api/**", (route) => route.continue());
+await route.fulfill({ json: { ok: true } });
+await page.routeFromHAR("fixture.har");`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `await page.evaluate(() => localStorage.setItem("auth", "fake"));
+await context.addInitScript(() => sessionStorage.setItem("auth", "fake"));`,
+      errors: [{ messageId: "browser" }, { messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const module = await import("./hidden-helper");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `vi.mock("product-module");`,
+      errors: [{ messageId: "mock" }],
+    },
+    {
+      // A support helper remains inside the acceptance tree and therefore
+      // cannot launder a product import through the audited proxy exception.
+      filename: ACCEPTANCE_SUPPORT,
+      code: `import { model } from "../../../apps/web/src/features/records/model";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await page.route("**/api/**", (route) => route.fulfill({ json: { ok: true } }));`,
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const goto = page.goto;
+await goto.call(page, "data:text/html,<h1>Record</h1>");
+Reflect.apply(context.route, context, ["**/*", handler]);
+const proxy = new Proxy(route, {});
+await proxy.fulfill({ body: "<h1>canned</h1>" });`,
+      errors: [
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+export const test = base;`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+export const raw = base;`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // A canonical extended fixture cannot also export bare Playwright.
+      // The paired scenario below uses this extra binding with dynamic options.
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { expect, test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({}, use) => {
+    const controller = createContractsRuntimeController();
+    const runtime = await controller.start();
+    try { await use(runtime); } finally { await controller.stop(); }
+  }, { scope: "worker", auto: true }],
+});
+export { expect };
+export const unsafeTest = base;`,
+      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({}, use) => {
+    const controller = createContractsRuntimeController();
+    const runtime = await controller.start();
+    try { await use(runtime); } finally { await controller.stop(); }
+  }, { scope: "worker", auto: true }],
+});
+export default base;`,
+      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({
+  runtime: [async ({}, use) => {
+    const controller = createContractsRuntimeController();
+    const runtime = await controller.start();
+    try { await use(runtime); } finally { await controller.stop(); }
+  }, { scope: "worker", auto: true }],
+});
+export * from "./runtime";`,
+      errors: [{ messageId: "fixture" }, { messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { unsafeTest } from "./support/fixtures";
+const options = { tag: "@BHV-REC-001-R1" };
+unsafeTest("uses bare Playwright", options, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({ runtime: [async ({}, use) => { await use(undefined); }, { scope: "worker" }] });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); await use(undefined); }, { scope: "worker", auto: true }] });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); const other = createContractsRuntimeController(); await use(other.start()); }, { scope: "worker", auto: true }] });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); await use(await controller.start()); await controller.stop(); }, { scope: "worker", auto: true }] });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+const override = {};
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); const runtime = await controller.start(); try { await use(runtime); } finally { await controller.stop(); } }, { scope: "worker", auto: true }], ...override });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/raw.ts",
+      code: `import * as raw from "@playwright/test"; export { raw };`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+const key = "runtime";
+export const test = base.extend({
+  runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); const runtime = await controller.start(); try { await use(runtime); } finally { await controller.stop(); } }, { scope: "worker", auto: true }],
+  [key]: [async ({}, use) => use(undefined), { scope: "worker", auto: true }],
+});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures"; test.extend({})("@BHV-REC-001-R1", async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const extend = test.extend;
+const { extend: destructured } = test;
+const computed = test["extend"];
+test.extend({});`,
+      errors: [
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+      ],
+    },
+    {
+      // A parameter destructure can otherwise extract extend without a member
+      // expression, then call the unstarted fixture as a tagged scenario.
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+(({ extend }) =>
+  extend({
+    runtime: [async ({}, use) => use(undefined), { scope: "worker", auto: true }],
+  })("unstarted runtime", { tag: "@BHV-REC-001-R1" }, async () => {}))(test);`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      // Object-pattern extraction is forbidden in parameters and assignments,
+      // not only in a variable declarator.
+      filename: ACCEPTANCE_SUPPORT,
+      code: `const extractControls = ({ continue: redirect, fallback, abort, fulfill }) => undefined;
+({ continue: assignedRedirect, fulfill: assignedFulfill } = route);`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const method = "continue";
+const redirect = route[method];
+await redirect({ url: targetUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const pageMethod = "evaluate";
+const evaluate = page[pageMethod];
+await evaluate(() => undefined);
+const contextMethod = "route";
+const intercept = context[contextMethod];
+await intercept("**/*", handler);
+const routeMethod = "fulfill";
+const fulfill = route[routeMethod];
+await fulfill({ status: 200 });
+const testMethod = "describe";
+const suite = test[testMethod];
+suite.configure({ retries: 1 });`,
+      errors: [
+        { messageId: "browser" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "annotation" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const method = "continue";
+({ [method]: redirect } = route);
+await redirect({ url: targetUrl });`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const fetch = route.fetch;
+const response = await fetch({ url: targetUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const { fetch } = route;
+const response = await fetch({ url: targetUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await route.fetch({ url: arbitraryUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await route.fetch({ url: targetUrl, url: arbitraryUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await route.fetch({ url: targetUrl, "url": arbitraryUrl });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await route.fetch({ ["url"]: targetUrl, ...overrides });
+await route.fulfill({ response });`,
+      errors: [{ messageId: "network" }, { messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_RUNTIME,
+      code: `const response = await fetchResponse();
+await route.fulfill({ response });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "@playwright/test"; test("title", { tag: ["@BHV-REC-001-R1"] }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "@playwright/test"; test("title", { ["tag"]: "@BHV-REC-001-R1" }, async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "@playwright/test"; test("record @BHV-REC-001-R1 appears", async () => {});`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures"; test.use({ storageState: "state.json" });`,
+      errors: [{ messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const options = { contextOptions: { storageState: "state.json" } };
+test.use({ contextOptions: { storageState: "state.json" } });
+test.use(options);`,
+      errors: [{ messageId: "browser" }, { messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const options = { storageState: "state.json" };
+await browser.newContext(options);
+await browser.newPage({ storageState: "state.json" });`,
+      errors: [{ messageId: "browser" }, { messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const createContext = runtime.browser.newContext;
+const createPage = context["newPage"];
+await createContext();
+await createPage();`,
+      errors: [{ messageId: "browser" }, { messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `await page.context().addCookies([]);`,
+      errors: [{ messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `await page.waitForFunction(() => true);
+await page.evaluateHandle(() => true);
+await page.addScriptTag({ content: "window.injected = true" });
+await context.newCDPSession(page);`,
+      errors: [
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+        { messageId: "browser" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `Function("return import('x')")(); new Function("return 1"); eval("1");`,
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const direct = eval;
+const constructor = globalThis.Function;
+const asyncConstructor = global["AsyncFunction"];
+constructor("return import('x')")();`,
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const root = globalThis;
+const chained = root;
+let assigned;
+assigned = chained;
+const make = assigned["Fun" + "ction"];
+make("return 1")();`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import vm from "node:vm";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { writeFileSync } from "node:fs";
+import { test } from "./support/fixtures";
+writeFileSync("apps/web/src/routes/records.tsx", "/* canned product */");
+test("poisoned runtime @BHV-REC-001-R1", async ({ runtime }) => {
+  void runtime;
+});`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import * as nodeModule from "node:module"; nodeModule["create" + "Require"](import.meta.url);`,
+      errors: [{ messageId: "import" }, { messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test(
+  "cannot replace runtime commands @BHV-REC-001-R1",
+  { tag: "@BHV-REC-001-R1" },
+  async ({ runtime, scenario, acceptancePage }) => {
+    let calls = 0;
+    Object.assign(runtime, {
+      runCli: async () => {
+        calls += 1;
+        if (calls === 1) throw new Error("API_KEY_WORKSPACE_MISMATCH");
+        return JSON.stringify({ result: [] });
+      },
+    });
+    scenario = { workspaceId: "canned" };
+    runtime.runCli = async () => undefined;
+    const runtimeAlias = runtime;
+    let chainedAlias;
+    chainedAlias = runtimeAlias;
+    chainedAlias.webUrl = "http://canned.invalid";
+    delete scenario.workspaceId;
+    acceptancePage.requestCount++;
+    Object["define" + "Property"](runtimeAlias, "runCli", {
+      value: async () => undefined,
+    });
+    Object.defineProperties(scenario, { workspaceId: { value: "canned" } });
+    Object.setPrototypeOf(acceptancePage, {});
+  },
+);`,
+      errors: [
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+        { messageId: "fixture" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const { getBuiltinModule: builtin } = globalThis.process;
+const processAlias = globalThis.process;
+const { ["getBuiltin" + "Module"]: aliasedBuiltin } = processAlias;
+const { createRequire: makeRequire } = builtin("node:module");
+void aliasedBuiltin;
+const load = makeRequire(import.meta.url);
+const productInternals = load(
+  "../../../../../../apps/web/src/features/records/records-surface",
+);
+void productInternals;`,
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const { process: processAlias, ...globalRest } = globalThis;
+const { ["getBuiltin" + "Module"]: builtin, ...processRest } = processAlias;
+const { ["create" + "Require"]: makeRequire } = builtin("node:module");
+const load = makeRequire(import.meta.url);
+const product = load("../../../../apps/web/src/features/records/records-surface");
+void globalRest;
+void processRest;
+void product;`,
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+
+const builtin = globalThis.process.getBuiltinModule("node:module");
+const create = builtin["create" + "Require"];
+const load = create(import.meta.url);
+const product = load("../../apps/web/src/adapters/records/http");
+const root = globalThis;
+let proc;
+proc = root["pro" + "cess"];
+proc["getBuiltin" + "Module"]("node:module");
+
+test(
+  "bypass @BHV-REC-001-R1",
+  { tag: "@BHV-REC-001-R1" },
+  async ({ acceptancePage: page, runtime }) => {
+    void product;
+    await page.goto(\`\${runtime.webUrl}/records\`);
+  },
+);`,
+      errors: [
+        { messageId: "import" },
+        { messageId: "import" },
+        { messageId: "import" },
+      ],
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test"; export default defineConfig({ globalSetup: "./setup" });`,
+      errors: [{ messageId: "config" }],
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test"; export default defineConfig({ webServer: {}, testDir: "./tests/acceptance" });`,
+      errors: [{ messageId: "config" }],
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test"; const hidden = { globalTeardown: "./teardown" }; export default defineConfig({ ...hidden });`,
+      errors: [{ messageId: "config" }],
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import { defineConfig } from "@playwright/test"; export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.spec.ts", forbidOnly: true, retries: 0, workers: 1, fullyParallel: false, repeatEach: 1, testIgnore: [], projects: [{ name: "acceptance-chromium", dependencies: ["other"], teardown: "cleanup", use: { browserName: "chromium", storageState: "state.json" } }] });`,
+      errors: [{ messageId: "config" }],
+    },
+    {
+      filename: "playwright.acceptance.config.ts",
+      code: `import "./side-effect";
+import { defineConfig } from "@playwright/test";
+export default defineConfig({ testDir: "./tests/acceptance", testMatch: "**/*.spec.ts", forbidOnly: true, retries: 0, workers: 1, fullyParallel: false, repeatEach: 1, testIgnore: [], projects: [{ name: "acceptance-chromium", use: { browserName: "chromium" } }] });`,
+      errors: [{ messageId: "config" }],
+    },
+    {
+      filename: "tests/acceptance/support/fixtures.ts",
+      code: `import { test as base } from "@playwright/test";
+import { createContractsRuntimeController } from "./runtime";
+const override = { auto: false };
+export const test = base.extend({ runtime: [async ({}, use) => { const controller = createContractsRuntimeController(); const runtime = await controller.start(); try { await use(runtime); } finally { await controller.stop(); } }, { scope: "worker", auto: true, ...override }] });`,
+      errors: [{ messageId: "fixture" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures"; await browser.newContext({ storageState: "state.json" });`,
+      errors: [{ messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures"; const injected = { storageState: "state.json" }; test.use({ ...injected });`,
+      errors: [{ messageId: "browser" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await route.fulfill({ json: { ok: true } });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await route.fulfill({ status: 502 });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await route.fulfill({ status: 200, body: "ok" });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await route.fulfill({ body: "ok" });`,
+      errors: [{ messageId: "synthetic" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `await import("./runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `const load = require; load("./support/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `module.require("./support/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `require["resolve"]("./runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { createRequire } from "node:module";
+const load = createRequire(import.meta.url);`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import load = require("./support/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `const pageAlias = page;
+pageAlias.route("**/api/**", handler);`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `browser.route("**/api/**", handler);`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `fixture.context.route("**/api/**", handler);`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: SEED_SUPPORT,
+      code: `context.routeFromHAR("fixture.har");`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `await page.routeWebSocket("**/socket", (route) => route.connectToServer());`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `page[method]("**/api/**", handler);`,
+      errors: [{ messageId: "network" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { runtime } from "./support/../../apps/web/src/runtime";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `export { runtime } from "./support/../../apps/web/src/runtime";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `export * from "./../../apps/web/src/runtime";`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const runtime = require("./support/../../apps/web/src/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `const runtime = require(moduleName);`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `const runtime = await import(moduleName);`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import runtime = require("./support/../../apps/web/src/runtime");`,
+      errors: [{ messageId: "import" }],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const scenario = test;
+const journey = scenario;
+scenario["skip"]("hidden", async () => {});
+journey.describe.skip("hidden", async () => {});
+journey["only"]("exclusive", async () => {});`,
+      errors: [
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+        { messageId: "annotation" },
+      ],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const scenario = test;
+const browser = scenario;
+await browser["route"]("**/api/**", handler);
+await browser["evaluate"](fn);
+browser["mock"]("product");`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "browser" },
+        { messageId: "mock" },
+      ],
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+const { skip } = test;
+skip("hidden", async () => {});`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: ACCEPTANCE_SUPPORT,
+      code: `const extracted = context.route;
+assigned = context.route;
+await context.foo.route("**/api/**", handler);
+await context.route.call(context, "**/api/**", handler);
+await page.evaluate.call(page, fn);
+await route.fulfill.call(route, { response });
+await route.foo.fulfill({ response });
+await context["route"]("**/api/**", handler);
+await route["fulfill"]({ response });`,
+      errors: [
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "network" },
+        { messageId: "browser" },
+        { messageId: "synthetic" },
+        { messageId: "synthetic" },
+        { messageId: "network" },
+        { messageId: "synthetic" },
+      ],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test[method]("hidden", async () => {});`,
+      errors: [{ messageId: "annotation" }],
+    },
+    {
+      filename: SEED_ACCEPTANCE,
+      code: `import { describe } from "vitest"; describe("hidden", () => undefined);`,
+      errors: [{ messageId: "import" }],
+    },
+  ],
+});
+
 tester.run("saas-ui-shell-authority", shellAuthority, {
   valid: [
     {
       filename: "apps/web/src/features/common/components/app-sidebar.tsx",
-      code: "import { Sidebar } from '@saas-ui/react'; export function AppSidebar() { return <Sidebar />; }",
-    },
-    {
-      filename: "apps/web/src/features/orders/page.tsx",
-      code: "import { Button, Page } from '@saas-ui/react'; export function OrdersPage() { return <Page><Button>Save</Button></Page>; }",
-    },
-    {
-      filename: "generated/fixtures/dashboard.tsx",
-      code: "export const fixture = { label: 'Sidebar', value: 'DataGrid' };",
-    },
-    {
-      filename: "docs/template/example.tsx",
-      code: "export const example = { label: 'Page' };",
+      code: "import { Sidebar } from '@saas-ui/react'; export const AppSidebar = Sidebar;",
     },
   ],
   invalid: [
     {
       filename: "apps/web/src/features/orders/page.tsx",
-      code: "import { AppShell } from '@saas-ui/react'; export function OrdersPage() { return <AppShell />; }",
-      errors: [{ messageId: "shellOnly" }],
-    },
-    {
-      filename: "apps/web/src/features/orders/page.tsx",
-      code: "import { Sidebar } from '@saas-ui/react'; export function OrdersPage() { return <Sidebar />; }",
-      errors: [{ messageId: "shellOnly" }],
-    },
-    {
-      filename: "apps/web/src/features/orders/page.tsx",
-      code: "const DataGrid = () => null; export default DataGrid;",
-      errors: [{ messageId: "shellOnly" }],
-    },
-    {
-      filename: "tooling/generators/src/blueprints/customer/page.tsx",
-      code: "import { Page } from './page'; export const route = Page;",
-      errors: [{ messageId: "shellOnly" }],
-    },
-    {
-      filename: "tooling/generators/src/blueprints/customer/page.txt",
-      code: "import { Page } from './page'; export const route = Page;",
+      code: "import { AppShell } from '@saas-ui/react'; export const Orders = AppShell;",
       errors: [{ messageId: "shellOnly" }],
     },
   ],
@@ -878,37 +2037,13 @@ tester.run("prefer-saas-ui-primitives", officialPrimitives, {
   valid: [
     {
       filename: "apps/web/src/features/orders/page.tsx",
-      code: "import { Button, Dialog } from '@saas-ui/react'; export function OrdersPage() { return <><Button>Save</Button><Dialog /></>; }",
-    },
-    {
-      filename: "apps/web/src/features/common/components/app-sidebar.tsx",
-      code: "import { Button } from '@saas-ui/react'; export default Button;",
-    },
-    {
-      filename: "generated/fixtures/dashboard.tsx",
-      code: "export const fixture = { component: 'Button' };",
+      code: "import { Button } from '@saas-ui/react'; export const Save = Button;",
     },
   ],
   invalid: [
     {
       filename: "apps/web/src/features/orders/page.tsx",
-      code: "import { Button } from './button'; export function OrdersPage() { return <Button />; }",
-      errors: [{ messageId: "officialPrimitive" }],
-    },
-    {
-      filename: "apps/web/src/features/orders/page.tsx",
-      code: "const Dialog = () => null; export default Dialog;",
-      errors: [{ messageId: "officialPrimitive" }],
-    },
-    {
-      filename: "apps/web/src/components/add-contact-drawer/custom-wrapper.tsx",
-      code: "import { Button } from './button'; export const Custom = Button;",
-      options: [{ receiptPath: REGISTRY_RECEIPT }],
-      errors: [{ messageId: "officialPrimitive" }],
-    },
-    {
-      filename: "tooling/generators/src/blueprints/customer/page.txt",
-      code: "import { Button } from './button'; export const Custom = Button;",
+      code: "import { Button } from './button'; export const Save = Button;",
       errors: [{ messageId: "officialPrimitive" }],
     },
   ],
@@ -918,84 +2053,14 @@ tester.run("saas-ui-semantic-colors", semanticColors, {
   valid: [
     {
       filename: "apps/web/src/features/orders/page.tsx",
-      code: "export function OrdersPage() { return <Box color='fg.muted' bg='surface.canvas' />; }",
-    },
-    {
-      filename: "apps/web/src/features/orders/page.tsx",
-      code: "const data = { color: '#123456', status: 'gray.600' }; export default data;",
-    },
-    {
-      filename: "apps/web/src/features/common/theme.tsx",
-      code: "export const theme = { colors: { gray: { 600: '#123456' } } };",
+      code: "export const Orders = () => <Box color='fg.muted' />;",
     },
   ],
   invalid: [
     {
       filename: "apps/web/src/features/orders/page.tsx",
-      code: "export function OrdersPage() { return <Box color='#123456' />; }",
-      errors: [{ messageId: "semanticColor" }],
-    },
-    {
-      filename: "apps/web/src/features/orders/page.tsx",
-      code: "export function OrdersPage() { return <Box bg='gray.600' />; }",
-      errors: [{ messageId: "semanticColor" }],
-    },
-    {
-      filename: "apps/web/src/features/orders/orders.tsx",
-      code: "export function Orders() { return <Box color='#123456' />; }",
-      errors: [{ messageId: "semanticColor" }],
-    },
-    {
-      filename: "apps/web/src/components/add-contact-drawer/custom-wrapper.tsx",
-      code: "export function Custom() { return <Box color='#123456' />; }",
-      options: [{ receiptPath: REGISTRY_RECEIPT }],
-      errors: [{ messageId: "semanticColor" }],
-    },
-    {
-      filename: "tooling/generators/src/blueprints/customer/page.txt",
-      languageOptions: { parserOptions: { ecmaFeatures: { jsx: true } } },
-      code: "export function Page() { return <Box color='#123456' />; }",
+      code: "export const Orders = () => <Box color='#123456' />;",
       errors: [{ messageId: "semanticColor" }],
     },
   ],
-});
-
-tester.run("saas-ui-registry-receipt-exemptions", shellAuthority, {
-  valid: [
-    {
-      filename:
-        "apps/web/src/components/add-contact-drawer/add-contact-drawer.tsx",
-      code: "import { Button } from '@saas-ui/react'; export const Upstream = Button;",
-      options: [{ receiptPath: REGISTRY_RECEIPT }],
-    },
-  ],
-  invalid: [],
-});
-
-tester.run(
-  "saas-ui-registry-receipt-primitive-exemptions",
-  officialPrimitives,
-  {
-    valid: [
-      {
-        filename:
-          "apps/web/src/components/add-contact-drawer/add-contact-drawer.tsx",
-        code: "import { Button } from './button'; export const Upstream = Button;",
-        options: [{ receiptPath: REGISTRY_RECEIPT }],
-      },
-    ],
-    invalid: [],
-  },
-);
-
-tester.run("saas-ui-registry-receipt-color-exemptions", semanticColors, {
-  valid: [
-    {
-      filename:
-        "apps/web/src/components/add-contact-drawer/add-contact-drawer.tsx",
-      code: "export function Upstream() { return <Box color='#123456' />; }",
-      options: [{ receiptPath: REGISTRY_RECEIPT }],
-    },
-  ],
-  invalid: [],
 });

@@ -1,4 +1,5 @@
 import assert from "node:assert/strict";
+import { createServer } from "node:net";
 import { fileURLToPath } from "node:url";
 import { test } from "vitest";
 
@@ -8,10 +9,31 @@ const repositoryRoot = fileURLToPath(
   new globalThis.URL("../../..", import.meta.url),
 );
 
+const allocateLoopbackPort = async () => {
+  const server = createServer();
+  await new Promise((resolve, reject) => {
+    server.once("error", reject);
+    server.listen({ host: "127.0.0.1", port: 0, exclusive: true }, resolve);
+  });
+  const address = server.address();
+  if (!address || typeof address === "string") {
+    await new Promise((resolve, reject) =>
+      server.close((error) => (error ? reject(error) : resolve())),
+    );
+    throw new Error("Loopback port allocation failed.");
+  }
+  const { port } = address;
+  await new Promise((resolve, reject) =>
+    server.close((error) => (error ? reject(error) : resolve())),
+  );
+  return port;
+};
+
 test("browser navigation leaves the supervised dev runtime healthy", async () => {
+  const webPort = await allocateLoopbackPort();
   const result = await checkDevRuntimeLongevity({
     cwd: repositoryRoot,
-    webPort: 15183,
+    webPort,
     longevityMs: 125_000,
   });
 

@@ -233,7 +233,9 @@ const governanceFiles = (
         .filter(
           ({ id, system }) =>
             retainedTopologyIds.has(id) &&
-            (workflowSelected || system !== "workflow-runtime"),
+            (workflowSelected || system !== "workflow-runtime") &&
+            (workflowSelected || !id.startsWith("workflow:")) &&
+            (id === "route:health" || !id.startsWith("route:")),
         )
         .map((resource) =>
           workflowSelected
@@ -259,6 +261,17 @@ const governanceFiles = (
               responsibility:
                 "present workspace record create, list, and detail states",
               surfaces: ["web"],
+              uses: ["access-and-tenancy"],
+              lifecycle: "active",
+            },
+            {
+              id: "headless:records-api",
+              kind: "headless",
+              system: "record-management",
+              path: "apps/web/src/adapters/records/http.ts",
+              responsibility:
+                "serve the generated Records HTTP/API boundary to headless callers",
+              surfaces: ["api"],
               uses: ["access-and-tenancy"],
               lifecycle: "active",
             },
@@ -646,7 +659,8 @@ export const SAAS_APPLICATION_PARAMETERIZED_ENTRIES = [
   "examples/saas-application/seed/crud-scenario.json",
   "examples/saas-application/seed/records.json",
   "examples/saas-application/seed/workspace.json",
-  "features/first-outcome.feature",
+  "product.contract.yaml",
+  "docs/template/generated/product-contract.md",
   "generated/blueprints/saas-application/application-contract.json",
 ] as const;
 
@@ -680,12 +694,33 @@ const SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS = [
   ["tooling/quality/src/check-definitions.mts", "copy"],
   ["tooling/eslint-plugin-template/index.mjs", "copy"],
   ["packages/convex/confect/_generated/tables/workspaces.ts", "copy"],
+  ["packages/convex/confect/_generated/refs.ts", "copy"],
+  [
+    "packages/convex/confect/_generated/registeredFunctions/access/members.ts",
+    "copy",
+  ],
+  [
+    "packages/convex/confect/_generated/registeredFunctions/auth/workspaces.ts",
+    "copy",
+  ],
+  ["packages/convex/confect/_generated/services.ts", "copy"],
+  ["packages/convex/confect/access/audit.ts", "copy"],
+  ["packages/convex/confect/access/email.ts", "copy"],
+  ["packages/convex/confect/access/handlerContext.ts", "copy"],
+  ["packages/convex/confect/access/lifecycle.ts", "copy"],
+  ["packages/convex/confect/access/lifecycleInvitations.ts", "copy"],
+  ["packages/convex/confect/access/members.impl.ts", "copy"],
   ["packages/convex/confect/access/members.spec.ts", "copy"],
   ["packages/convex/confect/access/provisioning.spec.ts", "copy"],
   ["packages/convex/confect/access/roles.ts", "copy"],
   ["packages/convex/confect/auth/workspaces.spec.ts", "copy"],
+  ["packages/convex/confect/auth/workspaces.impl.ts", "copy"],
   ["packages/convex/confect/errors.ts", "copy"],
   ["packages/convex/confect/tables/workspaces.ts", "copy"],
+  ["packages/convex/convex/_generated/api.d.ts", "copy"],
+  ["packages/convex/convex/_generated/api.js", "copy"],
+  ["packages/convex/convex/access/members.ts", "copy"],
+  ["packages/convex/convex/auth/workspaces.ts", "copy"],
   ["packages/convex/src/refs.ts", "copy"],
 ] as const;
 
@@ -748,6 +783,21 @@ function buildTargetPlan(
           ["tooling/app-map/src/composition.test.ts", "copy"],
           ["tooling/app-map/src/composition.ts", "copy"],
           ["tooling/app-map/src/schema.ts", "copy"],
+          ["tooling/app-map/src/build.ts", "copy"],
+          ["tooling/app-map/src/gitDiff.ts", "copy"],
+          ["tooling/app-map/src/validate.ts", "copy"],
+          ["tooling/app-map/package.json", "copy"],
+          ["packages/template-core/src/dataResourceCatalog.ts", "copy"],
+          ["packages/template-core/src/productTopology.ts", "copy"],
+          ["packages/template-core/src/systemCatalog.ts", "copy"],
+          ["packages/template-core/src/templateInstance/index.ts", "copy"],
+          ["docs/template/generated/workflow-semantics.md", "copy"],
+          ["eslint.config.mjs", "copy"],
+          ["tooling/eslint-plugin-template/index.mjs", "copy"],
+          [
+            "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+            "copy",
+          ],
           ["tooling/generators/src/crud-proof.test.ts", "copy"],
           ["tooling/quality/package.json", "copy"],
           ["tooling/quality/src/env-manifest.test.mts", "copy"],
@@ -942,6 +992,21 @@ function buildTargetPlan(
           "tooling/app-map/src/composition.test.ts",
           "tooling/app-map/src/composition.ts",
           "tooling/app-map/src/schema.ts",
+          "tooling/app-map/src/build.ts",
+          "tooling/app-map/src/gitDiff.ts",
+          "tooling/app-map/src/validate.ts",
+          "packages/template-core/src/dataResourceCatalog.ts",
+          "packages/template-core/src/productTopology.ts",
+          "packages/template-core/src/systemCatalog.ts",
+          "packages/template-core/src/productContract.ts",
+          "packages/template-core/src/workPackage.ts",
+          "packages/template-core/src/productPlan.ts",
+          "packages/template-core/src/templateInstance/index.ts",
+          "docs/template/generated/workflow-semantics.md",
+          "eslint.config.mjs",
+          "tooling/eslint-plugin-template/index.mjs",
+          "tooling/eslint-plugin-template/rules/acceptance-boundary.mjs",
+          "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
           "tooling/generators/src/crud-proof.test.ts",
           "tooling/quality/src/env-manifest.test.mts",
           "docs/template/generated/provenance/add-feature/records.json",

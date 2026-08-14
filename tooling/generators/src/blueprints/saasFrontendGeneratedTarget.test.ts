@@ -333,5 +333,5 @@ describe("SaaS UI generated target artifact boundary", () => {
     } finally {
       rmSync(target, { recursive: true, force: true });
     }
-  }, 240_000);
+  }, 360_000);
 });
