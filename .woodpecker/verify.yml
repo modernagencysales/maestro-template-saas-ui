@@ -24,4 +24,3 @@ steps:
       - apt-get update
       - apt-get install -y --no-install-recommends strace
       - tooling/ci/verify-chassis.sh
-    failure: cancel

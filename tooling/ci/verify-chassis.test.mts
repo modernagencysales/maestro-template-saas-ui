@@ -11,6 +11,7 @@ describe("customer chassis Woodpecker admission", () => {
       "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a",
     );
     expect(source).not.toMatch(/from_secret|^timeout:/mu);
+    expect(source).not.toContain("failure: cancel");
     expect(source).toContain("- event: pull_request");
     expect(source.match(/^ {2}- name:/gmu)).toHaveLength(1);
   });
