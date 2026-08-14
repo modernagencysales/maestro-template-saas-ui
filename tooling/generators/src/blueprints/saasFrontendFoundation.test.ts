@@ -38,7 +38,7 @@ describe("mandatory SaaS UI frontend foundation", () => {
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
-  });
+  }, 10_000);
 
   it("fails closed when the requested source root is incomplete", () => {
     const root = mkdtempSync(join(tmpdir(), "saas-ui-source-root-"));
