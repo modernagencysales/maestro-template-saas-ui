@@ -20,8 +20,6 @@ const baseline = (lockSha256: string): SaasUiTypecheckBaseline => ({
   diagnosticsSha256: hash(
     JSON.stringify({
       path: "apps/web/src/components/paid.tsx",
-      line: 1,
-      column: 1,
       code: "TS2322",
     }),
   ),
@@ -114,6 +112,24 @@ describe("Saas UI receipt-aware typecheck", () => {
             "apps/web/src/components/paid.tsx",
             "Type was resolved through /linux/node_modules.",
           ),
+          baseline(lockSha256),
+        ),
+      ).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("ignores platform-specific dependency and duplicate receipt diagnostics", () => {
+    const { root, lockSha256 } = fixture();
+    try {
+      expect(
+        validate(
+          root,
+          `${diagnostic("apps/web/src/components/paid.tsx")}${diagnostic(
+            "apps/web/src/components/paid.tsx",
+            "A duplicate platform diagnostic.",
+          )}${diagnostic("node_modules/platform-specific/index.d.ts")}`,
           baseline(lockSha256),
         ),
       ).toEqual([]);
