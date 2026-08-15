@@ -9,7 +9,7 @@ workPackages:
       - BHV-REC-003
       - BHV-REC-004
     appMapTargets:
-      - route:records
+      - route:$workspace/records
       - headless:records-api
     work:
       kind: fixture-to-real

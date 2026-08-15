@@ -14,7 +14,7 @@ The links below are structural coverage only. Causal strength and declared-surfa
 | Lifecycle | required |
 | Surfaces | `cli-process`, `web-ui` |
 | Typed plan paths | `docs/product/records-plan.md` |
-| App Map targets | `headless:records-api`, `route:records` |
+| App Map targets | `headless:records-api`, `route:$workspace/records` |
 | Acceptance file paths | `records.spec.ts` |
 ## @BHV-REC-002-R1 A CLI-created record appears in the web app
 
@@ -24,7 +24,7 @@ The links below are structural coverage only. Causal strength and declared-surfa
 | Lifecycle | required |
 | Surfaces | `cli-process`, `web-ui` |
 | Typed plan paths | `docs/product/records-plan.md` |
-| App Map targets | `headless:records-api`, `route:records` |
+| App Map targets | `headless:records-api`, `route:$workspace/records` |
 | Acceptance file paths | `records.spec.ts` |
 ## @BHV-REC-003-R1 A missing API key cannot create a record
 
@@ -34,7 +34,7 @@ The links below are structural coverage only. Causal strength and declared-surfa
 | Lifecycle | required |
 | Surfaces | `cli-process`, `web-ui` |
 | Typed plan paths | `docs/product/records-plan.md` |
-| App Map targets | `headless:records-api`, `route:records` |
+| App Map targets | `headless:records-api`, `route:$workspace/records` |
 | Acceptance file paths | `records.spec.ts` |
 ## @BHV-REC-004-R1 A workspace-bound key cannot write to another workspace
 
@@ -44,5 +44,5 @@ The links below are structural coverage only. Causal strength and declared-surfa
 | Lifecycle | required |
 | Surfaces | `cli-process` |
 | Typed plan paths | `docs/product/records-plan.md` |
-| App Map targets | `headless:records-api`, `route:records` |
+| App Map targets | `headless:records-api`, `route:$workspace/records` |
 | Acceptance file paths | `records.spec.ts` |

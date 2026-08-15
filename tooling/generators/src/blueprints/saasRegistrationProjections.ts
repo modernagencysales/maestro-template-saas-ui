@@ -1346,6 +1346,51 @@ const routeTree = (recordsSelected: boolean): string => {
   );
 };
 
+export const projectCurrentRecordsRouteTree = (source: string): string => {
+  const replacements = [
+    [
+      "import { Route as AppWorkspaceDashboardKanbanRouteImport } from './routes/_app/$workspace/_dashboard/kanban'",
+      "import { Route as AppWorkspaceDashboardKanbanRouteImport } from './routes/_app/$workspace/_dashboard/kanban'\nimport { Route as AppWorkspaceDashboardRecordsRouteImport } from './routes/_app/$workspace/_dashboard/records'",
+    ],
+    [
+      "const AppWorkspaceDashboardKanbanRoute =\n  AppWorkspaceDashboardKanbanRouteImport.update({\n    id: '/kanban',\n    path: '/kanban',\n    getParentRoute: () => AppWorkspaceDashboardRoute,\n  } as any)",
+      "const AppWorkspaceDashboardKanbanRoute =\n  AppWorkspaceDashboardKanbanRouteImport.update({\n    id: '/kanban',\n    path: '/kanban',\n    getParentRoute: () => AppWorkspaceDashboardRoute,\n  } as any)\nconst AppWorkspaceDashboardRecordsRoute =\n  AppWorkspaceDashboardRecordsRouteImport.update({\n    id: '/records',\n    path: '/records',\n    getParentRoute: () => AppWorkspaceDashboardRoute,\n  } as any)",
+    ],
+    [
+      "  '/$workspace/kanban': typeof AppWorkspaceDashboardKanbanRoute",
+      "  '/$workspace/kanban': typeof AppWorkspaceDashboardKanbanRoute\n  '/$workspace/records': typeof AppWorkspaceDashboardRecordsRoute",
+    ],
+    [
+      "  '/_app/$workspace/_dashboard/kanban': typeof AppWorkspaceDashboardKanbanRoute",
+      "  '/_app/$workspace/_dashboard/kanban': typeof AppWorkspaceDashboardKanbanRoute\n  '/_app/$workspace/_dashboard/records': typeof AppWorkspaceDashboardRecordsRoute",
+    ],
+    [
+      "    | '/$workspace/kanban'",
+      "    | '/$workspace/kanban'\n    | '/$workspace/records'",
+    ],
+    [
+      "    | '/_app/$workspace/_dashboard/kanban'",
+      "    | '/_app/$workspace/_dashboard/kanban'\n    | '/_app/$workspace/_dashboard/records'",
+    ],
+    [
+      "    '/_app/$workspace/_dashboard/kanban': {\n      id: '/_app/$workspace/_dashboard/kanban'\n      path: '/kanban'\n      fullPath: '/$workspace/kanban'\n      preLoaderRoute: typeof AppWorkspaceDashboardKanbanRouteImport\n      parentRoute: typeof AppWorkspaceDashboardRoute\n    }",
+      "    '/_app/$workspace/_dashboard/kanban': {\n      id: '/_app/$workspace/_dashboard/kanban'\n      path: '/kanban'\n      fullPath: '/$workspace/kanban'\n      preLoaderRoute: typeof AppWorkspaceDashboardKanbanRouteImport\n      parentRoute: typeof AppWorkspaceDashboardRoute\n    }\n    '/_app/$workspace/_dashboard/records': {\n      id: '/_app/$workspace/_dashboard/records'\n      path: '/records'\n      fullPath: '/$workspace/records'\n      preLoaderRoute: typeof AppWorkspaceDashboardRecordsRouteImport\n      parentRoute: typeof AppWorkspaceDashboardRoute\n    }",
+    ],
+    [
+      "  AppWorkspaceDashboardKanbanRoute: typeof AppWorkspaceDashboardKanbanRoute",
+      "  AppWorkspaceDashboardKanbanRoute: typeof AppWorkspaceDashboardKanbanRoute\n  AppWorkspaceDashboardRecordsRoute: typeof AppWorkspaceDashboardRecordsRoute",
+    ],
+    [
+      "  AppWorkspaceDashboardKanbanRoute: AppWorkspaceDashboardKanbanRoute,",
+      "  AppWorkspaceDashboardKanbanRoute: AppWorkspaceDashboardKanbanRoute,\n  AppWorkspaceDashboardRecordsRoute: AppWorkspaceDashboardRecordsRoute,",
+    ],
+  ] as const;
+  return replacements.reduce(
+    (value, [search, replacement]) => replaceAll(value, search, replacement),
+    source,
+  );
+};
+
 export const buildSaasRegistrationProjections = (
   options: {
     readonly current?: boolean;

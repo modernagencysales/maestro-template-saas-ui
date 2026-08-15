@@ -277,6 +277,15 @@ describe("saas application blueprint", () => {
       '{ scope: "worker", auto: true }',
     );
     expect(records.get("product.contract.yaml")).toContain("BHV-REC-004");
+    expect(records.get("docs/product/records-plan.md")).toContain(
+      "route:$workspace/records",
+    );
+    expect(
+      records.get("docs/template/generated/product-contract.md"),
+    ).toContain("route:$workspace/records");
+    expect(records.get("apps/web/src/routeTree.gen.ts")).toContain(
+      "fullPath: '/$workspace/records'",
+    );
     expect(
       buildSaasApplicationTargetPlan({
         name: "Records App",
@@ -293,13 +302,33 @@ describe("saas application blueprint", () => {
       readonly resources?: readonly {
         readonly id: string;
         readonly kind: string;
+        readonly system: string;
       }[];
     };
+    const canonicalFoundationRoutes = parseProductTopology(
+      JSON.parse(
+        readFileSync(
+          join(repoRoot, "docs/template/product-topology.json"),
+          "utf8",
+        ),
+      ),
+    )
+      .resources.filter(({ kind }) => kind === "route")
+      .map(({ id }) => id);
     expect(
       recordsTopology.resources
         ?.filter(({ kind }) => kind === "route")
         .map(({ id }) => id),
-    ).toEqual(["route:records"]);
+    ).toEqual([...canonicalFoundationRoutes, "route:$workspace/records"]);
+    const recordsSystemIds = new Set(
+      parseSystemCatalog(
+        JSON.parse(records.get("docs/template/system-catalog.json") ?? "{}"),
+      ).systems.map(({ id }) => id),
+    );
+    for (const route of recordsTopology.resources?.filter(
+      ({ kind }) => kind === "route",
+    ) ?? [])
+      expect(recordsSystemIds.has(route.system), route.id).toBe(true);
   });
 
   it("projects a tsconfig for every retained root project reference", () => {
@@ -455,8 +484,8 @@ describe("saas application blueprint", () => {
         neutral.lock.importers?.[importer]?.dependencies,
       ).not.toHaveProperty("@maestro-template/workflow-tooling");
     expect(
-      neutral.systems.systems.some(({ id }) => id === "workflow-runtime"),
-    ).toBe(false);
+      neutral.systems.systems.find(({ id }) => id === "workflow-runtime"),
+    ).toMatchObject({ tables: [] });
     for (const generatedPath of [
       "packages/convex/confect/_generated/schema.ts",
       "packages/convex/confect/_generated/convexSchema.ts",
@@ -760,7 +789,7 @@ describe("saas application blueprint", () => {
     expect(JSON.parse(entry.content)).toMatchObject({
       generator: "add-feature",
       commandFamily: "template:add-feature",
-      name: "records",
+      name: "$workspace/records",
       ownership: { system: "record-management", disposition: "extend" },
       generatedPaths: expect.arrayContaining([
         "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",

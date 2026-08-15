@@ -26,6 +26,7 @@ import {
   buildSaasRegistrationProjections,
   CURRENT_FACTORY_PRODUCT_TABLES,
   currentSource,
+  projectCurrentRecordsRouteTree,
 } from "./saasRegistrationProjections";
 
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
@@ -275,7 +276,7 @@ const currentContractFiles = (
       ? ["docs/product/records-plan.md"]
       : [],
     appMapTargets: selectsSaasApplicationPattern(options, "records-example")
-      ? ["route:records", "headless:records-api"]
+      ? ["route:$workspace/records", "headless:records-api"]
       : [],
     acceptancePaths: selectsSaasApplicationPattern(options, "records-example")
       ? ["records.spec.ts"]
@@ -383,7 +384,7 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
     {
       generator: "add-feature",
       commandFamily: "template:add-feature",
-      name: "records",
+      name: "$workspace/records",
       ownership: { system: "record-management", disposition: "extend" },
       generatedPaths: [
         "packages/convex/confect/tables/records.ts",
@@ -684,6 +685,11 @@ export const buildFactorySaasApplicationFiles = (options: {
     sourceRoot === undefined
       ? currentSource
       : (path) => readFileSync(resolve(sourceRoot, path), "utf8"),
+  ).map((file) =>
+    file.path === "apps/web/src/routeTree.gen.ts" &&
+    selectsSaasApplicationPattern(options, "records-example")
+      ? { ...file, content: projectCurrentRecordsRouteTree(file.content) }
+      : file,
   );
   const frontendPaths = new Set(frontendFiles.map(({ path }) => path));
   const currentFiles = currentSaasApplicationFiles(options).filter(

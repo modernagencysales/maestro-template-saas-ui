@@ -132,9 +132,19 @@ const governanceFiles = (
   const releasedTopology = parseProductTopology(
     releasedBlueprintJson("docs/template/product-topology.json"),
   );
+  const canonicalRouteSystemIds = new Set(
+    topology.resources
+      .filter(({ kind }) => kind === "route")
+      .map(({ system }) => system),
+  );
   const retainedSystemIds = new Set(
     releasedSystems.systems
-      .filter(({ id }) => workflowSelected || id !== "workflow-runtime")
+      .filter(
+        ({ id }) =>
+          workflowSelected ||
+          id !== "workflow-runtime" ||
+          canonicalRouteSystemIds.has(id),
+      )
       .map(({ id }) => id),
   );
   const retainedEmailTableIds = [
@@ -145,7 +155,9 @@ const governanceFiles = (
     "emailSuppressions",
   ] as const;
   const retainedTableIds = new Set([
-    ...releasedSystems.systems.flatMap(({ tables }) => tables),
+    ...releasedSystems.systems
+      .filter(({ id }) => workflowSelected || id !== "workflow-runtime")
+      .flatMap(({ tables }) => tables),
     "deployAuthorityAuditEvents",
     ...retainedEmailTableIds,
   ]);
@@ -232,10 +244,10 @@ const governanceFiles = (
       ...topology.resources
         .filter(
           ({ id, system }) =>
-            retainedTopologyIds.has(id) &&
-            (workflowSelected || system !== "workflow-runtime") &&
-            (workflowSelected || !id.startsWith("workflow:")) &&
-            (id === "route:health" || !id.startsWith("route:")),
+            id.startsWith("route:") ||
+            (retainedTopologyIds.has(id) &&
+              (workflowSelected || system !== "workflow-runtime") &&
+              (workflowSelected || !id.startsWith("workflow:"))),
         )
         .map((resource) =>
           workflowSelected
@@ -254,7 +266,7 @@ const governanceFiles = (
       ...(recordsSelected
         ? [
             {
-              id: "route:records",
+              id: "route:$workspace/records",
               kind: "route",
               system: "record-management",
               path: "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
