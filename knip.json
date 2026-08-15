@@ -10,7 +10,8 @@
       "entry": [
         "src/start.ts",
         "src/routes/**/*.{ts,tsx}",
-        "src/components/**/*.{ts,tsx}"
+        "src/components/**/*.{ts,tsx}",
+        "src/features/**/*.{ts,tsx}"
       ]
     },
     "packages/convex": {

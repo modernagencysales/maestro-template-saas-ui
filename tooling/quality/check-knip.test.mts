@@ -33,6 +33,9 @@ describe("check:knip", () => {
     expect(config.workspaces["apps/web"]?.entry).toContain(
       "src/components/**/*.{ts,tsx}",
     );
+    expect(config.workspaces["apps/web"]?.entry).toContain(
+      "src/features/**/*.{ts,tsx}",
+    );
     expect(config.workspaces["packages/ui"]?.entry).toContain("src/*/index.ts");
   });
 });
