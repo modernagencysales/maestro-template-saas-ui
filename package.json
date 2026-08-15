@@ -138,11 +138,9 @@
     "check:app-map": "pnpm --dir tooling/app-map check"
   },
   "devDependencies": {
-    "@axe-core/playwright": "^4.12.1",
     "@effect/language-service": "0.87.1",
     "@eslint/js": "^9.0.0",
     "@playwright/test": "1.61.1",
-    "@saas-ui/cli": "0.1.0-next.1",
     "@saas-ui/registry": "0.2.0-next.0",
     "@stryker-mutator/core": "9.6.1",
     "@stryker-mutator/typescript-checker": "9.6.1",

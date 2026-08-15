@@ -6,13 +6,55 @@
       "entry": ["package.json"],
       "project": []
     },
+    "apps/web": {
+      "entry": [
+        "src/start.ts",
+        "src/routes/**/*.{ts,tsx}",
+        "src/components/**/*.{ts,tsx}"
+      ]
+    },
     "packages/convex": {
       "ignoreDependencies": ["dodopayments"]
+    },
+    "packages/i18n": {
+      "ignoreDependencies": [
+        "@formatjs/intl-localematcher",
+        "@formatjs/ts-transformer",
+        "intl-messageformat",
+        "negotiator",
+        "server-only"
+      ]
+    },
+    "packages/ui": {
+      "entry": ["src/*/index.ts"],
+      "ignoreDependencies": [
+        "@internationalized/date",
+        "@react-hookz/web",
+        "@storybook/addon-essentials",
+        "@storybook/addon-links",
+        "@storybook/cli",
+        "@tiptap/extension-mention",
+        "@tiptap/extension-text-style",
+        "@tiptap/suggestion",
+        "@workspace/i18n",
+        "date-fns",
+        "prosemirror-commands",
+        "prosemirror-dropcursor",
+        "prosemirror-gapcursor",
+        "prosemirror-history",
+        "prosemirror-keymap",
+        "prosemirror-model",
+        "prosemirror-schema-list",
+        "prosemirror-state",
+        "prosemirror-transform",
+        "prosemirror-view",
+        "react-icons",
+        "react-is"
+      ]
     }
   },
   "ignoreDependencies": [
     "@blocknote/core",
-    "@blocknote/react",
     "@confect/js",
     "@confect/core",
     "@confect/server",
@@ -20,23 +62,17 @@
     "@confect/test",
     "@convex-dev/prosemirror-sync",
     "@convex-dev/workflow",
-    "@effect/platform-node",
     "@effect/vitest",
-    "@maestro-template/editor-core",
-    "@maestro-template/editor-react",
     "@maestro-template/template-core",
     "@maestro-template/workflow-tooling",
     "@posthog/convex",
-    "@tailwindcss/vite",
     "@tiptap/core",
     "@tiptap/pm",
     "convex",
     "decode-named-character-reference",
     "effect",
-    "ioredis",
     "react",
     "react-dom",
-    "tailwindcss",
     "tsx"
   ]
 }

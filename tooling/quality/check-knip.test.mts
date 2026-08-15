@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { readFileSync } from "node:fs";
 import { expectDescriptorPassesAndFails } from "./src/check-test-helpers.mts";
 import { descriptor } from "./check-knip.mts";
 
@@ -20,5 +21,18 @@ describe("check:knip", () => {
         }),
       ]),
     );
+  });
+
+  it("keeps the canonical UI shelves reachable for dependency analysis", () => {
+    const config = JSON.parse(readFileSync("knip.json", "utf8")) as {
+      readonly workspaces: Readonly<
+        Record<string, { readonly entry?: readonly string[] }>
+      >;
+    };
+
+    expect(config.workspaces["apps/web"]?.entry).toContain(
+      "src/components/**/*.{ts,tsx}",
+    );
+    expect(config.workspaces["packages/ui"]?.entry).toContain("src/*/index.ts");
   });
 });
