@@ -101,8 +101,38 @@ describe("check:provider-boundary", () => {
 
   it("allows explicit runtime/auth boundary files", async () => {
     const result = await evaluateFixture({
+      "apps/web/src/lib/auth/route-auth.ts": `
+        import { getAuthKitContext } from "@workos/authkit-tanstack-react-start";
+      `,
+      "apps/web/src/lib/auth/workos-auth-catch-all.ts": `
+        import { getAuthKitContext } from "@workos/authkit-tanstack-react-start";
+      `,
+      "apps/web/src/lib/auth/workos-auth-entry.ts": `
+        import { createAuthService } from "@workos/authkit-session";
+      `,
+      "apps/web/src/lib/auth/workos-auth-loader.ts": `
+        import { getAuthKitContext } from "@workos/authkit-tanstack-react-start";
+      `,
+      "apps/web/src/lib/auth/workos-auth.ts": `
+        import { AuthKitProvider } from "@workos/authkit-tanstack-react-start/client";
+      `,
+      "apps/web/src/lib/auth/workos-cookie-session-storage.ts": `
+        import { CookieSessionStorage } from "@workos/authkit-session";
+      `,
+      "apps/web/src/lib/auth/workos-logout.ts": `
+        import { createAuthService } from "@workos/authkit-session";
+      `,
       "apps/web/src/routes/__root.tsx": `
         import { AuthKitProvider } from "@workos/authkit-tanstack-react-start/client";
+      `,
+      "apps/web/src/routes/api/auth/callback.tsx": `
+        import { handleCallbackRoute } from "@workos/authkit-tanstack-react-start";
+      `,
+      "apps/web/src/routes/api/auth/sign-in.tsx": `
+        import { createAuthService } from "@workos/authkit-session";
+      `,
+      "apps/web/src/routes/api/auth/sign-up.tsx": `
+        import { createAuthService } from "@workos/authkit-session";
       `,
       "apps/web/src/start.ts": `
         import { authkitMiddleware } from "@workos/authkit-tanstack-react-start";
@@ -123,6 +153,16 @@ describe("check:provider-boundary", () => {
       "apps/web/src/provider.test.ts": `
         import { OpenAI } from "openai";
         export const fixture = OpenAI;
+      `,
+    });
+
+    expect(result).toEqual({ ok: true, findings: [] });
+  });
+
+  it("ignores generated build output", async () => {
+    const result = await evaluateFixture({
+      "apps/web/.output/server/index.js": `
+        import { createAuthService } from "@workos/authkit-session";
       `,
     });
 
