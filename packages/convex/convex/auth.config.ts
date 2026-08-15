@@ -4,23 +4,19 @@ export type WorkosConvexAuthConfig = {
       readonly type: "customJwt";
       readonly issuer: string;
       readonly jwks: string;
-      readonly applicationID: string;
       readonly algorithm: "RS256";
     },
   ];
 };
 
 export const deriveWorkosConvexAuthConfig = (input: {
-  readonly issuer: string;
-  readonly jwksUrl: string;
   readonly applicationId: string;
 }): WorkosConvexAuthConfig => ({
   providers: [
     {
       type: "customJwt",
-      issuer: input.issuer,
-      jwks: input.jwksUrl,
-      applicationID: input.applicationId,
+      issuer: `https://api.workos.com/user_management/${input.applicationId}`,
+      jwks: `https://api.workos.com/sso/jwks/${input.applicationId}`,
       // Convex rejects customJwt providers without an explicit algorithm.
       algorithm: "RS256",
     },
@@ -28,9 +24,7 @@ export const deriveWorkosConvexAuthConfig = (input: {
 });
 
 const authConfig = deriveWorkosConvexAuthConfig({
-  issuer: "https://api.workos.com",
-  jwksUrl: "https://api.workos.com/sso/jwks/org_acme_demo",
-  applicationId: "client_fake_local_key",
+  applicationId: process.env.WORKOS_CLIENT_ID ?? "client_fake_local_key",
 });
 
 export default authConfig;
