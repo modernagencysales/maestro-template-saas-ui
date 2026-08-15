@@ -1,11 +1,12 @@
-// @vitest-environment jsdom
-
-import { beforeEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 describe("getQueryClient", () => {
   beforeEach(() => {
+    vi.stubGlobal("window", {});
     vi.resetModules();
   });
+
+  afterEach(() => vi.unstubAllGlobals());
 
   it("configures the singleton used by the Starter provider", async () => {
     const { getQueryClient } = await import("./react-query");
