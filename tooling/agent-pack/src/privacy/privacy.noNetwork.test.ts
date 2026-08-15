@@ -28,14 +28,11 @@ const candidateRelease = (input: {
   readonly replacements: ReadonlyMap<string, "copy" | "generate" | undefined>;
   readonly source: ReturnType<typeof buildCandidateReleaseFixture>["source"];
 } => {
-  const plan = buildSaasApplicationTargetPlan({
-    name: input.name,
-    firstOutcome: input.outcome,
-  });
+  let plan!: ReturnType<typeof buildSaasApplicationTargetPlan>;
   const fixture = buildCandidateReleaseFixture({
     repoRoot: repositoryRoot,
     ...input,
-    buildPlan: () => plan,
+    buildPlan: (options) => (plan = buildSaasApplicationTargetPlan(options)),
     authority: "alpha.3",
   });
   candidateReleaseParent = fixture.parent;
