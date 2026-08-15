@@ -33,7 +33,9 @@ describe("customer chassis Woodpecker admission", () => {
     const source = read("tooling/ci/seed-frozen-alpha2-store.sh");
 
     expect(source).toContain("maestro-template-v0.2.0-alpha.2");
-    expect(source).toContain("maestro-template-v0.2.0-alpha.3");
+    expect(source).toContain(
+      "checkout --quiet --force --detach maestro-template-v0.2.0-alpha.3",
+    );
   });
 
   it("declares the sole deterministic PR context", () => {
