@@ -101,9 +101,22 @@ afterEach(() => {
 }, 120_000);
 
 describe("candidate customer composition", () => {
-  it("uses the shared candidate release fixture", () => {
-    expect(buildSharedCandidateReleaseFixture).toBeTypeOf("function");
-  });
+  it("seals candidate authority from the cloned source", () => {
+    let planSourceRoot: string | undefined;
+    const fixture = buildSharedCandidateReleaseFixture({
+      repoRoot: repositoryRoot,
+      name: "Source-bound Candidate",
+      outcome: "Bind authority to the reviewed source",
+      buildPlan: (options) => {
+        planSourceRoot = options.sourceRoot;
+        return buildSaasApplicationTargetPlan(options);
+      },
+      authority: "alpha.3",
+    });
+    temporaryRoots.push(fixture.parent);
+
+    expect(planSourceRoot).toBe(fixture.candidateRoot);
+  }, 30_000);
 
   it("uses existing platform-local paths for candidate subprocesses", () => {
     const environment = candidateEnvironment();
