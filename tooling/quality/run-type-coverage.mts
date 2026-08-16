@@ -1,5 +1,5 @@
 import { spawnSync } from "node:child_process";
-import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
 
 import { verifiedImmutableReceiptPaths } from "./check-saas-ui-typecheck.mts";
 import { isDirectRun } from "./src/direct-run.mts";
@@ -14,7 +14,7 @@ export const runTypeCoverage = (root = process.cwd()): number => {
     process.execPath,
     [
       "--max-old-space-size=8192",
-      resolve(root, "node_modules/type-coverage/bin/type-coverage"),
+      fileURLToPath(import.meta.resolve("type-coverage/bin/type-coverage")),
       "--project",
       "tsconfig.type-coverage.json",
       "--at-least",

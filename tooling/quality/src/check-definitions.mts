@@ -481,6 +481,7 @@ const checkDescriptorDefinitions = {
       {
         file: "tooling/quality/run-type-coverage.mts",
         includes: [
+          'import.meta.resolve("type-coverage/bin/type-coverage")',
           "--max-old-space-size=8192",
           "--at-least",
           '"99.7"',

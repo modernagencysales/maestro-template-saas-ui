@@ -19,6 +19,7 @@ describe("check:types-coverage", () => {
         expect.objectContaining({
           file: "tooling/quality/run-type-coverage.mts",
           includes: expect.arrayContaining([
+            'import.meta.resolve("type-coverage/bin/type-coverage")',
             "--max-old-space-size=8192",
             "--at-least",
             '"99.7"',
