@@ -293,6 +293,11 @@
       "integrity": "sha512-yXKnNj9bEHuWaln+htr71+LuwqrrKrX5B8a7zKoMbw2yx/ZbznPt1W2gvhqd5srRV25qHlXhLgfEBZ7vKUn4oQ=="
     },
     {
+      "package": "@confect/react@10.0.0-next.9",
+      "url": "https://registry.npmjs.org/@confect/react/-/react-10.0.0-next.9.tgz",
+      "integrity": "sha512-g6JDjJA+92iXokxOfQ34bfCHCwQG6eHnbxSzSLoHkgoQDIP1Ldz5TxhCuatBhoO5HcuvzGFlWHQKnxQC+waJaA=="
+    },
+    {
       "package": "@confect/server@10.0.0-next.9",
       "url": "https://registry.npmjs.org/@confect/server/-/server-10.0.0-next.9.tgz",
       "integrity": "sha512-3tOjrHeucFfK/VS5KmMz30Ha10jhNmnoNnyPrJotIeZNTv29JbH2LDN/agLiE75YjSMznP3cchqiopC8B0xvWQ=="
