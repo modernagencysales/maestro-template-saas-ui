@@ -474,12 +474,21 @@ const checkDescriptorDefinitions = {
     requirements: [
       {
         file: "package.json",
+        includes: ["tsx tooling/quality/run-type-coverage.mts"],
+        message:
+          "check:types-coverage must invoke the receipt-aware type-coverage runner",
+      },
+      {
+        file: "tooling/quality/run-type-coverage.mts",
         includes: [
           "--max-old-space-size=8192",
-          "type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
+          "--at-least",
+          '"99.7"',
+          "--ignore-files",
+          "verifiedImmutableReceiptPaths",
         ],
         message:
-          "check:types-coverage must invoke type-coverage with an explicit threshold",
+          "type-coverage must keep its threshold and derive exact receipt ignores",
       },
       {
         file: "tsconfig.base.json",

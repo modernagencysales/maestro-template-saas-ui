@@ -81,30 +81,40 @@ export const createSaasUiTypecheckBaseline = (
 const readJson = <T,>(path: string): T =>
   JSON.parse(readFileSync(path, "utf8")) as T;
 
-const receiptPaths = (root: string, path: string): Set<string> => {
+type ReceiptPaths = Readonly<{
+  exact: ReadonlySet<string>;
+  adapted: ReadonlySet<string>;
+}>;
+
+const receiptPaths = (root: string, path: string): ReceiptPaths => {
   const receipt = readJson<Receipt>(resolve(root, path));
-  const verified = new Set<string>();
+  const exact = new Set<string>();
+  const adapted = new Set<string>();
   for (const file of receipt.files) {
-    if (
-      typeof file.destination !== "string" ||
-      typeof file.sha256 !== "string" ||
-      file.adapted === true
-    )
+    if (typeof file.destination !== "string" || typeof file.sha256 !== "string")
       continue;
     const destination = normalize(file.destination);
     if (destination.startsWith("/") || destination.includes("..")) continue;
     const absolute = resolve(root, destination);
-    if (existsSync(absolute) && sha256(readFileSync(absolute)) === file.sha256)
-      verified.add(destination);
+    if (!existsSync(absolute) || sha256(readFileSync(absolute)) !== file.sha256)
+      continue;
+    (file.adapted === true ? adapted : exact).add(destination);
   }
-  return verified;
+  return { exact, adapted };
 };
 
-const verifiedReceiptPaths = (root: string): Set<string> =>
-  new Set([
-    ...receiptPaths(root, STARTER_RECEIPT),
-    ...receiptPaths(root, REGISTRY_RECEIPT),
-  ]);
+export const verifiedImmutableReceiptPaths = (root: string): Set<string> => {
+  const receipts = [
+    receiptPaths(root, STARTER_RECEIPT),
+    receiptPaths(root, REGISTRY_RECEIPT),
+  ];
+  const adapted = new Set(receipts.flatMap((receipt) => [...receipt.adapted]));
+  return new Set(
+    receipts.flatMap((receipt) =>
+      [...receipt.exact].filter((destination) => !adapted.has(destination)),
+    ),
+  );
+};
 
 export const parseSaasUiTypecheckDiagnostics = (
   root: string,
@@ -180,7 +190,7 @@ const receiptDiagnosticErrors = (
   diagnostics: readonly SaasUiTypecheckDiagnostic[],
 ): readonly string[] => {
   try {
-    const receiptPaths = verifiedReceiptPaths(root);
+    const receiptPaths = verifiedImmutableReceiptPaths(root);
     return diagnostics
       .filter(
         ({ path }) =>

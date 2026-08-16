@@ -13,8 +13,17 @@ describe("check:types-coverage", () => {
         expect.objectContaining({
           file: "package.json",
           includes: expect.arrayContaining([
+            "tsx tooling/quality/run-type-coverage.mts",
+          ]),
+        }),
+        expect.objectContaining({
+          file: "tooling/quality/run-type-coverage.mts",
+          includes: expect.arrayContaining([
             "--max-old-space-size=8192",
-            "type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
+            "--at-least",
+            '"99.7"',
+            "--ignore-files",
+            "verifiedImmutableReceiptPaths",
           ]),
         }),
         expect.objectContaining({
