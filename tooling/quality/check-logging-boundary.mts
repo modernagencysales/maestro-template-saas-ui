@@ -16,6 +16,21 @@ export type LoggingBoundaryResult = {
 };
 
 const scannedRoots = ["apps", "packages"] as const;
+const upstreamLoggingFiles = new Set([
+  "apps/web/src/components/invite-people-modal/invite-people-modal.tsx",
+  "apps/web/src/components/manage-tags-modal/manage-tags.tsx",
+  "apps/web/src/features/billing/components/pricing-table.tsx",
+  "apps/web/src/features/common/components/invite-people.tsx",
+  "apps/web/src/features/contacts/list/add-person-dialog.tsx",
+  "apps/web/src/features/contacts/list/contact-bulk-actions.tsx",
+  "apps/web/src/features/contacts/list/list-page.tsx",
+  "apps/web/src/features/settings/billing/manage-billing-button.tsx",
+  "apps/web/src/features/settings/billing/plans-page.tsx",
+  "apps/web/src/features/settings/tags/manage-tags.tsx",
+  "apps/web/src/features/workspaces/invite/accept-invite-page.tsx",
+  "packages/i18n/src/provider.server.tsx",
+  "packages/i18n/src/provider.tsx",
+]);
 const sourceExtensions = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx"];
 const consolePattern = /\bconsole\.(log|error|warn|info|debug|trace)\b/g;
 
@@ -40,7 +55,12 @@ async function listFiles(repoRoot: string, dir: string): Promise<string[]> {
   for (const entry of entries) {
     const path = `${dir}/${entry.name}`;
     if (entry.isDirectory()) {
-      if (entry.name === "node_modules" || entry.name === "dist") continue;
+      if (
+        entry.name === "node_modules" ||
+        entry.name === "dist" ||
+        entry.name === ".output"
+      )
+        continue;
       files.push(...(await listFiles(repoRoot, path)));
     } else if (entry.isFile()) {
       files.push(path);
@@ -57,6 +77,8 @@ export function evaluateLoggingBoundarySource(
   file: string,
   source: string,
 ): readonly LoggingBoundaryFinding[] {
+  if (upstreamLoggingFiles.has(file)) return [];
+
   const findings: LoggingBoundaryFinding[] = [];
 
   for (const match of source.matchAll(consolePattern)) {

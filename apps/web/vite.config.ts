@@ -6,6 +6,7 @@ import { fileURLToPath, URL } from "node:url";
 
 export default defineConfig({
   build: { sourcemap: false },
+  esbuild: { drop: ["console"] },
   resolve: {
     tsconfigPaths: true,
     alias: {
