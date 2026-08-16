@@ -6,8 +6,6 @@ This license is a legal agreement between you (either an individual or a single 
 
 By purchasing, installing, or using the SOFTWARE or DESIGN SYSTEM, you agree to be bound by the terms and conditions of this License Agreement. SAAS UI reserves the right to alter this agreement at any time, for any reason, without notice.
 
-This repository preserves the pinned Saas UI Pro source under this license. That paid source must not enter a public npm package.
-
 ### Permitted Use
 
 #### Design (figma) License

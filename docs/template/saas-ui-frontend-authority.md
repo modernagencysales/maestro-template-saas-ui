@@ -17,6 +17,9 @@ The current frontend closure is mandatory in every current generated blueprint;
 it is not a selectable application pattern. Paid source remains private and must
 retain its notices under `docs/licenses/saas-ui/`.
 
+The pinned TanStack Starter Kit Pro and pinned Saas UI Pro sources
+`must not enter a public npm package`.
+
 The installed registry closure is 27 editable Pro block roots plus the shared
 `use-open-state` support hook. The pinned registry receipt and `components.json`
 are the authorities for that closure; do not maintain a second block list.

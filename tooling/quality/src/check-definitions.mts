@@ -688,18 +688,15 @@ const checkDescriptorDefinitions = {
           "PRs must capture upstream mapping, deviations, and rendered evidence",
       },
       {
-        file: "docs/licenses/saas-ui/starter-NOTICE.md",
+        file: "docs/template/saas-ui-frontend-authority.md",
         includes: [
           "pinned TanStack Starter",
           "Kit Pro",
+          "pinned Saas UI Pro",
           "must not enter a public npm package",
         ],
-        message: "starter source must retain its private license notice",
-      },
-      {
-        file: "docs/licenses/saas-ui/pro-NOTICE.md",
-        includes: ["pinned Saas UI Pro", "must not enter a public npm package"],
-        message: "Pro source must retain its private license notice",
+        message:
+          "frontend authority must keep paid Starter and Pro source private",
       },
     ],
   },
