@@ -63,7 +63,7 @@ export async function checkDevRuntimeLongevity({
     {
       cwd,
       detached: true,
-      env: process.env,
+      env: { ...process.env, MAESTRO_DISABLE_ROUTE_GENERATION: "1" },
       stdio: ["ignore", "pipe", "pipe"],
     },
   );

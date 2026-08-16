@@ -48,21 +48,6 @@ export default defineConfig({
       [/^#theme\//u]: fileURLToPath(
         new URL("./apps/web/src/theme/", import.meta.url),
       ),
-      "@workspace/ui": fileURLToPath(
-        new URL("./apps/web/src/components", import.meta.url),
-      ),
-      "@workspace/api": fileURLToPath(
-        new URL("./apps/web/src/workspace/api", import.meta.url),
-      ),
-      "@workspace/i18n": fileURLToPath(
-        new URL("./apps/web/src/workspace/i18n/index.ts", import.meta.url),
-      ),
-      "@workspace/config": fileURLToPath(
-        new URL("./apps/web/src/workspace/config/index.ts", import.meta.url),
-      ),
-      "@workspace/better-auth": fileURLToPath(
-        new URL("./apps/web/src/workspace/better-auth", import.meta.url),
-      ),
     },
   },
   test: {

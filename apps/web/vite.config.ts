@@ -4,7 +4,7 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import { fileURLToPath, URL } from "node:url";
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   build: { sourcemap: false },
   esbuild: { drop: ["console"] },
   resolve: {
@@ -17,6 +17,11 @@ export default defineConfig({
   },
   plugins: [
     tanstackStart({
+      router: {
+        enableRouteGeneration:
+          mode !== "test" &&
+          process.env.MAESTRO_DISABLE_ROUTE_GENERATION !== "1",
+      },
       spa: {
         enabled: true,
       },
@@ -28,4 +33,4 @@ export default defineConfig({
     port: 3000,
     allowedHosts: process.env.NODE_ENV === "development" ? true : undefined,
   },
-});
+}));

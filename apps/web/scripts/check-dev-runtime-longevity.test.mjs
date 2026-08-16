@@ -1,5 +1,8 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { createServer } from "node:net";
+import { resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { test } from "vitest";
 
@@ -31,6 +34,24 @@ const allocateLoopbackPort = async () => {
 
 test("browser navigation leaves the supervised dev runtime healthy", async () => {
   const webPort = await allocateLoopbackPort();
+  const routeTreePath = resolve(
+    repositoryRoot,
+    "apps/web/src/routeTree.gen.ts",
+  );
+  const routeTreeBefore = readFileSync(routeTreePath, "utf8");
+  const receipt = JSON.parse(
+    readFileSync(
+      resolve(repositoryRoot, "docs/template/saas-ui-starter-files.json"),
+      "utf8",
+    ),
+  );
+  const expectedRouteTreeHash = receipt.files.find(
+    ({ destination }) => destination === "apps/web/src/routeTree.gen.ts",
+  )?.sha256;
+  assert.equal(
+    createHash("sha256").update(routeTreeBefore).digest("hex"),
+    expectedRouteTreeHash,
+  );
   const result = await checkDevRuntimeLongevity({
     cwd: repositoryRoot,
     webPort,
@@ -40,4 +61,5 @@ test("browser navigation leaves the supervised dev runtime healthy", async () =>
   assert.equal(result.healthBefore, 200, result.logs);
   assert.equal(result.healthAfter, 200, result.logs);
   assert.equal(result.cleanShutdown, true, result.logs);
+  assert.equal(readFileSync(routeTreePath, "utf8"), routeTreeBefore);
 }, 240_000);
