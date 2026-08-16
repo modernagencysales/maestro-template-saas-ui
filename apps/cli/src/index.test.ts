@@ -205,11 +205,27 @@ describe("maestro-template CLI", () => {
   );
 
   it("does not expose a Vite API proxy that can attach the CLI API key", async () => {
+    type ViteConfig = { server?: { proxy?: unknown } };
     const config = await vi.importActual<{
-      default: { server?: { proxy?: unknown } };
+      default:
+        | ViteConfig
+        | ((env: {
+            command: "serve";
+            mode: string;
+            isSsrBuild: boolean;
+            isPreview: boolean;
+          }) => ViteConfig | Promise<ViteConfig>);
     }>("../../web/vite.config");
+    const resolvedConfig = await (typeof config.default === "function"
+      ? config.default({
+          command: "serve",
+          mode: "test",
+          isSsrBuild: false,
+          isPreview: false,
+        })
+      : config.default);
 
-    expect(config.default.server).not.toHaveProperty("proxy");
+    expect(resolvedConfig.server).not.toHaveProperty("proxy");
   });
 
   it("lets TanStack discover generated product routes during builds", () => {
