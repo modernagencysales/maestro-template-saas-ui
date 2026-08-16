@@ -1,5 +1,21 @@
 import { defineConfig } from "vitest/config";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
+
+type SaasUiReceipt = Readonly<{
+  files: readonly Readonly<{ destination: string; adapted?: boolean }>[];
+}>;
+
+const immutableSaasUiRegistryFiles = (
+  JSON.parse(
+    readFileSync(
+      new URL("./docs/template/saas-ui-registry-files.json", import.meta.url),
+      "utf8",
+    ),
+  ) as SaasUiReceipt
+).files.flatMap(({ adapted, destination }) =>
+  adapted === true ? [] : [destination],
+);
 
 // Directories measured by the coverage ratchet. Everything runs under this
 // root config; generated files and vendored trees are excluded below.
@@ -70,6 +86,7 @@ export default defineConfig({
         "**/_generated/**",
         "**/__fixtures__/**",
         "apps/web/src/routeTree.gen.ts",
+        ...immutableSaasUiRegistryFiles,
         "repos/**",
         "vendor/**",
       ],
