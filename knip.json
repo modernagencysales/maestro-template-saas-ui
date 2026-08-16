@@ -12,7 +12,8 @@
         "src/routes/**/*.{ts,tsx}",
         "src/components/**/*.{ts,tsx}",
         "src/features/**/*.{ts,tsx}"
-      ]
+      ],
+      "ignoreDependencies": ["@confect/react"]
     },
     "packages/convex": {
       "ignoreDependencies": ["dodopayments"]

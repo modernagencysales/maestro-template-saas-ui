@@ -28,8 +28,15 @@ describe("check:knip", () => {
     const config = JSON.parse(
       readFileSync(resolve(import.meta.dirname, "../../knip.json"), "utf8"),
     ) as {
+      readonly ignoreDependencies?: readonly string[];
       readonly workspaces: Readonly<
-        Record<string, { readonly entry?: readonly string[] }>
+        Record<
+          string,
+          {
+            readonly entry?: readonly string[];
+            readonly ignoreDependencies?: readonly string[];
+          }
+        >
       >;
     };
 
@@ -40,5 +47,9 @@ describe("check:knip", () => {
       "src/features/**/*.{ts,tsx}",
     );
     expect(config.workspaces["packages/ui"]?.entry).toContain("src/*/index.ts");
+    expect(config.workspaces["apps/web"]?.ignoreDependencies).toContain(
+      "@confect/react",
+    );
+    expect(config.ignoreDependencies).not.toContain("@confect/react");
   });
 });
