@@ -12,6 +12,7 @@
 - Deviation ledger entry: `None` / exact `docs/template/saas-ui-deviations.json`
   entry
 - Desktop/mobile light/dark evidence: `None` / screenshot artifact paths
+- Accessibility results: `None` / keyboard-only and 320 px evidence paths
 - Pinned Starter/Pro source: `None` / exact path and commit
 - Receipt impact: `None` / updated `saas-ui-starter-files.json` or
   `saas-ui-registry-files.json`
