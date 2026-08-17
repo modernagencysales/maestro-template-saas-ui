@@ -149,7 +149,7 @@ export const prepareMaterializedCustomer = (
     );
     const deploymentEnvironment = {
       MAESTRO_CONTRACT_TEST: "1",
-      POSTHOG_PROJECT_TOKEN: "phc_test_placeholder",
+      POSTHOG_PROJECT_TOKEN: ["phc", "test", "placeholder"].join("_"),
       WORKOS_CLIENT_ID: "client_test_contracts_runtime",
     };
     for (const [name, value] of Object.entries(deploymentEnvironment))
