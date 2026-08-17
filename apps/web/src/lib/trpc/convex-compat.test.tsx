@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { getFunctionName } from "convex/server";
 
 import {
@@ -10,6 +10,8 @@ import {
 } from "#lib/trpc/react";
 
 describe("Convex starter query compatibility", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it("uses the router's authenticated Convex client for loader queries", async () => {
     const calls: unknown[] = [];
     const compatibility = createCompatibilityApi({
@@ -24,6 +26,27 @@ describe("Convex starter query compatibility", () => {
       workspaces: [],
     });
     expect(calls).toHaveLength(1);
+  });
+
+  it("uses local shell fixtures in the isolated contracts runtime", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_MAESTRO_CONTRACT_MODE", "1");
+    const query = vi.fn(() => {
+      throw new Error("authenticated Convex query must not run");
+    });
+    const compatibility = createCompatibilityApi({ query } as never);
+
+    await expect(
+      compatibility.workspaces.bySlug.ensureData({ slug: "contracts-primary" }),
+    ).resolves.toMatchObject({
+      slug: "contracts-primary",
+      name: "Contracts workspace",
+    });
+    await expect(compatibility.auth.me.ensureData()).resolves.toMatchObject({
+      id: "contracts-runtime",
+      workspaces: [],
+    });
+    expect(query).not.toHaveBeenCalled();
   });
 
   it("maps auth, workspace, and member paths to exact generated refs", () => {

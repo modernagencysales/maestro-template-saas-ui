@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   safeReturnPath,
@@ -7,6 +7,8 @@ import {
 } from "#lib/auth/route-auth";
 
 describe("protected route auth", () => {
+  afterEach(() => vi.unstubAllEnvs());
+
   it("reduces unsafe return paths to root", () => {
     expect(safeReturnPath("https://evil.example/path")).toBe("/");
     expect(safeReturnPath("//evil.example/path")).toBe("/");
@@ -31,6 +33,30 @@ describe("protected route auth", () => {
       requireAuthenticatedRoute({
         auth: { user: null },
         location: { pathname: "/awesome-inc", searchStr: "?tab=all" },
+      }),
+    ).toThrow();
+  });
+
+  it("admits the isolated contracts runtime without a WorkOS session", () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_MAESTRO_CONTRACT_MODE", "1");
+
+    expect(
+      requireAuthenticatedRoute({
+        auth: { user: null },
+        location: { pathname: "/contracts-primary/records", searchStr: "" },
+      }),
+    ).toEqual({ auth: { user: { id: "contracts-runtime" } } });
+  });
+
+  it("never enables the contracts bypass outside development", () => {
+    vi.stubEnv("DEV", false);
+    vi.stubEnv("VITE_MAESTRO_CONTRACT_MODE", "1");
+
+    expect(() =>
+      requireAuthenticatedRoute({
+        auth: { user: null },
+        location: { pathname: "/contracts-primary/records", searchStr: "" },
       }),
     ).toThrow();
   });

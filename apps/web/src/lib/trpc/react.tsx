@@ -10,6 +10,8 @@ import {
 } from "@maestro-template/convex/refs";
 import type React from "react";
 
+import { isIsolatedContractsRuntime } from "#lib/auth/route-auth";
+
 export const realRefs = {
   "auth.me": getFunctionReference(
     templateConfectRefs.public.auth.workspaces.me,
@@ -168,6 +170,30 @@ const neutralData = (path: string) => {
   if (path === "notifications.inbox") return { notifications: [] };
   return [];
 };
+
+const contractsFixture = (
+  path: string,
+  input?: Record<string, unknown>,
+): unknown => {
+  if (!isIsolatedContractsRuntime()) return undefined;
+  if (path === "auth.me") {
+    return {
+      id: "contracts-runtime",
+      email: "contracts@template.local",
+      name: "Contracts runtime",
+      image: null,
+      workspaces: [],
+    };
+  }
+  if (path === "workspaces.bySlug" && typeof input?.slug === "string") {
+    return {
+      id: `contracts-${input.slug}`,
+      slug: input.slug,
+      name: "Contracts workspace",
+    };
+  }
+  return undefined;
+};
 export const neutralMutationValue = (path: string) =>
   isNeutral(path) ? null : neutral(path);
 
@@ -180,6 +206,10 @@ function procedure<TData = unknown>(
   const convexRef = ref as unknown as ConvexQueryRef;
   return {
     useQuery: (input) => {
+      const fixture = contractsFixture(key, input);
+      if (fixture !== undefined) {
+        return { data: fixture as TData, isLoading: false, isPending: false };
+      }
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) {
         const data = neutralData(key);
@@ -188,6 +218,15 @@ function procedure<TData = unknown>(
       return useConvexQuery(convexRef, input ?? {}) as QueryResult<TData>;
     },
     useSuspenseQuery: (input) => {
+      const fixture = contractsFixture(key, input);
+      if (fixture !== undefined) {
+        const result = {
+          data: fixture as TData,
+          isLoading: false,
+          isPending: false,
+        };
+        return [result.data, result];
+      }
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) {
         const data = neutralData(key);
@@ -203,6 +242,8 @@ function procedure<TData = unknown>(
       return [result.data as TData, result as QueryResult<TData>];
     },
     ensureData: async (input) => {
+      const fixture = contractsFixture(key, input);
+      if (fixture !== undefined) return fixture as TData;
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) return neutralData(key) as TData;
       if (!client)

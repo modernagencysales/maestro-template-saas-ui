@@ -8,6 +8,9 @@ export { safeReturnPath };
 
 type RouteAuth = { readonly user: unknown; readonly accessToken?: string };
 
+export const isIsolatedContractsRuntime = () =>
+  import.meta.env.DEV && import.meta.env.VITE_MAESTRO_CONTRACT_MODE === "1";
+
 export function loadRouteAuth(
   getAuth: () => RouteAuth = () => getAuthKitContext().auth() as RouteAuth,
 ): RouteAuth {
@@ -23,6 +26,9 @@ export function requireAuthenticatedRoute(input: {
   readonly auth?: { readonly user: unknown; readonly accessToken?: string };
   readonly location: { readonly pathname: string; readonly searchStr: string };
 }) {
+  if (isIsolatedContractsRuntime()) {
+    return { auth: { user: { id: "contracts-runtime" } } };
+  }
   const auth = input.auth ?? loadRouteAuth();
   if (!auth.user) {
     redirect({

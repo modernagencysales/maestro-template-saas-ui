@@ -829,6 +829,11 @@ import { readFixture } from "./support/fixture";
 test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page, runtime }) => { await page.goto(\`\${runtime.webUrl}/records\`); expect(await readFixture("fixture")).toBeTruthy(); });`,
     },
     {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test("record appears in the workspace", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page, runtime, scenario }) => { await page.goto(\`\${runtime.webUrl}/\${scenario.workspaceSlug}/records\`); });`,
+    },
+    {
       filename: ACCEPTANCE_SUPPORT,
       code: `import { join } from "node:path"; void join;`,
     },

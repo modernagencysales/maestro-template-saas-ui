@@ -124,6 +124,39 @@ describe("start CLI adapter", () => {
     expect(JSON.parse(json.stdout)).toMatchObject({ command: { id: "start" } });
   });
 
+  it.each([
+    ["--json", "--details", false],
+    ["--details", "--json", true],
+  ] as const)(
+    "preserves the first render mode for invalid mixed flags %s then %s",
+    async (first, second, writesProgress) => {
+      const progress = vi.fn();
+      const output = createStartOutputBoundary(progress);
+      const start = command();
+      vi.mocked(start.execute).mockImplementation(async (args) => {
+        output.write("[maestro] starting");
+        return {
+          mutationPosture: "read-only",
+          exitClass: "success",
+          summary: "Stopped.",
+          diagnostics: [],
+          data: { args: JSON.stringify(args) },
+        };
+      });
+
+      await createStartCliHandler(start, output).run(
+        ["start", first, second],
+        "/customer",
+      );
+
+      expect(progress).toHaveBeenCalledTimes(writesProgress ? 1 : 0);
+      expect(start.execute).toHaveBeenCalledWith(
+        { mode: "__invalid__" },
+        expect.anything(),
+      );
+    },
+  );
+
   it("routes human readiness to progress while JSON stdout stays result-only", async () => {
     const stderrProgress = vi.fn();
     const output = createStartOutputBoundary(stderrProgress);
