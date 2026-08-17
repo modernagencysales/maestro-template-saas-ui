@@ -49,6 +49,24 @@ describe("Convex starter query compatibility", () => {
     expect(query).not.toHaveBeenCalled();
   });
 
+  it("keeps isolated shell fixture identities stable across renders", async () => {
+    vi.stubEnv("DEV", true);
+    vi.stubEnv("VITE_MAESTRO_CONTRACT_MODE", "1");
+    const compatibility = createCompatibilityApi();
+
+    const firstUser = await compatibility.auth.me.ensureData();
+    const firstWorkspace = await compatibility.workspaces.bySlug.ensureData({
+      slug: "contracts-primary",
+    });
+
+    await expect(compatibility.auth.me.ensureData()).resolves.toBe(firstUser);
+    await expect(
+      compatibility.workspaces.bySlug.ensureData({
+        slug: "contracts-primary",
+      }),
+    ).resolves.toBe(firstWorkspace);
+  });
+
   it("maps auth, workspace, and member paths to exact generated refs", () => {
     expect(getFunctionName(realRefs["auth.me"])).toBe("auth/workspaces:me");
     expect(getFunctionName(realRefs["workspaces.bySlug"])).toBe(

@@ -171,26 +171,31 @@ const neutralData = (path: string) => {
   return [];
 };
 
+const contractsUserFixture: CurrentUser = {
+  id: "contracts-runtime",
+  email: "contracts@template.local",
+  name: "Contracts runtime",
+  image: null,
+  workspaces: [],
+};
+const contractsWorkspaceFixtures = new Map<string, Workspace>();
+
 const contractsFixture = (
   path: string,
   input?: Record<string, unknown>,
 ): unknown => {
   if (!isIsolatedContractsRuntime()) return undefined;
-  if (path === "auth.me") {
-    return {
-      id: "contracts-runtime",
-      email: "contracts@template.local",
-      name: "Contracts runtime",
-      image: null,
-      workspaces: [],
-    };
-  }
+  if (path === "auth.me") return contractsUserFixture;
   if (path === "workspaces.bySlug" && typeof input?.slug === "string") {
-    return {
+    const existing = contractsWorkspaceFixtures.get(input.slug);
+    if (existing) return existing;
+    const workspace = {
       id: `contracts-${input.slug}`,
       slug: input.slug,
       name: "Contracts workspace",
     };
+    contractsWorkspaceFixtures.set(input.slug, workspace);
+    return workspace;
   }
   return undefined;
 };
