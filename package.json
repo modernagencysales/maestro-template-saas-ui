@@ -6,6 +6,7 @@
     "product-contract:generate": "tsx tooling/acceptance/product-contract.mts generate --source-root examples/saas-application/seed/source",
     "check:product-contract": "tsx tooling/acceptance/template-product-contract-admission.mts structural",
     "acceptance:required": "tsx tooling/acceptance/template-product-contract-admission.mts required",
+    "acceptance:cucumber": "pnpm acceptance:required",
     "maestro": "tsx apps/cli/src/index.ts",
     "format": "prettier --write .",
     "check:format": "prettier --check .",
