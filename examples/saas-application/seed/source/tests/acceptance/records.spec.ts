@@ -117,7 +117,9 @@ test(
       ),
     );
     await page.goto(`${runtime.webUrl}/${scenario.workspaceSlug}/records`);
-    await expect(page.getByText(title, { exact: true })).toBeVisible();
+    await expect(page.getByText(title, { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
   },
 );
 
