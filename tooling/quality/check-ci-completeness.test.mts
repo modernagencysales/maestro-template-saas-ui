@@ -106,7 +106,6 @@ describe("check:ci-completeness", () => {
       expect.arrayContaining([
         "bash tooling/ci/install-gitleaks.sh",
         "pnpm verify",
-        "pnpm --dir apps/web test:runtime-longevity",
       ]),
     );
     expect(verifyChassis?.absent).toEqual(
@@ -120,6 +119,7 @@ describe("check:ci-completeness", () => {
         "pnpm --dir apps/cli test:create-root-integration",
         "pnpm --dir apps/web typecheck",
         "pnpm --dir apps/web build",
+        "pnpm --dir apps/web test:runtime-longevity",
       ]),
     );
 

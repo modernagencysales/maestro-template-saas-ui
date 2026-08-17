@@ -88,6 +88,9 @@ describe("customer chassis Woodpecker admission", () => {
 
   it("reaches root verification once and keeps only extra chassis proof", () => {
     const script = read("tooling/ci/verify-chassis.sh");
+    const packageJson = JSON.parse(read("package.json")) as {
+      readonly scripts: Readonly<Record<string, string>>;
+    };
     expect(script).toContain(
       "pnpm exec playwright install --with-deps chromium",
     );
@@ -109,7 +112,26 @@ describe("customer chassis Woodpecker admission", () => {
     ).toHaveLength(1);
     expect(script).not.toContain("install-gitleaks.sh || true");
     expect(script.match(/^pnpm verify$/gmu)).toHaveLength(1);
-    expect(script).toContain("pnpm --dir apps/web test:runtime-longevity");
+    expect(script).not.toContain("pnpm --dir apps/web test:runtime-longevity");
+    expect(packageJson.scripts.verify).toContain("pnpm test:verify-uncovered");
+    expect(packageJson.scripts.verify).not.toMatch(
+      /(?:^|&& )pnpm test(?: &&|$)/u,
+    );
+    expect(packageJson.scripts["test:verify-uncovered"]).toContain(
+      "pnpm --dir tooling/agent-pack test",
+    );
+    expect(packageJson.scripts["test:verify-uncovered"]).toContain(
+      "pnpm --dir packages/editor-core test",
+    );
+    expect(packageJson.scripts["test:verify-uncovered"]).toContain(
+      "pnpm --dir apps/cli test:customer-cli-runtime",
+    );
+    expect(packageJson.scripts["test:verify-uncovered"]).toContain(
+      "pnpm test:release-filesystem",
+    );
+    expect(packageJson.scripts["test:verify-uncovered"]).toContain(
+      "pnpm test:acceptance-tooling",
+    );
     for (const duplicate of [
       "pnpm --dir tooling/agent-pack test:customer",
       "pnpm --dir tooling/generators test",
