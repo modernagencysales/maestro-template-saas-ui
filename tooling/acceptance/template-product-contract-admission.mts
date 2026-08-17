@@ -3,6 +3,8 @@ import {
   execFileSync,
   spawnSync,
 } from "node:child_process";
+import { rmSync } from "node:fs";
+import { resolve } from "node:path";
 import { promisify } from "node:util";
 import {
   checkTemplateProductContract,
@@ -120,9 +122,19 @@ const prepareMaterializedCustomer = (
     "Generated customer codegen",
   );
   if (mode === "required") {
+    const localRuntimeEnvironment = {
+      ...process.env,
+      MAESTRO_CONTRACT_TEST: "1",
+      VITE_CONVEX_URL: "http://127.0.0.1:3210",
+      VITE_MAESTRO_CONTRACT_MODE: "1",
+      WORKOS_API_KEY: "fake",
+      WORKOS_CLIENT_ID: "client_test_contracts_runtime",
+      WORKOS_COOKIE_PASSWORD: "contracts-runtime-test-cookie-password",
+      WORKOS_REDIRECT_URI: "http://127.0.0.1:3000/api/auth/callback",
+    };
     const localConvexEnvironment = {
       ...Object.fromEntries(
-        Object.entries(process.env).filter(
+        Object.entries(localRuntimeEnvironment).filter(
           ([name]) => !name.startsWith("CONVEX_"),
         ),
       ),
@@ -130,30 +142,17 @@ const prepareMaterializedCustomer = (
     };
     runPreparedCustomerCommand(
       targetRoot,
-      ["--silent", "exec", "convex", "init"],
-      "Generated customer local Convex initialization",
-      localConvexEnvironment,
-    );
-    for (const [name, value] of [
-      ["MAESTRO_CONTRACT_TEST", "1"],
-      ["POSTHOG_PROJECT_TOKEN", "phc_test_placeholder"],
-    ] as const)
-      runPreparedCustomerCommand(
-        targetRoot,
-        ["--silent", "exec", "convex", "env", "set", name, value],
-        `Generated customer local Convex environment ${name}`,
-        localConvexEnvironment,
-      );
-    runPreparedCustomerCommand(
-      targetRoot,
       ["--silent", "exec", "convex", "dev", "--once", "--typecheck", "disable"],
       "Generated customer local Convex codegen",
       localConvexEnvironment,
     );
+    rmSync(resolve(targetRoot, ".env.local"), { force: true });
+    rmSync(resolve(targetRoot, ".convex"), { force: true, recursive: true });
     runPreparedCustomerCommand(
       targetRoot,
       ["--dir", "apps/web", "exec", "vite", "build"],
       "Generated customer route codegen",
+      localRuntimeEnvironment,
     );
   }
   execFileSync("git", ["add", "-A"], { cwd: targetRoot });

@@ -434,25 +434,11 @@ async function bootContractsRuntime(
   };
   const commandTimeoutMs = dependencies.commandTimeoutMs ?? 120_000;
   const seedTimeoutMs = dependencies.seedTimeoutMs ?? 120_000;
-  const readinessTimeoutMs = dependencies.readinessTimeoutMs ?? 30_000;
+  const readinessTimeoutMs =
+    dependencies.readinessTimeoutMs ?? CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS;
   const retryDelayMs = dependencies.retryDelayMs ?? 250;
 
   try {
-    await executeCommand(
-      ["--silent", "exec", "convex", "init"],
-      localEnvironment,
-      commandTimeoutMs,
-    );
-    for (const [name, value] of [
-      ["MAESTRO_CONTRACT_TEST", "1"],
-      ["POSTHOG_PROJECT_TOKEN", "phc_test_placeholder"],
-    ] as const) {
-      await executeCommand(
-        ["--silent", "exec", "convex", "env", "set", name, value],
-        localEnvironment,
-        commandTimeoutMs,
-      );
-    }
     const browser = await dependencies.launchBrowser(inherited);
     if (resources.stopping) {
       await browser.close();
@@ -517,6 +503,17 @@ async function bootContractsRuntime(
     if (announcedWebUrl !== expectedWebUrl) {
       throw new Error(
         `maestro start announced an unexpected URL\n${safeOutput()}`,
+      );
+    }
+    for (const [name, value] of [
+      ["MAESTRO_CONTRACT_TEST", "1"],
+      ["POSTHOG_PROJECT_TOKEN", "phc_test_placeholder"],
+      ["WORKOS_CLIENT_ID", "client_test_contracts_runtime"],
+    ] as const) {
+      await executeCommand(
+        ["--silent", "exec", "convex", "env", "set", name, value],
+        localEnvironment,
+        commandTimeoutMs,
       );
     }
     const credentials = new WeakMap<

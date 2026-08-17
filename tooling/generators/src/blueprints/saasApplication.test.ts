@@ -274,7 +274,7 @@ describe("saas application blueprint", () => {
     ])
       expect(records.has(path), path).toBe(true);
     expect(records.get("tests/acceptance/support/fixtures.ts")).toContain(
-      '{ scope: "worker", auto: true }',
+      "timeout: CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS",
     );
     expect(records.get("product.contract.yaml")).toContain("BHV-REC-004");
     expect(records.get("docs/product/records-plan.md")).toContain(

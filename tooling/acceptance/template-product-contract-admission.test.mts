@@ -17,11 +17,38 @@ describe("required acceptance admission summary", () => {
     expect(normalized).not.toContain(
       '["--dir", "packages/convex", "exec", "convex", "codegen"]',
     );
-    expect(normalized).toContain('["--silent", "exec", "convex", "init"]');
+    expect(normalized).not.toContain('["--silent", "exec", "convex", "init"]');
     expect(normalized).toContain(
       '"convex", "dev", "--once", "--typecheck", "disable"',
     );
-    expect(normalized).toContain('CONVEX_AGENT_MODE: "anonymous"');
+    expect(normalized).toContain(
+      'rmSync(resolve(targetRoot, ".env.local"), { force: true })',
+    );
+    expect(normalized).toContain(
+      'rmSync(resolve(targetRoot, ".convex"), { force: true, recursive: true })',
+    );
+  });
+
+  it("provides fake AuthKit configuration to required local preparation", () => {
+    const source = readFileSync(
+      new URL("./template-product-contract-admission.mts", import.meta.url),
+      "utf8",
+    );
+    const normalized = source.replace(/\s+/gu, " ");
+
+    for (const entry of [
+      'MAESTRO_CONTRACT_TEST: "1"',
+      'VITE_CONVEX_URL: "http://127.0.0.1:3210"',
+      'VITE_MAESTRO_CONTRACT_MODE: "1"',
+      'WORKOS_API_KEY: "fake"',
+      'WORKOS_CLIENT_ID: "client_test_contracts_runtime"',
+      'WORKOS_COOKIE_PASSWORD: "contracts-runtime-test-cookie-password"',
+      'WORKOS_REDIRECT_URI: "http://127.0.0.1:3000/api/auth/callback"',
+    ])
+      expect(normalized).toContain(entry);
+    expect(normalized).toContain(
+      '"Generated customer route codegen", localRuntimeEnvironment',
+    );
   });
 
   it("renders failed materialization stdout and stderr as a bounded safe witness", () => {
