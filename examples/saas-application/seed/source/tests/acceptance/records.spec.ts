@@ -86,6 +86,7 @@ test(
       .getByLabel("Record detail")
       .fill("Created by Playwright acceptance.");
     await page.getByRole("button", { name: "Save record" }).click();
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
     let listAttempt = 0;
     await expect
       .poll(
@@ -98,7 +99,6 @@ test(
         { timeout: 5_000 },
       )
       .toContain(title);
-    await expect(page.getByRole("heading", { name: title })).toBeVisible();
   },
 );
 
