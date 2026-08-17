@@ -1,15 +1,13 @@
 import { redirect } from "@tanstack/react-router";
 import { getAuthKitContext } from "@workos/authkit-tanstack-react-start";
 
+import { isIsolatedContractsRuntime } from "../../env";
 import { safeReturnPath } from "./return-path";
 import { isRecoverableAuthError } from "./workos-auth-loader";
 
-export { safeReturnPath };
+export { isIsolatedContractsRuntime, safeReturnPath };
 
 type RouteAuth = { readonly user: unknown; readonly accessToken?: string };
-
-export const isIsolatedContractsRuntime = () =>
-  import.meta.env.DEV && import.meta.env.VITE_MAESTRO_CONTRACT_MODE === "1";
 
 export function loadRouteAuth(
   getAuth: () => RouteAuth = () => getAuthKitContext().auth() as RouteAuth,
