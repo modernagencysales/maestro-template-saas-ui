@@ -107,16 +107,17 @@ const commitGeneratedCustomerArtifacts = (targetRoot: string): void => {
   }
 };
 
-const prepareMaterializedCustomer = (
+export const prepareMaterializedCustomer = (
   targetRoot: string,
   mode: "structural" | "required",
+  runCommand: typeof runPreparedCustomerCommand = runPreparedCustomerCommand,
 ): void => {
-  runPreparedCustomerCommand(
+  runCommand(
     targetRoot,
     ["install", "--offline", "--ignore-scripts"],
     "Generated customer preparation",
   );
-  runPreparedCustomerCommand(
+  runCommand(
     targetRoot,
     ["--dir", "packages/convex", "confect:codegen"],
     "Generated customer codegen",
@@ -140,7 +141,25 @@ const prepareMaterializedCustomer = (
       ),
       CONVEX_AGENT_MODE: "anonymous",
     };
-    runPreparedCustomerCommand(
+    runCommand(
+      targetRoot,
+      ["--silent", "exec", "convex", "init"],
+      "Generated customer local Convex initialization",
+      localConvexEnvironment,
+    );
+    const deploymentEnvironment = {
+      MAESTRO_CONTRACT_TEST: "1",
+      POSTHOG_PROJECT_TOKEN: "phc_test_placeholder",
+      WORKOS_CLIENT_ID: "client_test_contracts_runtime",
+    };
+    for (const [name, value] of Object.entries(deploymentEnvironment))
+      runCommand(
+        targetRoot,
+        ["--silent", "exec", "convex", "env", "set", name, value],
+        `Generated customer local Convex ${name} configuration`,
+        localConvexEnvironment,
+      );
+    runCommand(
       targetRoot,
       ["--silent", "exec", "convex", "dev", "--once", "--typecheck", "disable"],
       "Generated customer local Convex codegen",
@@ -148,7 +167,7 @@ const prepareMaterializedCustomer = (
     );
     rmSync(resolve(targetRoot, ".env.local"), { force: true });
     rmSync(resolve(targetRoot, ".convex"), { force: true, recursive: true });
-    runPreparedCustomerCommand(
+    runCommand(
       targetRoot,
       ["--dir", "apps/web", "exec", "vite", "build"],
       "Generated customer route codegen",

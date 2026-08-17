@@ -1,6 +1,16 @@
-import { readFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
+import { tmpdir } from "node:os";
+import { resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { RecordsCustomerMaterializationError } from "../../apps/cli/src/factory/customerCandidateFixture";
+import * as admission from "./template-product-contract-admission.mts";
 import {
   canonicalRequiredAcceptanceSummary,
   capturedProcessFailure,
@@ -8,25 +18,72 @@ import {
 } from "./template-product-contract-admission.mts";
 
 describe("required acceptance admission summary", () => {
-  it("keeps structural preparation independent of a Convex deployment", () => {
-    const source = readFileSync(
-      new URL("./template-product-contract-admission.mts", import.meta.url),
-      "utf8",
-    );
-    const normalized = source.replace(/\s+/gu, " ");
-    expect(normalized).not.toContain(
-      '["--dir", "packages/convex", "exec", "convex", "codegen"]',
-    );
-    expect(normalized).not.toContain('["--silent", "exec", "convex", "init"]');
-    expect(normalized).toContain(
-      '"convex", "dev", "--once", "--typecheck", "disable"',
-    );
-    expect(normalized).toContain(
-      'rmSync(resolve(targetRoot, ".env.local"), { force: true })',
-    );
-    expect(normalized).toContain(
-      'rmSync(resolve(targetRoot, ".convex"), { force: true, recursive: true })',
-    );
+  it("configures the ephemeral Convex deployment before required codegen", () => {
+    const targetRoot = mkdtempSync(resolve(tmpdir(), "maestro-admission-"));
+    writeFileSync(resolve(targetRoot, ".env.local"), "stale deployment");
+    mkdirSync(resolve(targetRoot, ".convex"));
+    const commands: string[][] = [];
+    const stopAfterVite = new Error("stop after Vite");
+    const prepare = Reflect.get(admission, "prepareMaterializedCustomer");
+    expect(prepare).toBeTypeOf("function");
+
+    try {
+      expect(() =>
+        Reflect.apply(prepare, undefined, [
+          targetRoot,
+          "required",
+          (_root: string, args: readonly string[]) => {
+            commands.push([...args]);
+            if (args.includes("vite")) throw stopAfterVite;
+            return "";
+          },
+        ]),
+      ).toThrow(stopAfterVite);
+      expect(commands.slice(2)).toEqual([
+        ["--silent", "exec", "convex", "init"],
+        [
+          "--silent",
+          "exec",
+          "convex",
+          "env",
+          "set",
+          "MAESTRO_CONTRACT_TEST",
+          "1",
+        ],
+        [
+          "--silent",
+          "exec",
+          "convex",
+          "env",
+          "set",
+          "POSTHOG_PROJECT_TOKEN",
+          "phc_test_placeholder",
+        ],
+        [
+          "--silent",
+          "exec",
+          "convex",
+          "env",
+          "set",
+          "WORKOS_CLIENT_ID",
+          "client_test_contracts_runtime",
+        ],
+        [
+          "--silent",
+          "exec",
+          "convex",
+          "dev",
+          "--once",
+          "--typecheck",
+          "disable",
+        ],
+        ["--dir", "apps/web", "exec", "vite", "build"],
+      ]);
+      expect(existsSync(resolve(targetRoot, ".env.local"))).toBe(false);
+      expect(existsSync(resolve(targetRoot, ".convex"))).toBe(false);
+    } finally {
+      rmSync(targetRoot, { recursive: true });
+    }
   });
 
   it("provides fake AuthKit configuration to required local preparation", () => {
