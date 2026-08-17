@@ -1,17 +1,14 @@
 {
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
-    "jsx": "react-jsx",
-    "rootDir": ".",
-    "outDir": "dist"
+    "jsx": "react-jsx"
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.mts",
-    "test/**/*.ts",
-    "test/**/*.tsx",
-    "test/**/*.mts"
+  "include": ["./src"],
+  "exclude": [
+    "**/node_modules",
+    "**/*.stories.ts",
+    "**/*.stories.tsx",
+    "**/stories.ts",
+    "**/stories.tsx"
   ]
 }

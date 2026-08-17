@@ -8,11 +8,16 @@ import {
   validateProductContract,
   type ProductContract,
 } from "@maestro-template/template-core";
+import { resolve } from "node:path";
 import {
   buildCurrentRecordsExampleFiles,
   buildCurrentSaasApplicationChassisFiles,
   buildSaasApplicationFiles,
 } from "./saasApplication";
+import {
+  isObsoleteFrontendAuthority,
+  saasFrontendFoundationFiles,
+} from "./saasFrontendFoundation";
 import {
   selectsSaasApplicationPattern,
   type SaasApplicationPatternSelection,
@@ -20,10 +25,11 @@ import {
 import {
   buildSaasRegistrationProjections,
   CURRENT_FACTORY_PRODUCT_TABLES,
+  currentSource,
+  projectCurrentRecordsRouteTree,
 } from "./saasRegistrationProjections";
 
 const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
-  "apps/web/src/adapters/confect-generated-refs.test.ts",
   "docs/template/env-manifest.json",
   "docs/template/env-manifest.md",
   "docs/template/operations-runbook.md",
@@ -148,43 +154,6 @@ const currentCustomerSource = (
       throw new Error("customer shared env evaluator test markers are missing");
     content = `${content.slice(0, evaluatorTestStart)}${content.slice(retainedTestStart)}`;
   }
-  if (
-    path === "packages/convex/confect/workflows/_generated/workflowRegistry.ts"
-  )
-    return customerSourcePath(path);
-  if (path === "apps/web/src/adapters/confect-generated-refs.test.ts") {
-    const replacements = [
-      [
-        'import type { InvokeReturn, ReactMutation } from "@confect/react";',
-        'import type { ReactMutation } from "@confect/react";',
-      ],
-      [
-        "  useTemplateAction,\n  useTemplateMutation,",
-        "  useTemplateMutation,",
-      ],
-      [
-        'type EvaluateAppIdeaWithModelRef =\n  TemplateConfectRefs["public"]["capabilities"]["evaluateAppIdea"]["evaluateAppIdeaWithModel"];\n',
-        "",
-      ],
-      [
-        "type TemplateActionResult<Action extends Ref.AnyPublicAction> = ReturnType<\n  typeof useTemplateAction<Action>\n>;\n",
-        "",
-      ],
-    ] as const;
-    for (const [search, replacement] of replacements) {
-      if (!content.includes(search))
-        throw new Error("customer generated refs evaluator marker is missing");
-      content = content.replace(search, replacement);
-    }
-    const evaluatorTestStart = content.indexOf(
-      '  it("infers generated action args, results, and typed failures"',
-    );
-    if (evaluatorTestStart < 0 || !content.endsWith("});\n"))
-      throw new Error(
-        "customer generated refs evaluator test marker is missing",
-      );
-    content = `${content.slice(0, evaluatorTestStart)}});\n`;
-  }
   if (path === "packages/template-core/src/generated/confectManifest.ts") {
     content = content
       .split("\n")
@@ -307,7 +276,7 @@ const currentContractFiles = (
       ? ["docs/product/records-plan.md"]
       : [],
     appMapTargets: selectsSaasApplicationPattern(options, "records-example")
-      ? ["route:records", "headless:records-api"]
+      ? ["route:$workspace/records", "headless:records-api"]
       : [],
     acceptancePaths: selectsSaasApplicationPattern(options, "records-example")
       ? ["records.spec.ts"]
@@ -415,7 +384,7 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
     {
       generator: "add-feature",
       commandFamily: "template:add-feature",
-      name: "records",
+      name: "$workspace/records",
       ownership: { system: "record-management", disposition: "extend" },
       generatedPaths: [
         "packages/convex/confect/tables/records.ts",
@@ -427,7 +396,7 @@ const recordsFeatureProvenance = (): GeneratedFile => ({
         "apps/web/src/features/records/model.ts",
         "apps/web/src/features/records/records-surface.tsx",
         "apps/web/src/screens/records-screen.tsx",
-        "apps/web/src/routes/_workspace.records.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
         "product.contract.yaml",
         "product.contract.schema.json",
         "docs/template/generated/product-contract.md",
@@ -513,16 +482,25 @@ const customerDocumentationCommandReplacements: Readonly<
       "5. Run `pnpm build` and `pnpm smoke:web-static`.",
       "5. Run `pnpm build` and the deployment owner's static smoke.",
     ],
-    [
-      "deployment, require `pnpm smoke:hosted`, `pnpm smoke:hosted:browser`,\n   `pnpm smoke:hosted:a11y`, and `pnpm smoke:hosted:visual`. Upload the guarded",
-      "deployment, require the deployment owner's hosted liveness, browser,\n   accessibility, and visual canaries. Upload the guarded",
-    ],
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/saas-ui-golden-review.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/investor-reviewer-packet.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/hosting.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/golden-path-business-slice.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
+  ],
+  "docs/template/reviewer-guide.md": [
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
   ],
   "docs/template/template-maturity-model.md": [
-    [
-      "**Required commands:** `pnpm check:format`, `pnpm smoke:web-static`,\n`pnpm smoke:hosted:browser`, `pnpm smoke:hosted:a11y`,\n`pnpm smoke:hosted:visual`.",
-      "**Required commands:** `pnpm check:format` plus deployment-owned static,\nbrowser, accessibility, and visual canaries.",
-    ],
+    ["pnpm smoke:starter-route-parity", "pnpm check:saas-ui-foundation"],
     ["`pnpm review:completion`.", "`pnpm review:contract`."],
     ["`pnpm evals`.", "`pnpm test`."],
     ["`pnpm deploy:doctor`.", "`pnpm verify`."],
@@ -700,13 +678,46 @@ export const buildFactorySaasApplicationFiles = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
   readonly patterns?: SaasApplicationPatternSelection["patterns"];
-}): readonly GeneratedFile[] =>
-  projectWorkflowCommandReferences(
+  readonly sourceRoot?: string;
+}): readonly GeneratedFile[] => {
+  const sourceRoot = options.sourceRoot;
+  const frontendFiles = saasFrontendFoundationFiles(
+    sourceRoot === undefined
+      ? currentSource
+      : (path) => readFileSync(resolve(sourceRoot, path), "utf8"),
+  ).map((file) =>
+    file.path === "apps/web/src/routeTree.gen.ts" &&
+    selectsSaasApplicationPattern(options, "records-example")
+      ? { ...file, content: projectCurrentRecordsRouteTree(file.content) }
+      : file,
+  );
+  const frontendPaths = new Set(frontendFiles.map(({ path }) => path));
+  const currentFiles = currentSaasApplicationFiles(options).filter(
+    ({ path }) =>
+      !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
+  );
+  const contractFiles = currentContractFiles(options);
+  const registrationFiles = buildSaasRegistrationProjections({
+    patterns: options.patterns,
+  }).filter(
+    ({ path }) =>
+      !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
+  );
+  const existingPaths = new Set(
+    [...currentFiles, ...contractFiles, ...registrationFiles].map(
+      ({ path }) => path,
+    ),
+  );
+  return projectWorkflowCommandReferences(
     [
-      ...currentSaasApplicationFiles(options),
-      ...currentContractFiles(options),
-      ...currentCustomerSourceProjections(options),
-      ...buildSaasRegistrationProjections({ patterns: options.patterns }),
+      ...currentFiles,
+      ...contractFiles,
+      ...registrationFiles,
+      ...frontendFiles.filter(({ path }) => !existingPaths.has(path)),
+      ...currentCustomerSourceProjections(options).filter(
+        ({ path }) =>
+          !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
+      ),
       ...(selectsSaasApplicationPattern(options, "records-example")
         ? [recordsFeatureProvenance()]
         : []),
@@ -718,6 +729,7 @@ export const buildFactorySaasApplicationFiles = (options: {
     }, []),
     options,
   );
+};
 
 /** Historical projection used only to reproduce the immutable alpha.1 plan. */
 export const buildAlpha1SaasApplicationFiles = (options: {
@@ -725,16 +737,35 @@ export const buildAlpha1SaasApplicationFiles = (options: {
   readonly firstOutcome?: string;
 }): readonly GeneratedFile[] => [
   ...buildSaasApplicationFiles(options).map((file) =>
-    file.path ===
-    "generated/blueprints/saas-application/application-contract.json"
+    file.path === "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"
       ? {
           ...file,
-          content: file.content.replace(
-            "packages/convex/confect/records.{spec,impl}.ts",
-            "packages/convex/confect/records/*",
-          ),
+          path: "apps/web/src/routes/_workspace.records.tsx",
+          content: file.content
+            .replace(
+              "../../../../screens/records-screen.js",
+              "../screens/records-screen.js",
+            )
+            .replace(
+              "/_app/$workspace/_dashboard/records",
+              "/_workspace/records",
+            ),
         }
-      : file,
+      : file.path ===
+          "generated/blueprints/saas-application/application-contract.json"
+        ? {
+            ...file,
+            content: file.content
+              .replace(
+                "packages/convex/confect/records.{spec,impl}.ts",
+                "packages/convex/confect/records/*",
+              )
+              .replace(
+                "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
+                "apps/web/src/routes/_workspace.records.tsx",
+              ),
+          }
+        : file,
   ),
   ...buildSaasRegistrationProjections({ current: false }),
 ];

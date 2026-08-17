@@ -93,15 +93,6 @@ const convexConfigEnvNames = (): readonly string[] => {
     .sort();
 };
 
-const setupSurfaceEnvNames = (): readonly string[] => {
-  const source = readText("apps/web/src/features/setup/setup-surface.ts");
-  const section = source.match(
-    /export const requiredLiveProviderEnv = \[([\s\S]*?)\] as const;/s,
-  )?.[1];
-
-  return quotedEnvNames(section ?? "").sort();
-};
-
 const envExampleValues = (): ReadonlyMap<string, string> =>
   new Map(
     readText(".env.example")
@@ -152,12 +143,11 @@ describe("environment manifest", () => {
     }
   });
 
-  it("covers provider descriptors, Convex component env, setup UI, and deploy config", () => {
+  it("covers provider descriptors, Convex component env, and deploy config", () => {
     const requiredNames = new Set([
       ...providerRequiredEnvNames(),
       ...projectConfigRequiredSecretNames(),
       ...convexConfigEnvNames(),
-      ...setupSurfaceEnvNames(),
     ]);
 
     for (const name of requiredNames) {
@@ -177,13 +167,11 @@ describe("environment manifest", () => {
     expect(source).not.toContain("requiredSecretNamesByProvider");
   });
 
-  it("keeps PostHog and storage env names consistent across surfaces", () => {
-    const setupEnv = setupSurfaceEnvNames();
+  it("keeps PostHog and storage provider env names canonical", () => {
     const providerEnv = providerRequiredEnvNames();
 
-    expect(setupEnv).toContain("POSTHOG_PROJECT_TOKEN");
-    expect(setupEnv).not.toContain("POSTHOG_API_KEY");
-    expect(providerEnv).toEqual(expect.arrayContaining(setupEnv));
+    expect(providerEnv).toContain("POSTHOG_PROJECT_TOKEN");
+    expect(providerEnv).not.toContain("POSTHOG_API_KEY");
     expect(providerEnv).toContain("STORAGE_PUBLIC_BASE_URL");
     expect(providerEnv).toContain("STORAGE_ACCESS_KEY_ID");
     expect(providerEnv).toContain("STORAGE_SECRET_ACCESS_KEY");

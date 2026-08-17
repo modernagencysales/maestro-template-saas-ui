@@ -27,6 +27,43 @@ import members from "./members.spec";
 
 const MEMBER_SCAN_CAP = 200;
 
+const list = FunctionImpl.make(
+  databaseSchema,
+  members,
+  "list",
+  ({ workspaceId }) =>
+    Effect.gen(function* () {
+      const reader = yield* DatabaseReader;
+      yield* loadActorForWorkspace(reader, workspaceId);
+      const rows = yield* reader
+        .table("workspaceMembers")
+        .index("by_workspace_status", (q) =>
+          q.eq("workspaceId", workspaceId).eq("status", "active"),
+        )
+        .take(MEMBER_SCAN_CAP)
+        .pipe(Effect.orDie);
+      const live = rows
+        .map(toLifecycleMember)
+        .filter(isLiveWorkspaceMembership);
+      return yield* Effect.forEach(live, (membership) =>
+        Effect.gen(function* () {
+          const user = yield* reader
+            .table("users")
+            .get(asGenericId<"users">(membership.userId))
+            .pipe(Effect.orDie);
+          return {
+            id: asGenericId<"workspaceMembers">(membership.id),
+            email: user?.email ?? "",
+            name: user?.displayName ?? user?.email ?? "",
+            avatar: null,
+            roles: [membership.role],
+            status: "active" as const,
+          };
+        }),
+      );
+    }),
+);
+
 const changeRole = FunctionImpl.make(
   databaseSchema,
   members,
@@ -226,6 +263,7 @@ const liveWorkspaceMembersOrDie = (
     );
 
 export default GroupImpl.make(databaseSchema, members).pipe(
+  Layer.provide(list),
   Layer.provide(changeRole),
   Layer.provide(remove),
   Layer.provide(transferOwnershipImpl),

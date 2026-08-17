@@ -58,6 +58,10 @@ pnpm check:qlty -- --staged
 | Dependency                                         | `pnpm check:deps`; `pnpm check:knip`; `pnpm check:sbom-license`                                                                                                | `pnpm check:qlty -- --diff`; review license and vulnerability findings                                                                                                                                                            |
 | Generated output                                   | The generator's emitted focused gates and `pnpm check:generated-files` when applicable                                                                         | Inspect the generated diff; never hand-edit generated authority                                                                                                                                                                   |
 
+Saas UI frontend changes also run the template ESLint rules for shell authority,
+official primitives, and semantic colors across application, package, generator,
+and generated-fixture source scopes.
+
 Run the narrowest commands that cover the work. `pnpm verify` is a
 full-batch/frozen-delivery check, not the default proof for every small task.
 

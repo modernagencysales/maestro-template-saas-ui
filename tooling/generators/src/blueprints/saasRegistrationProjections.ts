@@ -38,7 +38,7 @@ const customerEngineeringRules = (workflowSelected: boolean): string => {
     .join("\n");
 };
 
-const currentSource = (path: string): string => {
+export const currentSource = (path: string): string => {
   const url = new URL(`../../../../${path}`, import.meta.url);
   return existsSync(url) ? readFileSync(url, "utf8") : releasedSource(path);
 };
@@ -246,8 +246,6 @@ export const CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE = [
 
 export const CURRENT_EMAIL_CLOSURE = [
   ".env.example",
-  "apps/web/src/features/setup/setup-surface.ts",
-  "apps/web/src/sample/templateData.test.ts",
   "docs/template/client-handoff-packet.md",
   "docs/template/client-intake-wizard.md",
   "docs/template/how-to-add-notification.md",
@@ -291,7 +289,6 @@ export const CURRENT_EMAIL_CLOSURE = [
   "packages/notifications/src/index.ts",
   "packages/template-core/src/actions.test.ts",
   "packages/template-core/src/index.ts",
-  "packages/ui/src/visualize/visualize.test.tsx",
   "project.config.json",
   "tooling/confect-manifest/src/generate.ts",
   "tooling/quality/check-env-boundary.mts",
@@ -302,8 +299,6 @@ export const CURRENT_EMAIL_CLOSURE = [
 
 export const CURRENT_EMAIL_BASE_COPY_REPLACEMENTS = [
   ".env.example",
-  "apps/web/src/features/setup/setup-surface.ts",
-  "apps/web/src/sample/templateData.test.ts",
   "docs/template/client-handoff-packet.md",
   "docs/template/client-intake-wizard.md",
   "docs/template/how-to-add-notification.md",
@@ -325,7 +320,6 @@ export const CURRENT_EMAIL_BASE_COPY_REPLACEMENTS = [
   "packages/notifications/src/index.ts",
   "packages/template-core/src/actions.test.ts",
   "packages/template-core/src/index.ts",
-  "packages/ui/src/visualize/visualize.test.tsx",
   "project.config.json",
   "tooling/confect-manifest/src/generate.ts",
   "tooling/quality/check-env-boundary.mts",
@@ -344,6 +338,25 @@ export const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
   "tooling/quality/mutation-script.test.mts",
 ] as const;
 
+export const CURRENT_CUSTOMER_PROJECT_TSCONFIGS = [
+  "apps/cli/tsconfig.json",
+  "packages/convex/tsconfig.json",
+  "packages/editor-core/tsconfig.json",
+  "packages/editor-react/tsconfig.json",
+  "packages/workflow-ui/tsconfig.json",
+  "packages/template-core/tsconfig.json",
+  "packages/integrations/tsconfig.json",
+  "packages/notifications/tsconfig.json",
+  "packages/storage/tsconfig.json",
+  "packages/observability/tsconfig.json",
+  "packages/search/tsconfig.json",
+  "tooling/agent-pack/tsconfig.json",
+  "tooling/quality/tsconfig.json",
+  "tooling/generators/tsconfig.json",
+  "tooling/evals/tsconfig.json",
+  "tooling/release/tsconfig.json",
+] as const;
+
 const exclusionArguments = (
   paths: readonly string[],
   packagePrefix = "",
@@ -354,6 +367,8 @@ const currentCustomerRootTestExclusions = (): string =>
   exclusionArguments(CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS);
 
 export const CUSTOMER_ROOT_SCRIPTS = [
+  "check:saas-ui-foundation",
+  "check:saas-ui-artifact-safety",
   "maestro",
   "product-contract:generate",
   "check:product-contract",
@@ -363,6 +378,8 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "check:format",
   "lint",
   "typecheck",
+  "typecheck:saas-ui",
+  "typecheck:saas-ui:baseline",
   "check:effect-diagnostics",
   "test",
   "test:runtime-longevity",
@@ -518,6 +535,8 @@ const customerPackage = (
     `vitest run --coverage packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality${workflowSelected ? " tooling/workflow" : ""} tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts --update`;
   value.scripts["check:agent-pack"] =
     "tsx tooling/quality/check-agent-pack.mts";
+  value.scripts["check:saas-ui-artifact-safety"] =
+    "tsx tooling/quality/check-saas-ui-artifact-safety.mts";
   value.scripts["check:layer-boundaries"] =
     "depcruise --config dependency-cruiser.config.cjs apps packages tooling tests";
   value.scripts.prepare = "node tooling/quality/install-lefthook-if-git.mjs";
@@ -555,6 +574,7 @@ const customerPackage = (
     "check:headless-surface-contract",
     "check:posthog-readiness",
     "check:auth-demo-bypass",
+    "check:saas-ui-artifact-safety",
   ]
     .filter((name) => workflowSelected || !WORKFLOW_CUSTOMER_SCRIPTS.has(name))
     .map((name) => `pnpm ${name}`)
@@ -737,9 +757,12 @@ const removeLockfileImporterDependencyByName = (
   const packages = value.indexOf("\npackages:", importerStart);
   const importerEnd =
     nextImporter === null ? packages : importerBodyStart + nextImporter.index;
-  const dependencyStart = [`      "${dependency}":`, `      '${dependency}':`]
-    .map((marker) => value.indexOf(marker, importerStart))
-    .find((start) => start >= importerStart && start < importerEnd);
+  const dependencyStart = lockfileDependencyStart(
+    value,
+    importerStart,
+    importerEnd,
+    dependency,
+  );
   if (
     importerStart < 0 ||
     importerEnd <= importerStart ||
@@ -844,6 +867,13 @@ const customerLockfile = (
       "Customer lockfile still references omitted @maestro-template/app-idea-evaluator workspace package.",
     );
   return value;
+};
+
+const customerRootTsconfig = (workflowSelected: boolean): string => {
+  const value = currentSource("tsconfig.json");
+  return workflowSelected
+    ? value
+    : replace(value, '    { "path": "./tooling/workflow" },\n', "");
 };
 
 const customerAgentPackCheck = (): string => {
@@ -1270,136 +1300,8 @@ const confectDocs = (
   );
 };
 
-const routeTree = (
-  current: boolean,
-  recordsSelected: boolean,
-  workflowSelected: boolean,
-): string => {
-  if (current && recordsSelected && !workflowSelected)
-    return `/* eslint-disable */
-// @ts-nocheck
-import { Route as rootRouteImport } from './routes/__root'
-import { Route as IndexRouteImport } from './routes/index'
-import { Route as WorkspaceHealthRouteImport } from './routes/_workspace.health'
-import { Route as WorkspaceRecordsRouteImport } from './routes/_workspace.records'
-
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WorkspaceHealthRoute = WorkspaceHealthRouteImport.update({
-  id: '/_workspace/health',
-  path: '/health',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const WorkspaceRecordsRoute = WorkspaceRecordsRouteImport.update({
-  id: '/_workspace/records',
-  path: '/records',
-  getParentRoute: () => rootRouteImport,
-} as any)
-
-export interface FileRoutesByFullPath {
-  '/': typeof IndexRoute
-  '/health': typeof WorkspaceHealthRoute
-  '/records': typeof WorkspaceRecordsRoute
-}
-export interface FileRoutesByTo {
-  '/': typeof IndexRoute
-  '/health': typeof WorkspaceHealthRoute
-  '/records': typeof WorkspaceRecordsRoute
-}
-export interface FileRoutesById {
-  __root__: typeof rootRouteImport
-  '/': typeof IndexRoute
-  '/_workspace/health': typeof WorkspaceHealthRoute
-  '/_workspace/records': typeof WorkspaceRecordsRoute
-}
-export interface FileRouteTypes {
-  fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/health' | '/records'
-  fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/health' | '/records'
-  id: '__root__' | '/' | '/_workspace/health' | '/_workspace/records'
-  fileRoutesById: FileRoutesById
-}
-export interface RootRouteChildren {
-  IndexRoute: typeof IndexRoute
-  WorkspaceHealthRoute: typeof WorkspaceHealthRoute
-  WorkspaceRecordsRoute: typeof WorkspaceRecordsRoute
-}
-
-declare module '@tanstack/react-router' {
-  interface FileRoutesByPath {
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_workspace/health': {
-      id: '/_workspace/health'
-      path: '/health'
-      fullPath: '/health'
-      preLoaderRoute: typeof WorkspaceHealthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/_workspace/records': {
-      id: '/_workspace/records'
-      path: '/records'
-      fullPath: '/records'
-      preLoaderRoute: typeof WorkspaceRecordsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-  }
-}
-
-const rootRouteChildren: RootRouteChildren = {
-  IndexRoute,
-  WorkspaceHealthRoute,
-  WorkspaceRecordsRoute,
-}
-export const routeTree = rootRouteImport
-  ._addFileChildren(rootRouteChildren)
-  ._addFileTypes<FileRouteTypes>()
-`;
-  let value = current
-    ? currentGeneratorSource("blueprints/customer/routeTree.gen.ts.txt")
-    : source("apps/web/src/routeTree.gen.ts");
-  if (current) {
-    value = replace(
-      value,
-      "import { Route as IndexRouteImport } from './routes/index'",
-      "import { Route as IndexRouteImport } from './routes/index'\nimport { Route as DashboardRouteImport } from './routes/dashboard'",
-    );
-    value = replace(
-      value,
-      "const IndexRoute = IndexRouteImport.update({\n  id: '/',\n  path: '/',\n  getParentRoute: () => rootRouteImport,\n} as any)",
-      "const IndexRoute = IndexRouteImport.update({\n  id: '/',\n  path: '/',\n  getParentRoute: () => rootRouteImport,\n} as any)\nconst DashboardRoute = DashboardRouteImport.update({\n  id: '/dashboard',\n  path: '/dashboard',\n  getParentRoute: () => rootRouteImport,\n} as any)",
-    );
-    value = replaceAll(
-      value,
-      "  '/': typeof IndexRoute",
-      "  '/': typeof IndexRoute\n  '/dashboard': typeof DashboardRoute",
-    );
-    value = replaceAll(value, "    | '/'", "    | '/'\n    | '/dashboard'");
-    value = replace(
-      value,
-      "  IndexRoute: typeof IndexRoute",
-      "  IndexRoute: typeof IndexRoute\n  DashboardRoute: typeof DashboardRoute",
-    );
-    value = replace(
-      value,
-      "  interface FileRoutesByPath {\n    '/': {",
-      "  interface FileRoutesByPath {\n    '/dashboard': {\n      id: '/dashboard'\n      path: '/dashboard'\n      fullPath: '/dashboard'\n      preLoaderRoute: typeof DashboardRouteImport\n      parentRoute: typeof rootRouteImport\n    }\n    '/': {",
-    );
-    value = replace(
-      value,
-      "  IndexRoute: IndexRoute,",
-      "  IndexRoute: IndexRoute,\n  DashboardRoute: DashboardRoute,",
-    );
-  }
+const routeTree = (recordsSelected: boolean): string => {
+  let value = releasedSource("apps/web/src/routeTree.gen.ts");
   if (!recordsSelected) return value;
   value = replace(
     value,
@@ -1444,6 +1346,51 @@ export const routeTree = rootRouteImport
   );
 };
 
+export const projectCurrentRecordsRouteTree = (source: string): string => {
+  const replacements = [
+    [
+      "import { Route as AppWorkspaceDashboardKanbanRouteImport } from './routes/_app/$workspace/_dashboard/kanban'",
+      "import { Route as AppWorkspaceDashboardKanbanRouteImport } from './routes/_app/$workspace/_dashboard/kanban'\nimport { Route as AppWorkspaceDashboardRecordsRouteImport } from './routes/_app/$workspace/_dashboard/records'",
+    ],
+    [
+      "const AppWorkspaceDashboardKanbanRoute =\n  AppWorkspaceDashboardKanbanRouteImport.update({\n    id: '/kanban',\n    path: '/kanban',\n    getParentRoute: () => AppWorkspaceDashboardRoute,\n  } as any)",
+      "const AppWorkspaceDashboardKanbanRoute =\n  AppWorkspaceDashboardKanbanRouteImport.update({\n    id: '/kanban',\n    path: '/kanban',\n    getParentRoute: () => AppWorkspaceDashboardRoute,\n  } as any)\nconst AppWorkspaceDashboardRecordsRoute =\n  AppWorkspaceDashboardRecordsRouteImport.update({\n    id: '/records',\n    path: '/records',\n    getParentRoute: () => AppWorkspaceDashboardRoute,\n  } as any)",
+    ],
+    [
+      "  '/$workspace/kanban': typeof AppWorkspaceDashboardKanbanRoute",
+      "  '/$workspace/kanban': typeof AppWorkspaceDashboardKanbanRoute\n  '/$workspace/records': typeof AppWorkspaceDashboardRecordsRoute",
+    ],
+    [
+      "  '/_app/$workspace/_dashboard/kanban': typeof AppWorkspaceDashboardKanbanRoute",
+      "  '/_app/$workspace/_dashboard/kanban': typeof AppWorkspaceDashboardKanbanRoute\n  '/_app/$workspace/_dashboard/records': typeof AppWorkspaceDashboardRecordsRoute",
+    ],
+    [
+      "    | '/$workspace/kanban'",
+      "    | '/$workspace/kanban'\n    | '/$workspace/records'",
+    ],
+    [
+      "    | '/_app/$workspace/_dashboard/kanban'",
+      "    | '/_app/$workspace/_dashboard/kanban'\n    | '/_app/$workspace/_dashboard/records'",
+    ],
+    [
+      "    '/_app/$workspace/_dashboard/kanban': {\n      id: '/_app/$workspace/_dashboard/kanban'\n      path: '/kanban'\n      fullPath: '/$workspace/kanban'\n      preLoaderRoute: typeof AppWorkspaceDashboardKanbanRouteImport\n      parentRoute: typeof AppWorkspaceDashboardRoute\n    }",
+      "    '/_app/$workspace/_dashboard/kanban': {\n      id: '/_app/$workspace/_dashboard/kanban'\n      path: '/kanban'\n      fullPath: '/$workspace/kanban'\n      preLoaderRoute: typeof AppWorkspaceDashboardKanbanRouteImport\n      parentRoute: typeof AppWorkspaceDashboardRoute\n    }\n    '/_app/$workspace/_dashboard/records': {\n      id: '/_app/$workspace/_dashboard/records'\n      path: '/records'\n      fullPath: '/$workspace/records'\n      preLoaderRoute: typeof AppWorkspaceDashboardRecordsRouteImport\n      parentRoute: typeof AppWorkspaceDashboardRoute\n    }",
+    ],
+    [
+      "  AppWorkspaceDashboardKanbanRoute: typeof AppWorkspaceDashboardKanbanRoute",
+      "  AppWorkspaceDashboardKanbanRoute: typeof AppWorkspaceDashboardKanbanRoute\n  AppWorkspaceDashboardRecordsRoute: typeof AppWorkspaceDashboardRecordsRoute",
+    ],
+    [
+      "  AppWorkspaceDashboardKanbanRoute: AppWorkspaceDashboardKanbanRoute,",
+      "  AppWorkspaceDashboardKanbanRoute: AppWorkspaceDashboardKanbanRoute,\n  AppWorkspaceDashboardRecordsRoute: AppWorkspaceDashboardRecordsRoute,",
+    ],
+  ] as const;
+  return replacements.reduce(
+    (value, [search, replacement]) => replaceAll(value, search, replacement),
+    source,
+  );
+};
+
 export const buildSaasRegistrationProjections = (
   options: {
     readonly current?: boolean;
@@ -1483,6 +1430,10 @@ export const buildSaasRegistrationProjections = (
                 {
                   path: "tooling/workflow/package.json",
                   content: currentSource("tooling/workflow/package.json"),
+                },
+                {
+                  path: "tooling/workflow/tsconfig.json",
+                  content: currentSource("tooling/workflow/tsconfig.json"),
                 },
               ]
             : []),
@@ -1527,10 +1478,6 @@ export const buildSaasRegistrationProjections = (
             content: currentSource("scripts/configure-postmark.mts"),
           },
           {
-            path: "apps/web/src/bundle-policy.ts",
-            content: currentSource("apps/web/src/bundle-policy.ts"),
-          },
-          {
             path: "apps/web/scripts/check-client-bundle-budget.mjs",
             content: currentSource(
               "apps/web/scripts/check-client-bundle-budget.mjs",
@@ -1543,10 +1490,6 @@ export const buildSaasRegistrationProjections = (
             ),
           },
           {
-            path: "apps/web/src/bundle-policy.test.ts",
-            content: currentSource("apps/web/src/bundle-policy.test.ts"),
-          },
-          {
             path: "apps/web/vite.config.ts",
             content: currentSource("apps/web/vite.config.ts"),
           },
@@ -1557,6 +1500,10 @@ export const buildSaasRegistrationProjections = (
           {
             path: "packages/convex/package.json",
             content: customerConvexPackage(options),
+          },
+          {
+            path: "packages/convex/src/refs.ts",
+            content: currentSource("packages/convex/src/refs.ts"),
           },
           {
             path: "tooling/quality/check-convex-generation.mts",
@@ -1652,6 +1599,18 @@ export const buildSaasRegistrationProjections = (
       : []),
     ...(current ? [{ path: ".npmrc", content: currentSource(".npmrc") }] : []),
     { path: ".prettierignore", content: currentSource(".prettierignore") },
+    ...(current
+      ? [
+          {
+            path: "tsconfig.json",
+            content: customerRootTsconfig(workflowSelected),
+          },
+          ...CURRENT_CUSTOMER_PROJECT_TSCONFIGS.map((path) => ({
+            path,
+            content: currentSource(path),
+          })),
+        ]
+      : []),
     { path: "package.json", content: customerPackage(current, options) },
     ...(current
       ? [{ path: "pnpm-lock.yaml", content: customerLockfile(options) }]
@@ -1661,6 +1620,12 @@ export const buildSaasRegistrationProjections = (
           {
             path: "patches/@confect__cli@10.0.0-next.9.patch",
             content: currentSource("patches/@confect__cli@10.0.0-next.9.patch"),
+          },
+          {
+            path: "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
+            content: currentSource(
+              "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
+            ),
           },
           {
             path: "patches/@tanstack__start-plugin-core@1.171.18.patch",
@@ -1758,6 +1723,28 @@ export const buildSaasRegistrationProjections = (
         : []),
       "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
       "packages/convex/confect/_generated/docs.ts",
+      "packages/convex/confect/_generated/tables/workspaces.ts",
+      "packages/convex/confect/_generated/registeredFunctions/access/members.ts",
+      "packages/convex/confect/_generated/registeredFunctions/auth/workspaces.ts",
+      "packages/convex/confect/_generated/services.ts",
+      "packages/convex/confect/access/members.spec.ts",
+      "packages/convex/confect/access/members.impl.ts",
+      "packages/convex/confect/access/audit.ts",
+      "packages/convex/confect/access/email.ts",
+      "packages/convex/confect/access/handlerContext.ts",
+      "packages/convex/confect/access/lifecycle.ts",
+      "packages/convex/confect/access/lifecycleInvitations.ts",
+      "packages/convex/confect/access/provisioning.spec.ts",
+      "packages/convex/confect/access/roles.ts",
+      "packages/convex/confect/auth/workspaces.spec.ts",
+      "packages/convex/confect/auth/workspaces.impl.ts",
+      "packages/convex/confect/errors.ts",
+      "packages/convex/confect/tables/workspaces.ts",
+      "packages/convex/confect/_generated/refs.ts",
+      "packages/convex/convex/_generated/api.d.ts",
+      "packages/convex/convex/_generated/api.js",
+      "packages/convex/convex/access/members.ts",
+      "packages/convex/convex/auth/workspaces.ts",
       ...(workflowSelected
         ? ["packages/convex/confect/_generated/tables/workflowArtifacts.ts"]
         : []),
@@ -1864,22 +1851,6 @@ export const buildSaasRegistrationProjections = (
       : []),
     ...(current
       ? [
-          {
-            path: "apps/web/src/routes/index.tsx",
-            content: currentGeneratorSource(
-              "blueprints/customer/index-route.tsx.txt",
-            ),
-          },
-          {
-            path: "apps/web/src/providers/posthog.tsx",
-            content: currentGeneratorSource(
-              "blueprints/customer/posthog.tsx.txt",
-            ),
-          },
-        ]
-      : []),
-    ...(current
-      ? [
           "privacy/supportBundle.ts",
           "privacy/supportBundleCommand.ts",
           "privacy/nodeSupportBundleExporter.ts",
@@ -1949,11 +1920,15 @@ export const buildSaasRegistrationProjections = (
           },
         ]
       : []),
-    {
-      path: "apps/web/src/routeTree.gen.ts",
-      content: routeTree(current, recordsSelected, workflowSelected),
-    },
-    ...(recordsSelected
+    ...(!current
+      ? [
+          {
+            path: "apps/web/src/routeTree.gen.ts",
+            content: routeTree(recordsSelected),
+          },
+        ]
+      : []),
+    ...(!current && recordsSelected
       ? [
           {
             path: "apps/web/src/routeRegistry.generated.ts",

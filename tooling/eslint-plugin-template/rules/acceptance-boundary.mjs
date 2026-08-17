@@ -154,17 +154,34 @@ const isRuntimeWebUrl = (node) =>
   node.property.type === "Identifier" &&
   node.property.name === "webUrl";
 
+const isScenarioWorkspaceSlug = (node) =>
+  node?.type === "MemberExpression" &&
+  !node.computed &&
+  !node.optional &&
+  node.object.type === "Identifier" &&
+  node.object.name === "scenario" &&
+  node.property.type === "Identifier" &&
+  node.property.name === "workspaceSlug";
+
 const isRuntimeRootedNavigation = (node) => {
   const target = node.arguments[0];
-  return (
+  if (!(
     propertyNames(node.callee).includes("goto") &&
     target?.type === "TemplateLiteral" &&
-    target.expressions.length === 1 &&
-    target.quasis.length === 2 &&
     target.quasis[0]?.value.cooked === "" &&
-    isRuntimeWebUrl(target.expressions[0]) &&
-    (target.quasis[1]?.value.cooked === "" ||
-      target.quasis[1]?.value.cooked?.startsWith("/"))
+    isRuntimeWebUrl(target.expressions[0])
+  ))
+    return false;
+  return (
+    (target.expressions.length === 1 &&
+      target.quasis.length === 2 &&
+      (target.quasis[1]?.value.cooked === "" ||
+        target.quasis[1]?.value.cooked?.startsWith("/"))) ||
+    (target.expressions.length === 2 &&
+      target.quasis.length === 3 &&
+      target.quasis[1]?.value.cooked === "/" &&
+      isScenarioWorkspaceSlug(target.expressions[1]) &&
+      target.quasis[2]?.value.cooked?.startsWith("/"))
   );
 };
 

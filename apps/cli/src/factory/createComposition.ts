@@ -57,6 +57,7 @@ export const CURRENT_PUBLIC_SOURCE = Object.freeze({
 type BlueprintTargetPlanBuilder = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
+  readonly sourceRoot?: string;
 }) => BlueprintTargetPlan;
 
 type BlueprintTargetPlan = Parameters<typeof blueprintTargetPlanDigest>[0];
@@ -124,7 +125,11 @@ export function createCustomerCreateComposition(
   );
   const command = createCustomerCreateCommand({
     blueprintTargetPlan: ({ name, outcome }) => {
-      const plan = buildBlueprintTargetPlan({ name, firstOutcome: outcome });
+      const plan = buildBlueprintTargetPlan({
+        name,
+        firstOutcome: outcome,
+        sourceRoot: source.repositoryRoot,
+      });
       return applyReplacementAuthority(plan, replacements);
     },
     release: {

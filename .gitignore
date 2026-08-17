@@ -11,6 +11,8 @@ packages/*/dist/
 tooling/*/dist/
 test-results/
 playwright-report/
+artifacts/saas-ui-golden/*
+!artifacts/saas-ui-golden/.gitkeep
 
 # Wrangler local dev state
 .wrangler/

@@ -257,10 +257,10 @@ export function ${pascalName}Screen() { return <Page.Root><Page.Header title="${
 `,
     },
     {
-      path: `apps/web/src/routes/_workspace.${route}.tsx`,
+      path: `apps/web/src/routes/_app/$workspace/_dashboard/${route}.tsx`,
       content: `import { createFileRoute } from "@tanstack/react-router";
-import { ${pascalName}Screen } from "../screens/${route}-screen";
-export const Route = createFileRoute("/_workspace/${route}")({ component: ${pascalName}Screen });
+import { ${pascalName}Screen } from "../../../../screens/${route}-screen";
+export const Route = createFileRoute("/_app/$workspace/_dashboard/${route}")({ component: ${pascalName}Screen });
 `,
     },
     {

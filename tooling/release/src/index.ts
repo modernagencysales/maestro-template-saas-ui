@@ -447,8 +447,8 @@ const readinessArtifacts = [
   "packages/template-core/src/index.ts",
   "tooling/workflow/src/index.ts",
   "tooling/generators/src/index.ts",
-  "tests/e2e/hosted-reference-app.spec.ts",
-  "tests/e2e/hosted-reference-app.visual.spec.ts",
+  "tests/e2e/saas-ui-golden.spec.ts",
+  "tests/e2e/saas-ui-golden.visual.spec.ts",
 ] as const;
 
 const clientReleaseHandoffArtifacts = [
@@ -521,12 +521,12 @@ const validateClientReleaseArtifact = (
 
 const readinessClaims = [
   {
-    id: "hosted-reference-app",
+    id: "saas-ui-golden-authorities",
     evidence: [
       "apps/web/src/routes/index.tsx",
-      "apps/web/src/saas-ui/business-shell.tsx",
-      "tests/e2e/hosted-reference-app.spec.ts",
-      "tests/e2e/hosted-reference-app.visual.spec.ts",
+      "apps/web/src/features/common/layouts/app-layout.tsx",
+      "tests/e2e/saas-ui-golden.spec.ts",
+      "tests/e2e/saas-ui-golden.visual.spec.ts",
     ],
     detail:
       "Hosted app has a concrete reference surface plus browser and visual smoke coverage.",
@@ -620,38 +620,38 @@ const completionRequirements = [
       "The repo contains a clear, useful sample app that demonstrates Brain, workflow, capability, agent, integration, and safety surfaces.",
     evidence: [
       "apps/web/src/routes/index.tsx",
-      "apps/web/src/saas-ui/business-shell.tsx",
+      "apps/web/src/features/common/layouts/app-layout.tsx",
       "apps/web/src/sample/templateData.ts",
       "apps/web/src/sample/templateData.test.ts",
       "examples/generic-ai-ops/seed/workspace.json",
       "examples/generic-ai-ops/seed/brain-pages.md",
       "examples/generic-ai-ops/seed/workflows.json",
-      "tests/e2e/hosted-reference-app.spec.ts",
-      "tests/e2e/hosted-reference-app.visual.spec.ts",
+      "tests/e2e/saas-ui-golden.spec.ts",
+      "tests/e2e/saas-ui-golden.visual.spec.ts",
     ],
     verification: [
       "pnpm --dir apps/web test src/sample/templateData.test.ts",
-      "pnpm smoke:hosted:browser",
-      "pnpm smoke:hosted:visual",
+      "pnpm smoke:golden:browser",
+      "pnpm smoke:golden:visual",
     ],
     detail:
       "Reference app data, seed fixtures, and browser/visual tests cover the investor-visible sample app.",
   },
   {
-    id: "hosted-reference",
+    id: "saas-ui-golden",
     requirement:
       "The sample app is hosted or can be immediately hosted from the static build.",
     evidence: [
       "docs/template/hosting.md",
-      "tests/e2e/hosted-reference-app.spec.ts",
-      "tests/e2e/hosted-reference-app.visual.spec.ts",
+      "tests/e2e/saas-ui-golden.spec.ts",
+      "tests/e2e/saas-ui-golden.visual.spec.ts",
     ],
     verification: [
       "pnpm build",
       "pnpm smoke:web-static",
-      "pnpm smoke:hosted",
-      "pnpm smoke:hosted:browser",
-      "pnpm smoke:hosted:visual",
+      "pnpm smoke:golden:browser",
+      "pnpm smoke:golden:a11y",
+      "pnpm smoke:golden:visual",
     ],
     detail:
       "Cloudflare Pages URL and static/hosted smoke paths are documented and testable.",
@@ -796,9 +796,9 @@ export const reviewerCommands = [
   "pnpm check:secret-canaries",
   "pnpm build",
   "pnpm smoke:web-static",
-  "pnpm smoke:hosted",
-  "pnpm smoke:hosted:browser",
-  "pnpm smoke:hosted:visual",
+  "pnpm smoke:golden:browser",
+  "pnpm smoke:golden:a11y",
+  "pnpm smoke:golden:visual",
 ] as const;
 
 const currentCommit = (repoRoot: string): string => {

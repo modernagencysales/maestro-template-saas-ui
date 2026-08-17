@@ -1,0 +1,21 @@
+{
+  "name": "@workspace/config",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@saas-ui-pro/billing": "^0.14.0",
+    "@saas-ui-pro/feature-flags": "^0.18.0",
+    "react": "^19.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@typescript/native": "npm:typescript@^7.0.2"
+  }
+}

@@ -76,7 +76,7 @@ const makeReviewerRepo = (): string => {
     ".woodpecker/deploy.yml",
     "apps/cli/src/index.ts",
     "apps/web/src/routes/index.tsx",
-    "apps/web/src/saas-ui/business-shell.tsx",
+    "apps/web/src/features/common/layouts/app-layout.tsx",
     "apps/web/src/sample/templateData.ts",
     "apps/web/src/sample/templateData.test.ts",
     "examples/generic-ai-ops/seed/workspace.json",
@@ -98,8 +98,8 @@ const makeReviewerRepo = (): string => {
     "tooling/generators/src/index.test.ts",
     "tooling/release/src/index.ts",
     "tooling/release/src/index.test.ts",
-    "tests/e2e/hosted-reference-app.spec.ts",
-    "tests/e2e/hosted-reference-app.visual.spec.ts",
+    "tests/e2e/saas-ui-golden.spec.ts",
+    "tests/e2e/saas-ui-golden.visual.spec.ts",
   ];
 
   for (const file of files) {
@@ -265,8 +265,8 @@ describe("release tooling", () => {
           "pnpm check:format",
           "pnpm check:confect-contracts",
           "pnpm check:confect-compat",
-          "pnpm smoke:hosted:browser",
-          "pnpm smoke:hosted:visual",
+          "pnpm smoke:golden:browser",
+          "pnpm smoke:golden:visual",
         ]),
       });
     } finally {
@@ -319,8 +319,8 @@ describe("release tooling", () => {
             id: "clear-sample-app",
             status: "pass",
             verification: expect.arrayContaining([
-              "pnpm smoke:hosted:browser",
-              "pnpm smoke:hosted:visual",
+              "pnpm smoke:golden:browser",
+              "pnpm smoke:golden:visual",
             ]),
           }),
           expect.objectContaining({

@@ -35,6 +35,7 @@ export type StartSignalBoundary = {
   readonly subscribe: (handler: (signal: NodeJS.Signals) => void) => () => void;
 };
 
+// eslint-disable-next-line complexity -- one bounded process lifecycle owns admission, signals, and cleanup.
 export async function superviseProcesses(
   specs: readonly StartProcessSpec[],
   dependencies: {
@@ -182,18 +183,27 @@ export function createNodeProcessSpawner(
       return {
         completion,
         terminate: async (signal) => {
-          if (child.exitCode === null && child.signalCode === null) {
-            signalProcessTree(child.pid, signal);
-            const stopped = await settlesWithin(completion, 2_000);
-            if (
-              !stopped &&
-              child.exitCode === null &&
-              child.signalCode === null
-            ) {
-              signalProcessTree(child.pid, "SIGKILL");
-              await settlesWithin(completion, 2_000);
+          if (process.platform === "win32") {
+            if (child.exitCode === null && child.signalCode === null) {
+              signalProcessTree(child.pid, signal);
+              const stopped = await settlesWithin(completion, 2_000);
+              if (
+                !stopped &&
+                child.exitCode === null &&
+                child.signalCode === null
+              ) {
+                signalProcessTree(child.pid, "SIGKILL");
+                await settlesWithin(completion, 2_000);
+              }
             }
+            return;
           }
+          signalProcessTree(child.pid, signal);
+          if (signal !== "SIGKILL") {
+            await new Promise((resolve) => setTimeout(resolve, 2_000));
+            signalProcessTree(child.pid, "SIGKILL");
+          }
+          await settlesWithin(completion, 2_000);
         },
       };
     },

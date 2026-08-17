@@ -1,0 +1,246 @@
+{
+  "schemaVersion": 1,
+  "entries": [
+    {
+      "id": "app-shell",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src"
+      },
+      "factoryDestination": "apps/web/src/features/common",
+      "generatedDestination": "apps/web/src/features/common",
+      "route": "/$workspace",
+      "behaviorCheck": "shell controls and navigation",
+      "evidence": [
+        "app-shell-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "dashboard-report",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/reports/reports-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/reports",
+      "generatedDestination": "apps/web/src/features/reports",
+      "route": "/$workspace",
+      "behaviorCheck": "dashboard report renders and active period control changes",
+      "evidence": [
+        "dashboard-report-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "data-grid",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/list/list-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/list",
+      "generatedDestination": "apps/web/src/features/contacts/list",
+      "route": "/$workspace/contacts",
+      "behaviorCheck": "filter sort pagination changes content and selection exposes actions",
+      "evidence": [
+        "data-grid-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "filterable-collection",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/list/contact-filters.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/list",
+      "generatedDestination": "apps/web/src/features/contacts/list",
+      "route": "/$workspace/contacts",
+      "behaviorCheck": "active filter removal",
+      "evidence": [
+        "filterable-collection-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "list-detail",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/view/contact-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/view",
+      "generatedDestination": "apps/web/src/features/contacts/view",
+      "route": "/$workspace/contacts/view/$id",
+      "behaviorCheck": "list to detail navigation",
+      "evidence": [
+        "list-detail-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "split-inbox",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/inbox/inbox-layout.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/inbox",
+      "generatedDestination": "apps/web/src/features/contacts/inbox",
+      "route": "/$workspace/inbox",
+      "behaviorCheck": "split selection",
+      "evidence": [
+        "split-inbox-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "record-aside",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/contacts/view/contact-sidebar.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/contacts/view",
+      "generatedDestination": "apps/web/src/features/contacts/view",
+      "route": "/$workspace/contacts/view/$id",
+      "behaviorCheck": "record aside opens and restores focus",
+      "evidence": [
+        "record-aside-ready-read-mobile-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "settings",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/settings/common/settings-layout.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/settings",
+      "generatedDestination": "apps/web/src/features/settings",
+      "route": "/$workspace/settings",
+      "behaviorCheck": "settings navigation",
+      "evidence": [
+        "settings-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "form",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/getting-started/create-workspace.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/getting-started",
+      "generatedDestination": "apps/web/src/features/getting-started",
+      "route": "/getting-started",
+      "behaviorCheck": "form validation and submit",
+      "evidence": ["form-ready-read-desktop-light", "paid-artifact-boundary"]
+    },
+    {
+      "id": "onboarding",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/getting-started/getting-started-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/getting-started",
+      "generatedDestination": "apps/web/src/features/getting-started",
+      "route": "/getting-started",
+      "behaviorCheck": "onboarding steps",
+      "evidence": [
+        "onboarding-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "kanban",
+      "upstream": {
+        "repository": "pro",
+        "commit": "ac3a40c8dc05e403f9d501a87c092646891d3c40",
+        "path": "packages/blocks/lists/sortable-task-list/sortable-task-list.tsx"
+      },
+      "factoryDestination": "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
+      "generatedDestination": "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
+      "route": "/$workspace/kanban",
+      "behaviorCheck": "kanban drag",
+      "evidence": ["kanban-ready-read-desktop-light", "paid-artifact-boundary"]
+    },
+    {
+      "id": "showcase",
+      "upstream": {
+        "repository": "pro",
+        "commit": "ac3a40c8dc05e403f9d501a87c092646891d3c40",
+        "path": "packages/blocks/communication/latest-messages-card/latest-messages-card.tsx"
+      },
+      "factoryDestination": "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
+      "generatedDestination": "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
+      "route": "/$workspace/showcase",
+      "behaviorCheck": "drawer and modal focus restoration",
+      "evidence": [
+        "showcase-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "auth",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/auth"
+      },
+      "factoryDestination": "apps/web/src/features/auth",
+      "generatedDestination": "apps/web/src/features/auth",
+      "route": "/login",
+      "behaviorCheck": "auth form validation preserves invalid input",
+      "evidence": ["auth-ready-read-desktop-light", "paid-artifact-boundary"]
+    },
+    {
+      "id": "billing",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/settings/billing"
+      },
+      "factoryDestination": "apps/web/src/features/settings/billing",
+      "generatedDestination": "apps/web/src/features/settings/billing",
+      "route": "/$workspace/settings/billing",
+      "behaviorCheck": "billing presentation and email validation",
+      "evidence": ["billing-ready-read-desktop-light", "paid-artifact-boundary"]
+    },
+    {
+      "id": "search-command",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/search/search-page.tsx"
+      },
+      "factoryDestination": "apps/web/src/features/search",
+      "generatedDestination": "apps/web/src/features/search",
+      "route": "/$workspace/search",
+      "behaviorCheck": "search shortcut, query result, and clear command",
+      "evidence": [
+        "search-command-ready-read-desktop-light",
+        "paid-artifact-boundary"
+      ]
+    },
+    {
+      "id": "states",
+      "upstream": {
+        "repository": "starter",
+        "commit": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+        "path": "apps/web/src/features/workspaces"
+      },
+      "factoryDestination": "apps/web/src/features/workspaces",
+      "generatedDestination": "apps/web/src/features/workspaces",
+      "route": "/$workspace",
+      "behaviorCheck": "loading empty error not-found and retry/recovery transitions",
+      "evidence": ["states-ready-read-desktop-light", "paid-artifact-boundary"]
+    }
+  ]
+}

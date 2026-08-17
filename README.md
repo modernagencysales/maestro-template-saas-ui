@@ -214,6 +214,11 @@ a fork explicitly configures and verifies a live adapter.
 - [System Catalog](./docs/template/system-catalog.md) and
   [Product Topology](./docs/template/product-topology.md) define ownership.
 - [Start Modes](./docs/template/start-modes.md) explains fake, local, and dev.
+- [Saas UI frontend authority](./docs/template/saas-ui-frontend-authority.md)
+  defines the single upstream-derived UI path.
+- [Saas UI upstream update](./docs/template/saas-ui-upstream-update.md) and
+  [golden review](./docs/template/saas-ui-golden-review.md) define refresh and
+  owner approval evidence.
 
 ## Verification
 

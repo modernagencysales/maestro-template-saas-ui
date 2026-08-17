@@ -1,5 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  createNodeProcessSpawner,
   processTreeSignalRequest,
   redactStartLog,
   superviseProcesses,
@@ -60,6 +61,43 @@ function signalFixture() {
 }
 
 describe("process supervisor", () => {
+  it.skipIf(process.platform === "win32")(
+    "terminates descendants after the process-group leader exits",
+    async () => {
+      let descendantPid: number | undefined;
+      const managed = await createNodeProcessSpawner(() => process.env).spawn(
+        {
+          id: "leader",
+          command: process.execPath,
+          args: [
+            "-e",
+            `const { spawn } = require("node:child_process"); const child = spawn(process.execPath, ["-e", "setInterval(() => {}, 1000)"], { stdio: "ignore" }); child.unref(); console.log(child.pid);`,
+          ],
+          cwd: process.cwd(),
+        },
+        (_stream, line) => {
+          descendantPid = Number(line);
+        },
+      );
+      await managed.completion;
+      await vi.waitFor(() => expect(descendantPid).toBeTypeOf("number"));
+
+      try {
+        expect(() => process.kill(descendantPid as number, 0)).not.toThrow();
+        await managed.terminate("SIGTERM");
+        await vi.waitFor(() =>
+          expect(() => process.kill(descendantPid as number, 0)).toThrow(),
+        );
+      } finally {
+        try {
+          process.kill(descendantPid as number, "SIGKILL");
+        } catch {
+          // Already stopped by the supervisor.
+        }
+      }
+    },
+  );
+
   it("announces only after readiness and keeps supervising afterward", async () => {
     const fixture = fixtureSpawner();
     const ready = deferred<boolean>();

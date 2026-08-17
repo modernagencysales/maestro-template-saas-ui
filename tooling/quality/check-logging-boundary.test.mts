@@ -1,6 +1,7 @@
+import { readFileSync } from "node:fs";
 import { mkdir, mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { dirname, join } from "node:path";
+import { dirname, join, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { evaluateLoggingBoundary } from "./check-logging-boundary.mts";
 
@@ -74,10 +75,54 @@ describe("check:logging-boundary", () => {
     expect(result).toEqual({ ok: true, findings: [] });
   });
 
+  it("allows exact upstream files whose shipped logging is removed by Vite", async () => {
+    const paths = [
+      "apps/web/src/components/invite-people-modal/invite-people-modal.tsx",
+      "apps/web/src/components/manage-tags-modal/manage-tags.tsx",
+      "apps/web/src/features/billing/components/pricing-table.tsx",
+      "apps/web/src/features/common/components/invite-people.tsx",
+      "apps/web/src/features/contacts/list/add-person-dialog.tsx",
+      "apps/web/src/features/contacts/list/contact-bulk-actions.tsx",
+      "apps/web/src/features/contacts/list/list-page.tsx",
+      "apps/web/src/features/settings/billing/manage-billing-button.tsx",
+      "apps/web/src/features/settings/billing/plans-page.tsx",
+      "apps/web/src/features/settings/tags/manage-tags.tsx",
+      "apps/web/src/features/workspaces/invite/accept-invite-page.tsx",
+      "packages/i18n/src/provider.server.tsx",
+      "packages/i18n/src/provider.tsx",
+    ];
+    const result = await evaluateFixture(
+      Object.fromEntries(
+        paths.map((path) => [path, `console.error("upstream");`]),
+      ),
+    );
+
+    expect(result).toEqual({ ok: true, findings: [] });
+  });
+
+  it("drops console calls from shipped Vite bundles", () => {
+    const config = readFileSync(
+      resolve(import.meta.dirname, "../../apps/web/vite.config.ts"),
+      "utf8",
+    );
+
+    expect(config).toContain('drop: ["console"]');
+  });
+
   it("does not scan tooling scripts", async () => {
     const result = await evaluateFixture({
       "tooling/release/src/index.ts": `
         console.log("operator-facing output");
+      `,
+    });
+
+    expect(result).toEqual({ ok: true, findings: [] });
+  });
+
+  it("ignores generated build output", async () => {
+    const result = await evaluateFixture({
+      "apps/web/.output/server/index.js": `
+        console.error("generated bundle output");
       `,
     });
 

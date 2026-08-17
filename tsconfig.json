@@ -7,7 +7,6 @@
     { "path": "./packages/convex" },
     { "path": "./packages/editor-core" },
     { "path": "./packages/editor-react" },
-    { "path": "./packages/ui" },
     { "path": "./packages/workflow-ui" },
     { "path": "./packages/template-core" },
     { "path": "./packages/integrations" },

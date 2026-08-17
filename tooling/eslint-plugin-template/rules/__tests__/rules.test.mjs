@@ -21,6 +21,9 @@ import noRawScheduler from "../no-raw-scheduler.mjs";
 import frontendRouteThin from "../frontend-route-thin.mjs";
 import frontendRouteServerBoundary from "../frontend-route-server-boundary.mjs";
 import acceptanceBoundary from "../acceptance-boundary.mjs";
+import shellAuthority from "../saas-ui-shell-authority.mjs";
+import officialPrimitives from "../prefer-saas-ui-primitives.mjs";
+import semanticColors from "../saas-ui-semantic-colors.mjs";
 
 const tester = new RuleTester({
   languageOptions: {
@@ -769,20 +772,20 @@ tester.run("frontend-route-thin", frontendRouteThin, {
 tester.run("frontend-route-server-boundary", frontendRouteServerBoundary, {
   valid: [
     {
-      filename: "apps/web/src/routes/callback.tsx",
-      code: "import { handleCallbackRoute } from '@workos/authkit-tanstack-react-start'; export const Route = createFileRoute('/callback')({ server: { handlers: { GET: handleCallbackRoute() } } });",
+      filename: "apps/web/src/routes/api/auth/callback.tsx",
+      code: "import { handleCallbackRoute } from '@workos/authkit-tanstack-react-start'; export const Route = createFileRoute('/api/auth/callback')({ server: { handlers: { GET: handleCallbackRoute() } } });",
     },
     {
-      filename: "apps/web/src/routes/sign-in.tsx",
-      code: "import { getSignInUrl } from '@workos/authkit-tanstack-react-start'; export const Route = createFileRoute('/sign-in')({ server: { handlers: { GET: () => getSignInUrl() } } });",
+      filename: "apps/web/src/routes/api/auth/sign-in.tsx",
+      code: "import { getSignInUrl } from '@workos/authkit-tanstack-react-start'; export const Route = createFileRoute('/api/auth/sign-in')({ server: { handlers: { GET: () => getSignInUrl() } } });",
     },
     {
-      filename: "apps/web/src/routes/sign-up.tsx",
-      code: "import { getSignUpUrl } from '@workos/authkit-tanstack-react-start'; export const Route = createFileRoute('/sign-up')({ server: { handlers: { GET: () => getSignUpUrl() } } });",
+      filename: "apps/web/src/routes/api/auth/sign-up.tsx",
+      code: "import { getSignUpUrl } from '@workos/authkit-tanstack-react-start'; export const Route = createFileRoute('/api/auth/sign-up')({ server: { handlers: { GET: () => getSignUpUrl() } } });",
     },
     {
-      filename: "apps/web/src/routes/_workspace.tsx",
-      code: "export const Route = createFileRoute('/_workspace')({ loader: requireAuthenticatedRoute, component: Outlet });",
+      filename: "apps/web/src/routes/_app.tsx",
+      code: "export const Route = createFileRoute('/_app')({ loader: requireAuthenticatedRoute, component: Outlet });",
     },
   ],
   invalid: [
@@ -797,12 +800,12 @@ tester.run("frontend-route-server-boundary", frontendRouteServerBoundary, {
       errors: [{ messageId: "loader" }],
     },
     {
-      filename: "apps/web/src/routes/sign-up.tsx",
+      filename: "apps/web/src/routes/api/auth/sign-up.tsx",
       code: "import { getSignInUrl } from '@workos/authkit-tanstack-react-start'; export const x = getSignInUrl;",
       errors: [{ messageId: "helper" }],
     },
     {
-      filename: "apps/web/src/routes/callback.tsx",
+      filename: "apps/web/src/routes/api/auth/callback.tsx",
       code: "import { getSignUpUrl } from '@workos/authkit-tanstack-react-start'; export const x = getSignUpUrl;",
       errors: [{ messageId: "helper" }],
     },
@@ -824,6 +827,11 @@ tester.run("acceptance-boundary", acceptanceBoundary, {
       code: `import { test, expect } from "./support/fixtures";
 import { readFixture } from "./support/fixture";
 test("record appears in the web app", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page, runtime }) => { await page.goto(\`\${runtime.webUrl}/records\`); expect(await readFixture("fixture")).toBeTruthy(); });`,
+    },
+    {
+      filename: ACCEPTANCE,
+      code: `import { test } from "./support/fixtures";
+test("record appears in the workspace", { tag: "@BHV-REC-001-R1" }, async ({ acceptancePage: page, runtime, scenario }) => { await page.goto(\`\${runtime.webUrl}/\${scenario.workspaceSlug}/records\`); });`,
     },
     {
       filename: ACCEPTANCE_SUPPORT,
@@ -1157,6 +1165,7 @@ test("canned record", { tag: "@BHV-REC-001-R1" }, async ({ page }) => {
 const test = fixtures.test.extend({
   runtime: [async ({}, use) => use(undefined), { scope: "worker", auto: true }],
 });
+
 test("no runtime", { tag: "@BHV-REC-001-R1" }, async () => {});`,
       errors: [
         { messageId: "fixture" },
@@ -2009,6 +2018,54 @@ test[method]("hidden", async () => {});`,
       filename: SEED_ACCEPTANCE,
       code: `import { describe } from "vitest"; describe("hidden", () => undefined);`,
       errors: [{ messageId: "import" }],
+    },
+  ],
+});
+
+tester.run("saas-ui-shell-authority", shellAuthority, {
+  valid: [
+    {
+      filename: "apps/web/src/features/common/components/app-sidebar.tsx",
+      code: "import { Sidebar } from '@saas-ui/react'; export const AppSidebar = Sidebar;",
+    },
+  ],
+  invalid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "import { AppShell } from '@saas-ui/react'; export const Orders = AppShell;",
+      errors: [{ messageId: "shellOnly" }],
+    },
+  ],
+});
+
+tester.run("prefer-saas-ui-primitives", officialPrimitives, {
+  valid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "import { Button } from '@saas-ui/react'; export const Save = Button;",
+    },
+  ],
+  invalid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "import { Button } from './button'; export const Save = Button;",
+      errors: [{ messageId: "officialPrimitive" }],
+    },
+  ],
+});
+
+tester.run("saas-ui-semantic-colors", semanticColors, {
+  valid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "export const Orders = () => <Box color='fg.muted' />;",
+    },
+  ],
+  invalid: [
+    {
+      filename: "apps/web/src/features/orders/page.tsx",
+      code: "export const Orders = () => <Box color='#123456' />;",
+      errors: [{ messageId: "semanticColor" }],
     },
   ],
 });

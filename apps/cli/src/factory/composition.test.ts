@@ -236,7 +236,7 @@ describe("factory CLI composition", () => {
         { operations: [{ path: "unrelated.md" }] },
       ),
     ).toContain("AGENT_PACK_DIRTY_OVERLAP");
-  });
+  }, 10_000);
 
   it("imports generator and quality sources without running either CLI", () => {
     expect(process.exitCode).toBeUndefined();

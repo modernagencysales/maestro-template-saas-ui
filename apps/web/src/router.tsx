@@ -1,47 +1,38 @@
+import { createRouter as createTanstackRouter } from "@tanstack/react-router";
 import { ConvexQueryClient } from "@convex-dev/react-query";
-import { QueryClient } from "@tanstack/react-query";
-import { createRouter } from "@tanstack/react-router";
-import { TemplateRouteError, TemplateRoutePending } from "@maestro-template/ui";
+import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query";
 
-import "./react-global";
-import { getWebEnv } from "./env";
+import { getQueryClient } from "#lib/react-query";
+import { createCompatibilityApi } from "#lib/trpc/react";
+
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
-  const convexQueryClient = new ConvexQueryClient(getWebEnv().VITE_CONVEX_URL);
-  const queryClient = new QueryClient({
+  const convexQueryClient = new ConvexQueryClient(
+    (import.meta as ImportMeta & { env: { VITE_CONVEX_URL: string } }).env
+      .VITE_CONVEX_URL,
+  );
+  const queryClient = getQueryClient({
     defaultOptions: {
       queries: {
         queryKeyHashFn: convexQueryClient.hashFn(),
         queryFn: convexQueryClient.queryFn(),
-        gcTime: 5000,
       },
     },
   });
-
   convexQueryClient.connect(queryClient);
-
-  const router = createRouter({
+  const router = createTanstackRouter({
     routeTree,
-    defaultPreload: "intent",
-    defaultPreloadStaleTime: 0,
-    scrollRestoration: true,
-    defaultPendingComponent: () => <TemplateRoutePending />,
-    defaultErrorComponent: () => <TemplateRouteError />,
-    defaultNotFoundComponent: () => (
-      <TemplateRouteError
-        title="Page not found"
-        description="This route is not part of the template workspace."
-        action={<a href="/">Return to overview</a>}
-      />
-    ),
     context: {
       queryClient,
+      trpc: createCompatibilityApi(convexQueryClient.convexClient),
       convexClient: convexQueryClient.convexClient,
       convexQueryClient,
     },
+    defaultPreload: "intent",
+    defaultPreloadStaleTime: 0,
   });
-
+  setupRouterSsrQueryIntegration({ router, queryClient });
   return router;
 }
 

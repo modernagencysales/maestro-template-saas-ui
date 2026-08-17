@@ -97,6 +97,14 @@ layers, add the missing boundary instead.
 - Keep reusable UI in blocks and package UI primitives.
 - Use Saas UI primitives for the visible business-app shell when they cover the
   need.
+- The pinned upstream Starter Kit Pro and Saas UI Pro registry are the single
+  frontend authority; follow [the frontend authority guide](docs/template/saas-ui-frontend-authority.md).
+- Keep `docs/template/saas-ui-deviations.json` as the exact empty array; port
+  product behavior through adapters without forking the pinned frontend.
+- Keep routes under the literal Starter `_app` tree and verify them with
+  [the route-parity runbook](docs/template/saas-ui-golden-review.md). Do not
+  restore `_workspace`, golden feature, business-shell, or custom navigation
+  alternatives.
 - Feature components may use feature adapters; blocks may not import Convex,
   Confect refs, route modules, provider SDKs, or workspace auth internals.
 - React Flow belongs in workflow UI and workflow feature surfaces only.
@@ -272,7 +280,7 @@ assuming success.
 - `apps/web`: reference app.
 - `apps/cli`: headless CLI.
 - `packages/convex`: Confect/Convex backend.
-- `packages/ui`: UI primitives and blocks.
+- `apps/web/src/components`: installed Saas UI Pro components and local UI seams.
 - `packages/workflow-ui`: React Flow workflow builder.
 - `packages/template-core`: shared template contracts.
 - `packages/integrations`: provider interfaces and adapters.

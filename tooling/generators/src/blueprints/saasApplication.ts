@@ -72,7 +72,7 @@ const executableSourcePaths = [
   "apps/web/src/features/records/model.ts",
   "apps/web/src/features/records/records-surface.tsx",
   "apps/web/src/screens/records-screen.tsx",
-  "apps/web/src/routes/_workspace.records.tsx",
+  "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
 ] as const;
 
 const executableSourceFiles = (): readonly GeneratedFile[] =>
@@ -132,9 +132,19 @@ const governanceFiles = (
   const releasedTopology = parseProductTopology(
     releasedBlueprintJson("docs/template/product-topology.json"),
   );
+  const canonicalRouteSystemIds = new Set(
+    topology.resources
+      .filter(({ kind }) => kind === "route")
+      .map(({ system }) => system),
+  );
   const retainedSystemIds = new Set(
     releasedSystems.systems
-      .filter(({ id }) => workflowSelected || id !== "workflow-runtime")
+      .filter(
+        ({ id }) =>
+          workflowSelected ||
+          id !== "workflow-runtime" ||
+          canonicalRouteSystemIds.has(id),
+      )
       .map(({ id }) => id),
   );
   const retainedEmailTableIds = [
@@ -145,7 +155,9 @@ const governanceFiles = (
     "emailSuppressions",
   ] as const;
   const retainedTableIds = new Set([
-    ...releasedSystems.systems.flatMap(({ tables }) => tables),
+    ...releasedSystems.systems
+      .filter(({ id }) => workflowSelected || id !== "workflow-runtime")
+      .flatMap(({ tables }) => tables),
     "deployAuthorityAuditEvents",
     ...retainedEmailTableIds,
   ]);
@@ -187,7 +199,7 @@ const governanceFiles = (
               tables: ["records"],
               canonicalEntrypoints: [
                 "packages/convex/confect/records.spec.ts",
-                "apps/web/src/routes/_workspace.records.tsx",
+                "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
               ],
               decisionRef:
                 "docs/template/system-decisions/record-management.md",
@@ -232,10 +244,10 @@ const governanceFiles = (
       ...topology.resources
         .filter(
           ({ id, system }) =>
-            retainedTopologyIds.has(id) &&
-            (workflowSelected || system !== "workflow-runtime") &&
-            (workflowSelected || !id.startsWith("workflow:")) &&
-            (id === "route:health" || !id.startsWith("route:")),
+            id.startsWith("route:") ||
+            (retainedTopologyIds.has(id) &&
+              (workflowSelected || system !== "workflow-runtime") &&
+              (workflowSelected || !id.startsWith("workflow:"))),
         )
         .map((resource) =>
           workflowSelected
@@ -254,11 +266,12 @@ const governanceFiles = (
       ...(recordsSelected
         ? [
             {
-              id: "route:records",
+              id: "route:$workspace/records",
               kind: "route",
               system: "record-management",
-              path: "apps/web/src/routes/_workspace.records.tsx",
-              responsibility: "present workspace record creation and review",
+              path: "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
+              responsibility:
+                "present workspace record create, list, and detail states",
               surfaces: ["web"],
               uses: ["access-and-tenancy"],
               lifecycle: "active",
@@ -411,7 +424,7 @@ export const buildSaasApplicationFiles = (options: {
           adapter: "apps/web/src/adapters/records.ts",
           feature: "apps/web/src/features/records/*",
           screen: "apps/web/src/screens/records-screen.tsx",
-          route: "apps/web/src/routes/_workspace.records.tsx",
+          route: "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
         },
         governedOperation: {
           generated: false,
@@ -639,6 +652,7 @@ type BlueprintTargetPlanOptions = {
   readonly name: string;
   readonly firstOutcome?: string;
   readonly patterns?: readonly SaasApplicationPatternId[];
+  readonly sourceRoot?: string;
 };
 
 const canonicalTargetPlanOptions = {
@@ -663,16 +677,63 @@ export const SAAS_APPLICATION_PARAMETERIZED_ENTRIES = [
 ] as const;
 
 const SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS = [
+  ["apps/cli/tsconfig.json", "copy"],
+  ["packages/convex/tsconfig.json", "copy"],
+  ["packages/editor-core/tsconfig.json", "copy"],
+  ["packages/editor-react/tsconfig.json", "copy"],
+  ["packages/workflow-ui/tsconfig.json", "copy"],
+  ["packages/template-core/tsconfig.json", "copy"],
+  ["packages/integrations/tsconfig.json", "copy"],
+  ["packages/notifications/tsconfig.json", "copy"],
+  ["packages/storage/tsconfig.json", "copy"],
+  ["packages/observability/tsconfig.json", "copy"],
+  ["packages/search/tsconfig.json", "copy"],
+  ["tooling/agent-pack/tsconfig.json", "copy"],
+  ["tooling/quality/tsconfig.json", "copy"],
+  ["tooling/generators/tsconfig.json", "copy"],
   [".claude/settings.json", "generate"],
   [".npmrc", "copy"],
   [".prettierignore", "copy"],
+  ["apps/web/tsconfig.json", "copy"],
+  ["tsconfig.base.json", "copy"],
   ["agent-patterns/effect-confect.md", "copy"],
   ["AGENTS.md", "copy"],
   ["README.md", "copy"],
   ["apps/cli/src/commands.ts", "copy"],
   ["docs/template/coding-standards.md", "copy"],
+  ["eslint.config.mjs", "copy"],
   ["packages/convex/confect/headless/auth.ts", "copy"],
   ["tooling/quality/src/check-definitions.mts", "copy"],
+  ["tooling/eslint-plugin-template/index.mjs", "copy"],
+  ["packages/convex/confect/_generated/tables/workspaces.ts", "copy"],
+  ["packages/convex/confect/_generated/refs.ts", "copy"],
+  [
+    "packages/convex/confect/_generated/registeredFunctions/access/members.ts",
+    "copy",
+  ],
+  [
+    "packages/convex/confect/_generated/registeredFunctions/auth/workspaces.ts",
+    "copy",
+  ],
+  ["packages/convex/confect/_generated/services.ts", "copy"],
+  ["packages/convex/confect/access/audit.ts", "copy"],
+  ["packages/convex/confect/access/email.ts", "copy"],
+  ["packages/convex/confect/access/handlerContext.ts", "copy"],
+  ["packages/convex/confect/access/lifecycle.ts", "copy"],
+  ["packages/convex/confect/access/lifecycleInvitations.ts", "copy"],
+  ["packages/convex/confect/access/members.impl.ts", "copy"],
+  ["packages/convex/confect/access/members.spec.ts", "copy"],
+  ["packages/convex/confect/access/provisioning.spec.ts", "copy"],
+  ["packages/convex/confect/access/roles.ts", "copy"],
+  ["packages/convex/confect/auth/workspaces.spec.ts", "copy"],
+  ["packages/convex/confect/auth/workspaces.impl.ts", "copy"],
+  ["packages/convex/confect/errors.ts", "copy"],
+  ["packages/convex/confect/tables/workspaces.ts", "copy"],
+  ["packages/convex/convex/_generated/api.d.ts", "copy"],
+  ["packages/convex/convex/_generated/api.js", "copy"],
+  ["packages/convex/convex/access/members.ts", "copy"],
+  ["packages/convex/convex/auth/workspaces.ts", "copy"],
+  ["packages/convex/src/refs.ts", "copy"],
 ] as const;
 
 const targetEntryIdentity = (
@@ -719,9 +780,6 @@ function buildTargetPlan(
           ...CURRENT_EMAIL_BASE_COPY_REPLACEMENTS.map(
             (path) => [path, "copy"] as const,
           ),
-          ["apps/web/src/adapters/confect-generated-refs.test.ts", "copy"],
-          ["apps/web/src/providers/posthog.tsx", "copy"],
-          ["apps/web/src/routes/index.tsx", "copy"],
           ["docs/template/env-manifest.json", "copy"],
           ["docs/template/env-manifest.md", "copy"],
           ["docs/template/operations-runbook.md", "copy"],
@@ -781,6 +839,7 @@ function buildTargetPlan(
     ["docs/template/how-this-relates-to-maestro.md", "copy"],
     ["docs/template/repo-map.md", "copy"],
     ["docs/template/template-maturity-model.md", "copy"],
+    ["tsconfig.json", "generate"],
     ["package.json", "generate"],
     ["pnpm-workspace.yaml", "copy"],
     ["pnpm-lock.yaml", "copy"],
@@ -934,11 +993,7 @@ function buildTargetPlan(
     "docs/template/agent-pack-privacy.md",
     ...(current ? ["apps/web/package.json"] : []),
     ...(current
-      ? ["apps/web/src/providers/posthog.tsx", "apps/web/src/routes/index.tsx"]
-      : []),
-    ...(current
       ? [
-          "apps/web/src/adapters/confect-generated-refs.test.ts",
           "docs/template/env-manifest.json",
           "docs/template/env-manifest.md",
           "docs/template/operations-runbook.md",
@@ -1112,7 +1167,7 @@ function buildTargetPlan(
           "packages/convex/confect/_generated/registeredFunctions/records.ts",
           "packages/convex/convex/records.ts",
         ]),
-    "apps/web/src/routes/_workspace.records.tsx",
+    "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
     "apps/web/src/routeTree.gen.ts",
     "apps/web/src/routeRegistry.generated.ts",
   ] as const;

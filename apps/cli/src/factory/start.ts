@@ -193,52 +193,86 @@ function parseStartCli(argv: readonly string[]): {
   readonly input: unknown;
   readonly renderMode: FactoryCliRenderMode;
 } {
-  let mode = "fake";
-  let modeSeen = false;
-  let renderMode: FactoryCliRenderMode = "human";
-  let renderSeen = false;
-  let valid = true;
-  const ports: Record<string, number> = {};
+  const state = startCliState();
+  for (let index = 0; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (applyStartFlag(state, token)) continue;
+    if (applyStartValue(state, token, argv[index + 1])) index += 1;
+  }
+  return {
+    input: state.valid
+      ? {
+          mode: state.mode,
+          ...(Object.keys(state.ports).length === 0
+            ? {}
+            : { ports: state.ports }),
+        }
+      : { mode: "__invalid__" },
+    renderMode: state.renderMode,
+  };
+}
+
+type StartCliState = {
+  mode: string;
+  modeSeen: boolean;
+  ports: Record<string, number>;
+  renderMode: FactoryCliRenderMode;
+  renderSeen: boolean;
+  valid: boolean;
+};
+
+function startCliState(): StartCliState {
+  return {
+    mode: "fake",
+    modeSeen: false,
+    ports: {},
+    renderMode: "human",
+    renderSeen: false,
+    valid: true,
+  };
+}
+
+function applyStartFlag(state: StartCliState, token: string | undefined) {
+  const selected = renderModeFor(token);
+  if (selected === undefined) return false;
+  if (state.renderSeen) {
+    state.valid = false;
+    return true;
+  }
+  state.renderMode = selected;
+  state.renderSeen = true;
+  return true;
+}
+
+function applyStartValue(
+  state: StartCliState,
+  token: string | undefined,
+  value: string | undefined,
+): boolean {
+  if (token === "--mode") {
+    if (state.modeSeen || value === undefined || value.startsWith("--")) {
+      state.valid = false;
+      return false;
+    }
+    state.mode = value;
+    state.modeSeen = true;
+    return true;
+  }
   const portFlags: Readonly<Record<string, string>> = {
     "--web-port": "web",
     "--convex-port": "convex",
     "--convex-site-port": "convexSite",
     "--readiness-port": "readinessPresenter",
   };
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
-    if (token === "--mode") {
-      const value = argv[index + 1];
-      if (modeSeen || value === undefined || value.startsWith("--"))
-        valid = false;
-      else {
-        mode = value;
-        modeSeen = true;
-        index += 1;
-      }
-      continue;
-    }
-    const portKey = token === undefined ? undefined : portFlags[token];
-    if (portKey !== undefined) {
-      const parsedPort = parsePort(argv[index + 1], portKey in ports);
-      if (parsedPort.port === undefined) valid = false;
-      else ports[portKey] = parsedPort.port;
-      if (parsedPort.consumeValue) index += 1;
-      continue;
-    }
-    const selected = renderModeFor(token);
-    if (selected === undefined || renderSeen) valid = false;
-    else {
-      renderMode = selected;
-      renderSeen = true;
-    }
+  const portKey = token === undefined ? undefined : portFlags[token];
+  if (portKey === undefined) {
+    state.valid = false;
+    return false;
   }
-  return {
-    input: valid
-      ? { mode, ...(Object.keys(ports).length === 0 ? {} : { ports }) }
-      : { mode: "__invalid__" },
-    renderMode,
-  };
+  const parsedPort = parsePort(value, portKey in state.ports);
+  state.valid = parsedPort.port !== undefined && state.valid;
+  if (parsedPort.port !== undefined) state.ports[portKey] = parsedPort.port;
+  return parsedPort.consumeValue;
 }
 
 function parsePort(
@@ -275,7 +309,7 @@ async function waitForStartReadiness(
   url: string,
   signal: AbortSignal,
 ): Promise<boolean> {
-  const deadline = Date.now() + 20_000;
+  const deadline = Date.now() + 120_000;
   while (!signal.aborted && Date.now() < deadline) {
     try {
       const response = await fetch(url, {

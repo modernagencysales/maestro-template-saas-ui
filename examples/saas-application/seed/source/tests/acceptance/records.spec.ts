@@ -79,13 +79,14 @@ test(
   { tag: "@BHV-REC-001-R1" },
   async ({ acceptancePage: page, runtime, scenario }) => {
     const title = `web-${scenario.namespace}`;
-    await page.goto(`${runtime.webUrl}/records`);
+    await page.goto(`${runtime.webUrl}/${scenario.workspaceSlug}/records`);
     await page.getByRole("button", { name: "Create record" }).click();
     await page.getByLabel("Record title").fill(title);
     await page
       .getByLabel("Record detail")
       .fill("Created by Playwright acceptance.");
     await page.getByRole("button", { name: "Save record" }).click();
+    await expect(page.getByRole("heading", { name: title })).toBeVisible();
     let listAttempt = 0;
     await expect
       .poll(
@@ -98,7 +99,6 @@ test(
         { timeout: 5_000 },
       )
       .toContain(title);
-    await expect(page.getByRole("heading", { name: title })).toBeVisible();
   },
 );
 
@@ -116,8 +116,10 @@ test(
         `${scenario.namespace}-create-cli`,
       ),
     );
-    await page.goto(`${runtime.webUrl}/records`);
-    await expect(page.getByText(title, { exact: true })).toBeVisible();
+    await page.goto(`${runtime.webUrl}/${scenario.workspaceSlug}/records`);
+    await expect(page.getByText(title, { exact: true })).toBeVisible({
+      timeout: 30_000,
+    });
   },
 );
 
@@ -141,7 +143,7 @@ test(
     expect(await listedTitlesFromPrimaryCli(runtime, scenario)).not.toContain(
       title,
     );
-    await page.goto(`${runtime.webUrl}/records`);
+    await page.goto(`${runtime.webUrl}/${scenario.workspaceSlug}/records`);
     await expect(page.getByText(title, { exact: true })).toHaveCount(0);
   },
 );

@@ -52,6 +52,7 @@ const entryIdentity = (
 export type SaasPlanBuilder = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
+  readonly sourceRoot?: string;
 }) => ReturnType<typeof buildSaasApplicationTargetPlan>;
 
 export class RecordsCustomerMaterializationError extends Error {
@@ -154,12 +155,14 @@ export const buildCandidateReleaseFixture = (input: {
     const plan = input.buildPlan({
       name: input.name,
       firstOutcome: input.outcome,
+      sourceRoot: candidateRoot,
     });
     const materializedPaths = new Set(plan.entries.map((entry) => entry.path));
     const optionalPatternPaths = new Set(
       buildSaasApplicationTargetPlan({
         name: input.name,
         firstOutcome: input.outcome,
+        sourceRoot: candidateRoot,
         patterns: ["records-example", "workflow-automation"],
       }).entries.map((entry) => entry.path),
     );

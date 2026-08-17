@@ -18,6 +18,9 @@ import noCrossDomainValueImport from "./rules/no-cross-domain-value-import.mjs";
 import noRawScheduler from "./rules/no-raw-scheduler.mjs";
 import frontendRouteThin from "./rules/frontend-route-thin.mjs";
 import frontendRouteServerBoundary from "./rules/frontend-route-server-boundary.mjs";
+import saasUiShellAuthority from "./rules/saas-ui-shell-authority.mjs";
+import preferSaasUiPrimitives from "./rules/prefer-saas-ui-primitives.mjs";
+import saasUiSemanticColors from "./rules/saas-ui-semantic-colors.mjs";
 import acceptanceBoundary from "./rules/acceptance-boundary.mjs";
 
 export default {
@@ -35,6 +38,9 @@ export default {
     "no-raw-scheduler": noRawScheduler,
     "frontend-route-thin": frontendRouteThin,
     "frontend-route-server-boundary": frontendRouteServerBoundary,
+    "saas-ui-shell-authority": saasUiShellAuthority,
+    "prefer-saas-ui-primitives": preferSaasUiPrimitives,
+    "saas-ui-semantic-colors": saasUiSemanticColors,
     "acceptance-boundary": acceptanceBoundary,
   },
 };

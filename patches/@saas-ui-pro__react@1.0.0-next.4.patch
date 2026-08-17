@@ -1,0 +1,139 @@
+diff --git a/dist/chunk-PYHXL7W4.js b/dist/chunk-PYHXL7W4.js
+index 876d8ab57a3919210ecaab9e7a24098c2a675248..b2a58e4d648a09e0be9f9d29a98b48704fcac44e 100644
+--- a/dist/chunk-PYHXL7W4.js
++++ b/dist/chunk-PYHXL7W4.js
+@@ -1017,7 +1017,7 @@ var DataGridSort = (props) => {
+     },
+     ms: 2
+   };
+-  const { icons, translations } = useDataGridContext();
++  const { icons } = useDataGridContext();
+   const sortDescendingIcon = icons?.sortDescending ?? /* @__PURE__ */ jsx11(ChevronDownIcon, {});
+   const sortAscendingIcon = icons?.sortAscending ?? /* @__PURE__ */ jsx11(ChevronUpIcon, {});
+   const sortIcon = icons?.sort ?? /* @__PURE__ */ jsx11(ChevronUpDownIcon, {});
+@@ -1032,8 +1032,7 @@ var DataGridSort = (props) => {
+       fontSize: "1.2em",
+       display: "inline-flex",
+       alignItems: "center",
+-      role: "presentation",
+-      "aria-label": isDesc ? translations.sortAscending : translations.sortDescending,
++      "aria-hidden": true,
+       ...rest,
+       css: [sorterStyles, rest.css],
+       children: sorted ? isDesc ? sortDescendingIcon : sortAscendingIcon : sortIcon
+@@ -1054,7 +1053,7 @@ var DataGridHeaderCell = (props) => {
+       userSelect: "none",
+       cursor: "pointer",
+       tabIndex: 0,
+-      "aria-sort": sorted ? sorted === "desc" ? "descending" : "ascending" : "none",
++      "data-sort": sorted ? sorted === "desc" ? "descending" : "ascending" : "none",
+       onClick: column.getToggleSortingHandler(),
+       onKeyDown: (event) => {
+         if (event.key === "Enter") {
+@@ -1078,6 +1077,7 @@ var DataGridHeaderCell = (props) => {
+       "data-pinned": isColumnPinned ? isColumnPinned : void 0,
+       "data-first": dataAttr4(isFirst),
+       "data-last": dataAttr4(isLast),
++      "aria-sort": isSortable && column.getCanSort() ? column.getIsSorted() === "desc" ? "descending" : column.getIsSorted() === "asc" ? "ascending" : "none" : void 0,
+       flexBasis: `calc(var(--header-${colId}-size) * 1px)`,
+       flexShrink: 0,
+       flexGrow: "var(--column-grow, 1)",
+diff --git a/dist/chunk-U2XEQJEP.js b/dist/chunk-U2XEQJEP.js
+index 71589b8c2a527c73bd8abb2107a0a787270f1bad..f9a2624da0da3ba8717d19960ad30201e0f4e709 100644
+--- a/dist/chunk-U2XEQJEP.js
++++ b/dist/chunk-U2XEQJEP.js
+@@ -1454,12 +1454,12 @@ var dataGridSlotRecipe = defineSlotRecipe4({
+     columnTitle: {
+       display: "flex",
+       flex: 1,
+-      '&[aria-sort="none"] svg': {
++      '&[data-sort="none"] svg': {
+         opacity: 0,
+         transitionProperty: "opacity",
+         transitionDuration: "normal"
+       },
+-      '&[aria-sort="none"]:hover svg, &[aria-sort="none"]:focus-visible svg': {
++      '&[data-sort="none"]:hover svg, &[data-sort="none"]:focus-visible svg': {
+         opacity: 1
+       },
+       "[data-is-numeric=true] &": {
+diff --git a/dist/components/data-grid/index.cjs b/dist/components/data-grid/index.cjs
+index 9e610a55333d3dbf222f4acce94a3fccbb0c097c..86e0724ebfa07cfa36fbd8b846627ae567bb9e0f 100644
+--- a/dist/components/data-grid/index.cjs
++++ b/dist/components/data-grid/index.cjs
+@@ -1045,7 +1045,7 @@ var DataGridSort = (props) => {
+     },
+     ms: 2
+   };
+-  const { icons, translations } = useDataGridContext();
++  const { icons } = useDataGridContext();
+   const sortDescendingIcon = icons?.sortDescending ?? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ChevronDownIcon, {});
+   const sortAscendingIcon = icons?.sortAscending ?? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ChevronUpIcon, {});
+   const sortIcon = icons?.sort ?? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ChevronUpDownIcon, {});
+@@ -1060,8 +1060,7 @@ var DataGridSort = (props) => {
+       fontSize: "1.2em",
+       display: "inline-flex",
+       alignItems: "center",
+-      role: "presentation",
+-      "aria-label": isDesc ? translations.sortAscending : translations.sortDescending,
++      "aria-hidden": true,
+       ...rest,
+       css: [sorterStyles, rest.css],
+       children: sorted ? isDesc ? sortDescendingIcon : sortAscendingIcon : sortIcon
+@@ -1082,7 +1081,7 @@ var DataGridHeaderCell = (props) => {
+       userSelect: "none",
+       cursor: "pointer",
+       tabIndex: 0,
+-      "aria-sort": sorted ? sorted === "desc" ? "descending" : "ascending" : "none",
++      "data-sort": sorted ? sorted === "desc" ? "descending" : "ascending" : "none",
+       onClick: column.getToggleSortingHandler(),
+       onKeyDown: (event) => {
+         if (event.key === "Enter") {
+@@ -1106,6 +1105,7 @@ var DataGridHeaderCell = (props) => {
+       "data-pinned": isColumnPinned ? isColumnPinned : void 0,
+       "data-first": (0, import_utils7.dataAttr)(isFirst),
+       "data-last": (0, import_utils7.dataAttr)(isLast),
++      "aria-sort": isSortable && column.getCanSort() ? column.getIsSorted() === "desc" ? "descending" : column.getIsSorted() === "asc" ? "ascending" : "none" : void 0,
+       flexBasis: `calc(var(--header-${colId}-size) * 1px)`,
+       flexShrink: 0,
+       flexGrow: "var(--column-grow, 1)",
+diff --git a/dist/index.cjs b/dist/index.cjs
+index df04ab2fd76088a3a4e36dc6d67503a352818527..a31ac3f4c1f19deb2b327b6d18ba93872390a158 100644
+--- a/dist/index.cjs
++++ b/dist/index.cjs
+@@ -1628,7 +1628,7 @@ var DataGridSort = (props) => {
+     },
+     ms: 2
+   };
+-  const { icons, translations } = useDataGridContext();
++  const { icons } = useDataGridContext();
+   const sortDescendingIcon = icons?.sortDescending ?? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ChevronDownIcon, {});
+   const sortAscendingIcon = icons?.sortAscending ?? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ChevronUpIcon, {});
+   const sortIcon = icons?.sort ?? /* @__PURE__ */ (0, import_jsx_runtime11.jsx)(ChevronUpDownIcon, {});
+@@ -1643,8 +1643,7 @@ var DataGridSort = (props) => {
+       fontSize: "1.2em",
+       display: "inline-flex",
+       alignItems: "center",
+-      role: "presentation",
+-      "aria-label": isDesc ? translations.sortAscending : translations.sortDescending,
++      "aria-hidden": true,
+       ...rest,
+       css: [sorterStyles, rest.css],
+       children: sorted ? isDesc ? sortDescendingIcon : sortAscendingIcon : sortIcon
+@@ -1665,7 +1664,7 @@ var DataGridHeaderCell = (props) => {
+       userSelect: "none",
+       cursor: "pointer",
+       tabIndex: 0,
+-      "aria-sort": sorted ? sorted === "desc" ? "descending" : "ascending" : "none",
++      "data-sort": sorted ? sorted === "desc" ? "descending" : "ascending" : "none",
+       onClick: column.getToggleSortingHandler(),
+       onKeyDown: (event) => {
+         if (event.key === "Enter") {
+@@ -1689,6 +1688,7 @@ var DataGridHeaderCell = (props) => {
+       "data-pinned": isColumnPinned ? isColumnPinned : void 0,
+       "data-first": (0, import_utils7.dataAttr)(isFirst),
+       "data-last": (0, import_utils7.dataAttr)(isLast),
++      "aria-sort": isSortable && column.getCanSort() ? column.getIsSorted() === "desc" ? "descending" : column.getIsSorted() === "asc" ? "ascending" : "none" : void 0,
+       flexBasis: `calc(var(--header-${colId}-size) * 1px)`,
+       flexShrink: 0,
+       flexGrow: "var(--column-grow, 1)",

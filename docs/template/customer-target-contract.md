@@ -6,6 +6,11 @@ never turns the live factory checkout into the customer product.
 
 ## Create contract
 
+Every current generated customer target includes the mandatory upstream-derived
+Saas UI frontend chassis. It is not an optional application pattern. Paid source
+remains private, preserves `docs/licenses/saas-ui/` notices, and is never
+projected into a public package or artifact.
+
 ```bash
 # Preview: no writes.
 pnpm maestro -- create <target> \

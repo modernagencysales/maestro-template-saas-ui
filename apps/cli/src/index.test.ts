@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { runReviewedGenerator } from "@maestro-template/generators";
 import {
@@ -203,19 +204,34 @@ describe("maestro-template CLI", () => {
     },
   );
 
-  it("rejects unsafe Vite contract proxies before attaching the API key", async () => {
-    vi.stubEnv("MAESTRO_API_BASE_URL", "http://127.example.test");
-    vi.stubEnv("MAESTRO_API_KEY", "contracts-test-key");
-    vi.resetModules();
+  it("does not expose a Vite API proxy that can attach the CLI API key", async () => {
+    type ViteConfig = { server?: { proxy?: unknown } };
+    const config = await vi.importActual<{
+      default:
+        | ViteConfig
+        | ((env: {
+            command: "serve";
+            mode: string;
+            isSsrBuild: boolean;
+            isPreview: boolean;
+          }) => ViteConfig | Promise<ViteConfig>);
+    }>("../../web/vite.config");
+    const resolvedConfig = await (typeof config.default === "function"
+      ? config.default({
+          command: "serve",
+          mode: "test",
+          isSsrBuild: false,
+          isPreview: false,
+        })
+      : config.default);
 
-    try {
-      await expect(vi.importActual("../../web/vite.config")).rejects.toThrow(
-        "HTTPS or loopback HTTP",
-      );
-    } finally {
-      vi.unstubAllEnvs();
-      vi.resetModules();
-    }
+    expect(resolvedConfig.server).not.toHaveProperty("proxy");
+  });
+
+  it("lets TanStack discover generated product routes during builds", () => {
+    expect(
+      readFileSync(`${repoRoot}/apps/web/vite.config.ts`, "utf8"),
+    ).not.toContain("enableRouteGeneration: false");
   });
 
   it("describes the shared workflow template", () => {

@@ -42,7 +42,6 @@ const checkDescriptorDefinitions = {
           "bash tooling/ci/install-gitleaks.sh",
           'export PATH="${HOME}/.local/bin:${PATH}"',
           "pnpm verify",
-          "pnpm --dir apps/web test:runtime-longevity",
         ],
         absent: [
           "install-gitleaks.sh || true",
@@ -54,6 +53,7 @@ const checkDescriptorDefinitions = {
           "pnpm --dir apps/cli test:create-root-integration",
           "pnpm --dir apps/web typecheck",
           "pnpm --dir apps/web build",
+          "pnpm --dir apps/web test:runtime-longevity",
         ],
         message:
           "the required Woodpecker PR context must reach root verification once without nested suite reruns",
@@ -195,8 +195,9 @@ const checkDescriptorDefinitions = {
         file: "package.json",
         includes: [
           '"verify"',
-          '"typecheck": "turbo run typecheck --concurrency=1"',
+          '"typecheck": "turbo run typecheck --concurrency=1 --filter=!@workspace/ui --filter=!@maestro-template/web && pnpm typecheck:saas-ui"',
           '"test:release-filesystem"',
+          '"test:verify-uncovered"',
           '"test:app-map"',
           '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
           '"check:app-map": "pnpm --dir tooling/app-map check"',
@@ -205,6 +206,7 @@ const checkDescriptorDefinitions = {
           "--exclude apps/cli/src/factory/createRootIntegration.test.ts",
           "--exclude tooling/release/src/customerTarget/finalFilesystem.test.ts",
           "pnpm test:bootstrap && turbo run test --filter=!@maestro-template/release-tooling --filter=!@maestro-template/agent-pack --filter=!@maestro-template/cli --filter=!@maestro-template/convex-compat && pnpm --dir tooling/agent-pack test && pnpm --dir apps/cli test && pnpm --dir tooling/convex-compat test && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:customer-cli-runtime && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
+          "pnpm test:bootstrap && pnpm --dir packages/app-idea-evaluator test && pnpm --dir packages/editor-core test && pnpm --dir packages/editor-react test && pnpm --dir packages/workflow-ui test && pnpm --dir tooling/agent-pack test && pnpm --dir tooling/evals test && pnpm --dir tooling/convex-compat test && pnpm --dir tooling/app-map test && pnpm --dir tooling/eslint-plugin-template test && pnpm --dir tooling/confect-manifest test && pnpm --dir apps/cli test:customer-cli-runtime && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm test:release-filesystem && pnpm test:acceptance-tooling",
           'pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit"',
           "pnpm check:agent-pack && pnpm check:deps",
           "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
@@ -244,7 +246,7 @@ const checkDescriptorDefinitions = {
       {
         file: "tooling/generators/package.json",
         includes: [
-          '"test": "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism"',
+          '"test": "vitest run --passWithNoTests --pool=threads --maxWorkers=1 --no-file-parallelism"',
         ],
         message:
           "generator tests that exercise checked-out projections must run without file parallelism",
@@ -423,27 +425,35 @@ const checkDescriptorDefinitions = {
       {
         file: "docs/template/repo-map.md",
         includes: [
-          "/brain",
-          "/workflows",
-          "/capabilities",
-          "/agents",
-          "/runs",
-          "/settings",
-          "/api",
-          "/admin",
+          "apps/web/src/routes/_app/",
+          "workspace dashboard",
+          "contacts",
+          "inbox",
+          "search",
+          "getting-started",
+          "settings",
         ],
-        message: "repo map must declare planned app routes",
+        message: "repo map must declare the literal Starter route authority",
       },
       {
         file: "docs/template/frontend-architecture.md",
         includes: [
           "generated `routeTree`",
           'defaultPreload: "intent"',
-          "scrollRestoration: true",
+          "setupRouterSsrQueryIntegration",
           "apps/web/src/routeTree.gen.ts",
         ],
         message:
           "frontend architecture must declare TanStack Start route tree invariants",
+      },
+      {
+        file: "apps/web/src/router.tsx",
+        includes: [
+          "routeTree",
+          'defaultPreload: "intent"',
+          "setupRouterSsrQueryIntegration",
+        ],
+        message: "web router must preserve the pinned Starter route behavior",
       },
       {
         file: "apps/web/package.json",
@@ -466,12 +476,22 @@ const checkDescriptorDefinitions = {
     requirements: [
       {
         file: "package.json",
+        includes: ["tsx tooling/quality/run-type-coverage.mts"],
+        message:
+          "check:types-coverage must invoke the receipt-aware type-coverage runner",
+      },
+      {
+        file: "tooling/quality/run-type-coverage.mts",
         includes: [
+          'import.meta.resolve("type-coverage/bin/type-coverage")',
           "--max-old-space-size=8192",
-          "type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
+          "--at-least",
+          '"99.7"',
+          "--ignore-files",
+          "verifiedImmutableReceiptPaths",
         ],
         message:
-          "check:types-coverage must invoke type-coverage with an explicit threshold",
+          "type-coverage must keep its threshold and derive exact receipt ignores",
       },
       {
         file: "tsconfig.base.json",
@@ -627,6 +647,59 @@ const checkDescriptorDefinitions = {
         message:
           ".env.example must expose safe fake values for local quickstart",
       },
+      {
+        file: "AGENTS.md",
+        includes: [
+          "docs/template/saas-ui-frontend-authority.md",
+          "docs/template/saas-ui-golden-review.md",
+        ],
+        message:
+          "agent guidance must point to the upstream-derived frontend authority",
+      },
+      {
+        file: "docs/template/saas-ui-upstream-update.md",
+        includes: [
+          "Pin the reviewed template",
+          "Regenerate the Pro catalog",
+          "ci/woodpecker/pr/verify",
+        ],
+        message:
+          "upstream update docs must preserve the pinned evidence workflow",
+      },
+      {
+        file: "docs/template/saas-ui-golden-review.md",
+        includes: [
+          "UPSTREAM_REFERENCE_URL",
+          "GOLDEN_GENERATED_URL",
+          "keyboard-only",
+          "320 px",
+          "Approved: pinned reference and generated target",
+        ],
+        message:
+          "golden review docs must require paired browser evidence and owner approval",
+      },
+      {
+        file: ".github/pull_request_template.md",
+        includes: [
+          "Upstream source file or Pro block",
+          "Deviation ledger entry",
+          "Desktop/mobile light/dark evidence",
+          "Accessibility results",
+        ],
+        message:
+          "PRs must capture upstream mapping, deviations, and rendered evidence",
+      },
+      {
+        file: "docs/template/saas-ui-frontend-authority.md",
+        includes: [
+          "pinned TanStack Starter",
+          "Kit Pro",
+          "pinned Saas UI Pro",
+          "must not enter a public npm package",
+        ],
+        message:
+          "frontend authority must keep paid Starter and Pro source private",
+      },
     ],
   },
   "generated-files": {
@@ -636,6 +709,18 @@ const checkDescriptorDefinitions = {
         file: "AGENTS.md",
         includes: ["Do not edit generated Confect or Convex files by hand"],
         message: "agent instructions must protect generated files",
+      },
+      {
+        file: "tooling/quality/check-saas-ui-artifact-safety.mts",
+        includes: ["assertSaasUiArtifactSafety", "PUBLIC_ARTIFACT_ROOT"],
+        message:
+          "generated-file checks must retain the paid Saas UI artifact boundary",
+      },
+      {
+        file: "docs/template/saas-ui-upstream.json",
+        includes: ['"licenses"', '"registry"'],
+        message:
+          "generated-file checks must consume the upstream Saas UI authority",
       },
     ],
   },
@@ -825,6 +910,12 @@ const checkDescriptorDefinitions = {
         file: "docs/template/extraction/dependency-license-inventory.md",
         includes: ["Dependency And License Inventory", "Private Artifact Rule"],
         message: "dependency/license inventory must exist",
+      },
+      {
+        file: "tooling/quality/check-sbom-license.mts",
+        includes: ["assertSaasUiArtifactSafety", "check:sbom-license"],
+        message:
+          "SBOM/license verification must run the paid Saas UI artifact safety assertion",
       },
     ],
   },

@@ -34,7 +34,9 @@ describe("check:ci-completeness", () => {
   it("pins topology, lifecycle, and promotion enforcement in every required lane", () => {
     const requirements = JSON.stringify(descriptor.requirements);
 
-    expect(requirements).toContain("turbo run typecheck --concurrency=1");
+    expect(requirements).toContain(
+      "turbo run typecheck --concurrency=1 --filter=!@workspace/ui --filter=!@maestro-template/web && pnpm typecheck:saas-ui",
+    );
     expect(requirements).toContain(
       "pnpm --dir packages/convex test:workflow-conformance",
     );
@@ -45,7 +47,7 @@ describe("check:ci-completeness", () => {
       "pnpm --dir tooling/agent-pack test:privacy-no-network",
     );
     expect(requirements).toContain(
-      "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism",
+      "vitest run --passWithNoTests --pool=threads --maxWorkers=1 --no-file-parallelism",
     );
     expect(requirements).toContain("check:system-topology");
     expect(requirements).toContain("check:data-resources");
@@ -104,7 +106,6 @@ describe("check:ci-completeness", () => {
       expect.arrayContaining([
         "bash tooling/ci/install-gitleaks.sh",
         "pnpm verify",
-        "pnpm --dir apps/web test:runtime-longevity",
       ]),
     );
     expect(verifyChassis?.absent).toEqual(
@@ -118,6 +119,7 @@ describe("check:ci-completeness", () => {
         "pnpm --dir apps/cli test:create-root-integration",
         "pnpm --dir apps/web typecheck",
         "pnpm --dir apps/web build",
+        "pnpm --dir apps/web test:runtime-longevity",
       ]),
     );
 

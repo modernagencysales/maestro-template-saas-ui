@@ -61,10 +61,7 @@ pnpm typecheck
 host-test-slot --class full pnpm test
 pnpm build
 pnpm smoke:web-static
-pnpm smoke:hosted
-pnpm smoke:hosted:browser
-pnpm smoke:hosted:a11y
-pnpm smoke:hosted:visual
+pnpm smoke:starter-route-parity
 ```
 
 `review:readiness` and `review:completion` are presence/evidence audits. They
@@ -130,18 +127,16 @@ admin/support/privacy -> audited capabilities -> narrow operator surfaces
 
 Concrete files to inspect:
 
-- `apps/web/src/routes/index.tsx`: hosted Saas UI dashboard route.
-- `apps/web/src/saas-ui/business-shell.tsx`: Saas UI business shell and section
-  pages.
+- `apps/web/src/routes/_app/$workspace/_dashboard/index.tsx`: pinned Starter
+  dashboard route.
+- `apps/web/src/features/common/layouts/app-layout.tsx`: upstream-derived SaaS
+  UI application shell.
 - `docs/design-intake/2026-07-01-template-frontend-stack-source.md`: frontend
   source audit from Maestro into the template.
 - `docs/template/frontend-architecture.md`: frontend layer law, provider tree,
   Saas UI boundary, and TanStack Start acceptance criteria.
-- `tests/e2e/hosted-reference-app.spec.ts`: hosted desktop/mobile browser smoke.
-- `tests/e2e/hosted-reference-app.accessibility.spec.ts`: hosted desktop/mobile
-  landmark, route-announcement, and axe WCAG smoke.
-- `tests/e2e/hosted-reference-app.visual.spec.ts`: hosted desktop/mobile
-  screenshot-diff visual smoke.
+- `tests/e2e/saas-ui-starter-route-parity.spec.ts`: literal Starter route-tree
+  parity smoke.
 - `packages/template-core/src/index.ts`: canonical sample registry.
 - `packages/workflow-ui/src/index.tsx`: React Flow workflow canvas primitive.
 - `tooling/workflow/src/index.ts`: API/CLI/MCP/OpenAPI projection.

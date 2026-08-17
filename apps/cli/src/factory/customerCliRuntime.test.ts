@@ -807,6 +807,7 @@ describe("materialized customer CLI runtime closure", () => {
         "check:headless-surface-contract",
         "check:posthog-readiness",
         "check:auth-demo-bypass",
+        "check:saas-ui-artifact-safety",
       ]
         .map((name) => `pnpm ${name}`)
         .concat("pnpm check:product-contract", "pnpm acceptance:required")

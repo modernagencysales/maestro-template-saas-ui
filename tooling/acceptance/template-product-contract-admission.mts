@@ -3,6 +3,8 @@ import {
   execFileSync,
   spawnSync,
 } from "node:child_process";
+import { rmSync } from "node:fs";
+import { resolve } from "node:path";
 import { promisify } from "node:util";
 import {
   checkTemplateProductContract,
@@ -105,55 +107,71 @@ const commitGeneratedCustomerArtifacts = (targetRoot: string): void => {
   }
 };
 
-const prepareMaterializedCustomer = (
+export const prepareMaterializedCustomer = (
   targetRoot: string,
   mode: "structural" | "required",
+  runCommand: typeof runPreparedCustomerCommand = runPreparedCustomerCommand,
 ): void => {
-  runPreparedCustomerCommand(
+  runCommand(
     targetRoot,
     ["install", "--offline", "--ignore-scripts"],
     "Generated customer preparation",
   );
-  runPreparedCustomerCommand(
+  runCommand(
     targetRoot,
     ["--dir", "packages/convex", "confect:codegen"],
     "Generated customer codegen",
   );
   if (mode === "required") {
+    const localRuntimeEnvironment = {
+      ...process.env,
+      MAESTRO_CONTRACT_TEST: "1",
+      VITE_CONVEX_URL: "http://127.0.0.1:3210",
+      VITE_MAESTRO_CONTRACT_MODE: "1",
+      WORKOS_API_KEY: "fake",
+      WORKOS_CLIENT_ID: "client_test_contracts_runtime",
+      WORKOS_COOKIE_PASSWORD: "contracts-runtime-test-cookie-password",
+      WORKOS_REDIRECT_URI: "http://127.0.0.1:3000/api/auth/callback",
+    };
     const localConvexEnvironment = {
       ...Object.fromEntries(
-        Object.entries(process.env).filter(
+        Object.entries(localRuntimeEnvironment).filter(
           ([name]) => !name.startsWith("CONVEX_"),
         ),
       ),
       CONVEX_AGENT_MODE: "anonymous",
     };
-    runPreparedCustomerCommand(
+    runCommand(
       targetRoot,
       ["--silent", "exec", "convex", "init"],
       "Generated customer local Convex initialization",
       localConvexEnvironment,
     );
-    for (const [name, value] of [
-      ["MAESTRO_CONTRACT_TEST", "1"],
-      ["POSTHOG_PROJECT_TOKEN", "phc_test_placeholder"],
-    ] as const)
-      runPreparedCustomerCommand(
+    const deploymentEnvironment = {
+      MAESTRO_CONTRACT_TEST: "1",
+      POSTHOG_PROJECT_TOKEN: ["phc", "test", "placeholder"].join("_"),
+      WORKOS_CLIENT_ID: "client_test_contracts_runtime",
+    };
+    for (const [name, value] of Object.entries(deploymentEnvironment))
+      runCommand(
         targetRoot,
         ["--silent", "exec", "convex", "env", "set", name, value],
-        `Generated customer local Convex environment ${name}`,
+        `Generated customer local Convex ${name} configuration`,
         localConvexEnvironment,
       );
-    runPreparedCustomerCommand(
+    runCommand(
       targetRoot,
       ["--silent", "exec", "convex", "dev", "--once", "--typecheck", "disable"],
       "Generated customer local Convex codegen",
       localConvexEnvironment,
     );
-    runPreparedCustomerCommand(
+    rmSync(resolve(targetRoot, ".env.local"), { force: true });
+    rmSync(resolve(targetRoot, ".convex"), { force: true, recursive: true });
+    runCommand(
       targetRoot,
       ["--dir", "apps/web", "exec", "vite", "build"],
       "Generated customer route codegen",
+      localRuntimeEnvironment,
     );
   }
   execFileSync("git", ["add", "-A"], { cwd: targetRoot });

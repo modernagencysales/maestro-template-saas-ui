@@ -167,13 +167,12 @@ describe("Playwright acceptance runtime support", () => {
     const activeRuntime = await controller.start();
     assert.equal(Object.isFrozen(activeRuntime), true);
     expect(startupSteps.slice(0, 4)).toEqual([
-      "init",
+      "start",
       "env:MAESTRO_CONTRACT_TEST",
       "env:POSTHOG_PROJECT_TOKEN",
-      "start",
+      "env:WORKOS_CLIENT_ID",
     ]);
     expect(commands.slice(0, 3)).toEqual([
-      ["--silent", "exec", "convex", "init"],
       [
         "--silent",
         "exec",
@@ -191,6 +190,15 @@ describe("Playwright acceptance runtime support", () => {
         "set",
         "POSTHOG_PROJECT_TOKEN",
         "phc_test_placeholder",
+      ],
+      [
+        "--silent",
+        "exec",
+        "convex",
+        "env",
+        "set",
+        "WORKOS_CLIENT_ID",
+        "client_test_contracts_runtime",
       ],
     ]);
     for (const environment of [...environments, ...appEnvironments]) {

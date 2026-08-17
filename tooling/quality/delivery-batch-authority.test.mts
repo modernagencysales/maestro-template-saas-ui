@@ -143,7 +143,7 @@ describe("deterministic suite ownership", () => {
     expect(gitleaksInstall).toBeLessThan(chassis.indexOf("pnpm verify"));
     expect(chassis).not.toContain("install-gitleaks.sh || true");
     expect(chassis.match(/^pnpm verify$/gmu)).toHaveLength(1);
-    expect(chassis).toContain("pnpm --dir apps/web test:runtime-longevity");
+    expect(chassis).not.toContain("pnpm --dir apps/web test:runtime-longevity");
   });
 
   it("keeps Qlty advisory and Gitleaks independently blocking in the firewall", () => {

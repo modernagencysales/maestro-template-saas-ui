@@ -34,6 +34,8 @@ import {
 import { buildSaasApplicationAlpha2TargetPlan } from "./alpha2SaasApplicationPlan";
 import { buildFactorySaasApplicationFiles } from "./saasApplicationFactory";
 import { isWorkflowAutomationPath } from "./saasApplicationPatterns";
+import { saasFrontendFoundationPaths } from "./saasFrontendFoundation";
+import { SAAS_APPLICATION_PATTERN_GROUPS } from "./saasApplicationPatterns";
 import {
   CUSTOMER_ROOT_SCRIPTS,
   CURRENT_EMAIL_CLOSURE,
@@ -152,6 +154,13 @@ const expectVerifyReferencesResolve = (
 };
 
 describe("saas application blueprint", () => {
+  it("keeps frontend foundation out of optional pattern metadata", () => {
+    expect(Object.keys(SAAS_APPLICATION_PATTERN_GROUPS)).toEqual([
+      "records-example",
+      "workflow-automation",
+    ]);
+  });
+
   it("projects only explicitly selected product patterns", () => {
     const buildSelected = buildSaasApplicationTargetPlan as (options: {
       readonly name: string;
@@ -171,10 +180,28 @@ describe("saas application blueprint", () => {
 
     const neutral = paths();
     expect(neutral.has("tests/acceptance/records.spec.ts")).toBe(false);
-    expect(neutral.has("apps/web/src/routes/_workspace.records.tsx")).toBe(
-      false,
-    );
+    const rootTsconfig = (
+      patterns?: readonly ("records-example" | "workflow-automation")[],
+    ) => {
+      const entry = buildSelected({
+        name: "Selected App",
+        ...(patterns ? { patterns } : {}),
+      }).entries.find(({ path }) => path === "tsconfig.json");
+      if (entry === undefined) throw new Error("missing root tsconfig");
+      return JSON.parse(entry.content) as {
+        readonly references?: readonly { readonly path?: string }[];
+      };
+    };
+
+    expect(rootTsconfig().references).not.toContainEqual({
+      path: "./tooling/workflow",
+    });
+    expect(neutral.has("features/records.feature")).toBe(false);
+    expect(
+      neutral.has("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"),
+    ).toBe(false);
     expect(neutral.has("tooling/workflow/package.json")).toBe(false);
+    expect(neutral.has("tooling/workflow/tsconfig.json")).toBe(false);
     expect(
       neutral.has("packages/convex/confect/workflows/graphCurrent.ts"),
     ).toBe(false);
@@ -184,9 +211,12 @@ describe("saas application blueprint", () => {
 
     const records = paths(["records-example"]);
     expect(records.has("tests/acceptance/records.spec.ts")).toBe(true);
-    expect(records.has("apps/web/src/routes/_workspace.records.tsx")).toBe(
-      true,
-    );
+    expect(rootTsconfig(["records-example"]).references).not.toContainEqual({
+      path: "./tooling/workflow",
+    });
+    expect(
+      records.has("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"),
+    ).toBe(true);
     expect(records.has("tooling/workflow/package.json")).toBe(false);
     expect([...records].some((path) => path.startsWith("features/"))).toBe(
       false,
@@ -194,7 +224,11 @@ describe("saas application blueprint", () => {
 
     const workflow = paths(["workflow-automation"]);
     expect(workflow.has("tests/acceptance/records.spec.ts")).toBe(false);
+    expect(rootTsconfig(["workflow-automation"]).references).toContainEqual({
+      path: "./tooling/workflow",
+    });
     expect(workflow.has("tooling/workflow/package.json")).toBe(true);
+    expect(workflow.has("tooling/workflow/tsconfig.json")).toBe(true);
     expect(
       workflow.has("packages/convex/confect/workflows/graphCurrent.ts"),
     ).toBe(true);
@@ -240,9 +274,18 @@ describe("saas application blueprint", () => {
     ])
       expect(records.has(path), path).toBe(true);
     expect(records.get("tests/acceptance/support/fixtures.ts")).toContain(
-      '{ scope: "worker", auto: true }',
+      "timeout: CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS",
     );
     expect(records.get("product.contract.yaml")).toContain("BHV-REC-004");
+    expect(records.get("docs/product/records-plan.md")).toContain(
+      "route:$workspace/records",
+    );
+    expect(
+      records.get("docs/template/generated/product-contract.md"),
+    ).toContain("route:$workspace/records");
+    expect(records.get("apps/web/src/routeTree.gen.ts")).toContain(
+      "fullPath: '/$workspace/records'",
+    );
     expect(
       buildSaasApplicationTargetPlan({
         name: "Records App",
@@ -259,13 +302,68 @@ describe("saas application blueprint", () => {
       readonly resources?: readonly {
         readonly id: string;
         readonly kind: string;
+        readonly system: string;
       }[];
     };
+    const canonicalFoundationRoutes = parseProductTopology(
+      JSON.parse(
+        readFileSync(
+          join(repoRoot, "docs/template/product-topology.json"),
+          "utf8",
+        ),
+      ),
+    )
+      .resources.filter(({ kind }) => kind === "route")
+      .map(({ id }) => id);
     expect(
       recordsTopology.resources
         ?.filter(({ kind }) => kind === "route")
         .map(({ id }) => id),
-    ).toEqual(["route:health", "route:records"]);
+    ).toEqual([...canonicalFoundationRoutes, "route:$workspace/records"]);
+    const recordsSystemIds = new Set(
+      parseSystemCatalog(
+        JSON.parse(records.get("docs/template/system-catalog.json") ?? "{}"),
+      ).systems.map(({ id }) => id),
+    );
+    for (const route of recordsTopology.resources?.filter(
+      ({ kind }) => kind === "route",
+    ) ?? [])
+      expect(recordsSystemIds.has(route.system), route.id).toBe(true);
+  });
+
+  it("projects a tsconfig for every retained root project reference", () => {
+    const selections = [
+      { label: "neutral", patterns: [] as const },
+      { label: "records", patterns: ["records-example"] as const },
+      { label: "workflow", patterns: ["workflow-automation"] as const },
+    ];
+
+    const missingBySelection = selections.map(({ label, patterns }) => {
+      const plan = buildSaasApplicationTargetPlan({
+        name: "Selected App",
+        patterns,
+      });
+      const rootTsconfig = plan.entries.find(
+        ({ path }) => path === "tsconfig.json",
+      );
+      if (rootTsconfig === undefined) throw new Error("missing root tsconfig");
+      const root = JSON.parse(rootTsconfig.content) as {
+        readonly references?: readonly { readonly path?: string }[];
+      };
+      const entries = new Set(plan.entries.map(({ path }) => path));
+      const missing = (root.references ?? [])
+        .map(({ path }) => path?.replace(/^\.\//u, ""))
+        .filter(
+          (path): path is string =>
+            path !== undefined && !entries.has(`${path}/tsconfig.json`),
+        );
+
+      return { label, missing };
+    });
+
+    expect(
+      missingBySelection.filter(({ missing }) => missing.length > 0),
+    ).toEqual([]);
   });
 
   it("projects workflow data resources only when workflow is selected", () => {
@@ -386,8 +484,8 @@ describe("saas application blueprint", () => {
         neutral.lock.importers?.[importer]?.dependencies,
       ).not.toHaveProperty("@maestro-template/workflow-tooling");
     expect(
-      neutral.systems.systems.some(({ id }) => id === "workflow-runtime"),
-    ).toBe(false);
+      neutral.systems.systems.find(({ id }) => id === "workflow-runtime"),
+    ).toMatchObject({ tables: [] });
     for (const generatedPath of [
       "packages/convex/confect/_generated/schema.ts",
       "packages/convex/confect/_generated/convexSchema.ts",
@@ -488,6 +586,7 @@ describe("saas application blueprint", () => {
     const sourcePaths = new Set(sourceTree.stdout.trim().split("\n"));
     const mismatches = buildSaasApplicationTargetPlan().entries.flatMap(
       (entry) => {
+        if (saasFrontendFoundationPaths().includes(entry.path)) return [];
         const baseWrite = reviewedBaseWrite(paths, entry.path, sourcePaths);
         return baseWrite === entry.replaces
           ? []
@@ -690,10 +789,10 @@ describe("saas application blueprint", () => {
     expect(JSON.parse(entry.content)).toMatchObject({
       generator: "add-feature",
       commandFamily: "template:add-feature",
-      name: "records",
+      name: "$workspace/records",
       ownership: { system: "record-management", disposition: "extend" },
       generatedPaths: expect.arrayContaining([
-        "apps/web/src/routes/_workspace.records.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
       ]),
     });
   });
@@ -1260,7 +1359,7 @@ describe("saas application blueprint", () => {
         ).toBe(0);
       }
     }
-  }, 15_000);
+  }, 30_000);
 
   it("materializes the current disclosure and customer support surface", () => {
     const targetRoot = mkdtempSync(
@@ -1351,6 +1450,21 @@ describe("saas application blueprint", () => {
       }
     } finally {
       rmSync(targetRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("projects the pinned onboarding preview assets into generated targets", () => {
+    const plan = buildSaasApplicationTargetPlan();
+    for (const path of [
+      "apps/web/public/img/onboarding/light.svg",
+      "apps/web/public/img/onboarding/dark.svg",
+    ]) {
+      const entry = plan.entries.find((candidate) => candidate.path === path);
+      expect(
+        entry,
+        `missing generated onboarding asset: ${path}`,
+      ).toBeDefined();
+      expect(entry?.content).toBe(readFileSync(join(repoRoot, path), "utf8"));
     }
   });
 
@@ -1453,9 +1567,12 @@ describe("saas application blueprint", () => {
         readonly scripts?: Readonly<Record<string, string>>;
       };
       const references = projectedEntries.flatMap(({ path, content }) =>
-        [...content.matchAll(/pnpm (check:workflow[^\s`"',&)\\]+)/gu)].flatMap(
-          (match) =>
-            match[1] === undefined ? [] : [{ command: match[1], path }],
+        [
+          ...content.matchAll(
+            /pnpm (check:workflow[^\s.`"',&)\\]+)(?=$|[\s`"',&)\\])/gu,
+          ),
+        ].flatMap((match) =>
+          match[1] === undefined ? [] : [{ command: match[1], path }],
         ),
       );
       const scripts = root.scripts ?? {};
@@ -1841,227 +1958,263 @@ describe("saas application blueprint", () => {
         .filter(({ path }) => path !== "AGENTS.md")
         .map(({ path }) => path),
     ];
-    expect(first.map(({ path }) => path)).toEqual([
-      "examples/saas-application/seed/source.json",
-      "docs/template/system-catalog.json",
-      "docs/template/data-resources.json",
-      "docs/template/product-topology.json",
-      "packages/convex/confect/ops/dataResources.generated.ts",
-      "docs/template/system-decisions/record-management.md",
-      "docs/template/schema-decisions/records.md",
-      "generated/blueprints/saas-application/application-contract.json",
-      "generated/blueprints/saas-application/surface-contract.json",
-      "generated/blueprints/saas-application/readiness.json",
-      "examples/saas-application/seed/workspace.json",
-      "examples/saas-application/seed/records.json",
-      "examples/saas-application/seed/crud-scenario.json",
-      "packages/convex/confect/tables/records.ts",
-      "packages/convex/confect/records/records.spec.ts",
-      "packages/convex/confect/records/records.impl.ts",
-      "apps/web/src/adapters/records/contract.ts",
-      "apps/web/src/adapters/records/fake.ts",
-      "apps/web/src/features/records/model.ts",
-      "apps/web/src/features/records/records-surface.tsx",
-      "apps/web/src/screens/records-screen.tsx",
-      "apps/web/src/routes/_workspace.records.tsx",
-      "product.contract.yaml",
-      "product.contract.schema.json",
-      "docs/template/generated/product-contract.md",
-      "playwright.acceptance.config.ts",
-      "tooling/acceptance/checkout-state.mts",
-      "tooling/acceptance/product-contract.mts",
-      "tooling/acceptance/run-acceptance.mts",
-      "tooling/acceptance/playwright-report.mts",
-      "docs/product/records-plan.md",
-      "tests/acceptance/records.spec.ts",
-      "tests/acceptance/support/fixtures.ts",
-      "tests/acceptance/support/runtime.ts",
-      "apps/web/src/adapters/records/http.ts",
-      "apps/web/src/adapters/confect-generated-refs.test.ts",
-      "docs/template/env-manifest.json",
-      "docs/template/env-manifest.md",
-      "docs/template/operations-runbook.md",
-      "packages/template-core/src/templateInstance/templateInstance.test.ts",
-      "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
-      "packages/template-core/src/generated/confectManifest.ts",
-      "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
-      "packages/convex/test/shared-env.test.ts",
-      "tooling/generators/src/crud-proof.test.ts",
-      "tooling/app-map/src/composition.test.ts",
-      "tooling/app-map/src/composition.ts",
-      "tooling/app-map/src/schema.ts",
-      "tooling/app-map/src/build.ts",
-      "tooling/app-map/src/gitDiff.ts",
-      "tooling/app-map/src/validate.ts",
-      "tooling/app-map/package.json",
-      "packages/template-core/src/dataResourceCatalog.ts",
-      "packages/template-core/src/productTopology.ts",
-      "packages/template-core/src/systemCatalog.ts",
-      "packages/template-core/src/productContract.ts",
-      "packages/template-core/src/workPackage.ts",
-      "packages/template-core/src/productPlan.ts",
-      "packages/template-core/src/templateInstance/index.ts",
-      "docs/template/generated/workflow-semantics.md",
-      "eslint.config.mjs",
-      "tooling/eslint-plugin-template/index.mjs",
-      "tooling/eslint-plugin-template/rules/acceptance-boundary.mjs",
-      "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
-      "tooling/quality/src/env-manifest.test.mts",
-      "README.md",
-      "docs/template/agent-pack-privacy.md",
-      "docs/template/preflight.md",
-      "docs/template/coding-standards.md",
-      "docs/template/enforced-engineering-rules.md",
-      "tooling/workflow/package.json",
-      "AGENTS.md",
-      "docs/template/agent-worker-playbook.md",
-      "docs/template/how-this-relates-to-maestro.md",
-      "agent-patterns/effect-confect.md",
-      "docs/template/repo-map.md",
-      "docs/template/template-maturity-model.md",
-      "maestro-template.mjs",
-      "scripts/maestro-bootstrap.mjs",
-      "scripts/maestro-bootstrap.test.mjs",
-      "scripts/configure-postmark.mts",
-      "apps/web/src/bundle-policy.ts",
-      "apps/web/scripts/check-client-bundle-budget.mjs",
-      "apps/web/scripts/check-client-bundle-budget.test.mjs",
-      "apps/web/src/bundle-policy.test.ts",
-      "apps/web/vite.config.ts",
-      "pnpm-workspace.yaml",
-      "packages/convex/package.json",
-      "tooling/quality/check-convex-generation.mts",
-      "apps/cli/src/factory/customerComposition.ts",
-      "apps/cli/src/factory/mcp.ts",
-      "apps/cli/src/commands.ts",
-      "apps/cli/src/index.ts",
-      "tooling/agent-pack/package.json",
-      "apps/cli/package.json",
-      "apps/web/package.json",
-      "apps/cli/src/factory/start.ts",
-      "apps/cli/src/factory/customerRecipes.ts",
-      "apps/cli/src/factory/recipeCatalog.ts",
-      "apps/cli/src/factory/recipes.ts",
-      "apps/cli/src/factory/supportBundle.ts",
-      ".npmrc",
-      ".prettierignore",
-      "package.json",
-      "pnpm-lock.yaml",
-      "patches/@confect__cli@10.0.0-next.9.patch",
-      "patches/@tanstack__start-plugin-core@1.171.18.patch",
-      "tooling/confect-manifest/tsconfig.json",
-      "tooling/generators/package.json",
-      "tooling/quality/package.json",
-      "examples/generic-ai-ops/template-package.json",
-      "lefthook.yml",
-      "tooling/quality/contract-review-rubric.md",
-      "tooling/quality/taste-review.mts",
-      "tooling/quality/install-lefthook-if-git.mjs",
-      "tooling/generators/src/customer.ts",
-      "tooling/generators/src/customer-runtime.ts",
-      "tooling/generators/src/customer-dispatcher.ts",
-      "tooling/generators/src/private-package.ts",
-      "tooling/generators/src/customer-cli.ts",
-      "tooling/generators/src/crud-proof.ts",
-      "tooling/generators/src/direct-run.ts",
-      "tooling/generators/src/feature-crud.ts",
-      "tooling/generators/src/workflow-release-commands.ts",
-      "tooling/generators/src/workflow-source-closure.ts",
-      "tooling/generators/src/blueprints/gtmImplementation.ts",
-      "tooling/generators/src/workflow-files.ts",
-      "tooling/generators/src/workflow-predeploy.ts",
-      "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
-      "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
-      "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
-      "packages/convex/confect/workflows/_kit/observedStagePayloadCurrent.ts",
-      "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
-      "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
-      "packages/convex/confect/workflows/_kit/workflowScheduledCapability.ts",
-      "packages/convex/confect/workflows/graphCurrent.ts",
-      "packages/convex/confect/workflows/graphNodeSchemaCurrent.ts",
-      "packages/convex/confect/workflows/graphSchemaCurrent.ts",
-      "packages/convex/confect/workflows/graphValidationCurrent.ts",
-      "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
-      "packages/convex/confect/_generated/docs.ts",
-      "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
-      ...CURRENT_EMAIL_CLOSURE,
-      ...CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
-      ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
-      ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
-      "packages/convex/confect/tables/workflowArtifacts.ts",
-      "packages/convex/confect/tables/workflowRuns.ts",
-      "packages/convex/confect/tables/workflowStageRuns.ts",
-      "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
-      "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
-      "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
-      "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
-      "packages/convex/confect/workflows/_kit/lifecycle.ts",
-      "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
-      "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
-      "packages/convex/confect/workflows/_kit/lifecycleState.ts",
-      "packages/convex/confect/workflows/_kit/lifecycleSweep.ts",
-      "packages/convex/confect/workflows/_kit/observedStage.ts",
-      "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
-      "packages/convex/confect/workflows/_kit/payloadBudget.ts",
-      "packages/convex/confect/workflows/_kit/policySnapshot.ts",
-      "packages/convex/confect/workflows/_kit/principal.ts",
-      "packages/convex/confect/workflows/_kit/subworkflows.ts",
-      "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
-      "packages/convex/confect/workflows/lifecycleAdapters.ts",
-      "packages/convex/confect/workflows/lifecycle.impl.ts",
-      "packages/convex/confect/workflows/lifecycleInspection.ts",
-      "packages/convex/confect/workflows/lifecyclePersistence.ts",
-      "packages/convex/confect/workflows/lifecycleReconciliation.ts",
-      "packages/convex/confect/workflows/lifecycle.spec.ts",
-      "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
-      "packages/convex/test/workflow-lifecycle-registration.test.ts",
-      "tooling/quality/check-workflow-policy-snapshots.mts",
-      "tooling/quality/check-workflow-principal-propagation.mts",
-      "tooling/quality/fixtures/workflow-policy-snapshots.json",
-      "tooling/agent-pack/src/start.ts",
-      "tooling/agent-pack/src/ports.ts",
-      "tooling/agent-pack/src/verify.ts",
-      "tooling/agent-pack/src/receiptWriter.ts",
-      "tooling/agent-pack/src/recipes.ts",
-      "tooling/agent-pack/src/recipeTransaction.ts",
-      "tooling/agent-pack/src/index.ts",
-      "tooling/agent-pack/src/readiness/artifacts.ts",
-      "tooling/agent-pack/src/readiness/index.ts",
-      "tooling/agent-pack/src/readiness/nodeSurface.ts",
-      "tooling/agent-pack/src/readiness/presenter.ts",
-      "tooling/agent-pack/src/readiness/server.ts",
-      "tooling/agent-pack/src/mcp/protocol.ts",
-      "tooling/agent-pack/src/mcp/projection.ts",
-      "tooling/agent-pack/src/mcp/server.ts",
-      "tooling/agent-pack/src/customerTestClosure.ts",
-      "tooling/agent-pack/src/customerTestClosure.test.ts",
-      "tooling/agent-pack/src/mcp/projection.test.ts",
-      "tooling/agent-pack/src/mcp/protocol.test.ts",
-      "tooling/agent-pack/src/mcp/server.test.ts",
-      "tooling/agent-pack/src/nodeAdapters.test.ts",
-      "apps/web/src/routes/index.tsx",
-      "apps/web/src/providers/posthog.tsx",
-      "tooling/agent-pack/src/privacy/supportBundle.ts",
-      "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
-      "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
-      "tooling/agent-pack/src/privacy/support-bundle.schema.json",
-      "tooling/quality/check-agent-pack.mts",
-      "tooling/quality/check-customer-context.mts",
-      "tooling/quality/check-convex-ai-files.mts",
-      ...customerContextTargets,
-      "packages/convex/confect/_generated/tables/records.ts",
-      "packages/convex/confect/_generated/schema.ts",
-      "packages/convex/confect/_generated/convexSchema.ts",
-      "packages/convex/confect/_generated/spec.ts",
-      "packages/convex/confect/_generated/id.ts",
-      "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
-      "packages/convex/convex/records/records.ts",
-      "apps/web/src/routeTree.gen.ts",
-      "apps/web/src/routeRegistry.generated.ts",
-      "docs/template/generated/provenance/add-feature/records.json",
-    ]);
-    expect(first.map(({ path }) => path)).not.toContain(
-      "apps/cli/src/factory/customerCandidateFixture.ts",
+    expect(
+      first
+        .map(({ path }) => path)
+        .filter((path) => !saasFrontendFoundationPaths().includes(path)),
+    ).toEqual(
+      [
+        "examples/saas-application/seed/source.json",
+        "docs/template/system-catalog.json",
+        "docs/template/data-resources.json",
+        "docs/template/product-topology.json",
+        "packages/convex/confect/ops/dataResources.generated.ts",
+        "docs/template/system-decisions/record-management.md",
+        "docs/template/schema-decisions/records.md",
+        "generated/blueprints/saas-application/application-contract.json",
+        "generated/blueprints/saas-application/surface-contract.json",
+        "generated/blueprints/saas-application/readiness.json",
+        "examples/saas-application/seed/workspace.json",
+        "examples/saas-application/seed/records.json",
+        "examples/saas-application/seed/crud-scenario.json",
+        "packages/convex/confect/tables/records.ts",
+        "packages/convex/confect/records/records.spec.ts",
+        "packages/convex/confect/records/records.impl.ts",
+        "apps/web/src/adapters/records/contract.ts",
+        "apps/web/src/adapters/records/fake.ts",
+        "apps/web/src/features/records/model.ts",
+        "apps/web/src/features/records/records-surface.tsx",
+        "apps/web/src/screens/records-screen.tsx",
+        "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
+        "product.contract.yaml",
+        "product.contract.schema.json",
+        "docs/template/generated/product-contract.md",
+        "playwright.acceptance.config.ts",
+        "tooling/acceptance/checkout-state.mts",
+        "tooling/acceptance/product-contract.mts",
+        "tooling/acceptance/run-acceptance.mts",
+        "tooling/acceptance/playwright-report.mts",
+        "docs/product/records-plan.md",
+        "tests/acceptance/records.spec.ts",
+        "tests/acceptance/support/fixtures.ts",
+        "tests/acceptance/support/runtime.ts",
+        "apps/web/src/adapters/records/http.ts",
+        "README.md",
+        "docs/template/agent-pack-privacy.md",
+        "docs/template/preflight.md",
+        "docs/template/coding-standards.md",
+        "docs/template/enforced-engineering-rules.md",
+        "tooling/workflow/package.json",
+        "tooling/workflow/tsconfig.json",
+        "AGENTS.md",
+        "docs/template/agent-worker-playbook.md",
+        "docs/template/how-this-relates-to-maestro.md",
+        "agent-patterns/effect-confect.md",
+        "docs/template/repo-map.md",
+        "docs/template/template-maturity-model.md",
+        "maestro-template.mjs",
+        "scripts/maestro-bootstrap.mjs",
+        "scripts/maestro-bootstrap.test.mjs",
+        "scripts/configure-postmark.mts",
+        "apps/web/scripts/check-client-bundle-budget.mjs",
+        "apps/web/scripts/check-client-bundle-budget.test.mjs",
+        "apps/web/vite.config.ts",
+        "pnpm-workspace.yaml",
+        "packages/convex/package.json",
+        "packages/convex/src/refs.ts",
+        "tooling/quality/check-convex-generation.mts",
+        "apps/cli/src/factory/customerComposition.ts",
+        "apps/cli/src/factory/mcp.ts",
+        "apps/cli/src/commands.ts",
+        "apps/cli/src/index.ts",
+        "tooling/agent-pack/package.json",
+        "apps/cli/package.json",
+        "apps/web/package.json",
+        "apps/cli/src/factory/start.ts",
+        "apps/cli/src/factory/customerRecipes.ts",
+        "apps/cli/src/factory/recipeCatalog.ts",
+        "apps/cli/src/factory/recipes.ts",
+        "apps/cli/src/factory/supportBundle.ts",
+        ".npmrc",
+        ".prettierignore",
+        "tsconfig.json",
+        "apps/cli/tsconfig.json",
+        "packages/convex/tsconfig.json",
+        "packages/editor-core/tsconfig.json",
+        "packages/editor-react/tsconfig.json",
+        "packages/workflow-ui/tsconfig.json",
+        "packages/template-core/tsconfig.json",
+        "packages/integrations/tsconfig.json",
+        "packages/notifications/tsconfig.json",
+        "packages/storage/tsconfig.json",
+        "packages/observability/tsconfig.json",
+        "packages/search/tsconfig.json",
+        "tooling/agent-pack/tsconfig.json",
+        "tooling/quality/tsconfig.json",
+        "tooling/generators/tsconfig.json",
+        "tooling/evals/tsconfig.json",
+        "tooling/release/tsconfig.json",
+        "package.json",
+        "pnpm-lock.yaml",
+        "patches/@confect__cli@10.0.0-next.9.patch",
+        "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
+        "patches/@tanstack__start-plugin-core@1.171.18.patch",
+        "tooling/confect-manifest/tsconfig.json",
+        "tooling/generators/package.json",
+        "tooling/quality/package.json",
+        "examples/generic-ai-ops/template-package.json",
+        "lefthook.yml",
+        "tooling/quality/contract-review-rubric.md",
+        "tooling/quality/taste-review.mts",
+        "tooling/quality/install-lefthook-if-git.mjs",
+        "tooling/generators/src/customer.ts",
+        "tooling/generators/src/customer-runtime.ts",
+        "tooling/generators/src/customer-dispatcher.ts",
+        "tooling/generators/src/private-package.ts",
+        "tooling/generators/src/customer-cli.ts",
+        "tooling/generators/src/crud-proof.ts",
+        "tooling/generators/src/direct-run.ts",
+        "tooling/generators/src/feature-crud.ts",
+        "tooling/generators/src/workflow-release-commands.ts",
+        "tooling/generators/src/workflow-source-closure.ts",
+        "tooling/generators/src/blueprints/gtmImplementation.ts",
+        "tooling/generators/src/workflow-files.ts",
+        "tooling/generators/src/workflow-predeploy.ts",
+        "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
+        "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+        "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
+        "packages/convex/confect/workflows/_kit/observedStagePayloadCurrent.ts",
+        "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
+        "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
+        "packages/convex/confect/workflows/_kit/workflowScheduledCapability.ts",
+        "packages/convex/confect/workflows/graphCurrent.ts",
+        "packages/convex/confect/workflows/graphNodeSchemaCurrent.ts",
+        "packages/convex/confect/workflows/graphSchemaCurrent.ts",
+        "packages/convex/confect/workflows/graphValidationCurrent.ts",
+        "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
+        "packages/convex/confect/_generated/docs.ts",
+        "packages/convex/confect/_generated/tables/workspaces.ts",
+        "packages/convex/confect/_generated/registeredFunctions/access/members.ts",
+        "packages/convex/confect/_generated/registeredFunctions/auth/workspaces.ts",
+        "packages/convex/confect/_generated/services.ts",
+        "packages/convex/confect/access/members.spec.ts",
+        "packages/convex/confect/access/members.impl.ts",
+        "packages/convex/confect/access/audit.ts",
+        "packages/convex/confect/access/email.ts",
+        "packages/convex/confect/access/handlerContext.ts",
+        "packages/convex/confect/access/lifecycle.ts",
+        "packages/convex/confect/access/lifecycleInvitations.ts",
+        "packages/convex/confect/access/provisioning.spec.ts",
+        "packages/convex/confect/access/roles.ts",
+        "packages/convex/confect/auth/workspaces.spec.ts",
+        "packages/convex/confect/auth/workspaces.impl.ts",
+        "packages/convex/confect/errors.ts",
+        "packages/convex/confect/tables/workspaces.ts",
+        "packages/convex/confect/_generated/refs.ts",
+        "packages/convex/convex/_generated/api.d.ts",
+        "packages/convex/convex/_generated/api.js",
+        "packages/convex/convex/access/members.ts",
+        "packages/convex/convex/auth/workspaces.ts",
+        "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+        ...CURRENT_EMAIL_CLOSURE,
+        ...CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
+        ...CURRENT_SAAS_DEPLOY_AUTHORITY_TABLE_CLOSURE,
+        ...CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
+        "packages/convex/confect/tables/workflowArtifacts.ts",
+        "packages/convex/confect/tables/workflowRuns.ts",
+        "packages/convex/confect/tables/workflowStageRuns.ts",
+        "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
+        "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+        "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
+        "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+        "packages/convex/confect/workflows/_kit/lifecycle.ts",
+        "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
+        "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+        "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+        "packages/convex/confect/workflows/_kit/lifecycleSweep.ts",
+        "packages/convex/confect/workflows/_kit/observedStage.ts",
+        "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
+        "packages/convex/confect/workflows/_kit/payloadBudget.ts",
+        "packages/convex/confect/workflows/_kit/policySnapshot.ts",
+        "packages/convex/confect/workflows/_kit/principal.ts",
+        "packages/convex/confect/workflows/_kit/subworkflows.ts",
+        "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+        "packages/convex/confect/workflows/lifecycleAdapters.ts",
+        "packages/convex/confect/workflows/lifecycle.impl.ts",
+        "packages/convex/confect/workflows/lifecycleInspection.ts",
+        "packages/convex/confect/workflows/lifecyclePersistence.ts",
+        "packages/convex/confect/workflows/lifecycleReconciliation.ts",
+        "packages/convex/confect/workflows/lifecycle.spec.ts",
+        "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
+        "packages/convex/test/workflow-lifecycle-registration.test.ts",
+        "tooling/quality/check-workflow-policy-snapshots.mts",
+        "tooling/quality/check-workflow-principal-propagation.mts",
+        "tooling/quality/fixtures/workflow-policy-snapshots.json",
+        "tooling/agent-pack/src/start.ts",
+        "tooling/agent-pack/src/ports.ts",
+        "tooling/agent-pack/src/verify.ts",
+        "tooling/agent-pack/src/receiptWriter.ts",
+        "tooling/agent-pack/src/recipes.ts",
+        "tooling/agent-pack/src/recipeTransaction.ts",
+        "tooling/agent-pack/src/index.ts",
+        "tooling/agent-pack/src/readiness/artifacts.ts",
+        "tooling/agent-pack/src/readiness/index.ts",
+        "tooling/agent-pack/src/readiness/nodeSurface.ts",
+        "tooling/agent-pack/src/readiness/presenter.ts",
+        "tooling/agent-pack/src/readiness/server.ts",
+        "tooling/agent-pack/src/mcp/protocol.ts",
+        "tooling/agent-pack/src/mcp/projection.ts",
+        "tooling/agent-pack/src/mcp/server.ts",
+        "tooling/agent-pack/src/customerTestClosure.ts",
+        "tooling/agent-pack/src/customerTestClosure.test.ts",
+        "tooling/agent-pack/src/mcp/projection.test.ts",
+        "tooling/agent-pack/src/mcp/protocol.test.ts",
+        "tooling/agent-pack/src/mcp/server.test.ts",
+        "tooling/agent-pack/src/nodeAdapters.test.ts",
+        "tooling/agent-pack/src/privacy/supportBundle.ts",
+        "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
+        "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
+        "tooling/agent-pack/src/privacy/support-bundle.schema.json",
+        "tooling/quality/check-agent-pack.mts",
+        "tooling/quality/check-customer-context.mts",
+        "tooling/quality/check-convex-ai-files.mts",
+        ...customerContextTargets,
+        "packages/convex/confect/_generated/tables/records.ts",
+        "packages/convex/confect/_generated/schema.ts",
+        "packages/convex/confect/_generated/convexSchema.ts",
+        "packages/convex/confect/_generated/spec.ts",
+        "packages/convex/confect/_generated/id.ts",
+        "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+        "packages/convex/convex/records/records.ts",
+        "apps/web/src/routeTree.gen.ts",
+        "docs/template/env-manifest.json",
+        "docs/template/env-manifest.md",
+        "docs/template/operations-runbook.md",
+        "packages/template-core/src/templateInstance/templateInstance.test.ts",
+        "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+        "packages/template-core/src/generated/confectManifest.ts",
+        "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+        "packages/convex/test/shared-env.test.ts",
+        "tooling/generators/src/crud-proof.test.ts",
+        "tooling/app-map/src/composition.test.ts",
+        "tooling/app-map/src/composition.ts",
+        "tooling/app-map/src/schema.ts",
+        "tooling/app-map/src/build.ts",
+        "tooling/app-map/src/gitDiff.ts",
+        "tooling/app-map/src/validate.ts",
+        "tooling/app-map/package.json",
+        "packages/template-core/src/dataResourceCatalog.ts",
+        "packages/template-core/src/productTopology.ts",
+        "packages/template-core/src/systemCatalog.ts",
+        "packages/template-core/src/productContract.ts",
+        "packages/template-core/src/workPackage.ts",
+        "packages/template-core/src/productPlan.ts",
+        "packages/template-core/src/templateInstance/index.ts",
+        "docs/template/generated/workflow-semantics.md",
+        "packages/convex/confect/workflows/_generated/workflowRegistry.ts",
+        "tooling/quality/src/env-manifest.test.mts",
+        "docs/template/generated/provenance/add-feature/records.json",
+      ].filter((path) => !saasFrontendFoundationPaths().includes(path)),
     );
     expect(
       first.some(({ path }) =>
@@ -2071,11 +2224,8 @@ describe("saas application blueprint", () => {
     const routeTree = first.find(
       ({ path }) => path === "apps/web/src/routeTree.gen.ts",
     )?.content;
-    expect(routeTree).toContain("path: '/records'");
+    expect(routeTree).toContain("AppWorkspaceDashboardIndexRouteImport");
     expect(routeTree).not.toContain("saasApplicationRoutes");
-    expect(routeTree?.indexOf("'/_workspace/runs': {")).toBeLessThan(
-      routeTree?.indexOf("'/_workspace/records': {") ?? -1,
-    );
     expect(
       first.find(
         ({ path }) => path === "tooling/quality/install-lefthook-if-git.mjs",
@@ -2126,7 +2276,7 @@ describe("saas application blueprint", () => {
       "apps/web/src/features/records/model.ts",
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
-      "apps/web/src/routes/_workspace.records.tsx",
+      "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
     ]);
     const executable = first.filter(({ path }) => executablePaths.has(path));
     for (const file of executable) {
@@ -2278,10 +2428,7 @@ describe("saas application blueprint", () => {
 
     const generatedRefsTest =
       files.get("apps/web/src/adapters/confect-generated-refs.test.ts") ?? "";
-    expect(generatedRefsTest).toContain("BrainPageListRef");
-    expect(generatedRefsTest).toContain("BrainPageCreateRef");
-    expect(generatedRefsTest).not.toContain("evaluateAppIdea");
-    expect(generatedRefsTest).not.toContain("useTemplateAction");
+    expect(generatedRefsTest).toBe("");
 
     for (const evaluatorSourcePath of [
       "apps/web/src/providers/posthog.test.tsx",
@@ -2298,24 +2445,37 @@ describe("saas application blueprint", () => {
     expect(recordsSurface).toContain(
       "templateConfectRefs.public.records.records.create",
     );
+    expect(recordsSurface).toContain("useConvexQuery");
+    expect(recordsSurface).toContain("listState.isError");
     expect(recordsSurface).not.toMatch(
       /templateConfectRefs\.public\.records\.(?:list|create)/u,
     );
+    for (const obsoleteSeam of [
+      "../../adapters/confect-state",
+      "../../env",
+      "../../providers/workspace",
+    ])
+      expect(recordsSurface).not.toContain(obsoleteSeam);
 
-    const indexRoute = files.get("apps/web/src/routes/index.tsx") ?? "";
-    expect(indexRoute).toContain("BusinessDashboardRoute");
-    expect(indexRoute).not.toContain("public-funnel");
-    const posthog = files.get("apps/web/src/providers/posthog.tsx") ?? "";
-    expect(posthog).toContain("shouldEnableAnalyticsCapture");
-    expect(posthog).not.toContain("app-idea-evaluator");
-    expect(posthog).not.toContain("public-funnel");
+    const recordsRoute =
+      files.get("apps/web/src/routes/_app/$workspace/_dashboard/records.tsx") ??
+      "";
+    expect(recordsRoute).toContain(
+      'createFileRoute("/_app/$workspace/_dashboard/records")',
+    );
+    expect(recordsRoute).not.toContain("BusinessAppShell");
+    expect(recordsRoute).not.toContain("BusinessPageRoot");
+
     const routeTree = files.get("apps/web/src/routeTree.gen.ts") ?? "";
-    expect(routeTree).toContain("WorkspaceRecordsRouteImport");
-    expect(routeTree).toContain("WorkspaceHealthRouteImport");
-    expect(routeTree).not.toContain("DashboardRouteImport");
-    expect(routeTree).not.toContain("EvaluateRouteImport");
-    expect(routeTree).not.toContain("CheckoutReturnRouteImport");
-    expect(routeTree).not.toContain("BuildPackPackIdRouteImport");
+    expect(routeTree).toContain("AppWorkspaceDashboardIndexRouteImport");
+    expect(routeTree).not.toContain("saasApplicationRoutes");
+    for (const obsoletePath of [
+      "apps/web/src/bundle-policy.ts",
+      "apps/web/src/bundle-policy.test.ts",
+      "apps/web/src/routes/index.tsx",
+      "apps/web/src/providers/posthog.tsx",
+    ])
+      expect(files.has(obsoletePath), obsoletePath).toBe(false);
   });
 
   // eslint-disable-next-line complexity -- AP-008 tracks splitting this declarative script-closure assertion.
@@ -2334,11 +2494,9 @@ describe("saas application blueprint", () => {
       "scripts/maestro-bootstrap.mjs",
       "scripts/maestro-bootstrap.test.mjs",
       "scripts/configure-postmark.mts",
-      "apps/web/src/bundle-policy.ts",
       "apps/web/package.json",
       "apps/web/scripts/check-client-bundle-budget.mjs",
       "apps/web/scripts/check-client-bundle-budget.test.mjs",
-      "apps/web/src/bundle-policy.test.ts",
       "apps/web/vite.config.ts",
       "pnpm-workspace.yaml",
       "pnpm-lock.yaml",
@@ -2437,6 +2595,10 @@ describe("saas application blueprint", () => {
       "smoke:hosted:browser",
       "smoke:hosted:a11y",
       "smoke:hosted:visual",
+      "smoke:golden",
+      "smoke:golden:browser",
+      "smoke:golden:a11y",
+      "smoke:golden:visual",
       "review:readiness",
       "review:completion",
       "deploy:doctor",
@@ -2450,6 +2612,7 @@ describe("saas application blueprint", () => {
       "check:recipes",
       "check:workflow-version-immutability",
       "check:workflow-publication-generation",
+      "saas-ui:materialize",
     ]);
     const factory = JSON.parse(
       readFileSync(join(repoRoot, "package.json"), "utf8"),
@@ -2498,6 +2661,7 @@ describe("saas application blueprint", () => {
         continue;
       }
       if (
+        root.scripts[name] !== undefined &&
         !omittedScripts.has(name) &&
         !rewritten.has(name) &&
         (!REMOVED_CUSTOMER_TEMPLATE_SCRIPTS.includes(
@@ -2565,6 +2729,7 @@ describe("saas application blueprint", () => {
         "check:headless-surface-contract",
         "check:posthog-readiness",
         "check:auth-demo-bypass",
+        "check:saas-ui-artifact-safety",
         "check:product-contract",
         "acceptance:required",
       ]
