@@ -2500,6 +2500,9 @@ describe("template app factory generators", () => {
     expect(feature).toContain("NativeSelect");
     expect(feature).toContain('state.status === "typed-error"');
     expect(feature).toContain('state.status === "success"');
+    expect(feature).toContain(
+      "feedback !== null || selected !== null ? <Button",
+    );
     expect(feature).not.toContain(
       "type { AccountSignals, AccountSignalsStatus }",
     );

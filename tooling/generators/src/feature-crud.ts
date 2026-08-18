@@ -219,7 +219,7 @@ export function ${pascalName}Feature() {
       <Button onClick={() => void save()}>Save ${name}</Button>
     </Card.Body></Card.Root> : null}
     {state.status !== "create" && state.status !== "edit" ? <Button onClick={() => { setSelectedId(null); setFeedback(null); setTitle(""); setDetail(""); setStatus("planned"); setMode("create"); }}>Create ${name}</Button> : null}
-    {selected !== null ? <Button onClick={() => { setSelectedId(null); setFeedback(null); setMode("list"); }}>Back to ${route}</Button> : null}
+    {feedback !== null || selected !== null ? <Button onClick={() => { setSelectedId(null); setFeedback(null); setMode("list"); }}>Back to ${route}</Button> : null}
   </Stack>;
 }
 `,
