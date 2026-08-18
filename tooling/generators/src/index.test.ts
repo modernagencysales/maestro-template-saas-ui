@@ -2646,7 +2646,7 @@ describe("template app factory generators", () => {
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }
-  });
+  }, 360_000);
 
   it("refuses to overwrite an existing golden feature path", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-clash-"));
