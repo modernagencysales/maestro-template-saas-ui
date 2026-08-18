@@ -20,6 +20,14 @@ const OFFICIAL_SOURCES = new Set([
   "@saas-ui-pro/react",
   "@chakra-ui/react",
 ]);
+const RAW_CONTROLS = new Set([
+  "button",
+  "dialog",
+  "input",
+  "select",
+  "table",
+  "textarea",
+]);
 
 function normalizedFilename(context) {
   return (context.filename ?? context.getFilename()).replace(/\\/g, "/");
@@ -47,6 +55,16 @@ function importedName(specifier) {
 
 function declaredName(node) {
   return node.id?.type === "Identifier" ? node.id.name : null;
+}
+
+function approvedNativeInput(node) {
+  if (node.name.type !== "JSXIdentifier" || node.name.name !== "input")
+    return false;
+  const type = node.attributes.find(
+    (attribute) =>
+      attribute.type === "JSXAttribute" && attribute.name.name === "type",
+  )?.value;
+  return type?.type === "Literal" && ["checkbox", "file"].includes(type.value);
 }
 
 export default {
@@ -99,6 +117,15 @@ export default {
       VariableDeclarator(node) {
         const name = declaredName(node);
         if (name && PRIMITIVE_NAMES.has(name)) report(node.id, name);
+      },
+      JSXOpeningElement(node) {
+        if (
+          node.name.type === "JSXIdentifier" &&
+          RAW_CONTROLS.has(node.name.name) &&
+          !approvedNativeInput(node)
+        ) {
+          report(node.name, node.name.name);
+        }
       },
     };
   },

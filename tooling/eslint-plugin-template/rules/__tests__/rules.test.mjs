@@ -2044,11 +2044,27 @@ tester.run("prefer-saas-ui-primitives", officialPrimitives, {
       filename: "apps/web/src/features/orders/page.tsx",
       code: "import { Button } from '@saas-ui/react'; export const Save = Button;",
     },
+    {
+      filename:
+        "apps/web/src/features/generatedFeatureSmoke/generated-feature-smoke-feature.tsx",
+      code: "export const Upload = () => <input type='file' aria-label='Upload' />;",
+    },
+    {
+      filename:
+        "apps/web/src/features/generatedFeatureSmoke/generated-feature-smoke-feature.tsx",
+      code: "export const Choice = () => <input type='checkbox' aria-label='Choose' />;",
+    },
   ],
   invalid: [
     {
       filename: "apps/web/src/features/orders/page.tsx",
       code: "import { Button } from './button'; export const Save = Button;",
+      errors: [{ messageId: "officialPrimitive" }],
+    },
+    {
+      filename:
+        "apps/web/src/features/generatedFeatureSmoke/generated-feature-smoke-feature.tsx",
+      code: "export const Status = () => <select><option>Active</option></select>;",
       errors: [{ messageId: "officialPrimitive" }],
     },
   ],

@@ -2428,7 +2428,7 @@ describe("template app factory generators", () => {
     )?.content;
     const generated = result.files.map(({ content }) => content).join("\n");
     const route = result.files.find(({ path }) =>
-      path.endsWith("/_app/$workspace/_dashboard/account-signals.tsx"),
+      path.endsWith("/_workspace.account-signals.tsx"),
     )?.content;
     const provenance = result.files.find(
       ({ path }) =>
@@ -2446,7 +2446,7 @@ describe("template app factory generators", () => {
         "apps/web/src/features/accountSignals/adapter.test.ts",
         "apps/web/src/features/accountSignals/account-signals-feature.tsx",
         "apps/web/src/screens/account-signals-screen.tsx",
-        "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
+        "apps/web/src/routes/_workspace.account-signals.tsx",
         "docs/template/generated/features/accountSignals.md",
       ]),
     );
@@ -2470,8 +2470,8 @@ describe("template app factory generators", () => {
     expect(model).toContain('status: "typed-error"');
     expect(model).toContain('status: "transport-error"');
     expect(model).toContain('status: "success"');
-    expect(adapter).toContain("createAccountSignalsAdapter");
-    expect(adapter).toContain("delete:");
+    expect(adapter).toContain("presentAccountSignalsState");
+    expect(adapter).not.toContain("createAccountSignalsAdapter");
     expect(generated).toContain(
       "Schema.Union([Unauthorized, ValidationFailed, Forbidden, NotFound])",
     );
@@ -2484,24 +2484,24 @@ describe("template app factory generators", () => {
     );
     expect(feature).toContain('aria-label="AccountSignals title"');
     expect(feature).toContain("Delete accountSignals");
+    expect(feature).toContain(
+      "templateConfectRefs.public.capabilities.accountSignals.list",
+    );
+    expect(feature).toContain("useCurrentWorkspace");
+    expect(feature).toContain("NativeSelect");
     expect(generated).not.toContain("Synthetic fixture");
     expect(generated).not.toContain('status: "accepted"');
     expect(generated).not.toContain("Replace fake fixtures");
     expect(route).toContain("AccountSignalsScreen");
     expect(route).not.toContain("Feature");
-    expect(route).toContain(
-      'createFileRoute("/_app/$workspace/_dashboard/account-signals")',
-    );
-    expect(route).toContain(
-      'from "../../../../screens/account-signals-screen"',
-    );
-    expect(route).not.toContain("_workspace");
+    expect(route).toContain('createFileRoute("/_workspace/account-signals")');
+    expect(route).toContain('from "../screens/account-signals-screen"');
     expect(JSON.parse(provenance?.content ?? "{}")).toMatchObject({
       generator: "add-feature",
       ownership: { system: "knowledge-brain", disposition: "extend" },
       generatedPaths: expect.arrayContaining([
         "packages/convex/confect/capabilities/accountSignals.spec.ts",
-        "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
+        "apps/web/src/routes/_workspace.account-signals.tsx",
       ]),
     });
     const syntaxDiagnostics = result.files
@@ -2544,17 +2544,9 @@ describe("template app factory generators", () => {
       expect(result.exitCode).toBe(0);
       expect(
         existsSync(
-          join(
-            cwd,
-            "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
-          ),
-        ),
-      ).toBe(true);
-      expect(
-        existsSync(
           join(cwd, "apps/web/src/routes/_workspace.account-signals.tsx"),
         ),
-      ).toBe(false);
+      ).toBe(true);
       expect(
         existsSync(
           join(
@@ -2568,11 +2560,66 @@ describe("template app factory generators", () => {
     }
   });
 
+  it("materializes a generated feature that lints and typechecks", () => {
+    const tempRoot = mkdtempSync(join(tmpdir(), "maestro-feature-smoke-"));
+    const cwd = join(tempRoot, "repo");
+    const name = "generatedFeatureSmoke";
+
+    try {
+      copyRepoForSmoke(repoRoot, cwd);
+      runSmokeCommand(cwd, {
+        label: "Generate feature output",
+        command: "pnpm",
+        args: [
+          "--dir",
+          cwd,
+          "template:add-feature",
+          "--",
+          "--name",
+          name,
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--description",
+          "Generated feature smoke check.",
+          "--write",
+        ],
+      });
+      runSmokeCommand(cwd, {
+        label: "Regenerate Confect refs for generated feature output",
+        command: "pnpm",
+        args: ["--dir", cwd, "confect:codegen"],
+      });
+      runSmokeCommand(cwd, {
+        label: "Lint generated feature route, screen, feature, and adapter",
+        command: "pnpm",
+        args: [
+          "--dir",
+          cwd,
+          "exec",
+          "eslint",
+          "apps/web/src/routes/_workspace.generated-feature-smoke.tsx",
+          "apps/web/src/screens/generated-feature-smoke-screen.tsx",
+          `apps/web/src/features/${name}/generated-feature-smoke-feature.tsx`,
+          `apps/web/src/features/${name}/adapter.ts`,
+        ],
+      });
+      runSmokeCommand(cwd, {
+        label: "Regenerate and typecheck generated feature web output",
+        command: "pnpm",
+        args: ["--dir", join(cwd, "apps/web"), "build"],
+      });
+    } finally {
+      rmSync(tempRoot, { recursive: true, force: true });
+    }
+  });
+
   it("refuses to overwrite an existing golden feature path", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-clash-"));
     const routePath = join(
       cwd,
-      "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
+      "apps/web/src/routes/_workspace.account-signals.tsx",
     );
 
     try {
