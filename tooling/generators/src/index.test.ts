@@ -2484,9 +2484,12 @@ describe("template app factory generators", () => {
     );
     expect(feature).toContain('aria-label="AccountSignals title"');
     expect(feature).toContain("Delete accountSignals");
-    expect(feature).toContain(
-      "templateConfectRefs.public.capabilities.accountSignals.list",
+    expect(adapter).toContain(
+      'import capability from "../../../../../packages/convex/confect/capabilities/accountSignals.spec"',
     );
+    expect(adapter).toContain("export const accountSignalsRefs = Refs.make(");
+    expect(feature).toContain("accountSignalsRefs.list");
+    expect(feature).not.toContain("templateConfectRefs");
     expect(feature).toContain('from "@confect/react"');
     expect(feature).not.toContain("convexQuery");
     expect(feature).toContain("useCurrentWorkspace");
@@ -2532,12 +2535,6 @@ describe("template app factory generators", () => {
       );
     expect(syntaxDiagnostics).toEqual([]);
   });
-
-  it("projects generated Confect capability refs to web clients", async () => {
-    const { templateConfectRefs } =
-      await import("../../../packages/convex/src/refs");
-    expect(templateConfectRefs.public.capabilities.catalog).toBeDefined();
-  }, 20_000);
 
   it("writes a golden feature through the CLI", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-"));

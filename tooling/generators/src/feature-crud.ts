@@ -84,8 +84,17 @@ export const ${name}FeatureContract = {
     },
     {
       path: `${featurePath}/adapter.ts`,
-      content: `import type { ${pascalName} } from "./contract";
+      content: `import { GroupSpec, Refs, Spec } from "@confect/core";
+import capability from "../../../../../packages/convex/confect/capabilities/${name}.spec";
+import type { ${pascalName} } from "./contract";
 import type { ${pascalName}FeatureState } from "./model";
+
+export const ${name}Refs = Refs.make(
+  Spec.make().addAt(
+    "capabilities",
+    GroupSpec.makeAt("capabilities").addGroupAt("${name}", capability),
+  ),
+).public.capabilities.${name};
 
 type QueryState = {
   readonly data?: readonly ${pascalName}[];
@@ -135,13 +144,12 @@ import { QueryResult, useMutation, useQuery } from "@confect/react";
 import { NativeSelect } from "@chakra-ui/react";
 import { Button, Card, Heading, Input, Stack, Text } from "@saas-ui/react";
 import * as Result from "effect/Result";
-import { templateConfectRefs, type TemplateConfectRefs } from "@maestro-template/convex/refs";
 import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
-import { present${pascalName}Failure, present${pascalName}State } from "./adapter";
+import { ${name}Refs, present${pascalName}Failure, present${pascalName}State } from "./adapter";
 import type { ${pascalName}Status } from "./contract";
 import type { ${pascalName}FeatureState } from "./model";
 
-type CapabilityRefs = TemplateConfectRefs["public"]["capabilities"]["${name}"];
+type CapabilityRefs = typeof ${name}Refs;
 type WorkspaceId = Ref.Args<CapabilityRefs["list"]>["workspaceId"];
 type ItemId = Ref.Args<CapabilityRefs["read"]>["id"];
 
@@ -149,12 +157,12 @@ export function ${pascalName}Feature() {
   const [workspace] = useCurrentWorkspace();
   const workspaceId = workspace?.id as WorkspaceId | undefined;
   const query = useQuery(
-    templateConfectRefs.public.capabilities.${name}.list,
+    ${name}Refs.list,
     workspaceId === undefined ? "skip" : { workspaceId },
   );
-  const createItem = useMutation(templateConfectRefs.public.capabilities.${name}.create);
-  const updateItem = useMutation(templateConfectRefs.public.capabilities.${name}.update);
-  const removeItem = useMutation(templateConfectRefs.public.capabilities.${name}.remove);
+  const createItem = useMutation(${name}Refs.create);
+  const updateItem = useMutation(${name}Refs.update);
+  const removeItem = useMutation(${name}Refs.remove);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
   const [title, setTitle] = useState("");
