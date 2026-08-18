@@ -4,9 +4,14 @@ import { describe, expect, it } from "vitest";
 const read = (path: string): string => readFileSync(path, "utf8");
 
 describe("customer chassis Woodpecker admission", () => {
-  it("runs one pinned, secret-free PR verification step", () => {
+  it("publishes one pinned, secret-free aggregate PR context", () => {
     const source = read(".woodpecker/verify.yml");
-    expect(source).toContain("tooling/ci/verify-chassis.sh");
+    expect(source).toContain("skip_clone: true");
+    expect(source).toContain("depends_on:");
+    expect(source).toContain("- verify-core");
+    expect(source).toContain("- verify-coverage");
+    expect(source).toContain("status: [success, failure]");
+    expect(source).toContain('test "$CI_PIPELINE_STATUS" = success');
     expect(source).toContain(
       "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a",
     );
@@ -16,8 +21,25 @@ describe("customer chassis Woodpecker admission", () => {
     expect(source.match(/^ {2}- name:/gmu)).toHaveLength(1);
   });
 
+  it("runs core and coverage verification in isolated workflows", () => {
+    const core = read(".woodpecker/verify-core.yml");
+    const coverage = read(".woodpecker/verify-coverage.yml");
+
+    for (const source of [core, coverage]) {
+      expect(source).toContain(
+        "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a",
+      );
+      expect(source).toContain("- event: pull_request");
+      expect(source).not.toMatch(/from_secret|^timeout:/mu);
+      expect(source.match(/^ {2}- name:/gmu)).toHaveLength(1);
+    }
+    expect(core).toContain("tooling/ci/verify-chassis.sh");
+    expect(coverage).toContain("tooling/ci/verify-coverage.sh");
+    expect(coverage).not.toContain("tooling/ci/verify-chassis.sh");
+  });
+
   it("provisions the syscall tracer before privacy verification", () => {
-    const source = read(".woodpecker/verify.yml");
+    const source = read(".woodpecker/verify-core.yml");
     const install = source.indexOf(
       "apt-get install -y --no-install-recommends strace",
     );
@@ -86,7 +108,7 @@ describe("customer chassis Woodpecker admission", () => {
     }
   });
 
-  it("reaches the two-lane root verification once and keeps only extra chassis proof", () => {
+  it("runs the non-coverage root verdict once and keeps only extra chassis proof", () => {
     const script = read("tooling/ci/verify-chassis.sh");
     const packageJson = JSON.parse(read("package.json")) as {
       readonly scripts: Readonly<Record<string, string>>;
@@ -100,7 +122,7 @@ describe("customer chassis Woodpecker admission", () => {
     const installedToolPath = script.indexOf(
       'export PATH="${HOME}/.local/bin:${PATH}"',
     );
-    const verify = script.indexOf("pnpm verify:ci");
+    const verify = script.indexOf("pnpm verify:without-coverage");
     expect(gitleaksInstall).toBeGreaterThan(
       script.indexOf("source tooling/ci/setup.sh"),
     );
@@ -111,7 +133,7 @@ describe("customer chassis Woodpecker admission", () => {
       script.match(/^bash tooling\/ci\/install-gitleaks\.sh$/gmu),
     ).toHaveLength(1);
     expect(script).not.toContain("install-gitleaks.sh || true");
-    expect(script.match(/^pnpm verify:ci$/gmu)).toHaveLength(1);
+    expect(script.match(/^pnpm verify:without-coverage$/gmu)).toHaveLength(1);
     expect(script).not.toMatch(/^pnpm verify$/gmu);
     expect(script).not.toContain("pnpm --dir apps/web test:runtime-longevity");
     expect(packageJson.scripts.verify).toContain("pnpm test:verify-uncovered");
@@ -120,9 +142,6 @@ describe("customer chassis Woodpecker admission", () => {
     );
     expect(packageJson.scripts["test:heavyweight-customer-artifacts"]).toBe(
       "node tooling/ci/run-heavyweight-suites.mjs",
-    );
-    expect(packageJson.scripts["verify:ci"]).toBe(
-      "node tooling/ci/run-required-verification.mjs",
     );
     const rootTerms = packageJson.scripts.verify.split(" && ");
     const nonCoverageTerms =
@@ -134,6 +153,9 @@ describe("customer chassis Woodpecker admission", () => {
       rootTerms.filter((term) => term === "pnpm check:coverage-ratchet"),
     ).toHaveLength(1);
     expect(nonCoverageTerms).not.toContain("pnpm check:coverage-ratchet");
+    expect(packageJson.scripts["test:chassis-ci"]).not.toContain(
+      "run-required-verification.test.mts",
+    );
     expect(packageJson.scripts["test:verify-uncovered"]).toContain(
       "pnpm test:heavyweight-customer-artifacts",
     );
@@ -170,5 +192,15 @@ describe("customer chassis Woodpecker admission", () => {
     ]) {
       expect(script, duplicate).not.toContain(duplicate);
     }
+  });
+
+  it("keeps coverage isolated from browser and secret scanning setup", () => {
+    const script = read("tooling/ci/verify-coverage.sh");
+
+    expect(script).toContain("source tooling/ci/setup.sh");
+    expect(script.match(/^pnpm check:coverage-ratchet$/gmu)).toHaveLength(1);
+    expect(script).not.toContain("install-gitleaks");
+    expect(script).not.toContain("playwright");
+    expect(script).not.toContain("pnpm verify");
   });
 });

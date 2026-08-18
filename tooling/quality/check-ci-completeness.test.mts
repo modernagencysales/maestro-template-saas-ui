@@ -110,7 +110,7 @@ describe("check:ci-completeness", () => {
     expect(verifyChassis?.includes).toEqual(
       expect.arrayContaining([
         "bash tooling/ci/install-gitleaks.sh",
-        "pnpm verify:ci",
+        "pnpm verify:without-coverage",
       ]),
     );
     expect(verifyChassis?.absent).toEqual(
@@ -135,23 +135,33 @@ describe("check:ci-completeness", () => {
     expect(rootPackage?.includes).toEqual(
       expect.arrayContaining([
         '"test:heavyweight-customer-artifacts": "node tooling/ci/run-heavyweight-suites.mjs"',
-        '"verify:ci": "node tooling/ci/run-required-verification.mjs"',
+        '"verify:without-coverage"',
         '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
         '"check:app-map": "pnpm --dir tooling/app-map check"',
         '"check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts"',
       ]),
     );
 
-    const requiredVerification = descriptor.requirements.find(
-      ({ file }) => file === "tooling/ci/run-required-verification.mjs",
+    const aggregateVerification = descriptor.requirements.find(
+      ({ file }) => file === ".woodpecker/verify.yml",
     );
-    expect(requiredVerification?.includes).toEqual(
+    expect(aggregateVerification?.includes).toEqual(
       expect.arrayContaining([
-        '"verify:without-coverage"',
-        '"check:coverage-ratchet"',
-        "Promise.all(",
-        'process.on("SIGINT", onInterrupt)',
-        'process.on("SIGTERM", onTerminate)',
+        "skip_clone: true",
+        "verify-core",
+        "verify-coverage",
+        "status: [success, failure]",
+        'test "$CI_PIPELINE_STATUS" = success',
+      ]),
+    );
+
+    const coverageVerification = descriptor.requirements.find(
+      ({ file }) => file === "tooling/ci/verify-coverage.sh",
+    );
+    expect(coverageVerification?.includes).toEqual(
+      expect.arrayContaining([
+        "source tooling/ci/setup.sh",
+        "pnpm check:coverage-ratchet",
       ]),
     );
   });

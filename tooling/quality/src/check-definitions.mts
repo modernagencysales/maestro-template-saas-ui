@@ -31,17 +31,42 @@ const checkDescriptorDefinitions = {
         includes: [
           "event: pull_request",
           "node:22.23.2-bookworm@sha256:",
+          "skip_clone: true",
+          "verify-core",
+          "verify-coverage",
+          "status: [success, failure]",
+          'test "$CI_PIPELINE_STATUS" = success',
+        ],
+        message:
+          "the required Woodpecker PR context must aggregate both isolated verification workflows",
+      },
+      {
+        file: ".woodpecker/verify-core.yml",
+        includes: [
+          "event: pull_request",
+          "node:22.23.2-bookworm@sha256:",
+          "apt-get install -y --no-install-recommends strace",
           "tooling/ci/verify-chassis.sh",
         ],
         message:
-          "the required Woodpecker PR context must use the pinned verification chassis",
+          "core verification must run through the pinned secretless verification chassis",
+      },
+      {
+        file: ".woodpecker/verify-coverage.yml",
+        includes: [
+          "event: pull_request",
+          "node:22.23.2-bookworm@sha256:",
+          "tooling/ci/verify-coverage.sh",
+        ],
+        message:
+          "coverage verification must run in its own pinned secretless workflow",
       },
       {
         file: "tooling/ci/verify-chassis.sh",
         includes: [
           "bash tooling/ci/install-gitleaks.sh",
           'export PATH="${HOME}/.local/bin:${PATH}"',
-          "pnpm verify:ci",
+          "pnpm verify:without-coverage",
         ],
         absent: [
           "install-gitleaks.sh || true",
@@ -199,7 +224,7 @@ const checkDescriptorDefinitions = {
           '"test:release-filesystem"',
           '"test:verify-uncovered"',
           '"test:heavyweight-customer-artifacts": "node tooling/ci/run-heavyweight-suites.mjs"',
-          '"verify:ci": "node tooling/ci/run-required-verification.mjs"',
+          '"verify:without-coverage"',
           '"test:app-map"',
           '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
           '"check:app-map": "pnpm --dir tooling/app-map check"',
@@ -231,16 +256,11 @@ const checkDescriptorDefinitions = {
           "heavyweight customer-artifact proofs must use two serial lanes with aggregate results and signal forwarding",
       },
       {
-        file: "tooling/ci/run-required-verification.mjs",
-        includes: [
-          '"verify:without-coverage"',
-          '"check:coverage-ratchet"',
-          "Promise.all(",
-          'process.on("SIGINT", onInterrupt)',
-          'process.on("SIGTERM", onTerminate)',
-        ],
+        file: "tooling/ci/verify-coverage.sh",
+        includes: ["source tooling/ci/setup.sh", "pnpm check:coverage-ratchet"],
+        absent: ["install-gitleaks", "playwright", "pnpm verify"],
         message:
-          "required verification must overlap coverage with the remaining root verdict and aggregate both lanes",
+          "isolated coverage verification must avoid browser and secret-scanning setup",
       },
       {
         file: "apps/cli/package.json",
