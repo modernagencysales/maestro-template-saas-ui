@@ -15,5 +15,6 @@ const frontendSpec = Spec.make()
 
 export const templateConfectRefs = Refs.make(frontendSpec);
 export const getFunctionReference = Ref.getFunctionReference;
+export { GroupSpec, Refs, Spec };
 
 export type TemplateConfectRefs = typeof templateConfectRefs;

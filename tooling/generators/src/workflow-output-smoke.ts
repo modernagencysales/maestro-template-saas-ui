@@ -12,7 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { validateWorkflowSemanticCoverage } from "@maestro-template/template-core/workflow-semantics";
 
@@ -39,6 +39,7 @@ const ignoredPathSegments = new Set([
 
 const sharedNodeModulePaths = [
   "node_modules",
+  "apps/web/node_modules",
   "packages/convex/node_modules",
   "tooling/generators/node_modules",
 ] as const;
@@ -134,6 +135,56 @@ export const runSmokeCommand = (
   }
 };
 
+export const runSmokeCommandAsync = async (
+  tempRepoRoot: string,
+  step: SmokeCommand,
+): Promise<void> => {
+  process.stdout.write(`\n[workflow-output-smoke] ${step.label}\n`);
+
+  const child = spawn(step.command, [...step.args], {
+    cwd: tempRepoRoot,
+    env: process.env,
+    stdio: "pipe",
+  });
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (chunk: string) => {
+    stdout += chunk;
+  });
+  child.stderr.on("data", (chunk: string) => {
+    stderr += chunk;
+  });
+
+  const result = await new Promise<
+    | { readonly code: number | null; readonly signal: NodeJS.Signals | null }
+    | { readonly error: Error }
+  >((resolve) => {
+    child.once("error", (error) => resolve({ error }));
+    child.once("close", (code, signal) => resolve({ code, signal }));
+  });
+  const verbose = process.env.WORKFLOW_OUTPUT_SMOKE_VERBOSE === "1";
+
+  if (verbose) {
+    process.stdout.write(stdout);
+    process.stderr.write(stderr);
+  }
+
+  if ("error" in result) throw result.error;
+  if (result.code === 0) return;
+
+  if (!verbose) {
+    process.stdout.write(stdout);
+    process.stderr.write(stderr);
+  }
+
+  const detail =
+    result.signal === null ? `exit code ${result.code}` : result.signal;
+  throw new Error(`${step.label} failed with ${detail}`);
+};
+
 export const sourceFingerprint = (source: string): string =>
   createHash("sha256").update(source).digest("hex");
 
@@ -146,6 +197,112 @@ export const runnerOwnershipFinding = (
   return actualFingerprint === expectedFingerprint
     ? null
     : `runner projection fingerprint changed: expected ${expectedFingerprint}, received ${actualFingerprint}`;
+};
+
+const runSmokeSteps = (
+  tempRepoRoot: string,
+  steps: readonly SmokeCommand[],
+): void => {
+  for (const step of steps) {
+    if (
+      step.requiresDeployment === true &&
+      !process.env.CONVEX_DEPLOYMENT?.trim()
+    ) {
+      process.stdout.write(
+        `\n[workflow-output-smoke] ${step.label}: unavailable (no CONVEX_DEPLOYMENT); continuing with fake/local typecheck and output checks\n`,
+      );
+      continue;
+    }
+    runSmokeCommand(tempRepoRoot, step);
+  }
+};
+
+const verifyGeneratedWorkflow = (
+  tempRepoRoot: string,
+  convexPackage: string,
+  runnerPath: string,
+): void => {
+  if (!existsSync(runnerPath)) {
+    throw new Error(`Generated workflow runner is missing: ${runnerPath}`);
+  }
+  const runnerSource = readFileSync(runnerPath, "utf8");
+  const sourcePath = join(
+    convexPackage,
+    "confect/workflowRunners",
+    smokeWorkflowName,
+    "v1.ts",
+  );
+  const semanticsPath = join(
+    tempRepoRoot,
+    "docs/template/generated/workflows",
+    `${smokeWorkflowName}.semantics.json`,
+  );
+  if (![sourcePath, semanticsPath].every(existsSync)) {
+    throw new Error(
+      "Generated workflow semantic source or coverage is missing",
+    );
+  }
+  if (!runnerSource.includes("registeredFunctions.run")) {
+    throw new Error("Confect did not reproduce the registered workflow runner");
+  }
+  const coverage = JSON.parse(readFileSync(semanticsPath, "utf8")) as Record<
+    string,
+    {
+      readonly posture: "generated" | "guarded-default";
+      readonly constructor: string;
+      readonly compiler: string;
+      readonly fixture: string;
+    }
+  >;
+  const coverageFindings = validateWorkflowSemanticCoverage(coverage);
+  if (coverageFindings.length > 0) {
+    throw new Error(
+      `Invalid semantic coverage: ${coverageFindings.join(", ")}`,
+    );
+  }
+  const expectedFingerprint = sourceFingerprint(runnerSource);
+  writeFileSync(
+    runnerPath,
+    `${runnerSource}\n// deliberate smoke corruption\n`,
+  );
+  const corruptionFinding = runnerOwnershipFinding(
+    runnerPath,
+    expectedFingerprint,
+  );
+  if (!corruptionFinding?.includes("fingerprint changed")) {
+    throw new Error("Runner ownership check accepted corrupted output");
+  }
+  runSmokeCommand(tempRepoRoot, {
+    label: "Repair corrupted Confect runner projection",
+    command: "pnpm",
+    args: ["--dir", tempRepoRoot, "confect:codegen"],
+  });
+  const repairedFinding = runnerOwnershipFinding(
+    runnerPath,
+    expectedFingerprint,
+  );
+  if (repairedFinding !== null) {
+    throw new Error(`Confect did not repair owned output: ${repairedFinding}`);
+  }
+  rmSync(runnerPath);
+  if (
+    runnerOwnershipFinding(runnerPath, expectedFingerprint) !==
+    "runner projection is missing"
+  ) {
+    throw new Error("Runner ownership check accepted deleted output");
+  }
+  runSmokeCommand(tempRepoRoot, {
+    label: "Reproduce deleted Confect runner projection",
+    command: "pnpm",
+    args: ["--dir", tempRepoRoot, "confect:codegen"],
+  });
+  const reproducedFinding = runnerOwnershipFinding(
+    runnerPath,
+    expectedFingerprint,
+  );
+  if (reproducedFinding !== null) {
+    throw new Error(`Reproduced runner ownership failed: ${reproducedFinding}`);
+  }
 };
 
 export const runWorkflowOutputSmoke = (
@@ -224,106 +381,8 @@ export const runWorkflowOutputSmoke = (
       },
     ];
 
-    for (const step of steps) {
-      if (
-        step.requiresDeployment === true &&
-        !process.env.CONVEX_DEPLOYMENT?.trim()
-      ) {
-        process.stdout.write(
-          `\n[workflow-output-smoke] ${step.label}: unavailable (no CONVEX_DEPLOYMENT); continuing with fake/local typecheck and output checks\n`,
-        );
-        continue;
-      }
-      runSmokeCommand(tempRepoRoot, step);
-    }
-
-    if (!existsSync(runnerPath)) {
-      throw new Error(`Generated workflow runner is missing: ${runnerPath}`);
-    }
-    const runnerSource = readFileSync(runnerPath, "utf8");
-    const sourcePath = join(
-      convexPackage,
-      "confect/workflowRunners",
-      smokeWorkflowName,
-      "v1.ts",
-    );
-    const semanticsPath = join(
-      tempRepoRoot,
-      "docs/template/generated/workflows",
-      `${smokeWorkflowName}.semantics.json`,
-    );
-    if (!existsSync(sourcePath) || !existsSync(semanticsPath)) {
-      throw new Error(
-        "Generated workflow semantic source or coverage is missing",
-      );
-    }
-    if (!runnerSource.includes("registeredFunctions.run")) {
-      throw new Error(
-        "Confect did not reproduce the registered workflow runner",
-      );
-    }
-    const coverage = JSON.parse(readFileSync(semanticsPath, "utf8")) as Record<
-      string,
-      {
-        readonly posture: "generated" | "guarded-default";
-        readonly constructor: string;
-        readonly compiler: string;
-        readonly fixture: string;
-      }
-    >;
-    const coverageFindings = validateWorkflowSemanticCoverage(coverage);
-    if (coverageFindings.length > 0) {
-      throw new Error(
-        `Invalid semantic coverage: ${coverageFindings.join(", ")}`,
-      );
-    }
-    const expectedFingerprint = sourceFingerprint(runnerSource);
-    writeFileSync(
-      runnerPath,
-      `${runnerSource}\n// deliberate smoke corruption\n`,
-    );
-    const corruptionFinding = runnerOwnershipFinding(
-      runnerPath,
-      expectedFingerprint,
-    );
-    if (!corruptionFinding?.includes("fingerprint changed")) {
-      throw new Error("Runner ownership check accepted corrupted output");
-    }
-    runSmokeCommand(tempRepoRoot, {
-      label: "Repair corrupted Confect runner projection",
-      command: "pnpm",
-      args: ["--dir", tempRepoRoot, "confect:codegen"],
-    });
-    const repairedFinding = runnerOwnershipFinding(
-      runnerPath,
-      expectedFingerprint,
-    );
-    if (repairedFinding !== null) {
-      throw new Error(
-        `Confect did not repair owned output: ${repairedFinding}`,
-      );
-    }
-    rmSync(runnerPath);
-    if (
-      runnerOwnershipFinding(runnerPath, expectedFingerprint) !==
-      "runner projection is missing"
-    ) {
-      throw new Error("Runner ownership check accepted deleted output");
-    }
-    runSmokeCommand(tempRepoRoot, {
-      label: "Reproduce deleted Confect runner projection",
-      command: "pnpm",
-      args: ["--dir", tempRepoRoot, "confect:codegen"],
-    });
-    const reproducedFinding = runnerOwnershipFinding(
-      runnerPath,
-      expectedFingerprint,
-    );
-    if (reproducedFinding !== null) {
-      throw new Error(
-        `Reproduced runner ownership failed: ${reproducedFinding}`,
-      );
-    }
+    runSmokeSteps(tempRepoRoot, steps);
+    verifyGeneratedWorkflow(tempRepoRoot, convexPackage, runnerPath);
   } finally {
     if (keepTemp) {
       process.stdout.write(

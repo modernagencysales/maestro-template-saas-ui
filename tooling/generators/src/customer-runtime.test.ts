@@ -201,9 +201,10 @@ describe("customer generator runtime", () => {
       path.endsWith("/adapter.ts"),
     )?.content;
     const generated = result.files.map(({ content }) => content).join("\n");
-    expect(adapter).toContain("createCustomerReviewAdapter");
-    expect(adapter).toContain("update:");
-    expect(adapter).toContain("delete:");
+    expect(adapter).toContain("presentCustomerReviewState");
+    expect(adapter).not.toContain("createCustomerReviewAdapter");
+    expect(generated).toContain("customerReviewRefs.list");
+    expect(generated).not.toContain("templateConfectRefs");
     expect(generated).not.toContain("Synthetic fixture");
     expect(generated).not.toContain('status: "accepted"');
     expect(generated).not.toContain("Replace fake fixtures");

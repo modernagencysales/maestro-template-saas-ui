@@ -51,7 +51,8 @@ export const buildCrudFeatureFiles = (options: CrudFeatureOptions) => {
       content: `export type ${pascalName}Status = "planned" | "active" | "complete";
 
 export type ${pascalName} = {
-  readonly id: string;
+  readonly _id: string;
+  readonly _creationTime: number;
   readonly workspaceId: string;
   readonly title: string;
   readonly detail: string;
@@ -66,14 +67,6 @@ export type ${pascalName}Write = {
   readonly detail: string;
   readonly status: ${pascalName}Status;
 };
-
-export interface ${pascalName}Adapter {
-  list(workspaceId: string): Promise<readonly ${pascalName}[]>;
-  read(workspaceId: string, id: string): Promise<${pascalName} | null>;
-  create(input: ${pascalName}Write): Promise<${pascalName}>;
-  update(workspaceId: string, id: string, input: ${pascalName}Write): Promise<${pascalName}>;
-  delete(workspaceId: string, id: string): Promise<boolean>;
-}
 
 export const ${name}FeatureContract = {
   ownership: { system: "${options.system}", disposition: "${options.disposition}" },
@@ -91,47 +84,39 @@ export const ${name}FeatureContract = {
     },
     {
       path: `${featurePath}/adapter.ts`,
-      content: `import type { ${pascalName}, ${pascalName}Adapter, ${pascalName}Write } from "./contract";
+      content: `import { GroupSpec, Refs, Spec } from "@maestro-template/convex/refs";
+import capability from "../../../../../packages/convex/confect/capabilities/${name}.spec";
+import type { ${pascalName} } from "./contract";
+import type { ${pascalName}FeatureState } from "./model";
 
-const normalize = (input: ${pascalName}Write): ${pascalName}Write => {
-  const title = input.title.trim();
-  if (title.length === 0) throw new Error("${pascalName} title is required.");
-  return { ...input, title, detail: input.detail.trim() };
+export const ${name}Refs = Refs.make(
+  Spec.make().addAt(
+    "capabilities",
+    GroupSpec.makeAt("capabilities").addGroupAt("${name}", capability),
+  ),
+).public.capabilities.${name};
+
+type QueryState = {
+  readonly data?: readonly ${pascalName}[];
+  readonly error?: unknown;
+  readonly isError: boolean;
+  readonly isPending: boolean;
 };
 
-export const create${pascalName}Adapter = (
-  seed: readonly ${pascalName}[] = [],
-): ${pascalName}Adapter => {
-  const records = new Map(seed.map((record) => [record.id, record]));
-  let sequence = seed.length;
-  return {
-    list: async (workspaceId) => [...records.values()].filter((record) => record.workspaceId === workspaceId),
-    read: async (workspaceId, id) => {
-      const record = records.get(id);
-      return record?.workspaceId === workspaceId ? record : null;
-    },
-    create: async (raw) => {
-      const input = normalize(raw);
-      const now = Date.now();
-      sequence += 1;
-      const record: ${pascalName} = { ...input, id: "${name}_" + sequence, createdAt: now, updatedAt: now };
-      records.set(record.id, record);
-      return record;
-    },
-    update: async (workspaceId, id, raw) => {
-      const current = records.get(id);
-      if (current?.workspaceId !== workspaceId) throw new Error("${pascalName} not found.");
-      const input = normalize(raw);
-      if (input.workspaceId !== workspaceId) throw new Error("Workspace cannot be changed.");
-      const record = { ...current, ...input, createdAt: current.createdAt, updatedAt: Date.now() };
-      records.set(id, record);
-      return record;
-    },
-    delete: async (workspaceId, id) => {
-      const current = records.get(id);
-      return current?.workspaceId === workspaceId ? records.delete(id) : false;
-    },
-  };
+const typedErrors = new Set(["Unauthorized", "ValidationFailed", "Forbidden", "NotFound"]);
+
+export const present${pascalName}Failure = (error: unknown): ${pascalName}FeatureState => {
+  const tag = typeof error === "object" && error !== null && "_tag" in error ? error._tag : null;
+  return typeof tag === "string" && typedErrors.has(tag)
+    ? { status: "typed-error", error: tag as "Unauthorized" | "ValidationFailed" | "Forbidden" | "NotFound" }
+    : { status: "transport-error", message: error instanceof Error ? error.message : "${pascalName} unavailable." };
+};
+
+export const present${pascalName}State = (state: QueryState): ${pascalName}FeatureState => {
+  if (state.isPending) return { status: "loading" };
+  if (state.isError) return present${pascalName}Failure(state.error);
+  const items = state.data ?? [];
+  return items.length === 0 ? { status: "empty" } : { status: "list", items };
 };
 `,
     },
@@ -153,51 +138,68 @@ export type ${pascalName}FeatureState =
     },
     {
       path: `${featurePath}/${route}-feature.tsx`,
-      content: `import { useEffect, useMemo, useState } from "react";
+      content: `import { useState } from "react";
+import { QueryResult, useMutation, useQuery } from "@confect/react";
+import { NativeSelect } from "@chakra-ui/react";
 import { Button, Card, Heading, Input, Stack, Text } from "@saas-ui/react";
-import { create${pascalName}Adapter } from "./adapter";
-import type { ${pascalName}, ${pascalName}Adapter, ${pascalName}Status } from "./contract";
+import * as Result from "effect/Result";
+import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
+import { ${name}Refs, present${pascalName}Failure, present${pascalName}State } from "./adapter";
+import type { ${pascalName}Status } from "./contract";
 import type { ${pascalName}FeatureState } from "./model";
 
-const sharedAdapter = create${pascalName}Adapter();
+type CapabilityRefs = typeof ${name}Refs;
+type RefArgs<Ref_> = Ref_ extends { readonly _Args?: infer Args } ? Args : never;
+type WorkspaceId = RefArgs<CapabilityRefs["list"]>["workspaceId"];
+type ItemId = RefArgs<CapabilityRefs["read"]>["id"];
 
-export function ${pascalName}Feature({ adapter = sharedAdapter, workspaceId = "demo-workspace" }: {
-  readonly adapter?: ${pascalName}Adapter;
-  readonly workspaceId?: string;
-}) {
-  const [items, setItems] = useState<readonly ${pascalName}[]>([]);
-  const [selected, setSelected] = useState<${pascalName} | null>(null);
+export function ${pascalName}Feature() {
+  const [workspace] = useCurrentWorkspace();
+  const workspaceId = workspace?.id as WorkspaceId | undefined;
+  const query = useQuery(
+    ${name}Refs.list,
+    workspaceId === undefined ? "skip" : { workspaceId },
+  );
+  const createItem = useMutation(${name}Refs.create);
+  const updateItem = useMutation(${name}Refs.update);
+  const removeItem = useMutation(${name}Refs.remove);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [mode, setMode] = useState<"list" | "create" | "edit">("list");
   const [title, setTitle] = useState("");
   const [detail, setDetail] = useState("");
   const [status, setStatus] = useState<${pascalName}Status>("planned");
-  const [failure, setFailure] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
-  const reload = async () => { setItems(await adapter.list(workspaceId)); setLoading(false); };
-  useEffect(() => { void reload().catch((error: unknown) => setFailure(error instanceof Error ? error.message : "Request failed.")); }, [adapter, workspaceId]);
-
-  const state = useMemo<${pascalName}FeatureState>(() => {
-    if (failure !== null) return { status: "transport-error", message: failure };
-    if (loading) return { status: "loading" };
-    if (mode === "create") return { status: "create" };
-    if (mode === "edit" && selected !== null) return { status: "edit", item: selected };
-    if (selected !== null) return { status: "detail", item: selected };
-    return items.length === 0 ? { status: "empty" } : { status: "list", items };
-  }, [failure, items, loading, mode, selected]);
+  const [feedback, setFeedback] = useState<${pascalName}FeatureState | null>(null);
+  const baseState = present${pascalName}State({
+    data: QueryResult.isSuccess(query) ? query.value : undefined,
+    error: QueryResult.isFailure(query) ? query.error : undefined,
+    isError: QueryResult.isFailure(query),
+    isPending: QueryResult.isLoading(query),
+  });
+  const items = baseState.status === "list" ? baseState.items : [];
+  const selected = items.find((item) => item._id === selectedId) ?? null;
+  const state: ${pascalName}FeatureState = feedback ?? (mode === "create"
+    ? { status: "create" }
+    : mode === "edit" && selected !== null
+      ? { status: "edit", item: selected }
+      : selected !== null
+        ? { status: "detail", item: selected }
+        : baseState);
 
   const save = async () => {
+    if (workspaceId === undefined) return;
     try {
       const input = { workspaceId, title, detail, status };
-      const item = mode === "edit" && selected !== null
-        ? await adapter.update(workspaceId, selected.id, input)
-        : await adapter.create(input);
-      await reload(); setSelected(item); setMode("list"); setFailure(null);
-    } catch (error) { setFailure(error instanceof Error ? error.message : "Save failed."); }
+      const result = mode === "edit" && selected !== null
+        ? await updateItem({ ...input, id: selected._id as ItemId })
+        : await createItem(input);
+      if (Result.isFailure(result)) { setFeedback(present${pascalName}Failure(result.failure)); return; }
+      setSelectedId(null); setMode("list"); setFeedback({ status: "success", message: "${pascalName} saved." });
+    } catch (error) { setFeedback(present${pascalName}Failure(error)); }
   };
   const remove = async () => {
-    if (selected === null) return;
-    try { await adapter.delete(workspaceId, selected.id); setSelected(null); await reload(); }
-    catch (error) { setFailure(error instanceof Error ? error.message : "Delete failed."); }
+    if (selected === null || workspaceId === undefined) return;
+    try { const result = await removeItem({ workspaceId, id: selected._id as ItemId }); if (Result.isFailure(result)) { setFeedback(present${pascalName}Failure(result.failure)); return; } setSelectedId(null); setFeedback({ status: "success", message: "${pascalName} deleted." }); }
+    catch (error) { setFeedback(present${pascalName}Failure(error)); }
   };
   const beginEdit = () => { if (selected === null) return; setTitle(selected.title); setDetail(selected.detail); setStatus(selected.status); setMode("edit"); };
 
@@ -205,17 +207,19 @@ export function ${pascalName}Feature({ adapter = sharedAdapter, workspaceId = "d
     <Heading size="md">${description}</Heading>
     {state.status === "loading" ? <Text>Loading ${route}…</Text> : null}
     {state.status === "empty" ? <Text>No ${route} yet.</Text> : null}
+    {state.status === "typed-error" ? <Text role="alert">{state.error}</Text> : null}
     {state.status === "transport-error" ? <Text role="alert">{state.message}</Text> : null}
-    {state.status === "list" ? state.items.map((item) => <Button key={item.id} onClick={() => setSelected(item)} variant="outline">{item.title}</Button>) : null}
+    {state.status === "success" ? <Text role="status">{state.message}</Text> : null}
+    {state.status === "list" ? state.items.map((item) => <Button key={item._id} onClick={() => setSelectedId(item._id)} variant="outline">{item.title}</Button>) : null}
     {state.status === "detail" ? <Card.Root><Card.Body><Heading size="sm">{state.item.title}</Heading><Text>{state.item.detail}</Text><Button onClick={beginEdit}>Edit ${name}</Button><Button onClick={() => void remove()}>Delete ${name}</Button></Card.Body></Card.Root> : null}
     {state.status === "create" || state.status === "edit" ? <Card.Root><Card.Body gap="3">
       <Input aria-label="${pascalName} title" value={title} onChange={(event) => setTitle(event.target.value)} />
       <Input aria-label="${pascalName} detail" value={detail} onChange={(event) => setDetail(event.target.value)} />
-      <select aria-label="${pascalName} status" value={status} onChange={(event) => setStatus(event.target.value as ${pascalName}Status)}><option value="planned">Planned</option><option value="active">Active</option><option value="complete">Complete</option></select>
+      <NativeSelect.Root><NativeSelect.Field aria-label="${pascalName} status" value={status} onChange={(event) => setStatus(event.target.value as ${pascalName}Status)}><option value="planned">Planned</option><option value="active">Active</option><option value="complete">Complete</option></NativeSelect.Field><NativeSelect.Indicator /></NativeSelect.Root>
       <Button onClick={() => void save()}>Save ${name}</Button>
     </Card.Body></Card.Root> : null}
-    {state.status !== "create" && state.status !== "edit" ? <Button onClick={() => { setSelected(null); setTitle(""); setDetail(""); setStatus("planned"); setMode("create"); }}>Create ${name}</Button> : null}
-    {selected !== null ? <Button onClick={() => { setSelected(null); setMode("list"); }}>Back to ${route}</Button> : null}
+    {state.status !== "create" && state.status !== "edit" ? <Button onClick={() => { setSelectedId(null); setFeedback(null); setTitle(""); setDetail(""); setStatus("planned"); setMode("create"); }}>Create ${name}</Button> : null}
+    {feedback !== null || selected !== null ? <Button onClick={() => { setSelectedId(null); setFeedback(null); setMode("list"); }}>Back to ${route}</Button> : null}
   </Stack>;
 }
 `,
@@ -223,28 +227,18 @@ export function ${pascalName}Feature({ adapter = sharedAdapter, workspaceId = "d
     {
       path: `${featurePath}/adapter.test.ts`,
       content: `import { describe, expect, it } from "vitest";
-import { create${pascalName}Adapter } from "./adapter";
+import { present${pascalName}Failure, present${pascalName}State } from "./adapter";
 
-describe("${name} adapter", () => {
-  it("creates, reads, lists, updates, and deletes within one workspace", async () => {
-    const adapter = create${pascalName}Adapter();
-    const created = await adapter.create({ workspaceId: "a", title: " First ", detail: " detail ", status: "planned" });
-    expect(await adapter.list("a")).toEqual([created]);
-    expect(await adapter.read("a", created.id)).toEqual(created);
-    const updated = await adapter.update("a", created.id, { workspaceId: "a", title: "Done", detail: "", status: "complete" });
-    expect(updated.createdAt).toBe(created.createdAt);
-    expect(updated.title).toBe("Done");
-    expect(await adapter.delete("a", created.id)).toBe(true);
-    expect(await adapter.list("a")).toEqual([]);
+describe("${name} presenter", () => {
+  const item = { _id: "${name}_1", _creationTime: 1, workspaceId: "a", title: "First", detail: "Detail", status: "planned", createdAt: 1, updatedAt: 1 } as const;
+  it("presents query lifecycle states", () => {
+    expect(present${pascalName}State({ isPending: true, isError: false })).toEqual({ status: "loading" });
+    expect(present${pascalName}State({ data: [], isPending: false, isError: false })).toEqual({ status: "empty" });
+    expect(present${pascalName}State({ data: [item], isPending: false, isError: false })).toEqual({ status: "list", items: [item] });
   });
-  it("rejects blank titles and isolates workspaces", async () => {
-    const adapter = create${pascalName}Adapter();
-    await expect(adapter.create({ workspaceId: "a", title: " ", detail: "", status: "planned" })).rejects.toThrow("title is required");
-    const created = await adapter.create({ workspaceId: "a", title: "Private", detail: "", status: "active" });
-    expect(await adapter.read("b", created.id)).toBeNull();
-    expect(await adapter.list("b")).toEqual([]);
-    expect(await adapter.delete("b", created.id)).toBe(false);
-    await expect(adapter.update("b", created.id, { workspaceId: "b", title: "No", detail: "", status: "planned" })).rejects.toThrow("not found");
+  it("separates typed and transport failures", () => {
+    expect(present${pascalName}Failure({ _tag: "Forbidden" })).toEqual({ status: "typed-error", error: "Forbidden" });
+    expect(present${pascalName}Failure(new TypeError("offline"))).toEqual({ status: "transport-error", message: "offline" });
   });
 });
 `,
@@ -260,7 +254,7 @@ export function ${pascalName}Screen() { return <Page.Root><Page.Header title="${
       path: `apps/web/src/routes/_app/$workspace/_dashboard/${route}.tsx`,
       content: `import { createFileRoute } from "@tanstack/react-router";
 import { ${pascalName}Screen } from "../../../../screens/${route}-screen";
-export const Route = createFileRoute("/_app/$workspace/_dashboard/${route}")({ component: ${pascalName}Screen });
+export const Route = createFileRoute()({ component: ${pascalName}Screen });
 `,
     },
     {
@@ -330,7 +324,7 @@ export default GroupImpl.make(databaseSchema, group).pipe(Layer.provide(list), L
     },
     {
       path: `docs/template/generated/features/${name}.md`,
-      content: `# ${pascalName} Feature\n\n${description}\n\nFull workspace-isolated create, list, read, update, and delete behavior is generated for the fake adapter and Confect contract. Run Confect codegen after the business-entity table recipe step.\n`,
+      content: `# ${pascalName} Feature\n\n${description}\n\nFull workspace-isolated create, list, read, update, and delete behavior uses generated Confect refs and the installed Saas UI primitives. Run Confect codegen after the business-entity table recipe step.\n`,
     },
   ];
   files.push({

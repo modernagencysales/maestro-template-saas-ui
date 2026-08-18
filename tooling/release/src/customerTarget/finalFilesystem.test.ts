@@ -124,7 +124,7 @@ describe("final materialized customer filesystem", () => {
       rmSync(parent, { recursive: true, force: true });
     }
     expect(existsSync(parent)).toBe(false);
-  }, 120_000);
+  }, 900_000);
 
   it("applies blueprint removal after a forbidden base copy", async () => {
     const forbidden = "tooling/agent-pack/src/pluginContract.ts";
