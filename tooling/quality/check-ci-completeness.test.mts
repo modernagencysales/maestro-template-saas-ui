@@ -47,6 +47,11 @@ describe("check:ci-completeness", () => {
       "pnpm --dir tooling/agent-pack test:privacy-no-network",
     );
     expect(requirements).toContain(
+      "node tooling/ci/run-heavyweight-suites.mjs",
+    );
+    expect(requirements).toContain('process.once(\\"SIGINT\\", onInterrupt)');
+    expect(requirements).toContain('process.once(\\"SIGTERM\\", onTerminate)');
+    expect(requirements).toContain(
       "vitest run --passWithNoTests --pool=threads --maxWorkers=1 --no-file-parallelism",
     );
     expect(requirements).toContain("check:system-topology");
@@ -129,6 +134,7 @@ describe("check:ci-completeness", () => {
     );
     expect(rootPackage?.includes).toEqual(
       expect.arrayContaining([
+        '"test:heavyweight-customer-artifacts": "node tooling/ci/run-heavyweight-suites.mjs"',
         '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
         '"check:app-map": "pnpm --dir tooling/app-map check"',
         '"check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts"',
