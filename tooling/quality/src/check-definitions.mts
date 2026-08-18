@@ -223,8 +223,8 @@ const checkDescriptorDefinitions = {
           '["--dir", "apps/cli", "test:create-root-integration"]',
           '["--dir", "tooling/agent-pack", "test:privacy-no-network"]',
           "Promise.all(",
-          'process.once("SIGINT", onInterrupt)',
-          'process.once("SIGTERM", onTerminate)',
+          'process.on("SIGINT", onInterrupt)',
+          'process.on("SIGTERM", onTerminate)',
         ],
         message:
           "heavyweight customer-artifact proofs must use two serial lanes with aggregate results and signal forwarding",

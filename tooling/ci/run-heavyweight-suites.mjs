@@ -20,14 +20,13 @@ export async function runHeavyweightSuites() {
   const active = new Set();
   let interrupted;
   const forward = (signal) => {
-    if (interrupted !== undefined) return;
-    interrupted = signal;
+    interrupted ??= signal;
     for (const child of active) signalProcessGroup(child, signal);
   };
   const onInterrupt = () => forward("SIGINT");
   const onTerminate = () => forward("SIGTERM");
-  process.once("SIGINT", onInterrupt);
-  process.once("SIGTERM", onTerminate);
+  process.on("SIGINT", onInterrupt);
+  process.on("SIGTERM", onTerminate);
 
   try {
     const results = await Promise.all(

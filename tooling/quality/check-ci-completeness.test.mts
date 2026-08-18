@@ -49,8 +49,8 @@ describe("check:ci-completeness", () => {
     expect(requirements).toContain(
       "node tooling/ci/run-heavyweight-suites.mjs",
     );
-    expect(requirements).toContain('process.once(\\"SIGINT\\", onInterrupt)');
-    expect(requirements).toContain('process.once(\\"SIGTERM\\", onTerminate)');
+    expect(requirements).toContain('process.on(\\"SIGINT\\", onInterrupt)');
+    expect(requirements).toContain('process.on(\\"SIGTERM\\", onTerminate)');
     expect(requirements).toContain(
       "vitest run --passWithNoTests --pool=threads --maxWorkers=1 --no-file-parallelism",
     );
