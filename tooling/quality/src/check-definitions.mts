@@ -198,6 +198,7 @@ const checkDescriptorDefinitions = {
           '"typecheck": "turbo run typecheck --concurrency=1 --filter=!@workspace/ui --filter=!@maestro-template/web && pnpm typecheck:saas-ui"',
           '"test:release-filesystem"',
           '"test:verify-uncovered"',
+          '"test:heavyweight-customer-artifacts": "node tooling/ci/run-heavyweight-suites.mjs"',
           '"test:app-map"',
           '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
           '"check:app-map": "pnpm --dir tooling/app-map check"',
@@ -206,13 +207,27 @@ const checkDescriptorDefinitions = {
           "--exclude apps/cli/src/factory/createRootIntegration.test.ts",
           "--exclude tooling/release/src/customerTarget/finalFilesystem.test.ts",
           "pnpm test:bootstrap && turbo run test --filter=!@maestro-template/release-tooling --filter=!@maestro-template/agent-pack --filter=!@maestro-template/cli --filter=!@maestro-template/convex-compat && pnpm --dir tooling/agent-pack test && pnpm --dir apps/cli test && pnpm --dir tooling/convex-compat test && pnpm --dir packages/convex test:workflow-conformance && pnpm --dir apps/cli test:customer-cli-runtime && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm --dir tooling/release test:unit && pnpm test:release-filesystem",
-          "pnpm test:bootstrap && pnpm --dir packages/app-idea-evaluator test && pnpm --dir packages/editor-core test && pnpm --dir packages/editor-react test && pnpm --dir packages/workflow-ui test && pnpm --dir tooling/agent-pack test && pnpm --dir tooling/evals test && pnpm --dir tooling/convex-compat test && pnpm --dir tooling/app-map test && pnpm --dir tooling/eslint-plugin-template test && pnpm --dir tooling/confect-manifest test && pnpm --dir apps/cli test:customer-cli-runtime && pnpm --dir apps/cli test:create-root-integration && pnpm --dir tooling/agent-pack test:privacy-no-network && pnpm test:release-filesystem && pnpm test:acceptance-tooling",
+          "pnpm test:bootstrap && pnpm --dir packages/app-idea-evaluator test && pnpm --dir packages/editor-core test && pnpm --dir packages/editor-react test && pnpm --dir packages/workflow-ui test && pnpm --dir tooling/agent-pack test && pnpm --dir tooling/evals test && pnpm --dir tooling/convex-compat test && pnpm --dir tooling/app-map test && pnpm --dir tooling/eslint-plugin-template test && pnpm --dir tooling/confect-manifest test && pnpm test:chassis-ci && pnpm test:heavyweight-customer-artifacts && pnpm test:acceptance-tooling",
           'pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit"',
           "pnpm check:agent-pack && pnpm check:deps",
           "pnpm check:schema-migration-notes && pnpm check:system-catalog && pnpm check:system-topology && pnpm check:data-resources && pnpm check:append-only-tables && pnpm check:promotion-boundary && pnpm check:layer-boundaries",
         ],
         message:
           "the root verify chain must run heavyweight proofs once and canonical system/schema ownership before layer checks",
+      },
+      {
+        file: "tooling/ci/run-heavyweight-suites.mjs",
+        includes: [
+          '["--dir", "apps/cli", "test:customer-cli-runtime"]',
+          '["test:release-filesystem"]',
+          '["--dir", "apps/cli", "test:create-root-integration"]',
+          '["--dir", "tooling/agent-pack", "test:privacy-no-network"]',
+          "Promise.all(",
+          'process.on("SIGINT", onInterrupt)',
+          'process.on("SIGTERM", onTerminate)',
+        ],
+        message:
+          "heavyweight customer-artifact proofs must use two serial lanes with aggregate results and signal forwarding",
       },
       {
         file: "apps/cli/package.json",

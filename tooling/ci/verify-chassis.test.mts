@@ -117,6 +117,15 @@ describe("customer chassis Woodpecker admission", () => {
     expect(packageJson.scripts.verify).not.toMatch(
       /(?:^|&& )pnpm test(?: &&|$)/u,
     );
+    expect(packageJson.scripts["test:heavyweight-customer-artifacts"]).toBe(
+      "node tooling/ci/run-heavyweight-suites.mjs",
+    );
+    expect(packageJson.scripts["test:verify-uncovered"]).toContain(
+      "pnpm test:heavyweight-customer-artifacts",
+    );
+    expect(packageJson.scripts["test:verify-uncovered"]).toContain(
+      "pnpm test:chassis-ci",
+    );
     expect(packageJson.scripts["test:verify-uncovered"]).toContain(
       "pnpm --dir tooling/agent-pack test",
     );
@@ -124,14 +133,18 @@ describe("customer chassis Woodpecker admission", () => {
       "pnpm --dir packages/editor-core test",
     );
     expect(packageJson.scripts["test:verify-uncovered"]).toContain(
-      "pnpm --dir apps/cli test:customer-cli-runtime",
-    );
-    expect(packageJson.scripts["test:verify-uncovered"]).toContain(
-      "pnpm test:release-filesystem",
-    );
-    expect(packageJson.scripts["test:verify-uncovered"]).toContain(
       "pnpm test:acceptance-tooling",
     );
+    for (const heavyweight of [
+      "pnpm --dir apps/cli test:customer-cli-runtime",
+      "pnpm --dir apps/cli test:create-root-integration",
+      "pnpm --dir tooling/agent-pack test:privacy-no-network",
+      "pnpm test:release-filesystem",
+    ]) {
+      expect(packageJson.scripts["test:verify-uncovered"]).not.toContain(
+        heavyweight,
+      );
+    }
     for (const duplicate of [
       "pnpm --dir tooling/agent-pack test:customer",
       "pnpm --dir tooling/generators test",
