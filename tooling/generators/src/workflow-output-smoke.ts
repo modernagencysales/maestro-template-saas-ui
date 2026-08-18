@@ -12,7 +12,7 @@ import {
 import { tmpdir } from "node:os";
 import { dirname, join, relative, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
-import { spawnSync } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
 import { validateWorkflowSemanticCoverage } from "@maestro-template/template-core/workflow-semantics";
 
@@ -133,6 +133,56 @@ export const runSmokeCommand = (
 
     throw new Error(`${step.label} failed with ${detail}`);
   }
+};
+
+export const runSmokeCommandAsync = async (
+  tempRepoRoot: string,
+  step: SmokeCommand,
+): Promise<void> => {
+  process.stdout.write(`\n[workflow-output-smoke] ${step.label}\n`);
+
+  const child = spawn(step.command, [...step.args], {
+    cwd: tempRepoRoot,
+    env: process.env,
+    stdio: "pipe",
+  });
+  child.stdout.setEncoding("utf8");
+  child.stderr.setEncoding("utf8");
+
+  let stdout = "";
+  let stderr = "";
+  child.stdout.on("data", (chunk: string) => {
+    stdout += chunk;
+  });
+  child.stderr.on("data", (chunk: string) => {
+    stderr += chunk;
+  });
+
+  const result = await new Promise<
+    | { readonly code: number | null; readonly signal: NodeJS.Signals | null }
+    | { readonly error: Error }
+  >((resolve) => {
+    child.once("error", (error) => resolve({ error }));
+    child.once("close", (code, signal) => resolve({ code, signal }));
+  });
+  const verbose = process.env.WORKFLOW_OUTPUT_SMOKE_VERBOSE === "1";
+
+  if (verbose) {
+    process.stdout.write(stdout);
+    process.stderr.write(stderr);
+  }
+
+  if ("error" in result) throw result.error;
+  if (result.code === 0) return;
+
+  if (!verbose) {
+    process.stdout.write(stdout);
+    process.stderr.write(stderr);
+  }
+
+  const detail =
+    result.signal === null ? `exit code ${result.code}` : result.signal;
+  throw new Error(`${step.label} failed with ${detail}`);
 };
 
 export const sourceFingerprint = (source: string): string =>

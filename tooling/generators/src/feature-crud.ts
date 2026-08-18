@@ -84,7 +84,7 @@ export const ${name}FeatureContract = {
     },
     {
       path: `${featurePath}/adapter.ts`,
-      content: `import { GroupSpec, Refs, Spec } from "@confect/core";
+      content: `import { GroupSpec, Refs, Spec } from "@maestro-template/convex/refs";
 import capability from "../../../../../packages/convex/confect/capabilities/${name}.spec";
 import type { ${pascalName} } from "./contract";
 import type { ${pascalName}FeatureState } from "./model";
@@ -139,7 +139,6 @@ export type ${pascalName}FeatureState =
     {
       path: `${featurePath}/${route}-feature.tsx`,
       content: `import { useState } from "react";
-import type { Ref } from "@confect/core";
 import { QueryResult, useMutation, useQuery } from "@confect/react";
 import { NativeSelect } from "@chakra-ui/react";
 import { Button, Card, Heading, Input, Stack, Text } from "@saas-ui/react";
@@ -150,8 +149,9 @@ import type { ${pascalName}Status } from "./contract";
 import type { ${pascalName}FeatureState } from "./model";
 
 type CapabilityRefs = typeof ${name}Refs;
-type WorkspaceId = Ref.Args<CapabilityRefs["list"]>["workspaceId"];
-type ItemId = Ref.Args<CapabilityRefs["read"]>["id"];
+type RefArgs<Ref_> = Ref_ extends { readonly _Args?: infer Args } ? Args : never;
+type WorkspaceId = RefArgs<CapabilityRefs["list"]>["workspaceId"];
+type ItemId = RefArgs<CapabilityRefs["read"]>["id"];
 
 export function ${pascalName}Feature() {
   const [workspace] = useCurrentWorkspace();
@@ -254,7 +254,7 @@ export function ${pascalName}Screen() { return <Page.Root><Page.Header title="${
       path: `apps/web/src/routes/_app/$workspace/_dashboard/${route}.tsx`,
       content: `import { createFileRoute } from "@tanstack/react-router";
 import { ${pascalName}Screen } from "../../../../screens/${route}-screen";
-export const Route = createFileRoute("/_app/$workspace/_dashboard/${route}")({ component: ${pascalName}Screen });
+export const Route = createFileRoute()({ component: ${pascalName}Screen });
 `,
     },
     {

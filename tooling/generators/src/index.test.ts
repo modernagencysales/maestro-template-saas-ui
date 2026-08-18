@@ -46,6 +46,7 @@ import {
   repoRootFromScript,
   runnerOwnershipFinding,
   runSmokeCommand,
+  runSmokeCommandAsync,
   shouldCopyPath,
   smokeWorkflowName,
   sourceFingerprint,
@@ -2488,7 +2489,10 @@ describe("template app factory generators", () => {
       'import capability from "../../../../../packages/convex/confect/capabilities/accountSignals.spec"',
     );
     expect(adapter).toContain("export const accountSignalsRefs = Refs.make(");
+    expect(adapter).toContain('from "@maestro-template/convex/refs"');
+    expect(adapter).not.toContain('from "@confect/core"');
     expect(feature).toContain("accountSignalsRefs.list");
+    expect(feature).not.toContain('from "@confect/core"');
     expect(feature).not.toContain("templateConfectRefs");
     expect(feature).toContain('from "@confect/react"');
     expect(feature).not.toContain("convexQuery");
@@ -2504,7 +2508,8 @@ describe("template app factory generators", () => {
     expect(generated).not.toContain("Replace fake fixtures");
     expect(route).toContain("AccountSignalsScreen");
     expect(route).not.toContain("Feature");
-    expect(route).toContain(
+    expect(route).toContain("createFileRoute()(");
+    expect(route).not.toContain(
       'createFileRoute("/_app/$workspace/_dashboard/account-signals")',
     );
     expect(route).toContain(
@@ -2578,14 +2583,32 @@ describe("template app factory generators", () => {
     }
   });
 
-  it("materializes a generated feature that lints and typechecks", () => {
+  it("materializes a generated feature that lints and typechecks", async () => {
     const tempRoot = mkdtempSync(join(tmpdir(), "maestro-feature-smoke-"));
     const cwd = join(tempRoot, "repo");
     const name = "generatedFeatureSmoke";
 
     try {
       copyRepoForSmoke(repoRoot, cwd);
-      runSmokeCommand(cwd, {
+      for (const path of [
+        "node_modules",
+        "apps/web/node_modules",
+        "packages/convex/node_modules",
+        "tooling/generators/node_modules",
+      ])
+        rmSync(join(cwd, path), { recursive: true, force: true });
+      await runSmokeCommandAsync(cwd, {
+        label: "Install isolated feature smoke dependencies",
+        command: "pnpm",
+        args: [
+          "--dir",
+          cwd,
+          "install",
+          "--frozen-lockfile",
+          "--ignore-scripts",
+        ],
+      });
+      await runSmokeCommandAsync(cwd, {
         label: "Generate feature business-entity table",
         command: "pnpm",
         args: [
@@ -2615,7 +2638,7 @@ describe("template app factory generators", () => {
           "--write",
         ],
       });
-      runSmokeCommand(cwd, {
+      await runSmokeCommandAsync(cwd, {
         label: "Generate feature output",
         command: "pnpm",
         args: [
@@ -2634,12 +2657,12 @@ describe("template app factory generators", () => {
           "--write",
         ],
       });
-      runSmokeCommand(cwd, {
+      await runSmokeCommandAsync(cwd, {
         label: "Regenerate Confect refs for generated feature output",
         command: "pnpm",
         args: ["--dir", cwd, "confect:codegen"],
       });
-      runSmokeCommand(cwd, {
+      await runSmokeCommandAsync(cwd, {
         label: "Lint generated feature route, screen, feature, and adapter",
         command: "pnpm",
         args: [
@@ -2653,7 +2676,7 @@ describe("template app factory generators", () => {
           `apps/web/src/features/${name}/adapter.ts`,
         ],
       });
-      runSmokeCommand(cwd, {
+      await runSmokeCommandAsync(cwd, {
         label: "Regenerate and typecheck generated feature web output",
         command: "pnpm",
         args: ["--dir", join(cwd, "apps/web"), "typecheck"],
@@ -2661,7 +2684,7 @@ describe("template app factory generators", () => {
     } finally {
       rmSync(tempRoot, { recursive: true, force: true });
     }
-  }, 360_000);
+  }, 900_000);
 
   it("refuses to overwrite an existing golden feature path", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-template-feature-clash-"));
