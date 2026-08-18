@@ -18,11 +18,11 @@ reuse.
 | Metric with icon                           | reference-only | `apps/web/src/components/metric-card-with-icon`                                                                                                                                                                                   | Activate only when the icon has an explicit semantic role.                     |
 | Task with properties                       | reference-only | `apps/web/src/components/task-card-with-properties`                                                                                                                                                                               | Activate only for caller-owned task property data.                             |
 
-`template:add-feature` emits the customer `_workspace` route, live generated
-Confect refs, and installed Saas UI/Chakra primitives. Product code must not
-introduce local foundational substitutes or raw controls except accessible
-native checkbox and file inputs. Purchased receipt files remain exempt from that
-product lint so their reviewed bytes stay intact.
+`template:add-feature` emits the customer `_app/$workspace/_dashboard` route
+tree, live generated Confect refs, and installed Saas UI/Chakra primitives.
+Product code must not introduce local foundational substitutes or raw controls
+except accessible native checkbox and file inputs. Purchased receipt files
+remain exempt from that product lint so their reviewed bytes stay intact.
 
 Starter backends, mocks, seed data, demo metrics, incomplete handlers, and
 duplicate primitives are rejected. Add a new catalog row only when an owned
