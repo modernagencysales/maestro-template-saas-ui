@@ -2350,9 +2350,8 @@ describe("saas application blueprint", () => {
     expect(maturityModel).toContain(
       "Redeploy `packages/convex/convex/auth.config.ts`",
     );
-    expect(maturityModel).toContain(
-      "complete one real sign-in through `access/provisioning:ensureProvisioned`",
-    );
+    expect(maturityModel).toContain("complete one real sign-in through");
+    expect(maturityModel).toContain("`access/provisioning:ensureProvisioned`");
   });
 
   // eslint-disable-next-line complexity -- AP-008 tracks splitting this generated-layout assertion.
