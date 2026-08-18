@@ -60,11 +60,26 @@ function declaredName(node) {
 function approvedNativeInput(node) {
   if (node.name.type !== "JSXIdentifier" || node.name.name !== "input")
     return false;
+  const staticAttribute = (name) => {
+    const value = node.attributes.find(
+      (attribute) =>
+        attribute.type === "JSXAttribute" && attribute.name.name === name,
+    )?.value;
+    return (
+      value?.type === "Literal" &&
+      typeof value.value === "string" &&
+      value.value.trim().length > 0
+    );
+  };
   const type = node.attributes.find(
     (attribute) =>
       attribute.type === "JSXAttribute" && attribute.name.name === "type",
   )?.value;
-  return type?.type === "Literal" && ["checkbox", "file"].includes(type.value);
+  return (
+    type?.type === "Literal" &&
+    ["checkbox", "file"].includes(type.value) &&
+    (staticAttribute("aria-label") || staticAttribute("aria-labelledby"))
+  );
 }
 
 export default {

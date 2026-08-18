@@ -2067,6 +2067,18 @@ tester.run("prefer-saas-ui-primitives", officialPrimitives, {
       code: "export const Status = () => <select><option>Active</option></select>;",
       errors: [{ messageId: "officialPrimitive" }],
     },
+    {
+      filename:
+        "apps/web/src/features/generatedFeatureSmoke/generated-feature-smoke-feature.tsx",
+      code: "export const Upload = () => <input type='file' />;",
+      errors: [{ messageId: "officialPrimitive" }],
+    },
+    {
+      filename:
+        "apps/web/src/features/generatedFeatureSmoke/generated-feature-smoke-feature.tsx",
+      code: "export const Choice = ({ label }) => <input type='checkbox' aria-label={label} />;",
+      errors: [{ messageId: "officialPrimitive" }],
+    },
   ],
 });
 

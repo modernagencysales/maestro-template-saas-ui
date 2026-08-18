@@ -131,11 +131,10 @@ export type ${pascalName}FeatureState =
       path: `${featurePath}/${route}-feature.tsx`,
       content: `import { useState } from "react";
 import type { Ref } from "@confect/core";
-import { convexQuery } from "@convex-dev/react-query";
-import { useQuery } from "@tanstack/react-query";
+import { QueryResult, useMutation, useQuery } from "@confect/react";
 import { NativeSelect } from "@chakra-ui/react";
 import { Button, Card, Heading, Input, Stack, Text } from "@saas-ui/react";
-import { useMutation } from "convex/react";
+import * as Result from "effect/Result";
 import { templateConfectRefs, type TemplateConfectRefs } from "@maestro-template/convex/refs";
 import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
 import { present${pascalName}Failure, present${pascalName}State } from "./adapter";
@@ -149,10 +148,10 @@ type ItemId = Ref.Args<CapabilityRefs["read"]>["id"];
 export function ${pascalName}Feature() {
   const [workspace] = useCurrentWorkspace();
   const workspaceId = workspace?.id as WorkspaceId | undefined;
-  const query = useQuery(convexQuery(
+  const query = useQuery(
     templateConfectRefs.public.capabilities.${name}.list,
     workspaceId === undefined ? "skip" : { workspaceId },
-  ));
+  );
   const createItem = useMutation(templateConfectRefs.public.capabilities.${name}.create);
   const updateItem = useMutation(templateConfectRefs.public.capabilities.${name}.update);
   const removeItem = useMutation(templateConfectRefs.public.capabilities.${name}.remove);
@@ -162,7 +161,12 @@ export function ${pascalName}Feature() {
   const [detail, setDetail] = useState("");
   const [status, setStatus] = useState<${pascalName}Status>("planned");
   const [feedback, setFeedback] = useState<${pascalName}FeatureState | null>(null);
-  const baseState = present${pascalName}State(query as Parameters<typeof present${pascalName}State>[0]);
+  const baseState = present${pascalName}State({
+    data: QueryResult.isSuccess(query) ? query.value : undefined,
+    error: QueryResult.isFailure(query) ? query.error : undefined,
+    isError: QueryResult.isFailure(query),
+    isPending: QueryResult.isLoading(query),
+  });
   const items = baseState.status === "list" ? baseState.items : [];
   const selected = items.find((item) => item._id === selectedId) ?? null;
   const state: ${pascalName}FeatureState = feedback ?? (mode === "create"
@@ -177,17 +181,16 @@ export function ${pascalName}Feature() {
     if (workspaceId === undefined) return;
     try {
       const input = { workspaceId, title, detail, status };
-      if (mode === "edit" && selected !== null) {
-        await updateItem({ ...input, id: selected._id as ItemId });
-      } else {
-        await createItem(input);
-      }
+      const result = mode === "edit" && selected !== null
+        ? await updateItem({ ...input, id: selected._id as ItemId })
+        : await createItem(input);
+      if (Result.isFailure(result)) { setFeedback(present${pascalName}Failure(result.failure)); return; }
       setSelectedId(null); setMode("list"); setFeedback({ status: "success", message: "${pascalName} saved." });
     } catch (error) { setFeedback(present${pascalName}Failure(error)); }
   };
   const remove = async () => {
     if (selected === null || workspaceId === undefined) return;
-    try { await removeItem({ workspaceId, id: selected._id as ItemId }); setSelectedId(null); setFeedback({ status: "success", message: "${pascalName} deleted." }); }
+    try { const result = await removeItem({ workspaceId, id: selected._id as ItemId }); if (Result.isFailure(result)) { setFeedback(present${pascalName}Failure(result.failure)); return; } setSelectedId(null); setFeedback({ status: "success", message: "${pascalName} deleted." }); }
     catch (error) { setFeedback(present${pascalName}Failure(error)); }
   };
   const beginEdit = () => { if (selected === null) return; setTitle(selected.title); setDetail(selected.detail); setStatus(selected.status); setMode("edit"); };
@@ -196,7 +199,9 @@ export function ${pascalName}Feature() {
     <Heading size="md">${description}</Heading>
     {state.status === "loading" ? <Text>Loading ${route}…</Text> : null}
     {state.status === "empty" ? <Text>No ${route} yet.</Text> : null}
+    {state.status === "typed-error" ? <Text role="alert">{state.error}</Text> : null}
     {state.status === "transport-error" ? <Text role="alert">{state.message}</Text> : null}
+    {state.status === "success" ? <Text role="status">{state.message}</Text> : null}
     {state.status === "list" ? state.items.map((item) => <Button key={item._id} onClick={() => setSelectedId(item._id)} variant="outline">{item.title}</Button>) : null}
     {state.status === "detail" ? <Card.Root><Card.Body><Heading size="sm">{state.item.title}</Heading><Text>{state.item.detail}</Text><Button onClick={beginEdit}>Edit ${name}</Button><Button onClick={() => void remove()}>Delete ${name}</Button></Card.Body></Card.Root> : null}
     {state.status === "create" || state.status === "edit" ? <Card.Root><Card.Body gap="3">
@@ -238,10 +243,10 @@ export function ${pascalName}Screen() { return <Page.Root><Page.Header title="${
 `,
     },
     {
-      path: `apps/web/src/routes/_workspace.${route}.tsx`,
+      path: `apps/web/src/routes/_app/$workspace/_dashboard/${route}.tsx`,
       content: `import { createFileRoute } from "@tanstack/react-router";
-import { ${pascalName}Screen } from "../screens/${route}-screen";
-export const Route = createFileRoute("/_workspace/${route}")({ component: ${pascalName}Screen });
+import { ${pascalName}Screen } from "../../../../screens/${route}-screen";
+export const Route = createFileRoute("/_app/$workspace/_dashboard/${route}")({ component: ${pascalName}Screen });
 `,
     },
     {
