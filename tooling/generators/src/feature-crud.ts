@@ -139,7 +139,7 @@ import { useMutation } from "convex/react";
 import { templateConfectRefs, type TemplateConfectRefs } from "@maestro-template/convex/refs";
 import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
 import { present${pascalName}Failure, present${pascalName}State } from "./adapter";
-import type { ${pascalName}, ${pascalName}Status } from "./contract";
+import type { ${pascalName}Status } from "./contract";
 import type { ${pascalName}FeatureState } from "./model";
 
 type CapabilityRefs = TemplateConfectRefs["public"]["capabilities"]["${name}"];

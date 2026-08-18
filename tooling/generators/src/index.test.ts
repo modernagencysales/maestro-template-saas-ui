@@ -2489,6 +2489,9 @@ describe("template app factory generators", () => {
     );
     expect(feature).toContain("useCurrentWorkspace");
     expect(feature).toContain("NativeSelect");
+    expect(feature).not.toContain(
+      "type { AccountSignals, AccountSignalsStatus }",
+    );
     expect(generated).not.toContain("Synthetic fixture");
     expect(generated).not.toContain('status: "accepted"');
     expect(generated).not.toContain("Replace fake fixtures");
@@ -2567,6 +2570,36 @@ describe("template app factory generators", () => {
 
     try {
       copyRepoForSmoke(repoRoot, cwd);
+      runSmokeCommand(cwd, {
+        label: "Generate feature business-entity table",
+        command: "pnpm",
+        args: [
+          "--dir",
+          cwd,
+          "template:add-table",
+          "--",
+          "--name",
+          name,
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+          "--tenant-scope",
+          "workspace",
+          "--sensitivity",
+          "confidential",
+          "--pii",
+          "none",
+          "--export-mode",
+          "json",
+          "--delete-mode",
+          "delete",
+          "--retention",
+          "retain-until-workspace-delete",
+          "--business-entity",
+          "--write",
+        ],
+      });
       runSmokeCommand(cwd, {
         label: "Generate feature output",
         command: "pnpm",
