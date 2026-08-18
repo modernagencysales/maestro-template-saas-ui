@@ -137,7 +137,7 @@ describe("deterministic suite ownership", () => {
 
     expect(pipeline).toContain("- verify-core");
     expect(pipeline).toContain("- verify-coverage");
-    expect(pipeline).toContain('test "$CI_PIPELINE_STATUS" = success');
+    expect(pipeline).toContain("node tooling/ci/verify-aggregate.mjs");
     expect(core).toContain("tooling/ci/verify-chassis.sh");
     expect(coverage).toContain("tooling/ci/verify-coverage.sh");
     const gitleaksInstall = chassis.indexOf(

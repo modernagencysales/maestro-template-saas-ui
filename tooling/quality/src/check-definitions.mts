@@ -31,11 +31,11 @@ const checkDescriptorDefinitions = {
         includes: [
           "event: pull_request",
           "node:22.23.2-bookworm@sha256:",
-          "skip_clone: true",
+          "depth: 1",
           "verify-core",
           "verify-coverage",
           "status: [success, failure]",
-          'test "$CI_PIPELINE_STATUS" = success',
+          "node tooling/ci/verify-aggregate.mjs",
         ],
         message:
           "the required Woodpecker PR context must aggregate both isolated verification workflows",
@@ -257,10 +257,27 @@ const checkDescriptorDefinitions = {
       },
       {
         file: "tooling/ci/verify-coverage.sh",
-        includes: ["source tooling/ci/setup.sh", "pnpm check:coverage-ratchet"],
-        absent: ["install-gitleaks", "playwright", "pnpm verify"],
+        includes: [
+          "source tooling/ci/setup.sh",
+          "bash tooling/ci/install-gitleaks.sh",
+          "pnpm exec playwright install --with-deps chromium",
+          "pnpm check:coverage-ratchet",
+        ],
+        absent: ["strace", "pnpm verify"],
         message:
-          "isolated coverage verification must avoid browser and secret-scanning setup",
+          "isolated coverage verification must install the tools exercised by its tests without syscall tracing",
+      },
+      {
+        file: "tooling/ci/verify-aggregate.mjs",
+        includes: [
+          '"verify-core"',
+          '"verify-coverage"',
+          "CI_PIPELINE_URL",
+          "pipeline.workflows",
+          '!== "success"',
+        ],
+        message:
+          "the required aggregate context must fail closed against Woodpecker dependency states",
       },
       {
         file: "apps/cli/package.json",

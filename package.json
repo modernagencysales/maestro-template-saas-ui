@@ -20,7 +20,7 @@
     "test:heavyweight-customer-artifacts": "node tooling/ci/run-heavyweight-suites.mjs",
     "test:release-filesystem": "pnpm --dir tooling/release test:final-filesystem",
     "test:runtime-longevity": "pnpm --dir apps/web test:runtime-longevity",
-    "test:chassis-ci": "vitest run tooling/ci/verify-chassis.test.mts tooling/ci/run-heavyweight-suites.test.mts --maxWorkers=1 --no-file-parallelism",
+    "test:chassis-ci": "vitest run tooling/ci/verify-chassis.test.mts tooling/ci/run-heavyweight-suites.test.mts tooling/ci/verify-aggregate.test.mts --maxWorkers=1 --no-file-parallelism",
     "test:bootstrap": "node --test scripts/maestro-bootstrap.test.mjs",
     "test:acceptance-tooling": "vitest run tooling/acceptance/product-contract.test.mts tooling/acceptance/playwright-report.test.mts tooling/acceptance/run-acceptance.test.mts tooling/acceptance/template-product-contract-admission.test.mts examples/saas-application/seed/source/tests/runtime.test.ts --maxWorkers=1 --no-file-parallelism && vitest run tooling/acceptance/template-product-contract.test.mts --testNamePattern='template product contract adapter' --maxWorkers=1 --no-file-parallelism",
     "test:tooling": "pnpm test:bootstrap && pnpm --dir tooling/quality test && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators test && pnpm --dir tooling/evals test && pnpm --dir tooling/release test:unit",

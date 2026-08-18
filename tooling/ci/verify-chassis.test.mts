@@ -6,12 +6,13 @@ const read = (path: string): string => readFileSync(path, "utf8");
 describe("customer chassis Woodpecker admission", () => {
   it("publishes one pinned, secret-free aggregate PR context", () => {
     const source = read(".woodpecker/verify.yml");
-    expect(source).toContain("skip_clone: true");
+    expect(source).toContain("depth: 1");
+    expect(source).not.toContain("skip_clone: true");
     expect(source).toContain("depends_on:");
     expect(source).toContain("- verify-core");
     expect(source).toContain("- verify-coverage");
     expect(source).toContain("status: [success, failure]");
-    expect(source).toContain('test "$CI_PIPELINE_STATUS" = success');
+    expect(source).toContain("node tooling/ci/verify-aggregate.mjs");
     expect(source).toContain(
       "node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a",
     );
@@ -156,6 +157,9 @@ describe("customer chassis Woodpecker admission", () => {
     expect(packageJson.scripts["test:chassis-ci"]).not.toContain(
       "run-required-verification.test.mts",
     );
+    expect(packageJson.scripts["test:chassis-ci"]).toContain(
+      "verify-aggregate.test.mts",
+    );
     expect(packageJson.scripts["test:verify-uncovered"]).toContain(
       "pnpm test:heavyweight-customer-artifacts",
     );
@@ -194,13 +198,20 @@ describe("customer chassis Woodpecker admission", () => {
     }
   });
 
-  it("keeps coverage isolated from browser and secret scanning setup", () => {
+  it("installs the tools exercised by the isolated coverage suite", () => {
     const script = read("tooling/ci/verify-coverage.sh");
 
     expect(script).toContain("source tooling/ci/setup.sh");
+    const gitleaks = script.indexOf("bash tooling/ci/install-gitleaks.sh");
+    const playwright = script.indexOf(
+      "pnpm exec playwright install --with-deps chromium",
+    );
+    const coverage = script.indexOf("pnpm check:coverage-ratchet");
+    expect(gitleaks).toBeGreaterThan(0);
+    expect(playwright).toBeGreaterThan(gitleaks);
+    expect(coverage).toBeGreaterThan(playwright);
     expect(script.match(/^pnpm check:coverage-ratchet$/gmu)).toHaveLength(1);
-    expect(script).not.toContain("install-gitleaks");
-    expect(script).not.toContain("playwright");
+    expect(script).not.toContain("strace");
     expect(script).not.toContain("pnpm verify");
   });
 });

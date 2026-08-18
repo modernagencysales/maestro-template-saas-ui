@@ -147,11 +147,11 @@ describe("check:ci-completeness", () => {
     );
     expect(aggregateVerification?.includes).toEqual(
       expect.arrayContaining([
-        "skip_clone: true",
+        "depth: 1",
         "verify-core",
         "verify-coverage",
         "status: [success, failure]",
-        'test "$CI_PIPELINE_STATUS" = success',
+        "node tooling/ci/verify-aggregate.mjs",
       ]),
     );
 
@@ -161,8 +161,13 @@ describe("check:ci-completeness", () => {
     expect(coverageVerification?.includes).toEqual(
       expect.arrayContaining([
         "source tooling/ci/setup.sh",
+        "bash tooling/ci/install-gitleaks.sh",
+        "pnpm exec playwright install --with-deps chromium",
         "pnpm check:coverage-ratchet",
       ]),
+    );
+    expect(coverageVerification?.absent).toEqual(
+      expect.arrayContaining(["strace", "pnpm verify"]),
     );
   });
 
