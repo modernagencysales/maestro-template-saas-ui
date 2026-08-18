@@ -86,7 +86,7 @@ describe("customer chassis Woodpecker admission", () => {
     }
   });
 
-  it("reaches root verification once and keeps only extra chassis proof", () => {
+  it("reaches the two-lane root verification once and keeps only extra chassis proof", () => {
     const script = read("tooling/ci/verify-chassis.sh");
     const packageJson = JSON.parse(read("package.json")) as {
       readonly scripts: Readonly<Record<string, string>>;
@@ -100,7 +100,7 @@ describe("customer chassis Woodpecker admission", () => {
     const installedToolPath = script.indexOf(
       'export PATH="${HOME}/.local/bin:${PATH}"',
     );
-    const verify = script.indexOf("pnpm verify");
+    const verify = script.indexOf("pnpm verify:ci");
     expect(gitleaksInstall).toBeGreaterThan(
       script.indexOf("source tooling/ci/setup.sh"),
     );
@@ -111,7 +111,8 @@ describe("customer chassis Woodpecker admission", () => {
       script.match(/^bash tooling\/ci\/install-gitleaks\.sh$/gmu),
     ).toHaveLength(1);
     expect(script).not.toContain("install-gitleaks.sh || true");
-    expect(script.match(/^pnpm verify$/gmu)).toHaveLength(1);
+    expect(script.match(/^pnpm verify:ci$/gmu)).toHaveLength(1);
+    expect(script).not.toMatch(/^pnpm verify$/gmu);
     expect(script).not.toContain("pnpm --dir apps/web test:runtime-longevity");
     expect(packageJson.scripts.verify).toContain("pnpm test:verify-uncovered");
     expect(packageJson.scripts.verify).not.toMatch(
@@ -120,6 +121,19 @@ describe("customer chassis Woodpecker admission", () => {
     expect(packageJson.scripts["test:heavyweight-customer-artifacts"]).toBe(
       "node tooling/ci/run-heavyweight-suites.mjs",
     );
+    expect(packageJson.scripts["verify:ci"]).toBe(
+      "node tooling/ci/run-required-verification.mjs",
+    );
+    const rootTerms = packageJson.scripts.verify.split(" && ");
+    const nonCoverageTerms =
+      packageJson.scripts["verify:without-coverage"].split(" && ");
+    expect(
+      rootTerms.filter((term) => term !== "pnpm check:coverage-ratchet"),
+    ).toEqual(nonCoverageTerms);
+    expect(
+      rootTerms.filter((term) => term === "pnpm check:coverage-ratchet"),
+    ).toHaveLength(1);
+    expect(nonCoverageTerms).not.toContain("pnpm check:coverage-ratchet");
     expect(packageJson.scripts["test:verify-uncovered"]).toContain(
       "pnpm test:heavyweight-customer-artifacts",
     );

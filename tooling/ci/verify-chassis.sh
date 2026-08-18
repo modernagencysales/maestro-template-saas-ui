@@ -7,4 +7,4 @@ bash tooling/ci/install-gitleaks.sh
 export PATH="${HOME}/.local/bin:${PATH}"
 
 pnpm exec playwright install --with-deps chromium
-pnpm verify
+pnpm verify:ci

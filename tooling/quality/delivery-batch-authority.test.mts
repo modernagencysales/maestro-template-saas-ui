@@ -129,7 +129,7 @@ describe("deterministic suite ownership", () => {
     expect(packageJson.scripts.verify).not.toContain("pnpm check:app-map");
   });
 
-  it("connects the required Woodpecker context to root verify once", () => {
+  it("connects the required Woodpecker context to CI verification once", () => {
     const pipeline = read(".woodpecker/verify.yml");
     const chassis = read("tooling/ci/verify-chassis.sh");
 
@@ -140,9 +140,10 @@ describe("deterministic suite ownership", () => {
     expect(gitleaksInstall).toBeGreaterThan(
       chassis.indexOf("source tooling/ci/setup.sh"),
     );
-    expect(gitleaksInstall).toBeLessThan(chassis.indexOf("pnpm verify"));
+    expect(gitleaksInstall).toBeLessThan(chassis.indexOf("pnpm verify:ci"));
     expect(chassis).not.toContain("install-gitleaks.sh || true");
-    expect(chassis.match(/^pnpm verify$/gmu)).toHaveLength(1);
+    expect(chassis.match(/^pnpm verify:ci$/gmu)).toHaveLength(1);
+    expect(chassis).not.toMatch(/^pnpm verify$/gmu);
     expect(chassis).not.toContain("pnpm --dir apps/web test:runtime-longevity");
   });
 

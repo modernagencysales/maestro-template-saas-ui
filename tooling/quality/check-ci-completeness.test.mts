@@ -110,7 +110,7 @@ describe("check:ci-completeness", () => {
     expect(verifyChassis?.includes).toEqual(
       expect.arrayContaining([
         "bash tooling/ci/install-gitleaks.sh",
-        "pnpm verify",
+        "pnpm verify:ci",
       ]),
     );
     expect(verifyChassis?.absent).toEqual(
@@ -135,9 +135,23 @@ describe("check:ci-completeness", () => {
     expect(rootPackage?.includes).toEqual(
       expect.arrayContaining([
         '"test:heavyweight-customer-artifacts": "node tooling/ci/run-heavyweight-suites.mjs"',
+        '"verify:ci": "node tooling/ci/run-required-verification.mjs"',
         '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
         '"check:app-map": "pnpm --dir tooling/app-map check"',
         '"check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts"',
+      ]),
+    );
+
+    const requiredVerification = descriptor.requirements.find(
+      ({ file }) => file === "tooling/ci/run-required-verification.mjs",
+    );
+    expect(requiredVerification?.includes).toEqual(
+      expect.arrayContaining([
+        '"verify:without-coverage"',
+        '"check:coverage-ratchet"',
+        "Promise.all(",
+        'process.on("SIGINT", onInterrupt)',
+        'process.on("SIGTERM", onTerminate)',
       ]),
     );
   });

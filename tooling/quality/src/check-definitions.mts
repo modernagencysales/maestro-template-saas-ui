@@ -41,7 +41,7 @@ const checkDescriptorDefinitions = {
         includes: [
           "bash tooling/ci/install-gitleaks.sh",
           'export PATH="${HOME}/.local/bin:${PATH}"',
-          "pnpm verify",
+          "pnpm verify:ci",
         ],
         absent: [
           "install-gitleaks.sh || true",
@@ -199,6 +199,7 @@ const checkDescriptorDefinitions = {
           '"test:release-filesystem"',
           '"test:verify-uncovered"',
           '"test:heavyweight-customer-artifacts": "node tooling/ci/run-heavyweight-suites.mjs"',
+          '"verify:ci": "node tooling/ci/run-required-verification.mjs"',
           '"test:app-map"',
           '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
           '"check:app-map": "pnpm --dir tooling/app-map check"',
@@ -228,6 +229,18 @@ const checkDescriptorDefinitions = {
         ],
         message:
           "heavyweight customer-artifact proofs must use two serial lanes with aggregate results and signal forwarding",
+      },
+      {
+        file: "tooling/ci/run-required-verification.mjs",
+        includes: [
+          '"verify:without-coverage"',
+          '"check:coverage-ratchet"',
+          "Promise.all(",
+          'process.on("SIGINT", onInterrupt)',
+          'process.on("SIGTERM", onTerminate)',
+        ],
+        message:
+          "required verification must overlap coverage with the remaining root verdict and aggregate both lanes",
       },
       {
         file: "apps/cli/package.json",
