@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "6f7d01f158d922dd9e69069713a46c9ebab5235e",
-  "subjectRevision": "2417ef5b9acef6df58554110aedc04b1a1679619",
+  "subjectRevision": "09b2e5edccb0faaaf35e65548d6a57cbf1c65083",
   "structuralPaths": ["docs/template/product-topology.json", "pnpm-lock.yaml"],
   "ownershipCoveredPaths": [
     ".factory/project.yaml",
@@ -853,7 +853,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "6f7d01f158d922dd9e69069713a46c9ebab5235e",
-    "subjectRevision": "2417ef5b9acef6df58554110aedc04b1a1679619",
+    "subjectRevision": "09b2e5edccb0faaaf35e65548d6a57cbf1c65083",
     "complete": true,
     "risk": "high",
     "changedPaths": ["docs/template/product-topology.json", "pnpm-lock.yaml"],
