@@ -272,7 +272,9 @@ describe("materialized customer CLI runtime closure", () => {
         readonly manifestChecksum: string;
       };
       readonly blueprint: { readonly digest: string };
-      readonly privacy: { readonly privacyDocument: string | null };
+      readonly customerExtension: {
+        readonly privacy: { readonly privacyDocument: string | null };
+      };
     };
     expect(instance).toMatchObject({
       release: {
@@ -285,8 +287,10 @@ describe("materialized customer CLI runtime closure", () => {
         manifest: "releases/v0.2.0-alpha.4/manifest.json",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
-      privacy: {
-        privacyDocument: "docs/template/agent-pack-privacy.md",
+      customerExtension: {
+        privacy: {
+          privacyDocument: "docs/template/agent-pack-privacy.md",
+        },
       },
     });
     expect(instance.ownership.manifestChecksum).toBe(

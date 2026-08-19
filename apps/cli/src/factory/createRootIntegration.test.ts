@@ -603,7 +603,7 @@ describe("create root integration", () => {
       "apps/web/src/adapters/records/fake.ts",
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
-      "apps/web/src/routes/_workspace.records.tsx",
+      "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
     ] as const;
     for (const path of required) {
       expect(existsSync(join(targetRoot, path)), path).toBe(true);
@@ -621,9 +621,11 @@ describe("create root integration", () => {
         name: "My App",
         firstOutcome: "Create and review records",
       },
-      privacy: {
-        maestro: { productTelemetry: "none", automaticUpload: false },
-        privacyDocument: "docs/template/agent-pack-privacy.md",
+      customerExtension: {
+        privacy: {
+          maestro: { productTelemetry: "none", automaticUpload: false },
+          privacyDocument: "docs/template/agent-pack-privacy.md",
+        },
       },
     });
     expect(
