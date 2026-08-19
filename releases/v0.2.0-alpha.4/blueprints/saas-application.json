@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "35e370ec0d9394c0f9d7a099ed1a46d77b695e12",
+    "sourceCommit": "fe593892c276a89b6a35d80712a30a59081e1d4c",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -3464,8 +3464,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:868d6d33dcb7670f7b41751d7d46a9ff346a9e7b012154fbcff4a17dd6d07690",
-      "replaces": "copy"
+      "sha256": "sha256:868d6d33dcb7670f7b41751d7d46a9ff346a9e7b012154fbcff4a17dd6d07690"
     },
     {
       "path": "docs/template/generated/workflow-semantics.md",
@@ -5532,8 +5531,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:cc24f18e90f978d85d19869f242b3a9aa6d8dc795961a42a14a26845a74e88b3",
-      "replaces": "copy"
+      "sha256": "sha256:cc24f18e90f978d85d19869f242b3a9aa6d8dc795961a42a14a26845a74e88b3"
     },
     {
       "path": "pnpm-lock.yaml",
@@ -5556,16 +5554,14 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:c5ae2b3495a666874b3042edf7fc3538fef929846ee834357c0355ae51051219",
-      "replaces": "copy"
+      "sha256": "sha256:c5ae2b3495a666874b3042edf7fc3538fef929846ee834357c0355ae51051219"
     },
     {
       "path": "product.contract.yaml",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:f5ab5776b64b334b526e86ba57f246e8770e85d6c13eee23da76d416b339417b",
-      "replaces": "copy"
+      "sha256": "sha256:f5ab5776b64b334b526e86ba57f246e8770e85d6c13eee23da76d416b339417b"
     },
     {
       "path": "project.config.json",
