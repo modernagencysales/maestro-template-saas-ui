@@ -1,0 +1,9 @@
+{
+  "title": "Sortable task list",
+  "description": "",
+  "version": "1.0.0",
+  "canvas": {
+    "center": true,
+    "height": "400px"
+  }
+}

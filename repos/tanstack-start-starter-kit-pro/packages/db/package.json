@@ -1,0 +1,44 @@
+{
+  "name": "@workspace/db",
+  "version": "0.1.0",
+  "description": "Database schemas and models",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "db:push": "drizzle-kit push",
+    "db:generate": "drizzle-kit generate",
+    "db:migrate": "drizzle-kit migrate",
+    "db:check": "drizzle-kit check",
+    "db:studio": "drizzle-kit studio",
+    "db:seed": "tsx scripts/seed.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "imports": {
+    "#db": "./src/db.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./auth": "./src/auth/auth.sql.ts",
+    "./crud": "./src/crud-factory.ts",
+    "./utils": "./src/utils.ts"
+  },
+  "dependencies": {
+    "@paralleldrive/cuid2": "^3.0.4",
+    "env": "workspace:*",
+    "drizzle-orm": "1.0.0-rc.4",
+    "drizzle-seed": "1.0.0-rc.4",
+    "postgres": "3.4.7",
+    "slug": "^11.0.1",
+    "typeid-js": "^1.2.0",
+    "zod": "^4.1.1"
+  },
+  "devDependencies": {
+    "dotenv": "^17.2.3",
+    "drizzle-kit": "1.0.0-rc.4",
+    "pg": "^8.16.3",
+    "tsx": "^4.20.5",
+    "@typescript/native": "npm:typescript@^7.0.2"
+  }
+}

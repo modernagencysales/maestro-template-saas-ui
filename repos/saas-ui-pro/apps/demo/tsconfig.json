@@ -1,0 +1,95 @@
+{
+  "compilerOptions": {
+    "target": "es2019",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "forceConsistentCasingInFileNames": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "downlevelIteration": true,
+    "allowImportingTsExtensions": true,
+    "jsx": "react-jsx",
+    "baseUrl": "./",
+    "paths": {
+      "#*": [
+        "./src/*"
+      ],
+      "#config": [
+        "./src/config"
+      ],
+      "#theme": [
+        "./src/theme"
+      ],
+      "#components": [
+        "./src/components"
+      ],
+      "#components/*": [
+        "./src/components/*"
+      ],
+      "#hooks/*": [
+        "./src/hooks/*"
+      ],
+      "#icons/*": [
+        "./src/icons/*"
+      ],
+      "#lib/*": [
+        "./src/lib/*"
+      ],
+      "#ui/*": [
+        "./src/ui/*"
+      ],
+      "@saas-ui-pro/react": [
+        "../../packages/react/src/index.ts"
+      ],
+      "@saas-ui-pro/billing": [
+        "../../packages/billing/src/index.ts"
+      ],
+      "@saas-ui-pro/onboarding": [
+        "../../packages/onboarding/src/index.ts"
+      ],
+      "@saas-ui-pro/feature-flags": [
+        "../../packages/feature-flags/src/index.ts"
+      ],
+      "@saas-ui-pro/kanban": [
+        "../../packages/kanban/src/index.ts"
+      ],
+      "@saas-ui/auth-provider": [
+        "./src/lib/auth-provider.tsx"
+      ],
+      "@saas-ui/hooks": ["node_modules/@saas-ui/hooks"],
+      "@saas-ui/use-hotkeys": ["node_modules/@saas-ui/use-hotkeys"]
+    },
+    "incremental": true,
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "customConditions": [
+      "sui",
+      "sui-pro"
+    ]
+  },
+  "include": [
+    "next.d.ts",
+    "src",
+    ".next/types/**/*.ts",
+    "../../packages/react/src/components/data-grid/react-table-config.d.ts",
+    ".next/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "cypress",
+    "**/*.stories.tsx"
+  ]
+}

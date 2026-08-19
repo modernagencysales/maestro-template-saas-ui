@@ -1,0 +1,48 @@
+{
+  "name": "@saas-ui-pro/onboarding",
+  "version": "1.0.0-next.1",
+  "license": "https://saas-ui.dev/license",
+  "exports": {
+    ".": {
+      "sui-pro": "./src/index.ts",
+      "require": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.mjs"
+    }
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.mjs",
+  "types": "./dist/index.d.ts",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/saas-js/saas-ui-pro.git",
+    "directory": "saas-ui/onboarding"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsup src/index.ts --config tsup.config.ts",
+    "lint": "TIMING=1 eslint src/**/*.ts* --fix",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@floating-ui/react": "^0.27.5",
+    "@saas-ui/hooks": "3.0.0-next.4"
+  },
+  "peerDependencies": {
+    "@ark-ui/react": "5.27.1",
+    "@chakra-ui/react": "3.28.1",
+    "@emotion/react": ">=11",
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@storybook/react-vite": "^10.0.8",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-icons": "^5.5.0",
+    "tsup": "^8.5.1",
+    "zod": "4.1.5"
+  }
+}

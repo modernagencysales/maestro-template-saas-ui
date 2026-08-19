@@ -1,0 +1,46 @@
+{
+  "name": "@workspace/api",
+  "description": "API services",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "default": "./index.ts"
+    },
+    "./shared": {
+      "default": "./shared.ts"
+    },
+    "./modules/*": "./modules/*.ts",
+    "./types": "./types.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "billing:sync": "tsx --env-file ../../.env scripts/sync-billing-plans.ts"
+  },
+  "imports": {
+    "#trpc": "./trpc/trpc.ts",
+    "#adapters": "./adapters/index.ts",
+    "#adapters/*": "./adapters/*",
+    "#modules/*": "./modules/*",
+    "#utils/*": "./utils/*",
+    "#types": "./types.ts"
+  },
+  "dependencies": {
+    "@ngneat/falso": "^8.0.2",
+    "@trpc/server": "^11.7.2",
+    "date-fns": "^4.1.0",
+    "env": "workspace:*",
+    "slug": "^11.0.1",
+    "superjson": "2.2.5",
+    "zod": "^4.1.1",
+    "@workspace/better-auth": "workspace:*",
+    "@workspace/config": "workspace:*",
+    "@workspace/email": "workspace:*",
+    "@workspace/db": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/slug": "^5.0.9",
+    "tsx": "^4.20.5",
+    "@typescript/native": "npm:typescript@^7.0.2"
+  }
+}

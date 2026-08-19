@@ -1,0 +1,65 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+node_modules/
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/sdks
+!.yarn/versions
+
+# build
+.turbo
+tsconfig.tsbuildinfo
+
+# generated
+**/*.generated.*
+**/*.graphql.d.ts
+**/*.graphqls.d.ts
+
+# testing
+coverage
+
+# next.js
+.next/
+.nextron/
+out/
+
+# production
+build
+dist
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# local env files
+.env
+.env.*
+
+# deployment
+.vercel
+
+# IDE
+!.vscode
+.idea/**/*
+# Local Netlify folder
+.netlify
+
+apps/test
+
+# Generated registry artifacts
+/packages/registry/public/r/
+/packages/registry/__registry__/
+/packages/registry/public/source/
+
+changes.md
+
+/packages/storybook/storybook-static/

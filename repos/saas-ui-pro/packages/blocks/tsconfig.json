@@ -1,0 +1,21 @@
+{
+  "extends": "@tsconfig/recommended",
+  "compilerOptions": {
+    "outDir": "./dist",
+    "module": "Preserve",
+    "target": "ES2022",
+    "moduleResolution": "Bundler",
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+    "jsx": "react-jsx",
+    "customConditions": ["sui", "sui-pro"],
+    "baseUrl": ".",
+    "paths": {
+      "#hooks/*": ["hooks/*"],
+      "#registry/default/*": ["../registry/public/source/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["**/node_modules", "**/dist"]
+}

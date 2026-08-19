@@ -56,6 +56,7 @@ const FRONTEND_SUPPORT_PATHS = [
   "docs/template/saas-ui-upstream-update.md",
   "docs/template/saas-ui-golden-review.md",
   "docs/template/saas-ui-upstream.json",
+  "docs/template/saas-ui-screen-catalog.json",
   "docs/template/saas-ui-registry-files.json",
   "docs/template/saas-ui-starter-files.json",
   "docs/template/saas-ui-acceptance.json",

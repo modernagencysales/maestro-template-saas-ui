@@ -218,6 +218,7 @@ describe("SaaS UI generated target artifact boundary", () => {
         "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
         "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
         "apps/web/src/routes/_app/$workspace/settings/account/profile.tsx",
+        "docs/template/saas-ui-screen-catalog.json",
       ]) {
         expect(paths.has(path)).toBe(true);
       }

@@ -1,0 +1,12 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "customConditions": ["sui-pro"],
+    "paths": {
+      "@saas-ui-pro/pro": ["../react/src/index.ts"],
+      "@saas-ui-pro/onboarding": ["../onboarding/src/index.ts"]
+    }
+  },
+  "include": [".storybook/*.ts"]
+}

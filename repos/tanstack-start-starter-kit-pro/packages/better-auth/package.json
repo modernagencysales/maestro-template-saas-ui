@@ -1,0 +1,35 @@
+{
+  "name": "@workspace/better-auth",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./client": "./src/client.ts",
+    "./env": "./src/env.ts"
+  },
+  "scripts": {
+    "clean": "rm -rf .turbo node_modules",
+    "format": "prettier --check . --ignore-path ../../.gitignore",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "better-auth": "^1.4.1",
+    "env": "workspace:*",
+    "zod": "^4.1.1",
+    "@workspace/email": "workspace:*",
+    "@workspace/db": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "devDependencies": {
+    "eslint": "^10.6.0",
+    "prettier": "^3.6.2",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "@typescript/native": "npm:typescript@^7.0.2"
+  }
+}

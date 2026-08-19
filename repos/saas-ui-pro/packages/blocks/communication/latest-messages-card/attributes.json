@@ -1,0 +1,10 @@
+{
+  "title": "Latest Messages Card",
+  "description": "Card that lists the latest messages.",
+  "version": "1.0.0",
+  "public": true,
+  "canvas": {
+    "center": true,
+    "maxWidth": "480px"
+  }
+}

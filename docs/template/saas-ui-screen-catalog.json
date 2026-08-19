@@ -1,0 +1,1124 @@
+{
+  "schemaVersion": 1,
+  "pins": {
+    "starter": "b76cb4514b9ab47f7db87901cb9b593b4adc3129",
+    "pro": "ac3a40c8dc05e403f9d501a87c092646891d3c40"
+  },
+  "repositories": {
+    "starter": "https://github.com/saas-js/tanstack-start-starter-kit-pro.git",
+    "pro": "https://github.com/saas-js/saas-ui-pro.git"
+  },
+  "selectionOrder": [
+    "saas-ui-pro full demo screen",
+    "saas-ui-pro assembled Storybook block or template",
+    "TanStack Starter screen",
+    "loose primitive only when no assembled source applies"
+  ],
+  "sources": {
+    "fullDemo": "repos/saas-ui-pro/apps/demo",
+    "proStorybook": "repos/saas-ui-pro/packages/storybook",
+    "starter": "repos/tanstack-start-starter-kit-pro"
+  },
+  "demoRoutes": [
+    {
+      "id": "pro-demo:apps/demo/src/app/(auth)/login/page.tsx",
+      "route": "/login",
+      "name": "Login",
+      "source": "apps/demo/src/app/(auth)/login/page.tsx",
+      "composition": "apps/demo/src/features/auth/pages/login",
+      "sha256": "4e381f549efe4ec46766481b2b02aae08f3054ae3250d5b71f8ac5ec15d0db47"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(auth)/signup/page.tsx",
+      "route": "/signup",
+      "name": "Signup",
+      "source": "apps/demo/src/app/(auth)/signup/page.tsx",
+      "composition": "apps/demo/src/features/auth/pages/signup",
+      "sha256": "457b74c9032ed8efe77e60a98aee2166a0f2d2107d564df168ea9c9f5e1b0396"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/companies/page.tsx",
+      "route": "/[workspace]/companies",
+      "name": "Companies",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/companies/page.tsx",
+      "composition": "apps/demo/src/features/companies/companies-page.tsx",
+      "sha256": "879cb04da5ebc11bd644074438f0f96bd92e71fdff7af0ab462afaa8615f0624"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/contacts/[type]/page.tsx",
+      "route": "/[workspace]/contacts/[type]",
+      "name": "Contacts",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/contacts/[type]/page.tsx",
+      "sha256": "3430ac7a3679b087811093d3a3eca7306f099346426ba7c74d9bc2bc7790ceb1"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/contacts/page.tsx",
+      "route": "/[workspace]/contacts",
+      "name": "Contacts",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/contacts/page.tsx",
+      "composition": "apps/demo/src/features/contacts/list-page",
+      "sha256": "ba905f4b22b7df5bb44ef93eff1187370199f25ae3519838ef92f3c66e0f17b3"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/contacts/view/[id]/page.tsx",
+      "route": "/[workspace]/contacts/view/[id]",
+      "name": "View",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/contacts/view/[id]/page.tsx",
+      "composition": "apps/demo/src/features/contacts/view-page.tsx",
+      "sha256": "3fd2867a61528ad3163230fdaa07e8f03bffcc9c61bc003c928c07efee85c6f1"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/page.tsx",
+      "route": "/[workspace]",
+      "name": "Dashboard",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/page.tsx",
+      "sha256": "e51badc9ec5cb0e2fcfc774c027b117ae4b47df54143db9837994f360af9e501"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/reports/page.tsx",
+      "route": "/[workspace]/reports",
+      "name": "Reports",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/reports/page.tsx",
+      "composition": "apps/demo/src/features/reports/reports-page",
+      "sha256": "aa688e70f6588a110a22abbfe5a1fcde22a2513f25884f5b4ad56547e73732d9"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/search/page.tsx",
+      "route": "/[workspace]/search",
+      "name": "Search",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/search/page.tsx",
+      "composition": "apps/demo/src/features/search/search-page.tsx",
+      "sha256": "167b05d470685151b4d7372904e3d5710bbc06f71b5c5a3b0a8c88ce12b91605"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/tag/[tag]/page.tsx",
+      "route": "/[workspace]/tag/[tag]",
+      "name": "Tag",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/tag/[tag]/page.tsx",
+      "composition": "apps/demo/src/features/contacts/list-page",
+      "sha256": "ba905f4b22b7df5bb44ef93eff1187370199f25ae3519838ef92f3c66e0f17b3"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/updates/[id]/page.tsx",
+      "route": "/[workspace]/updates/[id]",
+      "name": "Updates",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/updates/[id]/page.tsx",
+      "composition": "apps/demo/src/features/updates/updates-page.tsx",
+      "sha256": "4b242df07b0584a31536325766e272bb40eff6be01f1d23a722be76146cad8f6"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/updates/page.tsx",
+      "route": "/[workspace]/updates",
+      "name": "Updates",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/updates/page.tsx",
+      "sha256": "294df46c6a8b9b2d9c42ad2da64c0527b9d2fbdd62fc05f537f2b04eda09e535"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/(app)/workflows/page.tsx",
+      "route": "/[workspace]/workflows",
+      "name": "Workflows",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/(app)/workflows/page.tsx",
+      "composition": "apps/demo/src/features/workflows/workflows-page.tsx",
+      "sha256": "a1c43d9aea7b2099daafae8e5439f531f4cc3d17b872f774e616976d24d0f28f"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/settings/account/api/page.tsx",
+      "route": "/[workspace]/settings/account/api",
+      "name": "Api",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/settings/account/api/page.tsx",
+      "composition": "apps/demo/src/features/settings/pages/account/api.tsx",
+      "sha256": "b563c70767fee82058e3029f6b205623df2a194b1a4d3bec61ec8aeac50edb01"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/settings/account/notifications/page.tsx",
+      "route": "/[workspace]/settings/account/notifications",
+      "name": "Notifications",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/settings/account/notifications/page.tsx",
+      "composition": "apps/demo/src/features/settings/pages/account/notifications.tsx",
+      "sha256": "e7d845228a80ca5206a05ccf45226e0593c4aa0641f59804efc1637d39599ddf"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/settings/account/page.tsx",
+      "route": "/[workspace]/settings/account",
+      "name": "Account",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/settings/account/page.tsx",
+      "composition": "apps/demo/src/features/settings/pages/account/profile.tsx",
+      "sha256": "026d0ed2667c85a09357a3ae13aa7faad859da691b6785351022f19378eb0136"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/settings/account/security/page.tsx",
+      "route": "/[workspace]/settings/account/security",
+      "name": "Security",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/settings/account/security/page.tsx",
+      "composition": "apps/demo/src/features/settings/pages/account/security.tsx",
+      "sha256": "16a1be5dff8553036a17d50cbea8e2b4834de1a54b579306f8881ec7edd57f6a"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/settings/billing/page.tsx",
+      "route": "/[workspace]/settings/billing",
+      "name": "Billing",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/settings/billing/page.tsx",
+      "composition": "apps/demo/src/features/settings/pages/billing",
+      "sha256": "5ad606f500f1395491567c09400e4a1479fc6040243932b67c971bb76d680dd5"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/settings/members/page.tsx",
+      "route": "/[workspace]/settings/members",
+      "name": "Members",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/settings/members/page.tsx",
+      "composition": "apps/demo/src/features/settings/pages/members",
+      "sha256": "680f026b0a04b931c5a7c0ab4f8cf522cc2d070d31d4ca5c008cfd24e47f0c93"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/settings/organization/page.tsx",
+      "route": "/[workspace]/settings/organization",
+      "name": "Organization",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/settings/organization/page.tsx",
+      "composition": "apps/demo/src/features/settings/pages/organization",
+      "sha256": "4315fd3d8e1b7fa9cd37438af824f204d6a95d267db3eaa1aea8e8eb4512e8d4"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/settings/page.tsx",
+      "route": "/[workspace]/settings",
+      "name": "Settings",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/settings/page.tsx",
+      "composition": "apps/demo/src/features/settings/pages/overview",
+      "sha256": "a1ce258342327ccdec778550643112b573430f5a9422b8fb158a0a24f168819f"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/[workspace]/settings/plans/page.tsx",
+      "route": "/[workspace]/settings/plans",
+      "name": "Plans",
+      "source": "apps/demo/src/app/(dashboard)/[workspace]/settings/plans/page.tsx",
+      "composition": "apps/demo/src/features/settings/pages/plans",
+      "sha256": "d662a729cd778d9177a8bb8edcd5c4ec866dc70b6792de453357ff3489231e79"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/getting-started/page.tsx",
+      "route": "/getting-started",
+      "name": "Getting Started",
+      "source": "apps/demo/src/app/(dashboard)/getting-started/page.tsx",
+      "composition": "apps/demo/src/features/getting-started/getting-started-page",
+      "sha256": "246652cc6f55b6741ea078925817787803515cd17d503c5de42a2acf67ee2eb6"
+    },
+    {
+      "id": "pro-demo:apps/demo/src/app/(dashboard)/page.tsx",
+      "route": "/",
+      "name": "Dashboard",
+      "source": "apps/demo/src/app/(dashboard)/page.tsx",
+      "sha256": "98e7ecc94e30590c76b08e8342f13afb91364b9896753e10a2dce05897c91bb7"
+    }
+  ],
+  "demoStates": [
+    {
+      "id": "pro-demo-state:apps/demo/src/app/error.tsx",
+      "route": "/_error",
+      "name": "_error",
+      "source": "apps/demo/src/app/error.tsx",
+      "sha256": "06278d4327674ceda4aa4562d7f0d95575bcc8650100b8294a3ee91814efdaba"
+    },
+    {
+      "id": "pro-demo-state:apps/demo/src/app/not-found.tsx",
+      "route": "/_not-found",
+      "name": "_not Found",
+      "source": "apps/demo/src/app/not-found.tsx",
+      "sha256": "f5109ce42d348cc8f77145cb0b4c837a5264a3e38d2a1e9a352cb01ac297f1ce"
+    }
+  ],
+  "stories": [
+    {
+      "id": "pro-story:apps/demo/src/components/app-loader/app-loader.stories.tsx",
+      "title": "Components/AppLoader",
+      "source": "apps/demo/src/components/app-loader/app-loader.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "f3025c860d4faa33780d08b7b8cf2c13cc9032e2b0c0685c5017817813a9b06b"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/breadcrumbs/breadcrumbs.stories.tsx",
+      "title": "Components/Breadcrumbs",
+      "source": "apps/demo/src/components/breadcrumbs/breadcrumbs.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "b37c0219c11f2e064d4452ab8a1562f7b3453b9b0be51110a9baf672a4a76a33"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/button/button.stories.tsx",
+      "title": "Components/LinkButton",
+      "source": "apps/demo/src/components/button/button.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "78daa6910055aeb8e74881cababa28e3004e316a609610a60cf30e07d6b95b30"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/date-picker/date-range-picker.stories.tsx",
+      "title": "Components/DateRangePicker",
+      "source": "apps/demo/src/components/date-picker/date-range-picker.stories.tsx",
+      "variants": ["Presets"],
+      "preview": "pro-storybook",
+      "sha256": "8c841d9dd102750524ef2d1d3f9bb9596a0b6528d365d8d72cf01e55060d3d14"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/date-time/date-time.stories.tsx",
+      "title": "Components/DateTimeSince",
+      "source": "apps/demo/src/components/date-time/date-time.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "6e6800dfc5c6616343dd994388fa5ceab73d309789f4316cc9b42f913d7905cc"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/help-center/help-center.stories.tsx",
+      "title": "Components/HelpCenter",
+      "source": "apps/demo/src/components/help-center/help-center.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "f3cd5612e672a65008a5fa05b01af9778b800395609389dd9469f3d3d8077ec9"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/inline-search/inline-search.stories.tsx",
+      "title": "Components/InlineSearch",
+      "source": "apps/demo/src/components/inline-search/inline-search.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "697e22abab1f31da8dafe4939d7f8f3f6158335da166cbbbe181c872f1bd8a99"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/invite-dialog/invite-dialog.stories.tsx",
+      "title": "Components/InviteDialog",
+      "source": "apps/demo/src/components/invite-dialog/invite-dialog.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "1a74e88fdfafd3d1bb54618de347f337db04dc808df1f8e1f2a69b33362879f0"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/logo/logo.stories.tsx",
+      "title": "Components/Logo",
+      "source": "apps/demo/src/components/logo/logo.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "480dd50cc979e38813bc40c5aab7b53124908e7b557796078b200062ce948c67"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/search-input/search-input.stories.tsx",
+      "title": "Components/SearchInput",
+      "source": "apps/demo/src/components/search-input/search-input.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "073ddfda01d3031c69686c2b9c95ac5e14d49b30c3e4c8c15d9c0f56b8812ec7"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/segmented-control/segmented-control.stories.tsx",
+      "title": "Components/SegmentedControl",
+      "source": "apps/demo/src/components/segmented-control/segmented-control.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "02522596a94b4bad63975853c410f3b9c14107074cf6e668b42d7c97e1020648"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/sortable-nav-group/sortable-nav-group.stories.tsx",
+      "title": "Components/SortableNavGroup",
+      "source": "apps/demo/src/components/sortable-nav-group/sortable-nav-group.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "66670079fa628e6b99b4c235dd5c00c673b685ca9a96f7be74c9164f3f495ddc"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/status-badge/status-badge.stories.tsx",
+      "title": "Components/StatusBadge",
+      "source": "apps/demo/src/components/status-badge/status-badge.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "b8c6914f68d7cf5368920067bd95ab2cfb7c26d2a2d8885fffb08ed6a753b057"
+    },
+    {
+      "id": "pro-story:apps/demo/src/components/tags-list/tags-list.stories.tsx",
+      "title": "Components/TagsList",
+      "source": "apps/demo/src/components/tags-list/tags-list.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "0c67a484724ea108d0f137e1dcb311d47f5c23efee097b88650d07f5ced7ebc1"
+    },
+    {
+      "id": "pro-story:packages/blocks/cards/task-card-with-labels/task-card-with-labels.stories.tsx",
+      "title": "Blocks/Cards/TaskCardWithLabels",
+      "source": "packages/blocks/cards/task-card-with-labels/task-card-with-labels.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "a5a63ab72db320cfd168fb2332b9a064913fd68cedb2d1ad964b87e17659ad57"
+    },
+    {
+      "id": "pro-story:packages/blocks/cards/task-card-with-properties/task-card-with-properties.stories.tsx",
+      "title": "Blocks/Cards/TaskCardWithProperties",
+      "source": "packages/blocks/cards/task-card-with-properties/task-card-with-properties.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "d07e1e97a0313b8b375d98030c8649d3627b173685106022ace1221c5832415d"
+    },
+    {
+      "id": "pro-story:packages/blocks/communication/chat-details/chat-details.stories.tsx",
+      "title": "Blocks/Communication/ChatDetails",
+      "source": "packages/blocks/communication/chat-details/chat-details.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "cb97355ff04cee15570d0f3418c95ec249d0b5d03604dd11a0c1f354fafcaa6c"
+    },
+    {
+      "id": "pro-story:packages/blocks/communication/latest-messages-card/latest-messages-card.stories.tsx",
+      "title": "Blocks/Communication/LatestMessagesCard",
+      "source": "packages/blocks/communication/latest-messages-card/latest-messages-card.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "612d71afb97a4e61017c68fba75fc2095c598e3c5244d2b88e19e27b502fd0d5"
+    },
+    {
+      "id": "pro-story:packages/blocks/drawers/add-contact-drawer/add-contact-drawer.stories.tsx",
+      "title": "Blocks/Drawers/AddContactDrawer",
+      "source": "packages/blocks/drawers/add-contact-drawer/add-contact-drawer.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "f8f15f77804eccb8c03fc0279e5d954b540e117b2ef35b13bea0d3c425e501f1"
+    },
+    {
+      "id": "pro-story:packages/blocks/files/file-cards/file-cards.stories.tsx",
+      "title": "Blocks/Files/FileCards",
+      "source": "packages/blocks/files/file-cards/file-cards.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "384f31e8e905ced581d6ea36d54c3b3e8da94095cd9b1a3fcd6b885268921e6d"
+    },
+    {
+      "id": "pro-story:packages/blocks/files/files-list-card/files-list-card.stories.tsx",
+      "title": "Blocks/Files/FilesListCard",
+      "source": "packages/blocks/files/files-list-card/files-list-card.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "259ab17f0f3863752cf8e48b86bb51818acf5db9503f3c335f1108f667df3a45"
+    },
+    {
+      "id": "pro-story:packages/blocks/kpi-cards/metric-card-simple/metric-card-simple.stories.tsx",
+      "title": "Blocks/KPI Cards/MetricCardSimple",
+      "source": "packages/blocks/kpi-cards/metric-card-simple/metric-card-simple.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "4d6fe0c06eeb3de08f20a08ad04fcd3bb4c247dc4b8af70393ed7911ccbc41a9"
+    },
+    {
+      "id": "pro-story:packages/blocks/kpi-cards/metric-card-with-button/metric-card-with-button.stories.tsx",
+      "title": "Blocks/KPI Cards/MetricCardWithButton",
+      "source": "packages/blocks/kpi-cards/metric-card-with-button/metric-card-with-button.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "7dcc6a3078722a226ef02fc8e847f3738a72c8f2abb5c951a261cf15a79e5b91"
+    },
+    {
+      "id": "pro-story:packages/blocks/kpi-cards/metric-card-with-icon/metric-card-with-icon.stories.tsx",
+      "title": "Blocks/KPI Cards/MetricCardWithIcon",
+      "source": "packages/blocks/kpi-cards/metric-card-with-icon/metric-card-with-icon.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "17faebcf6316034dc96d996b1482ab584b6077218392926f7616c2c2d2a1c7ae"
+    },
+    {
+      "id": "pro-story:packages/blocks/lists/sortable-task-list/sortable-task-list.stories.tsx",
+      "title": "Blocks/Lists/SortableTaskList",
+      "source": "packages/blocks/lists/sortable-task-list/sortable-task-list.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "7f693d99ef45c6748c8d7dc5421421a8546154643f51729b2b2799ae78fa7d7c"
+    },
+    {
+      "id": "pro-story:packages/blocks/menus/organization-menu/organization-menu.stories.tsx",
+      "title": "Blocks/Menus/OrganizationMenu",
+      "source": "packages/blocks/menus/organization-menu/organization-menu.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "802ff39f1a282e305d8cf9a4d9e2ee7d730a263a76173fd8fe06d1a96de69d57"
+    },
+    {
+      "id": "pro-story:packages/blocks/menus/roles-menu/roles-menu.stories.tsx",
+      "title": "Blocks/Menus/RolesMenu",
+      "source": "packages/blocks/menus/roles-menu/roles-menu.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "10b4318334338857edccf0f70dc5b3beda20272272adfcff7edf2f57e0015c49"
+    },
+    {
+      "id": "pro-story:packages/blocks/menus/user-menu/user-menu.stories.tsx",
+      "title": "Blocks/Menus/UserMenu",
+      "source": "packages/blocks/menus/user-menu/user-menu.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "8ffedfb49028c484edc26ce67d13b09454b973a52c9b96c0ca853923d7ce58ea"
+    },
+    {
+      "id": "pro-story:packages/blocks/modals/feedback-modal/feedback-modal.stories.tsx",
+      "title": "Blocks/Modals/FeedbackModal",
+      "source": "packages/blocks/modals/feedback-modal/feedback-modal.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "41ffaf63b35eac46929eaea79ed01898847596587a56560968570f5f3aa8bc53"
+    },
+    {
+      "id": "pro-story:packages/blocks/modals/invite-people-modal/invite-people-modal.stories.tsx",
+      "title": "Blocks/Modals/InvitePeopleModal",
+      "source": "packages/blocks/modals/invite-people-modal/invite-people-modal.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "22bcb224d522d08864b0ac1f4e257b6f50a48e334bd7a575b9d05ad8aeca25fc"
+    },
+    {
+      "id": "pro-story:packages/blocks/modals/manage-tags-modal/manage-tags-modal.stories.tsx",
+      "title": "Blocks/Modals/ManageTagsModal",
+      "source": "packages/blocks/modals/manage-tags-modal/manage-tags-modal.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "0dcd80bc53606ad49dcafa3c4361d654ab842937887561ae879fab3e765c6678"
+    },
+    {
+      "id": "pro-story:packages/blocks/modals/select-users-modal/select-users-modal.stories.tsx",
+      "title": "Blocks/Modals/SelectUsersModal",
+      "source": "packages/blocks/modals/select-users-modal/select-users-modal.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "29eb4e6959783e0d32e9f991373eb8123c51d99ec31c28329440489e78637fd6"
+    },
+    {
+      "id": "pro-story:packages/blocks/settings/integration-card/integration-card.stories.tsx",
+      "title": "Blocks/Settings/IntegrationCard",
+      "source": "packages/blocks/settings/integration-card/integration-card.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "2ebe32c4955a658675af0a398a8a6bb2195b72c37d4ed731092c6b8e7cc14d96"
+    },
+    {
+      "id": "pro-story:packages/blocks/settings/notification-settings/notification-settings.stories.tsx",
+      "title": "Blocks/Settings/NotificationSettings",
+      "source": "packages/blocks/settings/notification-settings/notification-settings.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "541cb0177817508fe55e95f88a87480be1ae9d89018041e22316e1018ba68ad2"
+    },
+    {
+      "id": "pro-story:packages/blocks/settings/workspace-members-settings/workspace-members-settings.stories.tsx",
+      "title": "Blocks/Settings/Workspace Members Settings",
+      "source": "packages/blocks/settings/workspace-members-settings/workspace-members-settings.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "f63d255d8bded86a17ae97be9b804913295008eb7038589800a8e735bd7538d6"
+    },
+    {
+      "id": "pro-story:packages/blocks/sidebar-layouts/sidebar1/sidebar1.stories.tsx",
+      "title": "Blocks/SidebarLayouts/Sidebar1",
+      "source": "packages/blocks/sidebar-layouts/sidebar1/sidebar1.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "a564cc79902d958f95f729f801ad615e942202e684ba82caccbe065618e596c5"
+    },
+    {
+      "id": "pro-story:packages/blocks/sidebar-layouts/sidebar2/sidebar2.stories.tsx",
+      "title": "Blocks/SidebarLayouts/Sidebar2",
+      "source": "packages/blocks/sidebar-layouts/sidebar2/sidebar2.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "b464484c07f96295d4135771bcba88197d68ca3575efe954ede374c82cce0e4e"
+    },
+    {
+      "id": "pro-story:packages/blocks/sidebar-layouts/sidebar3/sidebar3.stories.tsx",
+      "title": "Blocks/SidebarLayouts/Sidebar3",
+      "source": "packages/blocks/sidebar-layouts/sidebar3/sidebar3.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "c42003c0f0879b4d21efca7c1ce628ff98c133a5680e60c8f0bfee469225d74f"
+    },
+    {
+      "id": "pro-story:packages/blocks/sidebar-layouts/sidebar4/sidebar4.stories.tsx",
+      "title": "Blocks/SidebarLayouts/Sidebar4",
+      "source": "packages/blocks/sidebar-layouts/sidebar4/sidebar4.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "902501908a5c073833f8624e6a1c5eb5aed1c53b4b04bfd4178d8dee87166c99"
+    },
+    {
+      "id": "pro-story:packages/blocks/stacked-layouts/navbar-branded/navbar-branded.stories.tsx",
+      "title": "Blocks/StackedLayouts/NavbarBranded",
+      "source": "packages/blocks/stacked-layouts/navbar-branded/navbar-branded.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "cefffb0e67ff30ed29f2dc190d4dbea37c43cede096d0f7c1a2aa253dbd095ff"
+    },
+    {
+      "id": "pro-story:packages/blocks/stacked-layouts/navbar-tabs/navbar-tabs.stories.tsx",
+      "title": "Blocks/StackedLayouts/NavbarTabs",
+      "source": "packages/blocks/stacked-layouts/navbar-tabs/navbar-tabs.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "726f18a8bb7f8f078b5c303ab0e57c9eb05633fdd86d24ef54a88feb6ab7e9c4"
+    },
+    {
+      "id": "pro-story:packages/blocks/templates/writer/writer.stories.tsx",
+      "title": "Templates/Writer",
+      "source": "packages/blocks/templates/writer/writer.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "351c60ff16b69fdeeab6cf7168e84fb2facd33181b18c84ecc999838362a5b69"
+    },
+    {
+      "id": "pro-story:packages/conditions/src/hooks/use-conditions.stories.tsx",
+      "title": "Hooks/useConditions",
+      "source": "packages/conditions/src/hooks/use-conditions.stories.tsx",
+      "variants": [
+        "ActiveConditionsList",
+        "DrillDownMenu",
+        "DrillDownMenuWithFilter",
+        "DropdownMenu"
+      ],
+      "preview": "pro-storybook",
+      "sha256": "69f883e19d847ca1a3556c77ef2f44bd68e3bace0b726e8497e28e110d4b0158"
+    },
+    {
+      "id": "pro-story:packages/docs/welcome/welcome.stories.tsx",
+      "title": "Getting Started/Welcome",
+      "source": "packages/docs/welcome/welcome.stories.tsx",
+      "variants": [],
+      "preview": "pro-storybook",
+      "sha256": "b0425ec63cba02c5c20a071eaa8293b316ebe152d2b794bc65925de045df963d"
+    },
+    {
+      "id": "pro-story:packages/feature-flags/src/stories/features.stories.tsx",
+      "title": "Components/FeatureFlags/FeaturesProvider",
+      "source": "packages/feature-flags/src/stories/features.stories.tsx",
+      "variants": [
+        "FeatureValue",
+        "MultiplePlans",
+        "MultipleSegments",
+        "Roles",
+        "UpgradePlan"
+      ],
+      "preview": "pro-storybook",
+      "sha256": "080234e7eebc8c46a8e994e485f1eca3cb06e5b681b2f0846820afc3001d47d5"
+    },
+    {
+      "id": "pro-story:packages/feature-flags/src/stories/has.stories.tsx",
+      "title": "Components/FeatureFlags/Has",
+      "source": "packages/feature-flags/src/stories/has.stories.tsx",
+      "variants": [
+        "Default",
+        "WithFallback",
+        "WithMultipleExactfeatures",
+        "WithMultiplefeatures",
+        "WithMultipleValues",
+        "WithNot",
+        "WithRenderProps",
+        "WithValue"
+      ],
+      "preview": "pro-storybook",
+      "sha256": "5cabe8e537b15ce202bdbb12fa33563b5146076ddc520e0237d02df5f213809c"
+    },
+    {
+      "id": "pro-story:packages/feature-flags/src/stories/use-flag.stories.tsx",
+      "title": "Components/FeatureFlags/useFlag",
+      "source": "packages/feature-flags/src/stories/use-flag.stories.tsx",
+      "variants": ["Default"],
+      "preview": "pro-storybook",
+      "sha256": "064432dec2dd263258e25ce53212808b663d987f67a46a8c7fdff0224d1c8b22"
+    },
+    {
+      "id": "pro-story:packages/kanban/src/kanban.stories.tsx",
+      "title": "Components/Data Display/Kanban",
+      "source": "packages/kanban/src/kanban.stories.tsx",
+      "variants": [
+        "AddColumn",
+        "Basic",
+        "Controlled",
+        "DisableDragAndDrop",
+        "DisableMoveBetweenColumns",
+        "DraggableColumns",
+        "EventHandlers",
+        "Trash",
+        "WithInput"
+      ],
+      "preview": "pro-storybook",
+      "sha256": "e5db0016065f874cce311c0c188187c642f5b5964681e445aec8a81398c47754"
+    },
+    {
+      "id": "pro-story:packages/onboarding/src/beacon.stories.tsx",
+      "title": "Components/Onboarding/Beacon",
+      "source": "packages/onboarding/src/beacon.stories.tsx",
+      "variants": ["Basic", "ColorScheme", "Sizes", "WithButton"],
+      "preview": "pro-storybook",
+      "sha256": "af70bcbd8f01cd96393b6fb765d49cbadea9a6a585e817a55ef2d3173099ca94"
+    },
+    {
+      "id": "pro-story:packages/onboarding/src/tour.stories.tsx",
+      "title": "Welcome to the app",
+      "source": "packages/onboarding/src/tour.stories.tsx",
+      "variants": ["Basic", "WithBeacon"],
+      "preview": "pro-storybook",
+      "sha256": "59dcee07285c15190ab13409814f99716e1c4e74cffc28a9d6bc9017106f2454"
+    },
+    {
+      "id": "pro-story:packages/react/src/components/data-grid/data-grid.stories.tsx",
+      "title": "Components/Data Display/DataGrid",
+      "source": "packages/react/src/components/data-grid/data-grid.stories.tsx",
+      "variants": [
+        "Basic",
+        "CellSelection",
+        "ColorScheme",
+        "ColumnResizing",
+        "CustomStickyHeaders",
+        "DisableStickyFooter",
+        "DynamicPagination",
+        "Empty",
+        "FooterWithPinnedColumns",
+        "InitialSelected",
+        "LayoutMode",
+        "NoTruncate",
+        "NoVirtualization",
+        "Numeric",
+        "PinnedColumns",
+        "RowContextMenu",
+        "Selectable",
+        "SelectableAndSortable",
+        "SelectedChange",
+        "SlotProps",
+        "Sortable",
+        "TableInstanceRef",
+        "Translations",
+        "UseColumns",
+        "VisibleColumns",
+        "WithControlledPagination",
+        "WithCustomCheckbox",
+        "WithCustomExpander",
+        "WithCustomIcons",
+        "WithDeepSubRows",
+        "WithDrawer",
+        "WithFilteredData",
+        "WithFooter",
+        "WithLargeDataSet",
+        "WithLink",
+        "WithPagination",
+        "WithRemoteFilters",
+        "WithRemoteSort",
+        "WithSubRows",
+        "WithSubRowsAndSelections"
+      ],
+      "preview": "pro-storybook",
+      "sha256": "e7e78162a8fbf2cd2849eda11a343e1c0e136777209c180de12038aede972000"
+    },
+    {
+      "id": "pro-story:packages/react/src/components/filters/active-filter.stories.tsx",
+      "title": "Components/Filters/ActiveFilter",
+      "source": "packages/react/src/components/filters/active-filter.stories.tsx",
+      "variants": ["Basic", "Composed", "WithCallbacks"],
+      "preview": "pro-storybook",
+      "sha256": "acce02df187e7d1972fc3c3039d03d2fe508247b099e1f8223d103cd2239de0c"
+    },
+    {
+      "id": "pro-story:packages/react/src/components/filters/filter-menu.stories.tsx",
+      "title": "Components/Filters/FilterMenu",
+      "source": "packages/react/src/components/filters/filter-menu.stories.tsx",
+      "variants": ["Basic", "NestedFilters", "WithAsyncFilters"],
+      "preview": "pro-storybook",
+      "sha256": "c115cd782b8c80618a30a1a34d1076edcf747a9f833f414b39bf5dce435ef167"
+    },
+    {
+      "id": "pro-story:packages/react/src/components/filters/filters.stories.tsx",
+      "title": "Components/Filters/Filters",
+      "source": "packages/react/src/components/filters/filters.stories.tsx",
+      "variants": [
+        "AsyncItems",
+        "Basic",
+        "CustomOperators",
+        "CustomValue",
+        "DefaultFilters",
+        "MultiSelect",
+        "Numeric",
+        "VirtualizedFilters",
+        "WithAsyncFilters",
+        "WithDataGrid",
+        "WithDatePicker",
+        "WithTextInput"
+      ],
+      "preview": "pro-storybook",
+      "sha256": "0457786e672595f9aa693bc9d8622854472c6abf39068f19fabd3418428c6861"
+    },
+    {
+      "id": "pro-story:packages/react/src/components/resize/resize.stories.tsx",
+      "title": "Components/Utils/ResizeBox",
+      "source": "packages/react/src/components/resize/resize.stories.tsx",
+      "variants": [
+        "Basic",
+        "Custom",
+        "HandlePosition",
+        "MaxMinWidth",
+        "Sticky"
+      ],
+      "preview": "pro-storybook",
+      "sha256": "d6493e4de2f136fa7d92d73ce34509379cdef68213874d8b2c1a1a28d32db0cc"
+    },
+    {
+      "id": "pro-story:packages/react/src/components/split-page/split-page.stories.tsx",
+      "title": "Components/Layout/SplitPage",
+      "source": "packages/react/src/components/split-page/split-page.stories.tsx",
+      "variants": [
+        "Basic",
+        "Resizable",
+        "Responsive",
+        "Vertical",
+        "WithContent",
+        "WithToolbar"
+      ],
+      "preview": "pro-storybook",
+      "sha256": "e9c2e6cffd91f216ee0264aa460e877fb3b25f2ed2cea7c542881098bb814636"
+    }
+  ],
+  "starterRoutes": [
+    {
+      "id": "starter-route:apps/web/src/routes/_app.tsx",
+      "route": "/",
+      "name": "Dashboard",
+      "source": "apps/web/src/routes/_app.tsx",
+      "sha256": "cd3c1e5b89d2954f26c29340cdce2e0688a6a74f018282e128d102e883dcdab4"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace.tsx",
+      "route": "/$workspace",
+      "name": "Dashboard",
+      "source": "apps/web/src/routes/_app/$workspace.tsx",
+      "sha256": "e30b06aa2969cb70fcff3d086718cae52edf12d0336bb5ca576561be29437d72"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/_dashboard.tsx",
+      "route": "/$workspace",
+      "name": "Dashboard",
+      "source": "apps/web/src/routes/_app/$workspace/_dashboard.tsx",
+      "sha256": "9e544b230c411ca2e65742a0e551161834cc78a4d6dcc787638c123213f4e548"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/$type.tsx",
+      "route": "/$workspace/contacts/$type",
+      "name": "Contacts",
+      "source": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/$type.tsx",
+      "sha256": "d22a4e4738ae29603581a8dbfa8426e3c4fa6f64f87a726455f47bf6b4756934"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
+      "route": "/$workspace/contacts",
+      "name": "Contacts",
+      "source": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
+      "sha256": "abff1198413e35d52f7ab693cce354b7e97a8fd22c7ba00d8a0fb7f1a0bf2a23"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/view/$id.tsx",
+      "route": "/$workspace/contacts/view/$id",
+      "name": "View",
+      "source": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/view/$id.tsx",
+      "sha256": "429e9362175ae8538d01611250c34266b6d28cfbd659267a6edcca75a2e16c5c"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/inbox.tsx",
+      "route": "/$workspace/inbox",
+      "name": "Inbox",
+      "source": "apps/web/src/routes/_app/$workspace/_dashboard/inbox.tsx",
+      "sha256": "b2d72357869d8f500624449a59ad71351181e6c45edf186cf9f7a8bedcf3221a"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
+      "route": "/$workspace/inbox/$id",
+      "name": "Inbox",
+      "source": "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
+      "sha256": "fda2f11c26ba2fb8fa93e8337ade9e2ab45bcdf0d6791ebb953b7397004f1ca6"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
+      "route": "/$workspace",
+      "name": "Dashboard",
+      "source": "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
+      "sha256": "ae8bdb264904b7f0d52118f85a19c0b85d7bb42a23bf3075b61aaf29bad35f34"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/search.tsx",
+      "route": "/$workspace/search",
+      "name": "Search",
+      "source": "apps/web/src/routes/_app/$workspace/_dashboard/search.tsx",
+      "sha256": "acfcd1ade7b0230ab68a2a0ba1d6fbda6bbd839ca1ad44485d0cde0c795deaf3"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/tag/$tag.tsx",
+      "route": "/$workspace/tag/$tag",
+      "name": "Tag",
+      "source": "apps/web/src/routes/_app/$workspace/_dashboard/tag/$tag.tsx",
+      "sha256": "c33f3e3230e6974ad2b781cbca0c2b248935721c1c3f0ef8b48ec05e3b4fdb34"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings.tsx",
+      "route": "/$workspace/settings",
+      "name": "Settings",
+      "source": "apps/web/src/routes/_app/$workspace/settings.tsx",
+      "sha256": "c2fa4d130bc391fdc32c1a05c65769391a21e623900c27101fd0171918652008"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings/account/index.tsx",
+      "route": "/$workspace/settings/account",
+      "name": "Account",
+      "source": "apps/web/src/routes/_app/$workspace/settings/account/index.tsx",
+      "sha256": "c8a052dea7bcf001a98244c7ec1fbd0da29d13b66ffafcdef63372fd688a7f21"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings/account/profile.tsx",
+      "route": "/$workspace/settings/account/profile",
+      "name": "Profile",
+      "source": "apps/web/src/routes/_app/$workspace/settings/account/profile.tsx",
+      "sha256": "69bbcb63eafb11dd5f33b07d4550a2c3d1b324f282fc24814daebdefe3f76966"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings/account/security.tsx",
+      "route": "/$workspace/settings/account/security",
+      "name": "Security",
+      "source": "apps/web/src/routes/_app/$workspace/settings/account/security.tsx",
+      "sha256": "331f4f735cff970ed12b1476fb63b08397c4b151139c05be85f4ad28ee07d620"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings/billing.tsx",
+      "route": "/$workspace/settings/billing",
+      "name": "Billing",
+      "source": "apps/web/src/routes/_app/$workspace/settings/billing.tsx",
+      "sha256": "ddf1d93bea38346e01a4a48a475a3dd02ab160bab018a71a352ac1b4ba135206"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings/index.tsx",
+      "route": "/$workspace/settings",
+      "name": "Settings",
+      "source": "apps/web/src/routes/_app/$workspace/settings/index.tsx",
+      "sha256": "263f674e7a7e51025d66470171fee5c897d88609c485faff711c7f63603b0b1d"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings/members.tsx",
+      "route": "/$workspace/settings/members",
+      "name": "Members",
+      "source": "apps/web/src/routes/_app/$workspace/settings/members.tsx",
+      "sha256": "8703d80c64b5ecdd290a4e62e86e35cb0a1614c56dfc767c4659704fd26db527"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings/plans.tsx",
+      "route": "/$workspace/settings/plans",
+      "name": "Plans",
+      "source": "apps/web/src/routes/_app/$workspace/settings/plans.tsx",
+      "sha256": "e57b44b5f1e33272bdd7244944f38680ff0c74cef632c57f15a4b26a15e2127a"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings/tags.tsx",
+      "route": "/$workspace/settings/tags",
+      "name": "Tags",
+      "source": "apps/web/src/routes/_app/$workspace/settings/tags.tsx",
+      "sha256": "bb0745858134c041837b1c058fc1e0fd0feb360f5ebc58e7434314b137c84bf7"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/$workspace/settings/workspace.tsx",
+      "route": "/$workspace/settings/workspace",
+      "name": "Workspace",
+      "source": "apps/web/src/routes/_app/$workspace/settings/workspace.tsx",
+      "sha256": "c310e1f816db4bda01fef6eba35dcaf58faa94ef2b398a73e84c110c221372ef"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/accept-invite.tsx",
+      "route": "/accept-invite",
+      "name": "Accept Invite",
+      "source": "apps/web/src/routes/_app/accept-invite.tsx",
+      "sha256": "d4f6993b5fac9ae012c78c9f165a1a6dc0d135cddb1c6e0ddd7a3067d85f72fc"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/accept-invite/$token.tsx",
+      "route": "/accept-invite/$token",
+      "name": "Accept Invite",
+      "source": "apps/web/src/routes/_app/accept-invite/$token.tsx",
+      "sha256": "4632d0de7b7ad40b692313b5f36d608d9c16f1d14cb796d357369192e8adc577"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/getting-started.tsx",
+      "route": "/getting-started",
+      "name": "Getting Started",
+      "source": "apps/web/src/routes/_app/getting-started.tsx",
+      "sha256": "9a30be817feb94c74b8fb2ec2b84f5f67fc5a710b705d670839e1f99c97b0f87"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/getting-started/index.tsx",
+      "route": "/getting-started",
+      "name": "Getting Started",
+      "source": "apps/web/src/routes/_app/getting-started/index.tsx",
+      "sha256": "c7e61ea572f940841305ada69975418f78290926cce58f55503a9129ff747ca6"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_app/index.tsx",
+      "route": "/",
+      "name": "Dashboard",
+      "source": "apps/web/src/routes/_app/index.tsx",
+      "sha256": "1863f77e8fdd28809250795c60b4a453462d91a2240e13bb9698a9aeef08525b"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_auth.tsx",
+      "route": "/",
+      "name": "Dashboard",
+      "source": "apps/web/src/routes/_auth.tsx",
+      "sha256": "9b0ee0371edac0a345e18f9dc970e7ccc7b86c8726aa99cb8013d738bda2baf7"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_auth/forgot-password.tsx",
+      "route": "/forgot-password",
+      "name": "Forgot Password",
+      "source": "apps/web/src/routes/_auth/forgot-password.tsx",
+      "sha256": "3853453b0749ec55bf670bb9fd0c86d094d25a0374fb93e6efd4a6352acaa549"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_auth/login.tsx",
+      "route": "/login",
+      "name": "Login",
+      "source": "apps/web/src/routes/_auth/login.tsx",
+      "sha256": "2bb7729d8df0f6c2be3b65ce34ba38cc722b7a787136109787cbb4dc47832c50"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_auth/reset-password.tsx",
+      "route": "/reset-password",
+      "name": "Reset Password",
+      "source": "apps/web/src/routes/_auth/reset-password.tsx",
+      "sha256": "61aae9ba6dcb23f12da0956c8a15b1a11c562d33fdb4796c73b358f8af64990a"
+    },
+    {
+      "id": "starter-route:apps/web/src/routes/_auth/signup.tsx",
+      "route": "/signup",
+      "name": "Signup",
+      "source": "apps/web/src/routes/_auth/signup.tsx",
+      "sha256": "977af40f2cbf793a8d000092ea7d71dbb1e10cc74bea9a6008da80b04e4e5050"
+    }
+  ],
+  "starterStories": [
+    {
+      "id": "starter-story:packages/ui/src/app-loader/app-loader.stories.tsx",
+      "title": "Components/AppLoader",
+      "source": "packages/ui/src/app-loader/app-loader.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "7c21e057d12f19fd9c92ebcc9d85720af4ca1e256e5b9b7c2f7caf2d3b79297d"
+    },
+    {
+      "id": "starter-story:packages/ui/src/breadcrumbs/breadcrumbs.stories.tsx",
+      "title": "Components/Breadcrumbs",
+      "source": "packages/ui/src/breadcrumbs/breadcrumbs.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "bcd8dcfb8f3922f0df09c5466eb88ce2e7a5568f956481466879d604b3b8f110"
+    },
+    {
+      "id": "starter-story:packages/ui/src/button/button.stories.tsx",
+      "title": "Components/LinkButton",
+      "source": "packages/ui/src/button/button.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "f234a31d5f4bb6aeb58bee2ac4a16a99031fd07fe76dba8306fec566b0f09aac"
+    },
+    {
+      "id": "starter-story:packages/ui/src/confirm-password-field/confirm-password-field.stories.tsx",
+      "title": "Components/ConfirmPasswordField",
+      "source": "packages/ui/src/confirm-password-field/confirm-password-field.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "e741045321d6f13164031d1e9eba62e69e70e93e019bca2c56d75a180e82fb48"
+    },
+    {
+      "id": "starter-story:packages/ui/src/date-picker/date-range-picker.stories.tsx",
+      "title": "Components/DateRangePicker",
+      "source": "packages/ui/src/date-picker/date-range-picker.stories.tsx",
+      "variants": ["Presets"],
+      "preview": "starter-storybook",
+      "sha256": "d3e79e5a927ebdecdd3ca88e53d1bff85d20db8ca5f60801a27437216f36b9c0"
+    },
+    {
+      "id": "starter-story:packages/ui/src/date-time/date-time.stories.tsx",
+      "title": "Components/DateTimeSince",
+      "source": "packages/ui/src/date-time/date-time.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "7d51b5b910daf98db377bea2106685f74f65d9c2440ff3534b08849d155580e2"
+    },
+    {
+      "id": "starter-story:packages/ui/src/editor/editor.stories.tsx",
+      "title": "Components/Editor",
+      "source": "packages/ui/src/editor/editor.stories.tsx",
+      "variants": ["Default", "Field"],
+      "preview": "starter-storybook",
+      "sha256": "b5a0753b9b85b92728329a00229879c4e00ec46c83f09790d2106854b8fce8f2"
+    },
+    {
+      "id": "starter-story:packages/ui/src/help-center/help-center.stories.tsx",
+      "title": "Components/HelpCenter",
+      "source": "packages/ui/src/help-center/help-center.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "f8c23b0987fc8b5f9f288be299605d111c195393c1d702544419dfa899a13f49"
+    },
+    {
+      "id": "starter-story:packages/ui/src/inline-search/inline-search.stories.tsx",
+      "title": "Components/InlineSearch",
+      "source": "packages/ui/src/inline-search/inline-search.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "15d90fbb48b0e7cfa37d2f8af231fb46864b8bf38c4e324c9d72a0c05b9277f0"
+    },
+    {
+      "id": "starter-story:packages/ui/src/invite-dialog/invite-dialog.stories.tsx",
+      "title": "Components/InviteDialog",
+      "source": "packages/ui/src/invite-dialog/invite-dialog.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "fb73d9a7c41e5b336b1480fa6e1817f7a962c706cf3976aa0e0fd2ff09b93c63"
+    },
+    {
+      "id": "starter-story:packages/ui/src/logo/logo.stories.tsx",
+      "title": "Components/Logo",
+      "source": "packages/ui/src/logo/logo.stories.tsx",
+      "variants": ["Default", "Icon"],
+      "preview": "starter-storybook",
+      "sha256": "166c1dda91918cf69cb9a77e6f08b66453ae393f537d582c1ee42e353728f0c0"
+    },
+    {
+      "id": "starter-story:packages/ui/src/search-input/search-input.stories.tsx",
+      "title": "Components/SearchInput",
+      "source": "packages/ui/src/search-input/search-input.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "a42dccd2683a1dbcabe260effc24fad27304e55870c58fcded77bbae21a43722"
+    },
+    {
+      "id": "starter-story:packages/ui/src/segmented-control/segmented-control.stories.tsx",
+      "title": "Components/SegmentedControl",
+      "source": "packages/ui/src/segmented-control/segmented-control.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "f7b17056818365f76133eade47a2527322bbdfe41bb1e4644993b359c326c865"
+    },
+    {
+      "id": "starter-story:packages/ui/src/sortable-nav-group/sortable-nav-group.stories.tsx",
+      "title": "Components/SortableNavGroup",
+      "source": "packages/ui/src/sortable-nav-group/sortable-nav-group.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "c1378fb250e6931f37bf5441bb8065a536c66baa07a6c222bdf034c6385081f4"
+    },
+    {
+      "id": "starter-story:packages/ui/src/status-badge/status-badge.stories.tsx",
+      "title": "Components/StatusBadge",
+      "source": "packages/ui/src/status-badge/status-badge.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "7027704e68a1e7794db4cb553bb8c3e1df44890de7d350d67a76e7f43efbb2e7"
+    },
+    {
+      "id": "starter-story:packages/ui/src/tags-list/tags-list.stories.tsx",
+      "title": "Components/TagsList",
+      "source": "packages/ui/src/tags-list/tags-list.stories.tsx",
+      "variants": ["Default"],
+      "preview": "starter-storybook",
+      "sha256": "5916c761cf4ebb9af97a0eb5b3b5e5d78e70806200e46c91b2c587357fbc1c4d"
+    }
+  ]
+}

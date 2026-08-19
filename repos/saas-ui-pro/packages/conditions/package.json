@@ -1,0 +1,51 @@
+{
+  "name": "@saas-js/conditions",
+  "version": "0.0.1",
+  "license": "MIT",
+  "type": "module",
+  "exports": {
+    ".": {
+      "sjs": "./src/index.ts",
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "NODE_OPTIONS='--max-old-space-size=16384' tsup --config tsup.config.ts",
+    "lint": "TIMING=1 eslint src/**/*.ts* --fix",
+    "clean": "rm -rf dist",
+    "test": "vitest run",
+    "test:watch": "vitest run --watch"
+  },
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/saas-js/saas-js.git",
+    "directory": "packages/conditions"
+  },
+  "dependencies": {
+    "@ark-ui/react": "5.27.1",
+    "@zag-js/react": "^1.29.1"
+  },
+  "peerDependencies": {
+    "react": "19.2.0",
+    "react-dom": "19.2.0"
+  },
+  "devDependencies": {
+    "@chakra-ui/react": "3.28.1",
+    "@emotion/react": "^11.14.0",
+    "@saas-ui/chakra-preset": "3.0.0-next.9",
+    "@vitejs/plugin-react": "^4.7.0",
+    "@vitest/browser-playwright": "^4.0.14",
+    "@zag-js/core": "^1.29.1",
+    "@zag-js/types": "^1.29.1",
+    "react": "19.2.0",
+    "react-dom": "19.2.0",
+    "react-icons": "^5.5.0",
+    "tsup": "^8.5.1",
+    "vite-tsconfig-paths": "^5.1.4",
+    "vitest": "^4.0.14"
+  }
+}

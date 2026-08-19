@@ -1,0 +1,9 @@
+{
+  "title": "Invite People Modal",
+  "description": "",
+  "version": "1.0.0",
+  "canvas": {
+    "center": true,
+    "height": "500px"
+  }
+}

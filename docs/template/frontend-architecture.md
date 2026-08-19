@@ -76,6 +76,42 @@ The web shell should use Saas UI primitives where possible:
   manifest compositions and registry paths before adding a local seam.
 - lucide icons for commands and navigation affordances.
 
+### Screen-first selection
+
+Do not begin a new screen by arranging primitives. Start with the generated
+catalogue at `docs/template/saas-ui-screen-catalog.json`, which indexes the
+complete pinned Pro demo, every Pro story file, every TanStack Starter route,
+and every Starter story file. The exact read-only sources live under
+`repos/saas-ui-pro` and `repos/tanstack-start-starter-kit-pro` in the factory.
+Generated targets retain the catalogue and its repository URLs/pins while
+omitting the large read-only snapshots.
+
+Selection order is mandatory:
+
+1. A complete `saas-ui-pro/apps/demo` screen.
+2. An assembled Pro Storybook block or template, including Writer, Kanban,
+   DataGrid, filters, split layouts, sidebar layouts, and stacked navigation.
+3. A complete TanStack Starter screen.
+4. Loose primitives only when no assembled source applies.
+
+Copy the chosen composition mechanically and record its catalogue `id` in the
+implementation plan or pull request. Route syntax, authentication, backend
+queries, and mutations may change through thin adapters. JSX structure, spacing,
+component choice, responsive behavior, and interaction composition do not change
+during the transplant. The vendored applications are reference authorities, not
+runtime dependencies or an alternate application shell.
+
+Useful commands:
+
+```bash
+pnpm saas-ui:catalog
+pnpm check:saas-ui-screen-catalog
+jq '.demoRoutes[] | {name, route, source, composition}' \
+  docs/template/saas-ui-screen-catalog.json
+jq '.stories[] | select(.title | test("Writer|Kanban|Sidebar|DataGrid"; "i"))' \
+  docs/template/saas-ui-screen-catalog.json
+```
+
 CSS rules:
 
 - Use `apps/web/src/index.css` for semantic tokens, font stack, density, focus,
