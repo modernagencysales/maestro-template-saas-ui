@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "09b2e5edccb0faaaf35e65548d6a57cbf1c65083",
+    "sourceCommit": "35e370ec0d9394c0f9d7a099ed1a46d77b695e12",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -3464,7 +3464,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:868d6d33dcb7670f7b41751d7d46a9ff346a9e7b012154fbcff4a17dd6d07690"
+      "sha256": "sha256:868d6d33dcb7670f7b41751d7d46a9ff346a9e7b012154fbcff4a17dd6d07690",
+      "replaces": "copy"
     },
     {
       "path": "docs/template/generated/workflow-semantics.md",
@@ -5531,7 +5532,8 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:cc24f18e90f978d85d19869f242b3a9aa6d8dc795961a42a14a26845a74e88b3"
+      "sha256": "sha256:cc24f18e90f978d85d19869f242b3a9aa6d8dc795961a42a14a26845a74e88b3",
+      "replaces": "copy"
     },
     {
       "path": "pnpm-lock.yaml",
@@ -5554,14 +5556,16 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:c5ae2b3495a666874b3042edf7fc3538fef929846ee834357c0355ae51051219"
+      "sha256": "sha256:c5ae2b3495a666874b3042edf7fc3538fef929846ee834357c0355ae51051219",
+      "replaces": "copy"
     },
     {
       "path": "product.contract.yaml",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:f5ab5776b64b334b526e86ba57f246e8770e85d6c13eee23da76d416b339417b"
+      "sha256": "sha256:f5ab5776b64b334b526e86ba57f246e8770e85d6c13eee23da76d416b339417b",
+      "replaces": "copy"
     },
     {
       "path": "project.config.json",
@@ -5615,28 +5619,32 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:135ae2dabe615e8f9986ace9ea78578ddd8cf0d5e7c09ab7846823eff5ed009e"
+      "sha256": "sha256:135ae2dabe615e8f9986ace9ea78578ddd8cf0d5e7c09ab7846823eff5ed009e",
+      "replaces": "copy"
     },
     {
       "path": "tooling/acceptance/playwright-report.mts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:9f9c2a0a29a439d22bda0f44730cf092846dcb01c2566df0667393468d8046f4"
+      "sha256": "sha256:9f9c2a0a29a439d22bda0f44730cf092846dcb01c2566df0667393468d8046f4",
+      "replaces": "copy"
     },
     {
       "path": "tooling/acceptance/product-contract.mts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:c4a902df7354adc73c8814842bc802200204bdfab921282442e294d4394a1a24"
+      "sha256": "sha256:c4a902df7354adc73c8814842bc802200204bdfab921282442e294d4394a1a24",
+      "replaces": "copy"
     },
     {
       "path": "tooling/acceptance/run-acceptance.mts",
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:2d8bf300cb5c1d167ac30428c9b12c75b1972b1e9779cb3f17e78cf904e8389a"
+      "sha256": "sha256:2d8bf300cb5c1d167ac30428c9b12c75b1972b1e9779cb3f17e78cf904e8389a",
+      "replaces": "copy"
     },
     {
       "path": "tooling/agent-pack/package.json",
