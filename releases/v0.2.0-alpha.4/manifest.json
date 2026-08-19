@@ -4607,20 +4607,6 @@
       "upgrade": "remove"
     },
     {
-      "path": "cucumber.cjs",
-      "match": "exact",
-      "ownership": "template-owned",
-      "action": "copy",
-      "upgrade": "replace"
-    },
-    {
-      "path": "features",
-      "match": "subtree",
-      "ownership": "template-owned",
-      "action": "copy",
-      "upgrade": "replace"
-    },
-    {
       "path": "generated",
       "match": "subtree",
       "ownership": "generated",
