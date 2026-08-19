@@ -2334,6 +2334,26 @@ describe("saas application blueprint", () => {
     });
   });
 
+  it("projects the hosted auth deployment checklist", () => {
+    const maturityModel = buildFactorySaasApplicationFiles({
+      name: "My App",
+    }).find(
+      ({ path }) => path === "docs/template/template-maturity-model.md",
+    )?.content;
+
+    expect(maturityModel).toContain(
+      "Register the exact hosted callback in WorkOS",
+    );
+    expect(maturityModel).toContain(
+      "Confirm `WORKOS_CLIENT_ID` matches in the web host and Convex deployment",
+    );
+    expect(maturityModel).toContain(
+      "Redeploy `packages/convex/convex/auth.config.ts`",
+    );
+    expect(maturityModel).toContain("complete one real sign-in through");
+    expect(maturityModel).toContain("`access/provisioning:ensureProvisioned`");
+  });
+
   // eslint-disable-next-line complexity -- AP-008 tracks splitting this generated-layout assertion.
   it("projects the CRUD registration in Confect's codegen-stable layout", () => {
     const files = new Map(

@@ -119,4 +119,14 @@ checklist, and client-specific security review.
 `pnpm deploy:doctor`, `pnpm verify`, hosted smoke against the client domain, and
 provider-specific sandbox or production smoke checks.
 
+**Hosted auth checklist:**
+
+1. Register the exact hosted callback in WorkOS before testing credentials.
+2. Confirm `WORKOS_CLIENT_ID` matches in the web host and Convex deployment.
+   Unset inherited `CONVEX_DEPLOY_KEY` when selecting Convex by deployment name.
+3. Redeploy `packages/convex/convex/auth.config.ts` after setting the Convex
+   env.
+4. In a browser, complete one real sign-in through
+   `access/provisioning:ensureProvisioned` and require a workspace result.
+
 **Investor inference:** the factory has produced a production-ready client app.
