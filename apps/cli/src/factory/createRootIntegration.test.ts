@@ -212,6 +212,17 @@ const taggedRepository = (): string => {
       stdio: "pipe",
     },
   );
+  // A protected release PR must verify its candidate tree before publication.
+  if (
+    !execFileSync("git", ["tag", "--list", CURRENT_PUBLIC_SOURCE.tag], {
+      cwd: taggedReleaseRoot,
+      encoding: "utf8",
+    }).trim()
+  )
+    execFileSync("git", ["tag", CURRENT_PUBLIC_SOURCE.tag, "HEAD"], {
+      cwd: taggedReleaseRoot,
+      stdio: "pipe",
+    });
   execFileSync(
     "git",
     ["checkout", "--quiet", "--detach", CURRENT_PUBLIC_SOURCE.tag],
@@ -395,8 +406,8 @@ describe("create root integration", () => {
       ],
       data: {
         release: {
-          version: "0.2.0-alpha.3",
-          tag: "maestro-template-v0.2.0-alpha.3",
+          version: "0.2.0-alpha.4",
+          tag: "maestro-template-v0.2.0-alpha.4",
           sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
           sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
         },
