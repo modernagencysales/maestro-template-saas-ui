@@ -41,8 +41,8 @@
       "source": "apps/web/src/config/hotkeys.config.ts",
       "destination": "apps/web/src/config/hotkeys.config.ts",
       "sourceSha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",
-      "sha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",
-      "adapted": false
+      "sha256": "2b15eed8086711c03acc79710974fa36be78f6fecb08713d4ddbbe950ba9e6e3",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/auth/auth-layout.tsx",
@@ -181,7 +181,7 @@
       "source": "apps/web/src/features/common/components/app-sidebar.tsx",
       "destination": "apps/web/src/features/common/components/app-sidebar.tsx",
       "sourceSha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "sha256": "a6cf920cfd473d47c0c95f0cf6061f08ace4af60f1186aab1c88b933280f7567",
+      "sha256": "231baa29ae720076f3badf19f8ea57ccf5725957644d1f01370b5265a2fe02a7",
       "adapted": true
     },
     {
@@ -230,8 +230,8 @@
       "source": "apps/web/src/features/common/components/workspaces-menu.tsx",
       "destination": "apps/web/src/features/common/components/workspaces-menu.tsx",
       "sourceSha256": "d1d15acf27fab1792966dab55ca861276d0997a41c9fb7127f4c8a726f4c5780",
-      "sha256": "d1d15acf27fab1792966dab55ca861276d0997a41c9fb7127f4c8a726f4c5780",
-      "adapted": false
+      "sha256": "a1e190ce85dcaa598d4db8b82e205e43537b0f2aa9595e318acea375d3211cfa",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/hooks/use-current-user.ts",
@@ -272,15 +272,15 @@
       "source": "apps/web/src/features/common/layouts/app-layout.tsx",
       "destination": "apps/web/src/features/common/layouts/app-layout.tsx",
       "sourceSha256": "657ecb6d987d6177a7ec0410fc87f261d1aaffc87f1c8addd112be7f5141b57c",
-      "sha256": "657ecb6d987d6177a7ec0410fc87f261d1aaffc87f1c8addd112be7f5141b57c",
-      "adapted": false
+      "sha256": "193472fbacf3c2545de337297749a77a9627fecdce64b4b924e1efca6a7d6451",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/layouts/dashboard-layout.tsx",
       "destination": "apps/web/src/features/common/layouts/dashboard-layout.tsx",
       "sourceSha256": "9a806cf389c68df11310915a661a214ff18375d854287a61921138ea3927b087",
-      "sha256": "9a806cf389c68df11310915a661a214ff18375d854287a61921138ea3927b087",
-      "adapted": false
+      "sha256": "2d30694f02d0704be1932cec60bc0f57710d6e9fe99452e0fa6d612040fb6cbb",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/layouts/fullscreen-layout.tsx",
@@ -559,8 +559,8 @@
       "source": "apps/web/src/features/reports/metrics/metric.tsx",
       "destination": "apps/web/src/features/reports/metrics/metric.tsx",
       "sourceSha256": "b9d16e437e919295a6b319c0b75b4c563dfe1bbe33e0ca60d114f5b24316a813",
-      "sha256": "b9d16e437e919295a6b319c0b75b4c563dfe1bbe33e0ca60d114f5b24316a813",
-      "adapted": false
+      "sha256": "fba37f8bae905d2acc96da11b885ecfe94a4017f214ab1da74909828671c4f25",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/reports/metrics/metrics-card.tsx",
@@ -587,8 +587,8 @@
       "source": "apps/web/src/features/reports/reports-page.tsx",
       "destination": "apps/web/src/features/reports/reports-page.tsx",
       "sourceSha256": "fe804d3873917ad8e7cc615f205a59c6bbbabac9e6ed221fca503a9569734d58",
-      "sha256": "fe804d3873917ad8e7cc615f205a59c6bbbabac9e6ed221fca503a9569734d58",
-      "adapted": false
+      "sha256": "b7556b1d75f5276b99a2631039a60a51c3732fe3aec31a6b3d45883294ba213c",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/search/search-page.tsx",
@@ -853,8 +853,8 @@
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
       "sourceSha256": "ae8bdb264904b7f0d52118f85a19c0b85d7bb42a23bf3075b61aaf29bad35f34",
-      "sha256": "ae8bdb264904b7f0d52118f85a19c0b85d7bb42a23bf3075b61aaf29bad35f34",
-      "adapted": false
+      "sha256": "711a419e00a6c865fce6d4427da4a262e9bf35b99e0daede91e77f5a6292f719",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/search.tsx",
@@ -1035,7 +1035,7 @@
       "source": "apps/web/src/routeTree.gen.ts",
       "destination": "apps/web/src/routeTree.gen.ts",
       "sourceSha256": "45d73c4b308bfb015325284e5b601a8c4edc97e07768436c4eefdedfb000c8fa",
-      "sha256": "ab6a5e23246a8e9b044d92f7182b9444463b854c4273cc15f4a5af8363269b2f",
+      "sha256": "ba013d738260c58b3c072ee42c2c97507a80081ced59f67a816482d7d32e7801",
       "adapted": true
     },
     {

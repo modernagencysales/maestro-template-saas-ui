@@ -36,14 +36,19 @@ import { Route as AppWorkspaceSettingsTagsRouteImport } from './routes/_app/$wor
 import { Route as AppWorkspaceSettingsPlansRouteImport } from './routes/_app/$workspace/settings/plans'
 import { Route as AppWorkspaceSettingsMembersRouteImport } from './routes/_app/$workspace/settings/members'
 import { Route as AppWorkspaceSettingsBillingRouteImport } from './routes/_app/$workspace/settings/billing'
+import { Route as AppWorkspaceDashboardWorkflowsRouteImport } from './routes/_app/$workspace/_dashboard/workflows'
+import { Route as AppWorkspaceDashboardUpdatesRouteImport } from './routes/_app/$workspace/_dashboard/updates'
 import { Route as AppWorkspaceDashboardShowcaseRouteImport } from './routes/_app/$workspace/_dashboard/showcase'
 import { Route as AppWorkspaceDashboardSearchRouteImport } from './routes/_app/$workspace/_dashboard/search'
+import { Route as AppWorkspaceDashboardReportsRouteImport } from './routes/_app/$workspace/_dashboard/reports'
 import { Route as AppWorkspaceDashboardKanbanRouteImport } from './routes/_app/$workspace/_dashboard/kanban'
 import { Route as AppWorkspaceDashboardInboxRouteImport } from './routes/_app/$workspace/_dashboard/inbox'
+import { Route as AppWorkspaceDashboardCompaniesRouteImport } from './routes/_app/$workspace/_dashboard/companies'
 import { Route as AppWorkspaceSettingsAccountIndexRouteImport } from './routes/_app/$workspace/settings/account/index'
 import { Route as AppWorkspaceDashboardContactsIndexRouteImport } from './routes/_app/$workspace/_dashboard/contacts/index'
 import { Route as AppWorkspaceSettingsAccountSecurityRouteImport } from './routes/_app/$workspace/settings/account/security'
 import { Route as AppWorkspaceSettingsAccountProfileRouteImport } from './routes/_app/$workspace/settings/account/profile'
+import { Route as AppWorkspaceDashboardUpdatesIdRouteImport } from './routes/_app/$workspace/_dashboard/updates/$id'
 import { Route as AppWorkspaceDashboardTagTagRouteImport } from './routes/_app/$workspace/_dashboard/tag/$tag'
 import { Route as AppWorkspaceDashboardInboxIdRouteImport } from './routes/_app/$workspace/_dashboard/inbox/$id'
 import { Route as AppWorkspaceDashboardContactsTypeRouteImport } from './routes/_app/$workspace/_dashboard/contacts/$type'
@@ -188,6 +193,18 @@ const AppWorkspaceSettingsBillingRoute =
     path: '/billing',
     getParentRoute: () => AppWorkspaceSettingsRoute,
   } as any)
+const AppWorkspaceDashboardWorkflowsRoute =
+  AppWorkspaceDashboardWorkflowsRouteImport.update({
+    id: '/workflows',
+    path: '/workflows',
+    getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
+const AppWorkspaceDashboardUpdatesRoute =
+  AppWorkspaceDashboardUpdatesRouteImport.update({
+    id: '/updates',
+    path: '/updates',
+    getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
 const AppWorkspaceDashboardShowcaseRoute =
   AppWorkspaceDashboardShowcaseRouteImport.update({
     id: '/showcase',
@@ -200,6 +217,12 @@ const AppWorkspaceDashboardSearchRoute =
     path: '/search',
     getParentRoute: () => AppWorkspaceDashboardRoute,
   } as any)
+const AppWorkspaceDashboardReportsRoute =
+  AppWorkspaceDashboardReportsRouteImport.update({
+    id: '/reports',
+    path: '/reports',
+    getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
 const AppWorkspaceDashboardKanbanRoute =
   AppWorkspaceDashboardKanbanRouteImport.update({
     id: '/kanban',
@@ -210,6 +233,12 @@ const AppWorkspaceDashboardInboxRoute =
   AppWorkspaceDashboardInboxRouteImport.update({
     id: '/inbox',
     path: '/inbox',
+    getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
+const AppWorkspaceDashboardCompaniesRoute =
+  AppWorkspaceDashboardCompaniesRouteImport.update({
+    id: '/companies',
+    path: '/companies',
     getParentRoute: () => AppWorkspaceDashboardRoute,
   } as any)
 const AppWorkspaceSettingsAccountIndexRoute =
@@ -235,6 +264,12 @@ const AppWorkspaceSettingsAccountProfileRoute =
     id: '/account/profile',
     path: '/account/profile',
     getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
+const AppWorkspaceDashboardUpdatesIdRoute =
+  AppWorkspaceDashboardUpdatesIdRouteImport.update({
+    id: '/$id',
+    path: '/$id',
+    getParentRoute: () => AppWorkspaceDashboardUpdatesRoute,
   } as any)
 const AppWorkspaceDashboardTagTagRoute =
   AppWorkspaceDashboardTagTagRouteImport.update({
@@ -279,10 +314,14 @@ export interface FileRoutesByFullPath {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/getting-started/': typeof AppGettingStartedIndexRoute
+  '/$workspace/companies': typeof AppWorkspaceDashboardCompaniesRoute
   '/$workspace/inbox': typeof AppWorkspaceDashboardInboxRouteWithChildren
   '/$workspace/kanban': typeof AppWorkspaceDashboardKanbanRoute
+  '/$workspace/reports': typeof AppWorkspaceDashboardReportsRoute
   '/$workspace/search': typeof AppWorkspaceDashboardSearchRoute
   '/$workspace/showcase': typeof AppWorkspaceDashboardShowcaseRoute
+  '/$workspace/updates': typeof AppWorkspaceDashboardUpdatesRouteWithChildren
+  '/$workspace/workflows': typeof AppWorkspaceDashboardWorkflowsRoute
   '/$workspace/settings/billing': typeof AppWorkspaceSettingsBillingRoute
   '/$workspace/settings/members': typeof AppWorkspaceSettingsMembersRoute
   '/$workspace/settings/plans': typeof AppWorkspaceSettingsPlansRoute
@@ -293,6 +332,7 @@ export interface FileRoutesByFullPath {
   '/$workspace/contacts/$type': typeof AppWorkspaceDashboardContactsTypeRoute
   '/$workspace/inbox/$id': typeof AppWorkspaceDashboardInboxIdRoute
   '/$workspace/tag/$tag': typeof AppWorkspaceDashboardTagTagRoute
+  '/$workspace/updates/$id': typeof AppWorkspaceDashboardUpdatesIdRoute
   '/$workspace/settings/account/profile': typeof AppWorkspaceSettingsAccountProfileRoute
   '/$workspace/settings/account/security': typeof AppWorkspaceSettingsAccountSecurityRoute
   '/$workspace/contacts/': typeof AppWorkspaceDashboardContactsIndexRoute
@@ -315,10 +355,14 @@ export interface FileRoutesByTo {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/getting-started': typeof AppGettingStartedIndexRoute
+  '/$workspace/companies': typeof AppWorkspaceDashboardCompaniesRoute
   '/$workspace/inbox': typeof AppWorkspaceDashboardInboxRouteWithChildren
   '/$workspace/kanban': typeof AppWorkspaceDashboardKanbanRoute
+  '/$workspace/reports': typeof AppWorkspaceDashboardReportsRoute
   '/$workspace/search': typeof AppWorkspaceDashboardSearchRoute
   '/$workspace/showcase': typeof AppWorkspaceDashboardShowcaseRoute
+  '/$workspace/updates': typeof AppWorkspaceDashboardUpdatesRouteWithChildren
+  '/$workspace/workflows': typeof AppWorkspaceDashboardWorkflowsRoute
   '/$workspace/settings/billing': typeof AppWorkspaceSettingsBillingRoute
   '/$workspace/settings/members': typeof AppWorkspaceSettingsMembersRoute
   '/$workspace/settings/plans': typeof AppWorkspaceSettingsPlansRoute
@@ -328,6 +372,7 @@ export interface FileRoutesByTo {
   '/$workspace/contacts/$type': typeof AppWorkspaceDashboardContactsTypeRoute
   '/$workspace/inbox/$id': typeof AppWorkspaceDashboardInboxIdRoute
   '/$workspace/tag/$tag': typeof AppWorkspaceDashboardTagTagRoute
+  '/$workspace/updates/$id': typeof AppWorkspaceDashboardUpdatesIdRoute
   '/$workspace/settings/account/profile': typeof AppWorkspaceSettingsAccountProfileRoute
   '/$workspace/settings/account/security': typeof AppWorkspaceSettingsAccountSecurityRoute
   '/$workspace/contacts': typeof AppWorkspaceDashboardContactsIndexRoute
@@ -356,10 +401,14 @@ export interface FileRoutesById {
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/webhooks/stripe': typeof ApiWebhooksStripeRoute
   '/_app/getting-started/': typeof AppGettingStartedIndexRoute
+  '/_app/$workspace/_dashboard/companies': typeof AppWorkspaceDashboardCompaniesRoute
   '/_app/$workspace/_dashboard/inbox': typeof AppWorkspaceDashboardInboxRouteWithChildren
   '/_app/$workspace/_dashboard/kanban': typeof AppWorkspaceDashboardKanbanRoute
+  '/_app/$workspace/_dashboard/reports': typeof AppWorkspaceDashboardReportsRoute
   '/_app/$workspace/_dashboard/search': typeof AppWorkspaceDashboardSearchRoute
   '/_app/$workspace/_dashboard/showcase': typeof AppWorkspaceDashboardShowcaseRoute
+  '/_app/$workspace/_dashboard/updates': typeof AppWorkspaceDashboardUpdatesRouteWithChildren
+  '/_app/$workspace/_dashboard/workflows': typeof AppWorkspaceDashboardWorkflowsRoute
   '/_app/$workspace/settings/billing': typeof AppWorkspaceSettingsBillingRoute
   '/_app/$workspace/settings/members': typeof AppWorkspaceSettingsMembersRoute
   '/_app/$workspace/settings/plans': typeof AppWorkspaceSettingsPlansRoute
@@ -370,6 +419,7 @@ export interface FileRoutesById {
   '/_app/$workspace/_dashboard/contacts/$type': typeof AppWorkspaceDashboardContactsTypeRoute
   '/_app/$workspace/_dashboard/inbox/$id': typeof AppWorkspaceDashboardInboxIdRoute
   '/_app/$workspace/_dashboard/tag/$tag': typeof AppWorkspaceDashboardTagTagRoute
+  '/_app/$workspace/_dashboard/updates/$id': typeof AppWorkspaceDashboardUpdatesIdRoute
   '/_app/$workspace/settings/account/profile': typeof AppWorkspaceSettingsAccountProfileRoute
   '/_app/$workspace/settings/account/security': typeof AppWorkspaceSettingsAccountSecurityRoute
   '/_app/$workspace/_dashboard/contacts/': typeof AppWorkspaceDashboardContactsIndexRoute
@@ -396,10 +446,14 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/api/webhooks/stripe'
     | '/getting-started/'
+    | '/$workspace/companies'
     | '/$workspace/inbox'
     | '/$workspace/kanban'
+    | '/$workspace/reports'
     | '/$workspace/search'
     | '/$workspace/showcase'
+    | '/$workspace/updates'
+    | '/$workspace/workflows'
     | '/$workspace/settings/billing'
     | '/$workspace/settings/members'
     | '/$workspace/settings/plans'
@@ -410,6 +464,7 @@ export interface FileRouteTypes {
     | '/$workspace/contacts/$type'
     | '/$workspace/inbox/$id'
     | '/$workspace/tag/$tag'
+    | '/$workspace/updates/$id'
     | '/$workspace/settings/account/profile'
     | '/$workspace/settings/account/security'
     | '/$workspace/contacts/'
@@ -432,10 +487,14 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/api/webhooks/stripe'
     | '/getting-started'
+    | '/$workspace/companies'
     | '/$workspace/inbox'
     | '/$workspace/kanban'
+    | '/$workspace/reports'
     | '/$workspace/search'
     | '/$workspace/showcase'
+    | '/$workspace/updates'
+    | '/$workspace/workflows'
     | '/$workspace/settings/billing'
     | '/$workspace/settings/members'
     | '/$workspace/settings/plans'
@@ -445,6 +504,7 @@ export interface FileRouteTypes {
     | '/$workspace/contacts/$type'
     | '/$workspace/inbox/$id'
     | '/$workspace/tag/$tag'
+    | '/$workspace/updates/$id'
     | '/$workspace/settings/account/profile'
     | '/$workspace/settings/account/security'
     | '/$workspace/contacts'
@@ -472,10 +532,14 @@ export interface FileRouteTypes {
     | '/api/trpc/$'
     | '/api/webhooks/stripe'
     | '/_app/getting-started/'
+    | '/_app/$workspace/_dashboard/companies'
     | '/_app/$workspace/_dashboard/inbox'
     | '/_app/$workspace/_dashboard/kanban'
+    | '/_app/$workspace/_dashboard/reports'
     | '/_app/$workspace/_dashboard/search'
     | '/_app/$workspace/_dashboard/showcase'
+    | '/_app/$workspace/_dashboard/updates'
+    | '/_app/$workspace/_dashboard/workflows'
     | '/_app/$workspace/settings/billing'
     | '/_app/$workspace/settings/members'
     | '/_app/$workspace/settings/plans'
@@ -486,6 +550,7 @@ export interface FileRouteTypes {
     | '/_app/$workspace/_dashboard/contacts/$type'
     | '/_app/$workspace/_dashboard/inbox/$id'
     | '/_app/$workspace/_dashboard/tag/$tag'
+    | '/_app/$workspace/_dashboard/updates/$id'
     | '/_app/$workspace/settings/account/profile'
     | '/_app/$workspace/settings/account/security'
     | '/_app/$workspace/_dashboard/contacts/'
@@ -695,6 +760,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceSettingsBillingRouteImport
       parentRoute: typeof AppWorkspaceSettingsRoute
     }
+    '/_app/$workspace/_dashboard/workflows': {
+      id: '/_app/$workspace/_dashboard/workflows'
+      path: '/workflows'
+      fullPath: '/$workspace/workflows'
+      preLoaderRoute: typeof AppWorkspaceDashboardWorkflowsRouteImport
+      parentRoute: typeof AppWorkspaceDashboardRoute
+    }
+    '/_app/$workspace/_dashboard/updates': {
+      id: '/_app/$workspace/_dashboard/updates'
+      path: '/updates'
+      fullPath: '/$workspace/updates'
+      preLoaderRoute: typeof AppWorkspaceDashboardUpdatesRouteImport
+      parentRoute: typeof AppWorkspaceDashboardRoute
+    }
     '/_app/$workspace/_dashboard/showcase': {
       id: '/_app/$workspace/_dashboard/showcase'
       path: '/showcase'
@@ -709,6 +788,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceDashboardSearchRouteImport
       parentRoute: typeof AppWorkspaceDashboardRoute
     }
+    '/_app/$workspace/_dashboard/reports': {
+      id: '/_app/$workspace/_dashboard/reports'
+      path: '/reports'
+      fullPath: '/$workspace/reports'
+      preLoaderRoute: typeof AppWorkspaceDashboardReportsRouteImport
+      parentRoute: typeof AppWorkspaceDashboardRoute
+    }
     '/_app/$workspace/_dashboard/kanban': {
       id: '/_app/$workspace/_dashboard/kanban'
       path: '/kanban'
@@ -721,6 +807,13 @@ declare module '@tanstack/react-router' {
       path: '/inbox'
       fullPath: '/$workspace/inbox'
       preLoaderRoute: typeof AppWorkspaceDashboardInboxRouteImport
+      parentRoute: typeof AppWorkspaceDashboardRoute
+    }
+    '/_app/$workspace/_dashboard/companies': {
+      id: '/_app/$workspace/_dashboard/companies'
+      path: '/companies'
+      fullPath: '/$workspace/companies'
+      preLoaderRoute: typeof AppWorkspaceDashboardCompaniesRouteImport
       parentRoute: typeof AppWorkspaceDashboardRoute
     }
     '/_app/$workspace/settings/account/': {
@@ -750,6 +843,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/$workspace/settings/account/profile'
       preLoaderRoute: typeof AppWorkspaceSettingsAccountProfileRouteImport
       parentRoute: typeof AppWorkspaceSettingsRoute
+    }
+    '/_app/$workspace/_dashboard/updates/$id': {
+      id: '/_app/$workspace/_dashboard/updates/$id'
+      path: '/$id'
+      fullPath: '/$workspace/updates/$id'
+      preLoaderRoute: typeof AppWorkspaceDashboardUpdatesIdRouteImport
+      parentRoute: typeof AppWorkspaceDashboardUpdatesRoute
     }
     '/_app/$workspace/_dashboard/tag/$tag': {
       id: '/_app/$workspace/_dashboard/tag/$tag'
@@ -796,11 +896,29 @@ const AppWorkspaceDashboardInboxRouteWithChildren =
     AppWorkspaceDashboardInboxRouteChildren,
   )
 
+interface AppWorkspaceDashboardUpdatesRouteChildren {
+  AppWorkspaceDashboardUpdatesIdRoute: typeof AppWorkspaceDashboardUpdatesIdRoute
+}
+
+const AppWorkspaceDashboardUpdatesRouteChildren: AppWorkspaceDashboardUpdatesRouteChildren =
+  {
+    AppWorkspaceDashboardUpdatesIdRoute: AppWorkspaceDashboardUpdatesIdRoute,
+  }
+
+const AppWorkspaceDashboardUpdatesRouteWithChildren =
+  AppWorkspaceDashboardUpdatesRoute._addFileChildren(
+    AppWorkspaceDashboardUpdatesRouteChildren,
+  )
+
 interface AppWorkspaceDashboardRouteChildren {
+  AppWorkspaceDashboardCompaniesRoute: typeof AppWorkspaceDashboardCompaniesRoute
   AppWorkspaceDashboardInboxRoute: typeof AppWorkspaceDashboardInboxRouteWithChildren
   AppWorkspaceDashboardKanbanRoute: typeof AppWorkspaceDashboardKanbanRoute
+  AppWorkspaceDashboardReportsRoute: typeof AppWorkspaceDashboardReportsRoute
   AppWorkspaceDashboardSearchRoute: typeof AppWorkspaceDashboardSearchRoute
   AppWorkspaceDashboardShowcaseRoute: typeof AppWorkspaceDashboardShowcaseRoute
+  AppWorkspaceDashboardUpdatesRoute: typeof AppWorkspaceDashboardUpdatesRouteWithChildren
+  AppWorkspaceDashboardWorkflowsRoute: typeof AppWorkspaceDashboardWorkflowsRoute
   AppWorkspaceDashboardIndexRoute: typeof AppWorkspaceDashboardIndexRoute
   AppWorkspaceDashboardContactsTypeRoute: typeof AppWorkspaceDashboardContactsTypeRoute
   AppWorkspaceDashboardTagTagRoute: typeof AppWorkspaceDashboardTagTagRoute
@@ -809,10 +927,15 @@ interface AppWorkspaceDashboardRouteChildren {
 }
 
 const AppWorkspaceDashboardRouteChildren: AppWorkspaceDashboardRouteChildren = {
+  AppWorkspaceDashboardCompaniesRoute: AppWorkspaceDashboardCompaniesRoute,
   AppWorkspaceDashboardInboxRoute: AppWorkspaceDashboardInboxRouteWithChildren,
   AppWorkspaceDashboardKanbanRoute: AppWorkspaceDashboardKanbanRoute,
+  AppWorkspaceDashboardReportsRoute: AppWorkspaceDashboardReportsRoute,
   AppWorkspaceDashboardSearchRoute: AppWorkspaceDashboardSearchRoute,
   AppWorkspaceDashboardShowcaseRoute: AppWorkspaceDashboardShowcaseRoute,
+  AppWorkspaceDashboardUpdatesRoute:
+    AppWorkspaceDashboardUpdatesRouteWithChildren,
+  AppWorkspaceDashboardWorkflowsRoute: AppWorkspaceDashboardWorkflowsRoute,
   AppWorkspaceDashboardIndexRoute: AppWorkspaceDashboardIndexRoute,
   AppWorkspaceDashboardContactsTypeRoute:
     AppWorkspaceDashboardContactsTypeRoute,

@@ -11,6 +11,11 @@ import {
 import type React from "react";
 
 import { isIsolatedContractsRuntime } from "#lib/auth/route-auth";
+import {
+  reviewActivities,
+  reviewContacts,
+  reviewNotifications,
+} from "#lib/review-fixtures";
 
 export const realRefs = {
   "auth.me": getFunctionReference(
@@ -165,9 +170,26 @@ export const assertRealAuthority = (path: string) => {
 const isNeutral = (path: string) =>
   (neutralPaths as readonly string[]).includes(path);
 
-const neutralData = (path: string) => {
+const neutralData = (path: string, input?: Record<string, unknown>) => {
   if (path === "billing.account") return null;
-  if (path === "notifications.inbox") return { notifications: [] };
+  if (path === "contacts.listByType") {
+    const type = typeof input?.type === "string" ? input.type : undefined;
+    return type
+      ? reviewContacts.filter((contact) => contact.type === type)
+      : reviewContacts;
+  }
+  if (path === "contacts.byId") {
+    return (
+      reviewContacts.find((contact) => contact.id === input?.id) ??
+      reviewContacts[0]
+    );
+  }
+  if (path === "contacts.activitiesById") {
+    return { activities: reviewActivities };
+  }
+  if (path === "notifications.inbox") {
+    return { notifications: reviewNotifications };
+  }
   return [];
 };
 
@@ -217,7 +239,7 @@ function procedure<TData = unknown>(
       }
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) {
-        const data = neutralData(key);
+        const data = neutralData(key, input);
         return { data: data as TData, isLoading: false, isPending: false };
       }
       return useConvexQuery(convexRef, input ?? {}) as QueryResult<TData>;
@@ -234,7 +256,7 @@ function procedure<TData = unknown>(
       }
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) {
-        const data = neutralData(key);
+        const data = neutralData(key, input);
         return [
           data as TData,
           { data: data as TData, isLoading: false, isPending: false },
@@ -250,7 +272,7 @@ function procedure<TData = unknown>(
       const fixture = contractsFixture(key, input);
       if (fixture !== undefined) return fixture as TData;
       if (!ref && !isNeutral(key)) neutral(key);
-      if (!ref) return neutralData(key) as TData;
+      if (!ref) return neutralData(key, input) as TData;
       if (!client)
         throw new Error(`Router Convex client is required for ${key}`);
       return client.query(
