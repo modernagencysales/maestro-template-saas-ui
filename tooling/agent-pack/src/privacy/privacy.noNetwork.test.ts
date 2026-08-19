@@ -196,18 +196,22 @@ describe("privacy no-network conformance", () => {
     expect(
       existsSync(join(generatedTarget, "tooling/workflow/package.json")),
     ).toBe(false);
-    const installed = spawnSync(
+    const installed = await runProcess(
       "pnpm",
       ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
       {
         cwd: generatedTarget,
-        encoding: "utf8",
-        timeout: 120_000,
+        env: process.env,
+        timeoutMs: 120_000,
+        maxBuffer: 10 * 1024 * 1024,
       },
     );
-    expect(installed.status, `${installed.stdout}\n${installed.stderr}`).toBe(
-      0,
-    );
+    expect(
+      installed.error,
+      `${installed.stdout}\n${installed.stderr}`,
+    ).toBeUndefined();
+    expect(installed.signal, installed.stderr).toBeNull();
+    expect(installed.exitCode, installed.stderr).toBe(0);
 
     const preview = await traceGeneratedSupportBundle(generatedTarget, [
       "support-bundle",

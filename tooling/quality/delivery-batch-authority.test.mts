@@ -33,6 +33,19 @@ describe("local hook authority", () => {
   it("removes the obsolete rubric injection script", () => {
     expect(existsSync(resolve(root, "scripts/pre-push-rubric.sh"))).toBe(false);
   });
+
+  it.each([
+    "docs/template/post-port-backlog.md",
+    "docs/template/porting-backlog.md",
+  ])("does not advertise duplicate pre-push admission in %s", (path) => {
+    const instructions = read(path);
+
+    expect(instructions).not.toMatch(
+      /pre-push.*(?:deterministic|debt|typecheck|lint|deps|knip|gates)/u,
+    );
+    expect(instructions).toContain("pre-commit");
+    expect(instructions).toContain("Woodpecker");
+  });
 });
 
 describe("delivery-batch instructions", () => {
@@ -129,20 +142,29 @@ describe("deterministic suite ownership", () => {
     expect(packageJson.scripts.verify).not.toContain("pnpm check:app-map");
   });
 
-  it("connects the required Woodpecker context to root verify once", () => {
+  it("connects the required Woodpecker context to CI verification once", () => {
     const pipeline = read(".woodpecker/verify.yml");
+    const core = read(".woodpecker/verify-core.yml");
+    const coverage = read(".woodpecker/verify-coverage.yml");
     const chassis = read("tooling/ci/verify-chassis.sh");
 
-    expect(pipeline).toContain("tooling/ci/verify-chassis.sh");
+    expect(pipeline).toContain("- verify-core");
+    expect(pipeline).toContain("- verify-coverage");
+    expect(pipeline).toContain("node tooling/ci/verify-aggregate.mjs");
+    expect(core).toContain("tooling/ci/verify-chassis.sh");
+    expect(coverage).toContain("tooling/ci/verify-coverage.sh");
     const gitleaksInstall = chassis.indexOf(
       "bash tooling/ci/install-gitleaks.sh",
     );
     expect(gitleaksInstall).toBeGreaterThan(
       chassis.indexOf("source tooling/ci/setup.sh"),
     );
-    expect(gitleaksInstall).toBeLessThan(chassis.indexOf("pnpm verify"));
+    expect(gitleaksInstall).toBeLessThan(
+      chassis.indexOf("pnpm verify:without-coverage"),
+    );
     expect(chassis).not.toContain("install-gitleaks.sh || true");
-    expect(chassis.match(/^pnpm verify$/gmu)).toHaveLength(1);
+    expect(chassis.match(/^pnpm verify:without-coverage$/gmu)).toHaveLength(1);
+    expect(chassis).not.toMatch(/^pnpm verify$/gmu);
     expect(chassis).not.toContain("pnpm --dir apps/web test:runtime-longevity");
   });
 

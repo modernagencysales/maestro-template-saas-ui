@@ -110,7 +110,7 @@ describe("check:ci-completeness", () => {
     expect(verifyChassis?.includes).toEqual(
       expect.arrayContaining([
         "bash tooling/ci/install-gitleaks.sh",
-        "pnpm verify",
+        "pnpm verify:without-coverage",
       ]),
     );
     expect(verifyChassis?.absent).toEqual(
@@ -135,10 +135,39 @@ describe("check:ci-completeness", () => {
     expect(rootPackage?.includes).toEqual(
       expect.arrayContaining([
         '"test:heavyweight-customer-artifacts": "node tooling/ci/run-heavyweight-suites.mjs"',
+        '"verify:without-coverage"',
         '"check:agent-pack": "tsx tooling/agent-pack/src/syncSkills.ts && tsx tooling/quality/check-agent-pack.mts"',
         '"check:app-map": "pnpm --dir tooling/app-map check"',
         '"check:confect-manifest": "tsx tooling/confect-manifest/src/check.ts"',
       ]),
+    );
+
+    const aggregateVerification = descriptor.requirements.find(
+      ({ file }) => file === ".woodpecker/verify.yml",
+    );
+    expect(aggregateVerification?.includes).toEqual(
+      expect.arrayContaining([
+        "depth: 1",
+        "verify-core",
+        "verify-coverage",
+        "status: [success, failure]",
+        "node tooling/ci/verify-aggregate.mjs",
+      ]),
+    );
+
+    const coverageVerification = descriptor.requirements.find(
+      ({ file }) => file === "tooling/ci/verify-coverage.sh",
+    );
+    expect(coverageVerification?.includes).toEqual(
+      expect.arrayContaining([
+        "source tooling/ci/setup.sh",
+        "bash tooling/ci/install-gitleaks.sh",
+        "pnpm exec playwright install --with-deps chromium",
+        "pnpm check:coverage-ratchet",
+      ]),
+    );
+    expect(coverageVerification?.absent).toEqual(
+      expect.arrayContaining(["strace", "pnpm verify"]),
     );
   });
 

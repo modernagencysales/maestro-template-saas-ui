@@ -62,10 +62,9 @@ options and diligence findings so they are not lost.
    `workflow-policy-snapshot`, `no-cross-domain-value-import`,
    `no-raw-scheduler`, `frontend-route-thin`, `frontend-route-server-boundary`.
    This is the layer law as machine enforcement, not documentation.
-6. **Lefthook + rubric injection — DONE.** Port `lefthook.yml` and
-   `scripts/pre-push-rubric.sh`: pre-commit auto-format, pre-push deterministic
-   gates, and AI-gate rubric injection so coding agents self-review against the
-   exact criteria CI judges. Depends on item 1 for the rubric files.
+6. **Lefthook local hygiene — DONE.** `lefthook.yml` runs staged formatting,
+   ESLint, and advisory Qlty at pre-commit. Broad deterministic and AI gates run
+   once on the frozen delivery-batch head in Woodpecker.
 7. **CI self-protection — DONE for the template scale** (secretless first step +
    pipeline/justfile/lefthook pins; maestro's 1,949-line checker remains the
    reference for deeper pins). Template `check:ci-completeness` is a grep pin;

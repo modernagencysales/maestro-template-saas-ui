@@ -647,9 +647,9 @@ Convex component wiring (M).
 102.  **qlty (duplication + scan)** — MED — partial. `.qlty/qlty.toml` +
       `install-qlty.sh`. Template `check-qlty.mts` really spawns `qlty check`
       but has no config, so it no-ops.
-103.  **lefthook git hooks** — MED — no. `lefthook.yml` (pre-commit prettier;
-      pre-push debt/typecheck/lint/deps/knip/gates) + `lefthook` devDep. Shifts
-      deterministic gates left.
+103.  **lefthook git hooks** — MED — done. `lefthook.yml` runs staged Prettier,
+      ESLint, and advisory Qlty at pre-commit. Broad deterministic admission
+      runs once on the frozen delivery-batch head in Woodpecker.
 104.  **check-config-drift (live resolved config)** — HIGH — fake-stub.
       `tooling/quality/check-config-drift.mts` + `config-drift-pins.mts`.
       Asserts live eslint `--print-config` still matches pinned thresholds (not

@@ -37,7 +37,9 @@ describe("Woodpecker firewall and epoch pipelines", () => {
   });
 
   it("clones complete history for trusted contract bootstrap", () => {
-    expect(read(".woodpecker/verify.yml")).toContain("depth: 0");
+    expect(read(".woodpecker/verify-core.yml")).toContain("depth: 0");
+    expect(read(".woodpecker/verify-coverage.yml")).toContain("depth: 0");
+    expect(read(".woodpecker/verify.yml")).toContain("depth: 1");
   });
 
   it("keeps the trusted policy first and exact runner classes", () => {
