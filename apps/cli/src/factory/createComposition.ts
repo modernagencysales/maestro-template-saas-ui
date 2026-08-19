@@ -17,11 +17,11 @@ const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
 // Immutable release trust anchors: publishing a new sealed release updates these pins.
 const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.4/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
-  "sha256:3540380f6251cffed9e3201bbff4da939b02712e12d379c1805ca972f7dddeb1";
+  "sha256:783c6de33922d734ddfc86b18d079d3495ea318dfb4926b7ed8230bba577e7d2";
 const BASE_BLUEPRINT_CHECKSUM =
-  "sha256:28640dc442c9efea7233d9033bf5cf41d7682340e70b647508a049fa27061b07";
+  "sha256:f175e266c16c476769d0b30f39516f737cdbf3fc17b5a8fa18f78a5299d4cc3c";
 const BASE_TAG = "maestro-template-v0.2.0-alpha.4";
-const BASE_COMMIT = "0667b2c05ddef36bcd98cc58c2424a69313dea4f";
+const BASE_COMMIT = "c76465a8e0441ec902d993e67c5be21b36104253";
 
 export type CustomerCompositionSource = Readonly<{
   repositoryRoot: string;
