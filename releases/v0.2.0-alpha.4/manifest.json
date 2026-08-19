@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.4",
     "tag": "maestro-template-v0.2.0-alpha.4",
-    "sourceCommit": "b0f9989a4f2a6dfeced2a58e1d2b4e5e37fc8fcd",
-    "sourceChecksum": "sha256:76dbf2fa1eba407bbb030e454ab145db5f1133a326bc46e25406dc53384a82d7"
+    "sourceCommit": "2417ef5b9acef6df58554110aedc04b1a1679619",
+    "sourceChecksum": "sha256:315d2d1e1a0afcb300a753f297f3dda5679b7e36f3932ff88c0a562b9ef3325e"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -91,7 +91,7 @@
         "path": "apps/cli/src/factory/candidateComposition.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:5d0c56e4bb5083713174e7cb4c06cdce8f99cdf16a1cb64f37bbf5bfb0f81160",
-        "afterHash": "sha256:fdb1150eca5d059ad02b6af5db5c0825357c2ae0d61f78dd412dde98a0e18b7e"
+        "afterHash": "sha256:74a134f1a85516f6a3371429098dd342b6f7a4f87eb6f175f3711b9e46ecad7c"
       },
       {
         "id": "upgrade-modify-apps-cli-src-factory-create-ts",
@@ -107,7 +107,7 @@
         "path": "apps/cli/src/factory/customerCliRuntime.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:e202ba09c1fb59a35f8db45ae7755b7fb4b56684af4c7c0a5f666851be610a97",
-        "afterHash": "sha256:22fef4b4c6e1a058a14f0da735b03d066c1ceb8c7b1c1f796b4e5aac9977c51b"
+        "afterHash": "sha256:152658a0c8cff04ad45059bf2fa462aa1e01f6f53c7fedad1291661797c3b108"
       },
       {
         "id": "upgrade-modify-apps-cli-src-factory-customerComposition-ts",
@@ -3480,6 +3480,13 @@
         "afterHash": "sha256:69ada399d537434ff5e404cd842b9ee4224d1933be8b62428a50ea4c2164f410"
       },
       {
+        "id": "upgrade-delete-Justfile",
+        "kind": "delete",
+        "path": "Justfile",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:f8e1cccb42afa5384f60cabe6d6cd1d7c0a234953aeaa7120bfcb8994468bde7"
+      },
+      {
         "id": "upgrade-modify-knip-json",
         "kind": "modify",
         "path": "knip.json",
@@ -6147,6 +6154,13 @@
       "upgrade": "replace"
     },
     {
+      "path": "Justfile",
+      "match": "exact",
+      "ownership": "factory-only",
+      "action": "omit",
+      "upgrade": "remove"
+    },
+    {
       "path": "tooling/saas-ui",
       "match": "subtree",
       "ownership": "template-owned",
@@ -6156,7 +6170,7 @@
   ],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:e58e94b858761cb464c0ab6db3e48f60f5609e7ed9c07fa7c6bd166855e73c4a"
+    "sha256": "sha256:720f116d2be04bc68ddc7adc492d4020f04e69219bc4be57b21296f0ff898817"
   },
   "migrationHandoff": {
     "required": false,
@@ -6168,10 +6182,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.4/upgrade/app-map-input.json",
-    "sha256": "sha256:cd53491532ca8d48cd0ad44aa37d7fd449de339b7201372c211fa1e1361c3618",
+    "sha256": "sha256:ef53a4f7366fa5db9becc10ee7f75eae5a2fe664352b3d58ca52466862aca2e2",
     "projection": {
       "path": "releases/v0.2.0-alpha.4/upgrade/app-map-impact.json",
-      "sha256": "sha256:e45efe80c3242ec36310799555b72337592bd31b5cd9976e4b0e25cbd83bccf6"
+      "sha256": "sha256:839ac08c411930d055817bd562b56162be2ed3ce13097630bd1f79a759513876"
     }
   }
 }

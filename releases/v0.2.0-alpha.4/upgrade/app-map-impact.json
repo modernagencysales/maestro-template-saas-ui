@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "6f7d01f158d922dd9e69069713a46c9ebab5235e",
-  "subjectRevision": "b0f9989a4f2a6dfeced2a58e1d2b4e5e37fc8fcd",
+  "subjectRevision": "2417ef5b9acef6df58554110aedc04b1a1679619",
   "structuralPaths": ["docs/template/product-topology.json", "pnpm-lock.yaml"],
   "ownershipCoveredPaths": [
     ".factory/project.yaml",
@@ -11,6 +11,7 @@
     ".nvmrc",
     ".prettierignore",
     "AGENTS.md",
+    "Justfile",
     "apps/cli/package.json",
     "apps/cli/src/commands.ts",
     "apps/cli/src/factory/candidateComposition.test.ts",
@@ -852,7 +853,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "6f7d01f158d922dd9e69069713a46c9ebab5235e",
-    "subjectRevision": "b0f9989a4f2a6dfeced2a58e1d2b4e5e37fc8fcd",
+    "subjectRevision": "2417ef5b9acef6df58554110aedc04b1a1679619",
     "complete": true,
     "risk": "high",
     "changedPaths": ["docs/template/product-topology.json", "pnpm-lock.yaml"],
