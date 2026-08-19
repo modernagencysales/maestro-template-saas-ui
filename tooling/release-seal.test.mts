@@ -243,6 +243,25 @@ describe("release seal factory-only exclusions", () => {
 
     expect(paths).not.toContainEqual(inherited);
   });
+  it("removes the retired inherited Justfile authority", () => {
+    const removal = factoryRule("Justfile", "exact");
+    const paths = buildReviewedAdditionalPaths({
+      value: [],
+      sourcePaths: [],
+      protectedCustomerPaths: [],
+      basePaths: [
+        {
+          path: "Justfile",
+          match: "exact",
+          ownership: "generated",
+          action: "generate",
+          upgrade: "regenerate",
+        },
+      ],
+    });
+
+    expect(paths).toContainEqual(removal);
+  });
   it("derives explicit reviewed exclusions before inventory classification", () => {
     const sourcePaths = [
       "README.md",

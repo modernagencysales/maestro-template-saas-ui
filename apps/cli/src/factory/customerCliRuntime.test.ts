@@ -254,7 +254,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Inspect local support facts",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -366,7 +365,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Track one governed record",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -433,7 +431,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Review a generic private package",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -615,7 +612,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Track one customer request",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);

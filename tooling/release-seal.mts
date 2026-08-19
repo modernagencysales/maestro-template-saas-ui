@@ -243,6 +243,13 @@ function resolvePriorManifest(
   };
 }
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
+  {
+    path: "Justfile",
+    match: "exact",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
   ...[
     "apps/web/src/routes/build-pack.$packId.generating.tsx",
     "apps/web/src/routes/build-pack.$packId.index.tsx",
@@ -588,7 +595,11 @@ export function buildReviewedAdditionalPaths(input: {
       );
       if (inherited === undefined) return true;
       if (JSON.stringify(inherited) === JSON.stringify(candidate)) return false;
-      if (candidate.ownership === "factory-only") return false;
+      if (candidate.ownership === "factory-only")
+        return (
+          candidate.path === "Justfile" &&
+          !input.sourcePaths.includes(candidate.path)
+        );
       throw new Error(
         `Release additional path conflicts with inherited authority: ${candidate.match}:${candidate.path}`,
       );
@@ -705,7 +716,13 @@ async function build(args: Args): Promise<readonly Output[]> {
   const priorHashes = new Map<string, string>();
   for (const path of sourcePaths(prior.release.sourceCommit)) {
     const ownership = resolveCustomerReleasePath(prior.paths ?? [], path);
-    if (ownership?.ownership === "template-owned")
+    const removed = additionalPaths.some(
+      (entry) =>
+        entry.path === path &&
+        entry.match === "exact" &&
+        entry.ownership === "factory-only",
+    );
+    if (ownership?.ownership === "template-owned" || removed)
       priorHashes.set(path, hash(blob(prior.release.sourceCommit, path)));
   }
   const oldKinds = new Map(
