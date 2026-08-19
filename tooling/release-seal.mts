@@ -329,6 +329,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     action: "copy",
     upgrade: "replace",
   },
+  {
+    path: "tooling/saas-ui",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
   ...[
     "apps/cli/src/factory/adopt.ts",
     "apps/cli/src/factory/adopt.test.ts",
