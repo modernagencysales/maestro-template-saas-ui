@@ -78,6 +78,13 @@ describe("active Saas UI Pro application foundation", () => {
     expect(writer).toContain("<Reorder.Group");
     expect(kanban).toContain("export function KanbanDemo()");
     expect(kanban).toContain("backlog: createRange(20");
+    expect(page).toContain("const dataGridColumnSizeProps = (size: number)");
+    expect(page).toContain(
+      "...dataGridColumnSizeProps(header.column.getSize())",
+    );
+    expect(page).toContain(
+      "css: dataGridColumnSizeProps(cell.column.getSize())",
+    );
     expect(
       existsSync(resolve(root, "apps/web/src/routes/ui-lab/$demo.tsx")),
     ).toBe(true);

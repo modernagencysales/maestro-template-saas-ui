@@ -267,6 +267,12 @@ const dataGridColumns: ColumnDef<ExampleData>[] = [
   },
 ]
 
+const dataGridColumnSizeProps = (size: number) => ({
+  flexBasis: `${size}px`,
+  width: `${size}px`,
+  minWidth: `${Math.max(size, 40)}px`,
+})
+
 function DataGridDemo() {
   return (
     <Box minH="640px" bg="bg.panel" p="6">
@@ -274,6 +280,16 @@ function DataGridDemo() {
         columns={dataGridColumns}
         data={data}
         initialState={{ columnVisibility: { phone: false } }}
+        slotProps={{
+          table: { width: 'full' },
+          header: ({ header }) => ({
+            header,
+            ...dataGridColumnSizeProps(header.column.getSize()),
+          }),
+          cell: ({ cell }) => ({
+            css: dataGridColumnSizeProps(cell.column.getSize()),
+          }),
+        }}
       />
     </Box>
   )
