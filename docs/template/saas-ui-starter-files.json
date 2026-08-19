@@ -1714,7 +1714,7 @@
       "source": "packages/ui/src/settings-page/settings-page.tsx",
       "destination": "packages/ui/src/settings-page/settings-page.tsx",
       "sourceSha256": "3e77ae3bdbb33f81caddde77f7d22964d940e56bc820f0d4dedc0e6a6a187116",
-      "sha256": "03f63b605f5b07a4088203ae6c881b6d640f7d6ca043da13b33e826f935be5bf",
+      "sha256": "b7765cd01684cafd37867c98b1d85a143c63a0ff4070f4eb35581c9f21adde6e",
       "adapted": true
     },
     {

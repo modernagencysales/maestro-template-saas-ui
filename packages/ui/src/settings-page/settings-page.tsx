@@ -1,3 +1,5 @@
+import type { ComponentType } from 'react'
+
 import {
   Container,
   type ContainerProps,
@@ -5,6 +7,10 @@ import {
   StackSeparator,
   VStack,
 } from '@saas-ui/react'
+
+const SettingsPageRoot = Page.Root as ComponentType<
+  Page.RootProps & { variant?: 'settings' }
+>
 
 interface SettingsPageProps
   extends
@@ -33,7 +39,7 @@ export const SettingsPage = (props: SettingsPageProps) => {
   } = props
 
   return (
-    <Page.Root
+    <SettingsPageRoot
       variant="settings"
       mt={[14, null, 0]}
       bg="bg.muted/50"
@@ -56,6 +62,6 @@ export const SettingsPage = (props: SettingsPageProps) => {
           </VStack>
         </Page.Body>
       </Container>
-    </Page.Root>
+    </SettingsPageRoot>
   )
 }
