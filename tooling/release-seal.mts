@@ -385,6 +385,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     upgrade: "replace",
   },
   {
+    path: "docs/licenses/saas-ui",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
     path: "patches",
     match: "subtree",
     ownership: "template-owned",

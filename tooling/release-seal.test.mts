@@ -145,6 +145,7 @@ describe("release seal factory-only exclusions", () => {
       ".claude/settings.json",
       "README.md",
       "docs/agent/host-projection-lifecycle.md",
+      "docs/licenses/saas-ui/pro-NOTICE.md",
       "patches/@confect__cli@9.1.5.patch",
       "tooling/app-map/INTEGRATION_REQUEST.md",
       "tooling/app-map/src/mcp.test.ts",
@@ -176,6 +177,11 @@ describe("release seal factory-only exclusions", () => {
         }),
         expect.objectContaining({
           path: "docs/agent",
+          ownership: "template-owned",
+          action: "copy",
+        }),
+        expect.objectContaining({
+          path: "docs/licenses/saas-ui",
           ownership: "template-owned",
           action: "copy",
         }),
