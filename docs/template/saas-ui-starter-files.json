@@ -1042,8 +1042,8 @@
       "source": "apps/web/src/theme/preset.ts",
       "destination": "apps/web/src/theme/preset.ts",
       "sourceSha256": "1533841942b9d64e2ff06c86a3d7f35854a61a27ddf3d193475b8b1ef1dd4aac",
-      "sha256": "1533841942b9d64e2ff06c86a3d7f35854a61a27ddf3d193475b8b1ef1dd4aac",
-      "adapted": false
+      "sha256": "850fde726cd65cb7c4e6399242798bf3ef804019a4976da3a0e5e37d66914be9",
+      "adapted": true
     },
     {
       "source": "apps/web/src/theme/semantic-tokens/colors.ts",

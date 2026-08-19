@@ -1,5 +1,5 @@
 import { createSystem, defineConfig, defineRecipe } from '@chakra-ui/react'
-import { defaultConfig } from '@saas-ui/chakra-preset'
+import { defaultConfig } from '@saas-ui-pro/react'
 
 import { colors } from './semantic-tokens/colors'
 

@@ -23,6 +23,17 @@ describe("active Saas UI Pro application foundation", () => {
     expect(sidebarLayout).toContain("<Sidebar.Backdrop />");
   });
 
+  it("installs the Pro theme recipes used by the demo components", () => {
+    const preset = read("apps/web/src/theme/preset.ts");
+
+    expect(preset).toContain(
+      "import { defaultConfig } from '@saas-ui-pro/react'",
+    );
+    expect(preset).not.toContain(
+      "import { defaultConfig } from '@saas-ui/chakra-preset'",
+    );
+  });
+
   it("mounts the complete Pro primary navigation", () => {
     const sidebar = read(
       "apps/web/src/features/common/components/app-sidebar.tsx",
