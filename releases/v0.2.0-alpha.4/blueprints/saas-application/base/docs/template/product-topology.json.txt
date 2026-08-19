@@ -692,6 +692,34 @@
       ],
       "uses": [],
       "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/records",
+      "kind": "route",
+      "system": "record-management",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
+      "responsibility": "present workspace record create, list, and detail states",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:records-api",
+      "kind": "headless",
+      "system": "record-management",
+      "path": "apps/web/src/adapters/records/http.ts",
+      "responsibility": "serve the generated Records HTTP/API boundary to headless callers",
+      "surfaces": [
+        "api"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
     }
   ]
 }

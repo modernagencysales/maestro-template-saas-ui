@@ -106,6 +106,7 @@
     "check:convex-ai-files": "tsx tooling/quality/check-convex-ai-files.mts",
     "check:agent-pack": "tsx tooling/quality/check-agent-pack.mts",
     "check:app-map": "pnpm --dir tooling/app-map check",
+    "maestro:crud-proof": "tsx tooling/generators/src/crud-proof.ts --mode fake",
     "template:smoke": "tsx tooling/generators/src/customer-cli.ts smoke"
   },
   "devDependencies": {

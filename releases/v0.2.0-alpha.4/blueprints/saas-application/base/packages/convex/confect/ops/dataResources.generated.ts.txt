@@ -28,6 +28,7 @@ export const currentLifecycleResourceIds = [
   "notificationPreferences",
   "notificationRecords",
   "policies",
+  "records",
   "transformBlocks",
   "transformDefinitions",
   "transformRuns",
@@ -222,6 +223,13 @@ export const workspaceLifecycleResourcePlans = [
     exportMode: "json",
     deleteMode: "delete",
     detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
+  },
+  {
+    id: "records",
+    owner: "workspace",
+    exportMode: "json",
+    deleteMode: "delete",
+    detail: "Records are workspace-owned application data exported as JSON and removed with the owning workspace."
   },
   {
     id: "transformBlocks",
@@ -419,6 +427,11 @@ export const workspaceRetentionRules = [
     resourceId: "policies",
     action: "retain-until-workspace-delete",
     detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
+  },
+  {
+    resourceId: "records",
+    action: "retain-until-workspace-delete",
+    detail: "Records are workspace-owned application data exported as JSON and removed with the owning workspace."
   },
   {
     resourceId: "transformBlocks",

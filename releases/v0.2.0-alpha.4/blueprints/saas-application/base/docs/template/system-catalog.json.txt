@@ -424,6 +424,32 @@
         "packages/convex/confect/deployAuthority/store.ts"
       ],
       "decisionRef": "docs/template/system-decisions/deployment-authority.md"
+    },
+    {
+      "id": "record-management",
+      "name": "Record Management",
+      "kind": "product-system",
+      "lifecycle": "active",
+      "implementationStatus": "real",
+      "summary": "Owns the renameable workspace-scoped record CRUD slice shipped by the SaaS application blueprint.",
+      "responsibilities": [
+        "create workspace records",
+        "list workspace records",
+        "read workspace record details"
+      ],
+      "aliases": [
+        "business records",
+        "crud",
+        "records"
+      ],
+      "tables": [
+        "records"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/records/records.spec.ts",
+        "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"
+      ],
+      "decisionRef": "docs/template/system-decisions/record-management.md"
     }
   ]
 }
