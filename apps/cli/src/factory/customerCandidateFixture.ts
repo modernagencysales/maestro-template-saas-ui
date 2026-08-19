@@ -174,6 +174,11 @@ export const buildCandidateReleaseFixture = (input: {
         .filter((entry) => entry.replaces === undefined)
         .map((entry) => entry.path),
     );
+    const copiedReplacementPaths = new Set(
+      plan.entries
+        .filter((entry) => entry.replaces === "copy")
+        .map((entry) => entry.path),
+    );
     const paths = [
       ...buildCustomerOwnershipInventory(sourcePaths).map((entry) =>
         blueprintOwnedPaths.has(entry.path) ||
@@ -189,7 +194,15 @@ export const buildCandidateReleaseFixture = (input: {
               action: "omit" as const,
               upgrade: "remove" as const,
             }
-          : entry,
+          : copiedReplacementPaths.has(entry.path)
+            ? {
+                path: entry.path,
+                match: "exact" as const,
+                ownership: "template-owned" as const,
+                action: "copy" as const,
+                upgrade: "replace" as const,
+              }
+            : entry,
       ),
       {
         path: "template-instance.json",

@@ -32,7 +32,11 @@ const candidateRelease = (input: {
   const fixture = buildCandidateReleaseFixture({
     repoRoot: repositoryRoot,
     ...input,
-    buildPlan: (options) => (plan = buildSaasApplicationTargetPlan(options)),
+    buildPlan: (options) =>
+      (plan = buildSaasApplicationTargetPlan({
+        ...options,
+        patterns: ["records-example"],
+      })),
     authority: "alpha.3",
   });
   candidateReleaseParent = fixture.parent;
