@@ -5,11 +5,14 @@ pre-commit:
   commands:
     format:
       glob: "*.{ts,tsx,mts,mjs,cjs,json,md,css,yml,yaml}"
+      exclude: "^repos/"
       run: pnpm prettier --write {staged_files}
       stage_fixed: true
     lint-staged:
       glob: "*.{ts,tsx,mts,mjs,cjs}"
+      exclude: "^repos/"
       run: ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}
     qlty-staged:
       glob: "*.{ts,tsx,mts,mjs,cjs,py,rs,go}"
+      exclude: "^repos/"
       run: pnpm check:qlty -- --staged

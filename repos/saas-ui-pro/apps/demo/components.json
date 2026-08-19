@@ -1,0 +1,18 @@
+{
+  "$schema": "http://localhost:3020/r/schema/components.json",
+  "system": "chakra",
+  "style": "default",
+  "rsc": true,
+  "tsx": true,
+  "installed": [
+    "forms"
+  ],
+  "aliases": {
+    "components": "#components",
+    "utils": "#lib/utils",
+    "ui": "#ui",
+    "lib": "#lib",
+    "hooks": "#hooks",
+    "icons": "#icons"
+  }
+}

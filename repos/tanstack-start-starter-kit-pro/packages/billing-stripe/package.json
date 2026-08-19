@@ -1,0 +1,20 @@
+{
+  "name": "@workspace/billing-stripe",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "listen": "stripe listen --forward-to localhost:3000/api/webhooks/stripe"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "env": "workspace:*",
+    "stripe": "^20.0.0",
+    "@workspace/api": "workspace:*",
+    "@workspace/config": "workspace:*"
+  },
+  "devDependencies": {
+    "@typescript/native": "npm:typescript@^7.0.2"
+  }
+}

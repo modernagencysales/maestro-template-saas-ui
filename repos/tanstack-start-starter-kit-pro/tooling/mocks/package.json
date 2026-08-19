@@ -1,0 +1,17 @@
+{
+  "name": "@tooling/mocks",
+  "version": "1.0.0",
+  "description": "Mocks for testing",
+  "private": true,
+  "main": "src/index.ts",
+  "type": "module",
+  "dependencies": {
+    "@ngneat/falso": "^7.2.0",
+    "date-fns": "^3.6.0",
+    "slug": "^9.0.0",
+    "zustand": "^4.5.5"
+  },
+  "devDependencies": {
+    "@types/slug": "^5.0.9"
+  }
+}

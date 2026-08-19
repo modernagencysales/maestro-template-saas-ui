@@ -1,0 +1,12 @@
+<general-rules>
+ - Don't skip any lines when making completion suggestions
+</general-rules>
+
+<typescript-rules>
+  - Always use `Array<T>` instead of `T[]`
+  - Prefer `interface` over `type` for custom types
+</typescript-rules>
+
+<chakra-ui-rules>
+  - Use `borderWidth="1px"` instead of `border="1px solid"`.
+</chakra-ui-rules>

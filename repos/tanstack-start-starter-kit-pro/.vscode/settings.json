@@ -1,0 +1,13 @@
+{
+  "search.exclude": {
+    "**/.output": true
+  },
+  "typescript.tsdk": "node_modules/typescript/lib",
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "typescript.preferences.includePackageJsonAutoImports": "on",
+  "typescript.preferences.importModuleSpecifierEnding": "minimal",
+  "typescript.preferences.autoImportFileExcludePatterns": [
+    "drizzle-orm/mysql-core",
+    "drizzle-orm/sqlite-core"
+  ]
+}

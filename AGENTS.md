@@ -94,6 +94,17 @@ layers, add the missing boundary instead.
 
 ## Frontend Rules
 
+- Before composing a page, search
+  `docs/template/saas-ui-screen-catalog.json` and inspect the exact pinned
+  source under `repos/saas-ui-pro` or
+  `repos/tanstack-start-starter-kit-pro`. In a generated target where vendored
+  sources are intentionally omitted, fetch the catalogue repository at its
+  recorded pin. Prefer, in order: a complete Pro demo screen, an assembled Pro
+  Storybook block/template, a Starter screen, then loose primitives only when
+  no assembled source applies.
+- Copy the selected screen composition mechanically. Keep routing, auth, data,
+  and mutations behind thin adapters; do not redesign upstream JSX, spacing,
+  component selection, or interaction structure during the transplant.
 - Keep reusable UI in blocks and package UI primitives.
 - Use Saas UI primitives for the visible business-app shell when they cover the
   need.

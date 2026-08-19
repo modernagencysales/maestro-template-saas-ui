@@ -1,0 +1,4 @@
+{
+  "extends": "../../tsconfig.json",
+  "include": ["./sidebar2.tsx", "./sidebar2-color-mode.tsx"]
+}

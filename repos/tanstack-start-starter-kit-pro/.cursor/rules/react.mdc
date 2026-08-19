@@ -1,0 +1,28 @@
+---
+description: Use this rule when working in the web application frontend and react components
+globs: apps/web/**/*.tsx, apps/web/**/*.ts, packages/ui/**/*.tsx
+---
+
+# React rules
+
+- Use Chakra UI 3.0+ for UI components (https://chakra-ui.com/docs/components), NEVER user Chakra UI v2.0
+- Prefer using Saas UI 3.0 components when available (https://beta.saas-ui.dev/docs/components/overview)
+- Prefer `function` over anonymous functions for components
+- Prefer specific style props over combined ones, eg `borderWidth` instead of `border="1px solid"
+- Use local semantic tokens defined in [theme.ts](mdc:packages/theme/src/theme.ts) when applicable
+- TanStack Router is used for type-safe routes
+- tRPC with React Query is used for data fetching, available routers can be found in [router.ts](mdc:packages/api/trpc/router.ts) and `packages/api/modules/*`
+- tRPC React hooks are imported from `#lib/trpc/react`
+- Always use `snake-case` for filenames
+- Use named exports instead of default exports
+- Do not use barrel exports (index.ts) for features
+- Page components are named as `name-page.tsx` and live in the features folder, routes import this page file as the entry point.
+
+# Project structure
+
+- Shared UI components live in the `apps/web/src/components` folder, import from `#components/*`
+- Shared React hooks live in the `apps/web/src/hooks` folder, import from `#hooks/*`
+- Shared libraries live in the `apps/web/src/lib` folder, import from `#lib/*`
+- Functionality is grouped by feature in the `apps/web/src/features` folder, import from `#features/*`
+- Routes live in the `apps/web/src/routes` folder
+- This is a multitenant application workspace specific routes live under `apps/web/src/routes/_app/$workspace`

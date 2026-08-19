@@ -1,0 +1,15 @@
+---
+description: Adding or modifying API route and procedures
+globs: packages/api/*
+---
+
+# API rules
+
+- Use tRPC version 11 (https://trpc.io/docs/server/routers)
+- API is split into modules `packages/api/modules/*`
+- A module consist of routes `module-name.routes.ts`, schema `module-name.schema.ts` and service `module-name.service.ts`
+- _IMPORTANT_ Keep routes and procedures are lightweight, add all business (eg. interacting with DB) logic in services (`module-name.service.ts`)
+- Drizzle is used as ORM, table schemas and drizzle utilities are imported from the `@workspace/db` package, check the `db.mdc` rule for more information
+- Public routers use `procedure`, authenticated routers `protectedProcedure`, workspace routers `workspaceProcedure`, for settings page `adminProcedures` are used
+- This is a multi tenant application, new features are typically scoped to workspaces
+- When adding a new module, make sure to import it and append it to @router.ts, using absolute paths, eg `#modules/[module-name]/[module-name].router.ts`

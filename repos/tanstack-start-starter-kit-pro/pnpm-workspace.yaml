@@ -1,0 +1,26 @@
+packages:
+  - 'apps/web'
+  - 'packages/*'
+allowBuilds:
+  esbuild: true
+  sharp: true
+minimumReleaseAgeExclude:
+  - '@formatjs/cli-native-darwin-arm64@1.1.7'
+  - '@formatjs/cli-native-linux-arm64-musl@1.0.5'
+  - '@formatjs/cli-native-linux-arm64@1.2.7'
+  - '@formatjs/cli-native-linux-x64-musl@1.0.5'
+  - '@formatjs/cli-native-linux-x64@1.1.7'
+  - '@formatjs/cli-native-win32-x64@1.1.8'
+  - '@formatjs/cli@6.16.13'
+  - eslint@10.7.0
+overrides:
+  vite: ^8.1.4
+  "@types/node": ^22.14.0
+  "@internationalized/date": ^3.7.0
+  "@internationalized/number": ^3.5.0
+  "@chakra-ui/react": ^3.33.0
+  "@saas-ui/react": ^3.0.0-next.51
+  "@saas-ui/forms": ^3.0.0-next.52
+  "@saas-ui/modals": ^3.0.0-next.52
+  "@saas-ui/hooks": ^3.0.0-next.3
+  "@saas-ui-pro/react": ^1.0.0-next.4

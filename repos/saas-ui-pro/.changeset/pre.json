@@ -1,0 +1,34 @@
+{
+  "mode": "pre",
+  "tag": "next",
+  "initialVersions": {
+    "demo": "0.30.12",
+    "@saas-ui-pro/billing": "0.13.0",
+    "saas-ui-blocks": "0.4.8",
+    "@saas-ui/cli": "0.0.1",
+    "@saas-ui-pro/feature-flags": "0.17.0",
+    "@saas-ui-pro/kanban": "0.7.1",
+    "@saas-ui-pro/kanban-core": "0.4.1",
+    "@saas-ui-pro/onboarding": "0.15.1",
+    "@saas-ui-pro/react": "0.41.1",
+    "@saas-ui/registry": "0.1.0",
+    "saas-ui-storybook-pro": "39.0.1",
+    "@saas-js/conditions": "0.0.1"
+  },
+  "changesets": [
+    "clean-yaks-lay",
+    "eager-cooks-push",
+    "eight-comics-kiss",
+    "fair-brooms-retire",
+    "fruity-months-travel",
+    "giant-rice-enjoy",
+    "giant-shoes-sneeze",
+    "happy-dogs-start",
+    "lazy-apples-yell",
+    "major-books-prove",
+    "olive-suits-arrive",
+    "shiny-trees-own",
+    "thirty-years-lay",
+    "wide-hairs-slide"
+  ]
+}

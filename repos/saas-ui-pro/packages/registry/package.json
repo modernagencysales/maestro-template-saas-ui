@@ -1,0 +1,42 @@
+{
+  "name": "@saas-ui-pro/registry",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "pnpm --dir ../.. registry:prepare-public && pnpm dev:prepared",
+    "dev:prepared": "tsx --watch src/serve.ts",
+    "build": "pnpm build:registry && tsc -p tsconfig.json && cp -r __registry__ dist && cp -r public dist",
+    "build:registry": "tsx scripts/build-registry.ts",
+    "check": "tsx scripts/check-registry.ts",
+    "check:previews": "tsx scripts/check-previews.ts",
+    "start": "node dist/src/serve.js",
+    "test": "pnpm --dir ../.. registry:prepare-public && pnpm test:prepared",
+    "test:prepared": "vitest run --config vitest.config.ts",
+    "test:ci": "pnpm --dir ../.. registry:prepare-public && pnpm test:ci:prepared",
+    "test:ci:prepared": "pnpm check && pnpm test:prepared && pnpm test:consumer:acceptance:prepared",
+    "test:consumer": "pnpm --dir ../.. registry:prepare-public && pnpm test:consumer:prepared",
+    "test:consumer:prepared": "vitest run --config vitest.config.ts test/consumer/fixture.test.ts",
+    "test:consumer:acceptance": "pnpm --dir ../.. registry:prepare-public && pnpm test:consumer:acceptance:prepared",
+    "test:consumer:acceptance:prepared": "tsx --conditions=sui test/consumer/acceptance.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./schema": "./src/schema.ts"
+  },
+  "dependencies": {
+    "@ark-ui/react": "5.30.0",
+    "@hono/node-server": "^1.19.6",
+    "@saas-ui/registry": "^0.2.0-next.0",
+    "@tanstack/react-form": "^1.33.2",
+    "hono": "^4.10.6"
+  },
+  "devDependencies": {
+    "@saas-ui/cli": "^0.1.0-next.1",
+    "@saas-ui/chakra-preset": "^3.0.0-next.10",
+    "@tsconfig/recommended": "^1.0.13",
+    "next-themes": "0.4.6",
+    "tsx": "^4.20.6",
+    "vitest": "^3.2.4"
+  }
+}

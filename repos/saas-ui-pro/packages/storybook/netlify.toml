@@ -1,0 +1,8 @@
+[build]
+  command = "pnpm build"
+  publish = "storybook-static"
+
+[[headers]]
+  for = "/*"
+    [headers.values]
+    Access-Control-Allow-Origin = "*"

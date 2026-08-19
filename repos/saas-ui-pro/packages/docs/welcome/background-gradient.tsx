@@ -1,0 +1,46 @@
+import { Box, useToken } from '@chakra-ui/react'
+
+export const BackgroundGradient = ({ showOverlay = true, ...props }: any) => {
+  const [primary800, secondary500, cyan500, teal500] = useToken('colors', [
+    'primary.800',
+    'secondary.500',
+    'cyan.500',
+    'teal.500',
+  ])
+  const colors = [primary800, secondary500, cyan500, teal500]
+
+  const fallbackBackground = `radial-gradient(at top left, ${colors[0]} 30%, transparent 80%), radial-gradient(at bottom, ${colors[1]} 0%, transparent 60%), radial-gradient(at bottom left, var(--chakra-colors-cyan-500) 0%, transparent 50%),
+        radial-gradient(at top right, ${colors[3]}, transparent), radial-gradient(at bottom right, ${colors[0]} 0%, transparent 50%);`
+
+  const overlayColor = `var(--chakra-colors-gray-900)`
+
+  const gradientOverlay = `linear-gradient(0deg, ${overlayColor} 20%, rgba(0, 0, 0, 0) 100%);`
+
+  return (
+    <Box
+      backgroundImage={fallbackBackground}
+      backgroundBlendMode="saturation"
+      position="absolute"
+      top="0"
+      left="0"
+      zIndex="0"
+      opacity="0.3"
+      height="100vh"
+      width="100%"
+      overflow="hidden"
+      {...props}
+    >
+      {showOverlay && (
+        <Box
+          backgroundImage={gradientOverlay}
+          position="absolute"
+          top="0"
+          right="0"
+          bottom="0"
+          left="0"
+          zIndex="1"
+        ></Box>
+      )}
+    </Box>
+  )
+}

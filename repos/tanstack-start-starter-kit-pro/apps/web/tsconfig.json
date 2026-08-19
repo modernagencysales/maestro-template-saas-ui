@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["DOM", "ES2023"],
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "strict": true,
+    "jsx": "react-jsx",
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "types": ["vite/client"],
+    "isolatedModules": true,
+    "noUncheckedIndexedAccess": true,
+    "incremental": true,
+    "verbatimModuleSyntax": false,
+    "paths": {
+      "#config/*": ["./src/config/*"],
+      "#components/*": ["./src/components/*"],
+      "#hooks/*": ["./src/hooks/*"],
+      "#features/*": ["./src/features/*"],
+      "#lib/*": ["./src/lib/*"],
+      "#utils/*": ["./src/utils/*"],
+      "#theme/*": ["./src/theme/*"]
+    }
+  },
+  "include": ["src"],
+  "exclude": ["**/node_modules", "dist", ".output"]
+}
