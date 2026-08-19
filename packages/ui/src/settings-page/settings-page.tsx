@@ -33,7 +33,12 @@ export const SettingsPage = (props: SettingsPageProps) => {
   } = props
 
   return (
-    <Page.Root variant="settings" mt={[14, null, 0]} bg="bg.muted" {...rest}>
+    <Page.Root
+      variant="settings"
+      mt={[14, null, 0]}
+      bg="bg.muted/50"
+      {...rest}
+    >
       <Container maxW={contentWidth}>
         <Page.Header
           title={title}

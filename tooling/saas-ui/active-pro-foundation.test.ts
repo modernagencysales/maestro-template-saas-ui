@@ -34,6 +34,7 @@ describe("active Saas UI Pro application foundation", () => {
       "Companies",
       "Workflows",
       "Reports",
+      "UI Lab",
     ]) {
       expect(sidebar).toContain(`label="${label}"`);
     }
@@ -51,5 +52,53 @@ describe("active Saas UI Pro application foundation", () => {
 
     for (const route of routes)
       expect(existsSync(resolve(root, route))).toBe(true);
+  });
+
+  it("assembles the selected Pro Storybook demos as live UI Lab routes", () => {
+    const page = read("apps/web/src/features/ui-lab/ui-lab-page.tsx");
+    const writer = read("apps/web/src/features/ui-lab/writer-demo.tsx");
+    const kanban = read("apps/web/src/features/ui-lab/kanban-demo.tsx");
+
+    for (const id of [
+      "writer",
+      "kanban",
+      "data-grid",
+      "filters",
+      "split-page",
+      "sidebar-1",
+      "sidebar-2",
+      "sidebar-3",
+      "sidebar-4",
+      "navbar-branded",
+      "navbar-tabs",
+    ])
+      expect(page).toContain(`id: '${id}'`);
+
+    expect(writer).toContain("export function WriterDemo()");
+    expect(writer).toContain("<Reorder.Group");
+    expect(kanban).toContain("export function KanbanDemo()");
+    expect(kanban).toContain("backlog: createRange(20");
+    expect(
+      existsSync(resolve(root, "apps/web/src/routes/ui-lab/$demo.tsx")),
+    ).toBe(true);
+  });
+
+  it("exposes the complete Pro settings and onboarding screen set", () => {
+    for (const route of [
+      "apps/web/src/routes/_app/$workspace/settings/index.tsx",
+      "apps/web/src/routes/_app/$workspace/settings/account/api.tsx",
+      "apps/web/src/routes/_app/$workspace/settings/account/notifications.tsx",
+      "apps/web/src/routes/_app/$workspace/settings/account/profile.tsx",
+      "apps/web/src/routes/_app/$workspace/settings/account/security.tsx",
+      "apps/web/src/routes/_app/$workspace/settings/members.tsx",
+      "apps/web/src/routes/_app/$workspace/settings/billing.tsx",
+      "apps/web/src/routes/_app/$workspace/settings/plans.tsx",
+      "apps/web/src/routes/_app/getting-started/index.tsx",
+    ])
+      expect(existsSync(resolve(root, route))).toBe(true);
+
+    expect(
+      read("apps/web/src/features/getting-started/getting-started-page.tsx"),
+    ).toContain('<Container maxW="6xl">');
   });
 });

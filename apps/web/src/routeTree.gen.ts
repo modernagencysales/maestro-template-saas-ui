@@ -9,9 +9,12 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as UiLabRouteImport } from './routes/ui-lab'
 import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as UiLabIndexRouteImport } from './routes/ui-lab/index'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
+import { Route as UiLabDemoRouteImport } from './routes/ui-lab/$demo'
 import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
 import { Route as AuthLoginRouteImport } from './routes/_auth/login'
@@ -48,12 +51,19 @@ import { Route as AppWorkspaceSettingsAccountIndexRouteImport } from './routes/_
 import { Route as AppWorkspaceDashboardContactsIndexRouteImport } from './routes/_app/$workspace/_dashboard/contacts/index'
 import { Route as AppWorkspaceSettingsAccountSecurityRouteImport } from './routes/_app/$workspace/settings/account/security'
 import { Route as AppWorkspaceSettingsAccountProfileRouteImport } from './routes/_app/$workspace/settings/account/profile'
+import { Route as AppWorkspaceSettingsAccountNotificationsRouteImport } from './routes/_app/$workspace/settings/account/notifications'
+import { Route as AppWorkspaceSettingsAccountApiRouteImport } from './routes/_app/$workspace/settings/account/api'
 import { Route as AppWorkspaceDashboardUpdatesIdRouteImport } from './routes/_app/$workspace/_dashboard/updates/$id'
 import { Route as AppWorkspaceDashboardTagTagRouteImport } from './routes/_app/$workspace/_dashboard/tag/$tag'
 import { Route as AppWorkspaceDashboardInboxIdRouteImport } from './routes/_app/$workspace/_dashboard/inbox/$id'
 import { Route as AppWorkspaceDashboardContactsTypeRouteImport } from './routes/_app/$workspace/_dashboard/contacts/$type'
 import { Route as AppWorkspaceDashboardContactsViewIdRouteImport } from './routes/_app/$workspace/_dashboard/contacts/view/$id'
 
+const UiLabRoute = UiLabRouteImport.update({
+  id: '/ui-lab',
+  path: '/ui-lab',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/_auth',
   getParentRoute: () => rootRouteImport,
@@ -62,10 +72,20 @@ const AppRoute = AppRouteImport.update({
   id: '/_app',
   getParentRoute: () => rootRouteImport,
 } as any)
+const UiLabIndexRoute = UiLabIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => UiLabRoute,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRoute,
+} as any)
+const UiLabDemoRoute = UiLabDemoRouteImport.update({
+  id: '/$demo',
+  path: '/$demo',
+  getParentRoute: () => UiLabRoute,
 } as any)
 const AuthSignupRoute = AuthSignupRouteImport.update({
   id: '/signup',
@@ -265,6 +285,18 @@ const AppWorkspaceSettingsAccountProfileRoute =
     path: '/account/profile',
     getParentRoute: () => AppWorkspaceSettingsRoute,
   } as any)
+const AppWorkspaceSettingsAccountNotificationsRoute =
+  AppWorkspaceSettingsAccountNotificationsRouteImport.update({
+    id: '/account/notifications',
+    path: '/account/notifications',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
+const AppWorkspaceSettingsAccountApiRoute =
+  AppWorkspaceSettingsAccountApiRouteImport.update({
+    id: '/account/api',
+    path: '/account/api',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
 const AppWorkspaceDashboardUpdatesIdRoute =
   AppWorkspaceDashboardUpdatesIdRouteImport.update({
     id: '/$id',
@@ -298,6 +330,7 @@ const AppWorkspaceDashboardContactsViewIdRoute =
 
 export interface FileRoutesByFullPath {
   '/': typeof AppIndexRoute
+  '/ui-lab': typeof UiLabRouteWithChildren
   '/$workspace': typeof AppWorkspaceRouteWithChildren
   '/accept-invite': typeof AppAcceptInviteRouteWithChildren
   '/getting-started': typeof AppGettingStartedRouteWithChildren
@@ -305,6 +338,8 @@ export interface FileRoutesByFullPath {
   '/login': typeof AuthLoginRoute
   '/reset-password': typeof AuthResetPasswordRoute
   '/signup': typeof AuthSignupRoute
+  '/ui-lab/$demo': typeof UiLabDemoRoute
+  '/ui-lab/': typeof UiLabIndexRoute
   '/$workspace/settings': typeof AppWorkspaceSettingsRouteWithChildren
   '/accept-invite/$token': typeof AppAcceptInviteTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
@@ -333,6 +368,8 @@ export interface FileRoutesByFullPath {
   '/$workspace/inbox/$id': typeof AppWorkspaceDashboardInboxIdRoute
   '/$workspace/tag/$tag': typeof AppWorkspaceDashboardTagTagRoute
   '/$workspace/updates/$id': typeof AppWorkspaceDashboardUpdatesIdRoute
+  '/$workspace/settings/account/api': typeof AppWorkspaceSettingsAccountApiRoute
+  '/$workspace/settings/account/notifications': typeof AppWorkspaceSettingsAccountNotificationsRoute
   '/$workspace/settings/account/profile': typeof AppWorkspaceSettingsAccountProfileRoute
   '/$workspace/settings/account/security': typeof AppWorkspaceSettingsAccountSecurityRoute
   '/$workspace/contacts/': typeof AppWorkspaceDashboardContactsIndexRoute
@@ -347,6 +384,8 @@ export interface FileRoutesByTo {
   '/login': typeof AuthLoginRoute
   '/reset-password': typeof AuthResetPasswordRoute
   '/signup': typeof AuthSignupRoute
+  '/ui-lab/$demo': typeof UiLabDemoRoute
+  '/ui-lab': typeof UiLabIndexRoute
   '/accept-invite/$token': typeof AppAcceptInviteTokenRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/auth/callback': typeof ApiAuthCallbackRoute
@@ -373,6 +412,8 @@ export interface FileRoutesByTo {
   '/$workspace/inbox/$id': typeof AppWorkspaceDashboardInboxIdRoute
   '/$workspace/tag/$tag': typeof AppWorkspaceDashboardTagTagRoute
   '/$workspace/updates/$id': typeof AppWorkspaceDashboardUpdatesIdRoute
+  '/$workspace/settings/account/api': typeof AppWorkspaceSettingsAccountApiRoute
+  '/$workspace/settings/account/notifications': typeof AppWorkspaceSettingsAccountNotificationsRoute
   '/$workspace/settings/account/profile': typeof AppWorkspaceSettingsAccountProfileRoute
   '/$workspace/settings/account/security': typeof AppWorkspaceSettingsAccountSecurityRoute
   '/$workspace/contacts': typeof AppWorkspaceDashboardContactsIndexRoute
@@ -383,6 +424,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/_app': typeof AppRouteWithChildren
   '/_auth': typeof AuthRouteWithChildren
+  '/ui-lab': typeof UiLabRouteWithChildren
   '/_app/$workspace': typeof AppWorkspaceRouteWithChildren
   '/_app/accept-invite': typeof AppAcceptInviteRouteWithChildren
   '/_app/getting-started': typeof AppGettingStartedRouteWithChildren
@@ -390,7 +432,9 @@ export interface FileRoutesById {
   '/_auth/login': typeof AuthLoginRoute
   '/_auth/reset-password': typeof AuthResetPasswordRoute
   '/_auth/signup': typeof AuthSignupRoute
+  '/ui-lab/$demo': typeof UiLabDemoRoute
   '/_app/': typeof AppIndexRoute
+  '/ui-lab/': typeof UiLabIndexRoute
   '/_app/$workspace/_dashboard': typeof AppWorkspaceDashboardRouteWithChildren
   '/_app/$workspace/settings': typeof AppWorkspaceSettingsRouteWithChildren
   '/_app/accept-invite/$token': typeof AppAcceptInviteTokenRoute
@@ -420,6 +464,8 @@ export interface FileRoutesById {
   '/_app/$workspace/_dashboard/inbox/$id': typeof AppWorkspaceDashboardInboxIdRoute
   '/_app/$workspace/_dashboard/tag/$tag': typeof AppWorkspaceDashboardTagTagRoute
   '/_app/$workspace/_dashboard/updates/$id': typeof AppWorkspaceDashboardUpdatesIdRoute
+  '/_app/$workspace/settings/account/api': typeof AppWorkspaceSettingsAccountApiRoute
+  '/_app/$workspace/settings/account/notifications': typeof AppWorkspaceSettingsAccountNotificationsRoute
   '/_app/$workspace/settings/account/profile': typeof AppWorkspaceSettingsAccountProfileRoute
   '/_app/$workspace/settings/account/security': typeof AppWorkspaceSettingsAccountSecurityRoute
   '/_app/$workspace/_dashboard/contacts/': typeof AppWorkspaceDashboardContactsIndexRoute
@@ -430,6 +476,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/ui-lab'
     | '/$workspace'
     | '/accept-invite'
     | '/getting-started'
@@ -437,6 +484,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/ui-lab/$demo'
+    | '/ui-lab/'
     | '/$workspace/settings'
     | '/accept-invite/$token'
     | '/api/auth/$'
@@ -465,6 +514,8 @@ export interface FileRouteTypes {
     | '/$workspace/inbox/$id'
     | '/$workspace/tag/$tag'
     | '/$workspace/updates/$id'
+    | '/$workspace/settings/account/api'
+    | '/$workspace/settings/account/notifications'
     | '/$workspace/settings/account/profile'
     | '/$workspace/settings/account/security'
     | '/$workspace/contacts/'
@@ -479,6 +530,8 @@ export interface FileRouteTypes {
     | '/login'
     | '/reset-password'
     | '/signup'
+    | '/ui-lab/$demo'
+    | '/ui-lab'
     | '/accept-invite/$token'
     | '/api/auth/$'
     | '/api/auth/callback'
@@ -505,6 +558,8 @@ export interface FileRouteTypes {
     | '/$workspace/inbox/$id'
     | '/$workspace/tag/$tag'
     | '/$workspace/updates/$id'
+    | '/$workspace/settings/account/api'
+    | '/$workspace/settings/account/notifications'
     | '/$workspace/settings/account/profile'
     | '/$workspace/settings/account/security'
     | '/$workspace/contacts'
@@ -514,6 +569,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/_app'
     | '/_auth'
+    | '/ui-lab'
     | '/_app/$workspace'
     | '/_app/accept-invite'
     | '/_app/getting-started'
@@ -521,7 +577,9 @@ export interface FileRouteTypes {
     | '/_auth/login'
     | '/_auth/reset-password'
     | '/_auth/signup'
+    | '/ui-lab/$demo'
     | '/_app/'
+    | '/ui-lab/'
     | '/_app/$workspace/_dashboard'
     | '/_app/$workspace/settings'
     | '/_app/accept-invite/$token'
@@ -551,6 +609,8 @@ export interface FileRouteTypes {
     | '/_app/$workspace/_dashboard/inbox/$id'
     | '/_app/$workspace/_dashboard/tag/$tag'
     | '/_app/$workspace/_dashboard/updates/$id'
+    | '/_app/$workspace/settings/account/api'
+    | '/_app/$workspace/settings/account/notifications'
     | '/_app/$workspace/settings/account/profile'
     | '/_app/$workspace/settings/account/security'
     | '/_app/$workspace/_dashboard/contacts/'
@@ -561,6 +621,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   AppRoute: typeof AppRouteWithChildren
   AuthRoute: typeof AuthRouteWithChildren
+  UiLabRoute: typeof UiLabRouteWithChildren
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiAuthCallbackRoute: typeof ApiAuthCallbackRoute
   ApiAuthSignInRoute: typeof ApiAuthSignInRoute
@@ -571,6 +632,13 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/ui-lab': {
+      id: '/ui-lab'
+      path: '/ui-lab'
+      fullPath: '/ui-lab'
+      preLoaderRoute: typeof UiLabRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/_auth': {
       id: '/_auth'
       path: ''
@@ -585,12 +653,26 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/ui-lab/': {
+      id: '/ui-lab/'
+      path: '/'
+      fullPath: '/ui-lab/'
+      preLoaderRoute: typeof UiLabIndexRouteImport
+      parentRoute: typeof UiLabRoute
+    }
     '/_app/': {
       id: '/_app/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/ui-lab/$demo': {
+      id: '/ui-lab/$demo'
+      path: '/$demo'
+      fullPath: '/ui-lab/$demo'
+      preLoaderRoute: typeof UiLabDemoRouteImport
+      parentRoute: typeof UiLabRoute
     }
     '/_auth/signup': {
       id: '/_auth/signup'
@@ -844,6 +926,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceSettingsAccountProfileRouteImport
       parentRoute: typeof AppWorkspaceSettingsRoute
     }
+    '/_app/$workspace/settings/account/notifications': {
+      id: '/_app/$workspace/settings/account/notifications'
+      path: '/account/notifications'
+      fullPath: '/$workspace/settings/account/notifications'
+      preLoaderRoute: typeof AppWorkspaceSettingsAccountNotificationsRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
+    }
+    '/_app/$workspace/settings/account/api': {
+      id: '/_app/$workspace/settings/account/api'
+      path: '/account/api'
+      fullPath: '/$workspace/settings/account/api'
+      preLoaderRoute: typeof AppWorkspaceSettingsAccountApiRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
+    }
     '/_app/$workspace/_dashboard/updates/$id': {
       id: '/_app/$workspace/_dashboard/updates/$id'
       path: '/$id'
@@ -958,6 +1054,8 @@ interface AppWorkspaceSettingsRouteChildren {
   AppWorkspaceSettingsTagsRoute: typeof AppWorkspaceSettingsTagsRoute
   AppWorkspaceSettingsWorkspaceRoute: typeof AppWorkspaceSettingsWorkspaceRoute
   AppWorkspaceSettingsIndexRoute: typeof AppWorkspaceSettingsIndexRoute
+  AppWorkspaceSettingsAccountApiRoute: typeof AppWorkspaceSettingsAccountApiRoute
+  AppWorkspaceSettingsAccountNotificationsRoute: typeof AppWorkspaceSettingsAccountNotificationsRoute
   AppWorkspaceSettingsAccountProfileRoute: typeof AppWorkspaceSettingsAccountProfileRoute
   AppWorkspaceSettingsAccountSecurityRoute: typeof AppWorkspaceSettingsAccountSecurityRoute
   AppWorkspaceSettingsAccountIndexRoute: typeof AppWorkspaceSettingsAccountIndexRoute
@@ -970,6 +1068,9 @@ const AppWorkspaceSettingsRouteChildren: AppWorkspaceSettingsRouteChildren = {
   AppWorkspaceSettingsTagsRoute: AppWorkspaceSettingsTagsRoute,
   AppWorkspaceSettingsWorkspaceRoute: AppWorkspaceSettingsWorkspaceRoute,
   AppWorkspaceSettingsIndexRoute: AppWorkspaceSettingsIndexRoute,
+  AppWorkspaceSettingsAccountApiRoute: AppWorkspaceSettingsAccountApiRoute,
+  AppWorkspaceSettingsAccountNotificationsRoute:
+    AppWorkspaceSettingsAccountNotificationsRoute,
   AppWorkspaceSettingsAccountProfileRoute:
     AppWorkspaceSettingsAccountProfileRoute,
   AppWorkspaceSettingsAccountSecurityRoute:
@@ -1049,9 +1150,22 @@ const AuthRouteChildren: AuthRouteChildren = {
 
 const AuthRouteWithChildren = AuthRoute._addFileChildren(AuthRouteChildren)
 
+interface UiLabRouteChildren {
+  UiLabDemoRoute: typeof UiLabDemoRoute
+  UiLabIndexRoute: typeof UiLabIndexRoute
+}
+
+const UiLabRouteChildren: UiLabRouteChildren = {
+  UiLabDemoRoute: UiLabDemoRoute,
+  UiLabIndexRoute: UiLabIndexRoute,
+}
+
+const UiLabRouteWithChildren = UiLabRoute._addFileChildren(UiLabRouteChildren)
+
 const rootRouteChildren: RootRouteChildren = {
   AppRoute: AppRouteWithChildren,
   AuthRoute: AuthRouteWithChildren,
+  UiLabRoute: UiLabRouteWithChildren,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiAuthCallbackRoute: ApiAuthCallbackRoute,
   ApiAuthSignInRoute: ApiAuthSignInRoute,

@@ -1,16 +1,18 @@
 import * as React from 'react'
 
-import { Icon, useBreakpointValue } from '@chakra-ui/react'
+import { Heading, useBreakpointValue } from '@chakra-ui/react'
 import { Has } from '@saas-ui-pro/feature-flags'
 import { ResizeHandle, ResizeHandler, Resizer } from '@saas-ui-pro/react'
+// eslint-disable-next-line template/saas-ui-shell-authority -- the settings layout is the pinned Pro shell projected through TanStack links.
 import { Sidebar } from '@saas-ui/react'
 import { useHotkeysShortcut } from '@saas-ui/use-hotkeys'
 import { createLink, linkOptions, useNavigate } from '@tanstack/react-router'
 import {
-  LuArrowLeft,
+  LuBell,
   LuBuilding,
   LuColumns3,
   LuCreditCard,
+  LuKeyRound,
   LuShieldCheck,
   LuTags,
   LuUser,
@@ -19,7 +21,7 @@ import {
 
 import { useHelpCenter } from '@workspace/ui/help-center'
 
-import { LinkButton } from '#components/link-button'
+import { BackButton } from '#components/back-button'
 import { useWorkspaceSlug } from '#features/common/hooks/use-workspace-slug'
 import { useUserSettings } from '#lib/user-settings/use-user-settings'
 
@@ -83,29 +85,16 @@ export const SettingsSidebar = () => {
         { fallback: 'lg' },
       )}
     >
-      <Sidebar.Root borderRightWidth="1px">
-        <Sidebar.Header>
-          <LinkButton
+      <Sidebar.Root>
+        <Sidebar.Header direction="row" alignItems="center">
+          <BackButton
             to="/$workspace"
             params={{ workspace }}
-            variant="ghost"
-            size="sm"
-            _hover={{
-              bg: 'sidebar.accent.bg',
-            }}
-          >
-            <Icon
-              as={LuArrowLeft}
-              transitionProperty="transform"
-              transitionDuration="moderate"
-              css={{
-                'a:hover &': {
-                  transform: 'translateX(-3px)',
-                },
-              }}
-            />
-            Back to app
-          </LinkButton>
+            aria-label="Back to app"
+          />
+          <Heading as="h1" textStyle="lg">
+            Settings
+          </Heading>
         </Sidebar.Header>
         <Sidebar.Body>
           <Sidebar.Group>
@@ -120,6 +109,12 @@ export const SettingsSidebar = () => {
                 <LuShieldCheck />
                 Security
               </SettingsLink>
+              <SettingsLink {...getLinkOptions('/account/notifications')}>
+                <LuBell /> Notifications
+              </SettingsLink>
+              <SettingsLink {...getLinkOptions('/account/api')}>
+                <LuKeyRound /> API access
+              </SettingsLink>
             </Sidebar.GroupContent>
           </Sidebar.Group>
 
@@ -129,6 +124,7 @@ export const SettingsSidebar = () => {
                 <Sidebar.GroupTitle gap="2">Workspace</Sidebar.GroupTitle>
               </Sidebar.GroupHeader>
               <Sidebar.GroupContent>
+                <SettingsLink {...getLinkOptions('')}>Overview</SettingsLink>
                 <SettingsLink {...getLinkOptions('/workspace')}>
                   <LuBuilding /> Workspace
                 </SettingsLink>
@@ -149,9 +145,7 @@ export const SettingsSidebar = () => {
             </Sidebar.Group>
           </Has>
         </Sidebar.Body>
-        <Sidebar.Footer>
-          <ResizeHandle />
-        </Sidebar.Footer>
+        <ResizeHandle />
       </Sidebar.Root>
     </Resizer>
   )

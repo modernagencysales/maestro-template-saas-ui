@@ -41,7 +41,7 @@
       "source": "apps/web/src/config/hotkeys.config.ts",
       "destination": "apps/web/src/config/hotkeys.config.ts",
       "sourceSha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",
-      "sha256": "2b15eed8086711c03acc79710974fa36be78f6fecb08713d4ddbbe950ba9e6e3",
+      "sha256": "1f1de32754a06de3f89ec91502a1096f8e0b3b2ba0e1f387e604dbfe73667dd5",
       "adapted": true
     },
     {
@@ -181,7 +181,7 @@
       "source": "apps/web/src/features/common/components/app-sidebar.tsx",
       "destination": "apps/web/src/features/common/components/app-sidebar.tsx",
       "sourceSha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "sha256": "231baa29ae720076f3badf19f8ea57ccf5725957644d1f01370b5265a2fe02a7",
+      "sha256": "62213f57c0ef36dd1feb544fdea710d012ecf0df4bc10a0ce112435c05ee5c94",
       "adapted": true
     },
     {
@@ -482,8 +482,8 @@
       "source": "apps/web/src/features/getting-started/getting-started-page.tsx",
       "destination": "apps/web/src/features/getting-started/getting-started-page.tsx",
       "sourceSha256": "62461fd9b4e54a0214ee53d24e60e10d2d8c8def52eb8f691077978fdcaa0b06",
-      "sha256": "62461fd9b4e54a0214ee53d24e60e10d2d8c8def52eb8f691077978fdcaa0b06",
-      "adapted": false
+      "sha256": "ba1c1f186276c0377a2c48183c341ed01559181ce3f078d284bec2d6e4550638",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/getting-started/index.ts",
@@ -699,8 +699,8 @@
       "source": "apps/web/src/features/settings/common/settings-sidebar.tsx",
       "destination": "apps/web/src/features/settings/common/settings-sidebar.tsx",
       "sourceSha256": "bea225dd07d211543d8445a918f192c7bde6cdcacf42fdc9280be96315f90a84",
-      "sha256": "bea225dd07d211543d8445a918f192c7bde6cdcacf42fdc9280be96315f90a84",
-      "adapted": false
+      "sha256": "11f581e30edb2756779958e773241e6ffde0461873dddaf10060f0fbcaeec1bb",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/settings/common/support-card.tsx",
@@ -909,8 +909,8 @@
       "source": "apps/web/src/routes/_app/$workspace/settings/index.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/settings/index.tsx",
       "sourceSha256": "263f674e7a7e51025d66470171fee5c897d88609c485faff711c7f63603b0b1d",
-      "sha256": "263f674e7a7e51025d66470171fee5c897d88609c485faff711c7f63603b0b1d",
-      "adapted": false
+      "sha256": "b5d2a05c047d3443ffb8c72412aad2fae449f46d417ad8a4d7ef535f1493b3c1",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/settings/members.tsx",
@@ -1035,7 +1035,7 @@
       "source": "apps/web/src/routeTree.gen.ts",
       "destination": "apps/web/src/routeTree.gen.ts",
       "sourceSha256": "45d73c4b308bfb015325284e5b601a8c4edc97e07768436c4eefdedfb000c8fa",
-      "sha256": "ba013d738260c58b3c072ee42c2c97507a80081ced59f67a816482d7d32e7801",
+      "sha256": "18afeb4d5404ea2b2598f176a6f1c2cf86a39f1a035fc87e74d473f4638accfc",
       "adapted": true
     },
     {
@@ -1714,8 +1714,8 @@
       "source": "packages/ui/src/settings-page/settings-page.tsx",
       "destination": "packages/ui/src/settings-page/settings-page.tsx",
       "sourceSha256": "3e77ae3bdbb33f81caddde77f7d22964d940e56bc820f0d4dedc0e6a6a187116",
-      "sha256": "3e77ae3bdbb33f81caddde77f7d22964d940e56bc820f0d4dedc0e6a6a187116",
-      "adapted": false
+      "sha256": "03f63b605f5b07a4088203ae6c881b6d640f7d6ca043da13b33e826f935be5bf",
+      "adapted": true
     },
     {
       "source": "packages/ui/src/settings-page/stories.tsx",

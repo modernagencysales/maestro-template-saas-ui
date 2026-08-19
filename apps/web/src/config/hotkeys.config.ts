@@ -58,6 +58,10 @@ export const appHotkeys = {
         label: 'Go to Reports',
         command: 'G then R',
       },
+      uiLab: {
+        label: 'Go to UI Lab',
+        command: 'G then L',
+      },
     },
   },
   contacts: {

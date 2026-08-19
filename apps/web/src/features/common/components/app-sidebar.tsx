@@ -15,15 +15,11 @@ import {
   useSidebar,
 } from '@saas-ui/react'
 import { useHotkeysShortcut } from '@saas-ui/use-hotkeys'
-import {
-  Link,
-  type LinkProps,
-  createLink,
-  useNavigate,
-} from '@tanstack/react-router'
+import { type LinkProps, createLink, useNavigate } from '@tanstack/react-router'
 import {
   LuBuilding,
   LuChartNoAxesCombined,
+  LuPanelsTopLeft,
   LuPlus,
   LuSearch,
   LuSquareUser,
@@ -127,6 +123,14 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
               label="Reports"
               icon={<LuChartNoAxesCombined />}
               hotkey="navigation.reports"
+            />
+            <AppSidebarLink
+              to="/ui-lab/$demo"
+              params={{ demo: 'writer' }}
+              activeOptions={{ exact: false }}
+              label="UI Lab"
+              icon={<LuPanelsTopLeft />}
+              hotkey="navigation.uiLab"
             />
           </Sidebar.Group>
 
