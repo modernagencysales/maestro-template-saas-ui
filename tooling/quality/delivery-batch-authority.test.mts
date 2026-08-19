@@ -33,6 +33,19 @@ describe("local hook authority", () => {
   it("removes the obsolete rubric injection script", () => {
     expect(existsSync(resolve(root, "scripts/pre-push-rubric.sh"))).toBe(false);
   });
+
+  it.each([
+    "docs/template/post-port-backlog.md",
+    "docs/template/porting-backlog.md",
+  ])("does not advertise duplicate pre-push admission in %s", (path) => {
+    const instructions = read(path);
+
+    expect(instructions).not.toMatch(
+      /pre-push.*(?:deterministic|debt|typecheck|lint|deps|knip|gates)/u,
+    );
+    expect(instructions).toContain("pre-commit");
+    expect(instructions).toContain("Woodpecker");
+  });
 });
 
 describe("delivery-batch instructions", () => {
