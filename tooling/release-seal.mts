@@ -639,7 +639,11 @@ async function build(args: Args): Promise<readonly Output[]> {
   ) as BlueprintManifest;
   const { buildSaasApplicationTargetPlan } =
     await import("./generators/src/blueprints/saasApplication.js");
-  const plan = buildSaasApplicationTargetPlan();
+  const plan = buildSaasApplicationTargetPlan({
+    name: "SaaS Application",
+    firstOutcome: "Deliver the first customer outcome",
+    patterns: ["records-example"],
+  });
   const outputs: Output[] = [];
   const assets = [] as { path: string; sha256: string }[];
   const protectedCustomerSourcePaths: string[] = [];

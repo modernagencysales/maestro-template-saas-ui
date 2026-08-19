@@ -57,6 +57,7 @@ export const CURRENT_PUBLIC_SOURCE = Object.freeze({
 type BlueprintTargetPlanBuilder = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
+  readonly patterns?: readonly ("records-example" | "workflow-automation")[];
   readonly sourceRoot?: string;
 }) => BlueprintTargetPlan;
 
@@ -128,6 +129,7 @@ export function createCustomerCreateComposition(
       const plan = buildBlueprintTargetPlan({
         name,
         firstOutcome: outcome,
+        patterns: ["records-example"],
         sourceRoot: source.repositoryRoot,
       });
       return applyReplacementAuthority(plan, replacements);
