@@ -28,7 +28,6 @@ export const currentLifecycleResourceIds = [
   "notificationPreferences",
   "notificationRecords",
   "policies",
-  "records",
   "transformBlocks",
   "transformDefinitions",
   "transformRuns",
@@ -36,15 +35,6 @@ export const currentLifecycleResourceIds = [
   "versionedEntries",
   "versionFreshness",
   "webhookEvents",
-  "workflowArtifacts",
-  "workflowEffectReservations",
-  "workflowEventInstances",
-  "workflowRunContextManifests",
-  "workflowRunEvents",
-  "workflowRunEvidenceSnapshots",
-  "workflowRunLinks",
-  "workflowRuns",
-  "workflowStageRuns",
   "workspaceMembers",
   "workspaces"
 ] as const;
@@ -234,13 +224,6 @@ export const workspaceLifecycleResourcePlans = [
     detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
   },
   {
-    id: "records",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "delete",
-    detail: "Records are workspace-owned application data exported as JSON and removed with the owning workspace."
-  },
-  {
     id: "transformBlocks",
     owner: "workspace",
     exportMode: "json",
@@ -288,69 +271,6 @@ export const workspaceLifecycleResourcePlans = [
     exportMode: "redacted-json",
     deleteMode: "retain-audit",
     detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    id: "workflowArtifacts",
-    owner: "workspace",
-    exportMode: "redacted-json",
-    deleteMode: "delete",
-    detail: "Immutable content-addressed workflow values retrieved through tenant-safe artifact capabilities and retained through the longest owning-run restart, dedupe, child, and evidence window."
-  },
-  {
-    id: "workflowEffectReservations",
-    owner: "workspace",
-    exportMode: "redacted-json",
-    deleteMode: "retain-audit",
-    detail: "Durable workflowEffectReservations state owned by the workflow-runtime canonical system."
-  },
-  {
-    id: "workflowEventInstances",
-    owner: "workspace",
-    exportMode: "redacted-json",
-    deleteMode: "retain-audit",
-    detail: "Persisted workflow event-instance ownership and delivery state; opaque component and event identifiers remain redacted while lifecycle evidence is retained for the audit window."
-  },
-  {
-    id: "workflowRunContextManifests",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "workflowRunContextManifests is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    id: "workflowRunEvents",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "workflowRunEvents is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    id: "workflowRunEvidenceSnapshots",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "workflowRunEvidenceSnapshots is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    id: "workflowRunLinks",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "workflowRunLinks is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    id: "workflowRuns",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "workflowRuns is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    id: "workflowStageRuns",
-    owner: "workspace",
-    exportMode: "json",
-    deleteMode: "retain-audit",
-    detail: "workflowStageRuns is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
   },
   {
     id: "workspaceMembers",
@@ -501,11 +421,6 @@ export const workspaceRetentionRules = [
     detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
   },
   {
-    resourceId: "records",
-    action: "retain-until-workspace-delete",
-    detail: "Records are workspace-owned application data exported as JSON and removed with the owning workspace."
-  },
-  {
     resourceId: "transformBlocks",
     action: "retain-audit-window",
     detail: "transformBlocks is durable Transforms state governed by the canonical transforms lifecycle."
@@ -539,51 +454,6 @@ export const workspaceRetentionRules = [
     resourceId: "webhookEvents",
     action: "hash-or-redact-on-export",
     detail: "webhookEvents is durable Billing And Entitlements state governed by the canonical billing-and-entitlements lifecycle."
-  },
-  {
-    resourceId: "workflowArtifacts",
-    action: "retain-audit-window",
-    detail: "Immutable content-addressed workflow values retrieved through tenant-safe artifact capabilities and retained through the longest owning-run restart, dedupe, child, and evidence window."
-  },
-  {
-    resourceId: "workflowEffectReservations",
-    action: "retain-audit-window",
-    detail: "Durable workflowEffectReservations state owned by the workflow-runtime canonical system."
-  },
-  {
-    resourceId: "workflowEventInstances",
-    action: "retain-audit-window",
-    detail: "Persisted workflow event-instance ownership and delivery state; opaque component and event identifiers remain redacted while lifecycle evidence is retained for the audit window."
-  },
-  {
-    resourceId: "workflowRunContextManifests",
-    action: "retain-audit-window",
-    detail: "workflowRunContextManifests is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    resourceId: "workflowRunEvents",
-    action: "retain-audit-window",
-    detail: "workflowRunEvents is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    resourceId: "workflowRunEvidenceSnapshots",
-    action: "retain-audit-window",
-    detail: "workflowRunEvidenceSnapshots is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    resourceId: "workflowRunLinks",
-    action: "retain-audit-window",
-    detail: "workflowRunLinks is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    resourceId: "workflowRuns",
-    action: "retain-audit-window",
-    detail: "workflowRuns is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
-  },
-  {
-    resourceId: "workflowStageRuns",
-    action: "retain-audit-window",
-    detail: "workflowStageRuns is durable Workflow Runtime state governed by the canonical workflow-runtime lifecycle."
   },
   {
     resourceId: "workspaceMembers",

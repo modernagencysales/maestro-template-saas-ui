@@ -12,8 +12,7 @@
         "web"
       ],
       "uses": [
-        "access-and-tenancy",
-        "workflow-runtime"
+        "access-and-tenancy"
       ],
       "lifecycle": "active"
     },
@@ -31,22 +30,6 @@
       ],
       "uses": [
         "access-and-tenancy",
-        "policy-and-prompts",
-        "workflow-runtime"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "workflow:durable-graph-runtime",
-      "kind": "workflow",
-      "system": "workflow-runtime",
-      "path": "packages/convex/confect/workflows/runGraph.ts",
-      "responsibility": "execute canonical durable workflow graphs",
-      "surfaces": [
-        "internal",
-        "worker"
-      ],
-      "uses": [
         "policy-and-prompts"
       ],
       "lifecycle": "active"
@@ -62,89 +45,16 @@
       ],
       "uses": [
         "access-and-tenancy",
-        "policy-and-prompts",
-        "workflow-runtime"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "job:workpool",
-      "kind": "job",
-      "system": "workflow-runtime",
-      "path": "packages/convex/confect/jobs/workpool.spec.ts",
-      "responsibility": "schedule bounded durable background work",
-      "surfaces": [
-        "internal",
-        "worker"
-      ],
-      "uses": [
-        "access-and-tenancy"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "route:admin",
-      "kind": "route",
-      "system": "access-and-tenancy",
-      "path": "apps/web/src/routes/_workspace.admin.tsx",
-      "responsibility": "present audited administration controls",
-      "surfaces": [
-        "web"
-      ],
-      "uses": [
-        "data-lifecycle"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "route:agents",
-      "kind": "route",
-      "system": "workflow-runtime",
-      "path": "apps/web/src/routes/_workspace.agents.tsx",
-      "responsibility": "present canonical agent seats",
-      "surfaces": [
-        "web"
-      ],
-      "uses": [
-        "knowledge-brain",
         "policy-and-prompts"
       ],
       "lifecycle": "active"
     },
     {
-      "id": "route:analytics",
-      "kind": "route",
-      "system": "billing-and-entitlements",
-      "path": "apps/web/src/routes/_workspace.analytics.tsx",
-      "responsibility": "present product usage and workflow analytics",
-      "surfaces": [
-        "web"
-      ],
-      "uses": [
-        "workflow-runtime"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "route:api",
+      "id": "route:$workspace",
       "kind": "route",
       "system": "access-and-tenancy",
-      "path": "apps/web/src/routes/_workspace.api.tsx",
-      "responsibility": "present API documentation and credential management",
-      "surfaces": [
-        "web"
-      ],
-      "uses": [
-        "policy-and-prompts"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "route:billing",
-      "kind": "route",
-      "system": "billing-and-entitlements",
-      "path": "apps/web/src/routes/_workspace.billing.tsx",
-      "responsibility": "present plans entitlements credits and billing actions",
+      "path": "apps/web/src/routes/_app/$workspace.tsx",
+      "responsibility": "resolve the active workspace application shell",
       "surfaces": [
         "web"
       ],
@@ -152,37 +62,11 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:brain",
+      "id": "route:$workspace/",
       "kind": "route",
       "system": "knowledge-brain",
-      "path": "apps/web/src/routes/_workspace.brain.tsx",
-      "responsibility": "present source-backed knowledge and context",
-      "surfaces": [
-        "web"
-      ],
-      "uses": [],
-      "lifecycle": "active"
-    },
-    {
-      "id": "route:capabilities",
-      "kind": "route",
-      "system": "policy-and-prompts",
-      "path": "apps/web/src/routes/_workspace.capabilities.tsx",
-      "responsibility": "present the governed capability catalog",
-      "surfaces": [
-        "web"
-      ],
-      "uses": [
-        "workflow-runtime"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "route:data-lifecycle",
-      "kind": "route",
-      "system": "data-lifecycle",
-      "path": "apps/web/src/routes/_workspace.data-lifecycle.tsx",
-      "responsibility": "present DSAR retention and deletion planning",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
+      "responsibility": "present the purchased Starter dashboard",
       "surfaces": [
         "web"
       ],
@@ -192,23 +76,11 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:data-map",
+      "id": "route:$workspace/contacts/",
       "kind": "route",
-      "system": "data-lifecycle",
-      "path": "apps/web/src/routes/_workspace.data-map.tsx",
-      "responsibility": "present the durable data inventory",
-      "surfaces": [
-        "web"
-      ],
-      "uses": [],
-      "lifecycle": "active"
-    },
-    {
-      "id": "route:documents",
-      "kind": "route",
-      "system": "document-collaboration",
-      "path": "apps/web/src/routes/_workspace.documents.tsx",
-      "responsibility": "present collaborative documents and review history",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
+      "responsibility": "present the purchased Starter contacts collection",
       "surfaces": [
         "web"
       ],
@@ -218,25 +90,11 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:health",
+      "id": "route:$workspace/contacts/$type",
       "kind": "route",
-      "system": "policy-and-prompts",
-      "path": "apps/web/src/routes/_workspace.health.tsx",
-      "responsibility": "present provider and runtime readiness",
-      "surfaces": [
-        "web"
-      ],
-      "uses": [
-        "workflow-runtime"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "route:integrations",
-      "kind": "route",
-      "system": "policy-and-prompts",
-      "path": "apps/web/src/routes/_workspace.integrations.tsx",
-      "responsibility": "present governed provider configuration",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/$type.tsx",
+      "responsibility": "present a filtered purchased Starter contacts collection",
       "surfaces": [
         "web"
       ],
@@ -246,11 +104,11 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:legal",
+      "id": "route:$workspace/contacts/view/$id",
       "kind": "route",
-      "system": "data-lifecycle",
-      "path": "apps/web/src/routes/_workspace.legal.tsx",
-      "responsibility": "present legal privacy and retention posture",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/view/$id.tsx",
+      "responsibility": "present a purchased Starter contact detail",
       "surfaces": [
         "web"
       ],
@@ -260,11 +118,11 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:notifications",
+      "id": "route:$workspace/inbox",
       "kind": "route",
       "system": "notifications",
-      "path": "apps/web/src/routes/_workspace.notifications.tsx",
-      "responsibility": "present notification delivery and preferences",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/inbox.tsx",
+      "responsibility": "present the purchased Starter inbox split view",
       "surfaces": [
         "web"
       ],
@@ -274,25 +132,53 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:onboarding",
+      "id": "route:$workspace/inbox/$id",
       "kind": "route",
-      "system": "access-and-tenancy",
-      "path": "apps/web/src/routes/_workspace.onboarding.tsx",
-      "responsibility": "present tenant onboarding and setup",
+      "system": "notifications",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
+      "responsibility": "present a purchased Starter inbox message",
       "surfaces": [
         "web"
       ],
       "uses": [
-        "policy-and-prompts"
+        "access-and-tenancy"
       ],
       "lifecycle": "active"
     },
     {
-      "id": "route:runs",
+      "id": "route:$workspace/kanban",
       "kind": "route",
       "system": "workflow-runtime",
-      "path": "apps/web/src/routes/_workspace.runs.tsx",
-      "responsibility": "present canonical workflow and agent run history",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/kanban.tsx",
+      "responsibility": "present the editable Saas UI Pro Kanban block",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/search",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/search.tsx",
+      "responsibility": "present purchased Starter global search results",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/settings",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/$workspace/settings.tsx",
+      "responsibility": "present the purchased Starter settings shell",
       "surfaces": [
         "web"
       ],
@@ -300,25 +186,59 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:settings",
+      "id": "route:$workspace/settings/",
       "kind": "route",
       "system": "access-and-tenancy",
-      "path": "apps/web/src/routes/_workspace.settings.tsx",
-      "responsibility": "present workspace membership and settings",
+      "path": "apps/web/src/routes/_app/$workspace/settings/index.tsx",
+      "responsibility": "resolve the default purchased Starter settings view",
       "surfaces": [
         "web"
       ],
-      "uses": [
-        "policy-and-prompts"
-      ],
+      "uses": [],
       "lifecycle": "active"
     },
     {
-      "id": "route:sources",
+      "id": "route:$workspace/settings/account/",
       "kind": "route",
-      "system": "knowledge-brain",
-      "path": "apps/web/src/routes/_workspace.sources.tsx",
-      "responsibility": "present source intake and freshness",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/$workspace/settings/account/index.tsx",
+      "responsibility": "resolve the default purchased Starter account view",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/settings/account/profile",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/$workspace/settings/account/profile.tsx",
+      "responsibility": "present purchased Starter profile settings",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/settings/account/security",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/$workspace/settings/account/security.tsx",
+      "responsibility": "present purchased Starter security settings",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/settings/billing",
+      "kind": "route",
+      "system": "billing-and-entitlements",
+      "path": "apps/web/src/routes/_app/$workspace/settings/billing.tsx",
+      "responsibility": "present purchased Starter billing settings",
       "surfaces": [
         "web"
       ],
@@ -328,17 +248,253 @@
       "lifecycle": "active"
     },
     {
-      "id": "route:workflows",
+      "id": "route:$workspace/settings/members",
       "kind": "route",
-      "system": "workflow-runtime",
-      "path": "apps/web/src/routes/_workspace.workflows.tsx",
-      "responsibility": "present workflow design execution and control",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/$workspace/settings/members.tsx",
+      "responsibility": "present purchased Starter workspace members",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/settings/plans",
+      "kind": "route",
+      "system": "billing-and-entitlements",
+      "path": "apps/web/src/routes/_app/$workspace/settings/plans.tsx",
+      "responsibility": "present purchased Starter plan settings",
       "surfaces": [
         "web"
       ],
       "uses": [
-        "policy-and-prompts"
+        "access-and-tenancy"
       ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/settings/tags",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/_app/$workspace/settings/tags.tsx",
+      "responsibility": "present purchased Starter tag settings",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/settings/workspace",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/$workspace/settings/workspace.tsx",
+      "responsibility": "present purchased Starter workspace settings",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/showcase",
+      "kind": "route",
+      "system": "policy-and-prompts",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/showcase.tsx",
+      "responsibility": "present the local editable Saas UI Pro block shelf",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:$workspace/tag/$tag",
+      "kind": "route",
+      "system": "knowledge-brain",
+      "path": "apps/web/src/routes/_app/$workspace/_dashboard/tag/$tag.tsx",
+      "responsibility": "present purchased Starter records for a tag",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:accept-invite",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/accept-invite.tsx",
+      "responsibility": "present the purchased Starter invitation shell",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:accept-invite/$token",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/accept-invite/$token.tsx",
+      "responsibility": "accept a workspace invitation",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:api/auth/$",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/api/auth/$.ts",
+      "responsibility": "serve the WorkOS authentication API",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:api/auth/callback",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/api/auth/callback.tsx",
+      "responsibility": "complete the WorkOS authentication callback",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:api/auth/sign-in",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/api/auth/sign-in.tsx",
+      "responsibility": "start WorkOS sign in",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:api/auth/sign-up",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/api/auth/sign-up.tsx",
+      "responsibility": "start WorkOS sign up",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:api/trpc/$",
+      "kind": "route",
+      "system": "policy-and-prompts",
+      "path": "apps/web/src/routes/api/trpc/$.ts",
+      "responsibility": "serve the purchased Starter application API seam",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:api/webhooks/stripe",
+      "kind": "route",
+      "system": "billing-and-entitlements",
+      "path": "apps/web/src/routes/api/webhooks/stripe.tsx",
+      "responsibility": "receive purchased Starter billing webhooks",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:forgot-password",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_auth/forgot-password.tsx",
+      "responsibility": "present the purchased Starter password recovery view",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:getting-started",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/getting-started.tsx",
+      "responsibility": "present the purchased Starter onboarding shell",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:getting-started/",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_app/getting-started/index.tsx",
+      "responsibility": "present the purchased Starter onboarding flow",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:login",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_auth/login.tsx",
+      "responsibility": "present the purchased Starter login view",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:reset-password",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_auth/reset-password.tsx",
+      "responsibility": "present the purchased Starter password reset view",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "route:signup",
+      "kind": "route",
+      "system": "access-and-tenancy",
+      "path": "apps/web/src/routes/_auth/signup.tsx",
+      "responsibility": "present the purchased Starter signup view",
+      "surfaces": [
+        "web"
+      ],
+      "uses": [],
       "lifecycle": "active"
     },
     {
@@ -467,19 +623,6 @@
       "lifecycle": "active"
     },
     {
-      "id": "provider:observability",
-      "kind": "provider",
-      "system": "workflow-runtime",
-      "path": "packages/observability/src/index.ts",
-      "responsibility": "record workflow and capability operational telemetry",
-      "surfaces": [
-        "internal",
-        "worker"
-      ],
-      "uses": [],
-      "lifecycle": "active"
-    },
-    {
       "id": "provider:search",
       "kind": "provider",
       "system": "knowledge-brain",
@@ -533,9 +676,7 @@
         "api",
         "internal"
       ],
-      "uses": [
-        "workflow-runtime"
-      ],
+      "uses": [],
       "lifecycle": "active"
     },
     {
@@ -550,68 +691,6 @@
         "mcp"
       ],
       "uses": [],
-      "lifecycle": "active"
-    },
-    {
-      "id": "headless:executor",
-      "kind": "headless",
-      "system": "workflow-runtime",
-      "path": "packages/convex/confect/manifest/executor.ts",
-      "responsibility": "dispatch manifest operations to canonical contracts",
-      "surfaces": [
-        "api",
-        "cli",
-        "mcp"
-      ],
-      "uses": [
-        "access-and-tenancy"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "headless:mcp",
-      "kind": "headless",
-      "system": "workflow-runtime",
-      "path": "packages/convex/confect/manifest/mcp.ts",
-      "responsibility": "project canonical operations into MCP tools",
-      "surfaces": [
-        "api",
-        "cli",
-        "mcp"
-      ],
-      "uses": [
-        "access-and-tenancy"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "headless:openapi",
-      "kind": "headless",
-      "system": "workflow-runtime",
-      "path": "packages/convex/confect/manifest/openapi.ts",
-      "responsibility": "project canonical operations into OpenAPI",
-      "surfaces": [
-        "api",
-        "cli",
-        "mcp"
-      ],
-      "uses": [
-        "access-and-tenancy"
-      ],
-      "lifecycle": "active"
-    },
-    {
-      "id": "route:records",
-      "kind": "route",
-      "system": "record-management",
-      "path": "apps/web/src/routes/_workspace.records.tsx",
-      "responsibility": "present workspace record create, list, and detail states",
-      "surfaces": [
-        "web"
-      ],
-      "uses": [
-        "access-and-tenancy"
-      ],
       "lifecycle": "active"
     }
   ]

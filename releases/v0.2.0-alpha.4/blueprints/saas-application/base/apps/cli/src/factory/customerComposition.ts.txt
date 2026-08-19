@@ -50,7 +50,6 @@ import type { FactoryCliHandler } from "./router";
 
 export const CUSTOMER_PREFLIGHT_POLICY = Object.freeze({
   supportedPlatforms: ["linux", "darwin", "win32"],
-  supportedNodeMajors: [22],
   supportedPnpmVersions: [],
   minimumGitVersion: "2.31.0",
   minimumDiskBytes: 512 * 1024 * 1024,
