@@ -119,6 +119,11 @@ controller checks boxes after inspecting the named evidence.
       boundary and later failed `@maestro/web#typecheck` on two unchanged source
       props. No staging deploy occurred; receipt:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-e9337f50f2c4-woodpecker-795-failure.md`.
+      Replacement `2f6e167cc05f` is clean, remote-equal on the candidate branch,
+      and passes frozen install, exact-head typecheck, focused regressions,
+      Knip, and production build. Owner authorized one new guarded cycle after
+      Social releases the broad slot; protected `main` remains `e9337f50` until
+      then.
 - [ ] Public auth redirect smoke passes.
 - [ ] Authenticated Brain load/edit/save smoke passes.
 
