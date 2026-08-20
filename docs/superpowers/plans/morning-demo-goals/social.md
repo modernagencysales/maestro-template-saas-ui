@@ -47,3 +47,21 @@ through typed adapters and showing useful deterministic data.
 - No PR, CI, deployment, WorkOS/callback mutation, hosted smoke, or runtime
   promotion followed. Receipt:
   `/data/projects/morning-demo-20260819/evidence/focused-tests/social-eb918d044a34-two-cycle-terminal-receipt.md`.
+
+## Callback-fixed hosted verdict — 1fa00df0
+
+- Exactly one fresh real-WorkOS read-only smoke ran against Railway deployment
+  `882b7d71-fcae-4586-b047-0986eac830c2`; it was not retried.
+- WorkOS accepted `/callback` and `/api/auth/callback`, and the session endpoint
+  returned `200` with a session and user.
+- All five canonical routes returned `200` with zero console errors, page
+  errors, or failed responses. Creators, opportunities, proposals Kanban, and
+  reports proved useful data.
+- Dashboard rendered `Today` but did not prove `Priority queue` or
+  `Review submitted deliverable`; hosted useful-data proof is therefore `4/5`
+  and the terminal disposition remains not accepted.
+- Fresh auth state was deleted without printing it. No CI, deploy, traffic,
+  hosting, callback, application mutation, or branch merge followed. Worker and
+  `clean-copy` remain untouched; Woodpecker `345` remains red.
+- Receipt:
+  `/data/projects/morning-demo-20260819/evidence/deploy-review/social-1fa00df-railway-hosted-readonly-callback-fixed-result.md`.

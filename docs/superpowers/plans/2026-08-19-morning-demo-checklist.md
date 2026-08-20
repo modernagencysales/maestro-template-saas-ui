@@ -88,15 +88,20 @@ controller checks boxes after inspecting the named evidence.
       therefore explicitly not deployment-accepted. The live Worker
       compatibility version remains diagnostic fallback only.
 - [ ] All five routes pass HTTP and real-auth browser smoke on the immutable
-      Railway revision. Partial stale-race checks proved health, alias
-      redirects, and typed unauthenticated Node routing. Exactly one later
-      controller-approved protected-credential run reached WorkOS, which
-      returned `redirect-uri-invalid` before login; callback/session were false,
-      routes were `0/5`, and fresh auth state was deleted. No mutation or retry
-      ran. Terminal receipts:
+      Railway revision with useful data. After the callback was registered,
+      exactly one fresh controller-approved protected-credential run established
+      a real WorkOS session and loaded all five routes with HTTP `200`, zero
+      console/page errors, and zero failed responses. Creators, opportunities,
+      proposals Kanban, and reports passed useful-data checks; dashboard
+      rendered `Today` but lacked `Priority queue` and
+      `Review submitted deliverable`, so useful proof is `4/5` and the item
+      remains open. Fresh auth state was deleted, and no mutation, retry, CI, or
+      deployment action ran. Terminal receipts:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/social-b1341cdc-woodpecker-345-terminal-failure.md`
       and
-      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-1fa00df-railway-hosted-readonly-failure.md`.
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-1fa00df-railway-hosted-readonly-failure.md`
+      and
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-1fa00df-railway-hosted-readonly-callback-fixed-result.md`.
       Later clean pushed diagnostic successor `eb918d044a34` exposed shard B's
       terminal `Claim token is missing` result and retains a statically green
       shard-C readiness repair, but neither is runtime-accepted and no third
