@@ -98,37 +98,44 @@ controller checks boxes after inspecting the named evidence.
 - [x] Public Astro source remains untouched by pushed management candidate
       `465b8e2b450b92df925e6a34792c1d25d0c7bc81`; the exact commit has no diff
       under `apps/funnel`, and the checkout is clean.
-- [ ] Private management overview route exists in `apps/web`.
+- [x] Private management overview route exists in `apps/web` and is available at
+      the stable review/demo URL with explicit deterministic-fallback notice.
 - [ ] Contacts route uses canonical DataGrid and real management reads.
 - [ ] Submissions route uses canonical DataGrid and real management reads.
 - [ ] Runs list and run-detail routes use real backend reads.
 - [ ] Effects route uses real backend reads.
 - [ ] Lifecycle actions reuse the existing typed backend mutation path.
-- [ ] Deterministic demo workspace is populated.
-- [ ] `apps/web` has a focused Worker deployment contract.
+- [x] Deterministic Demo workspace is populated across all six review routes.
+- [x] `apps/web` has a focused Worker deployment contract; successor
+      `15d665ba4daa` removed only the invalid Worker output redirect and
+      `458496d3c467` pins nested layout/index route ownership.
 - [x] Focused Owned Funnel checks and web build pass. The prior `3630bcf55acd`
       cycle exposed the missing `dist/server/server.js` prerender entry. Exact
       clean, remote-equal successor `f4e3262af86d` passed exactly one serialized
       Node `22.23.2` `apps/web build:worker` with exit `0` after Brain and
       Social recovery released their slots. Receipt:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/owned-funnel-f4e3262af86d-worker-pass.md`.
-- [ ] Stable management Worker is deployed from an exact commit. Exact
-      `f4e3262af86d` reached its sole post-release upload attempt from sealed
-      artifact `be657eec...`, but Cloudflare rejected `_redirects` line 1 as an
-      infinite loop (code `100324`) before creating a Worker/version. No rebuild
-      or retry ran; rollback remains non-creation and all six management routes
-      return `404`. Receipt:
+- [x] Stable management Worker is deployed from exact clean, pushed,
+      remote-equal commit `458496d3c4674f328b36dfbc0e7ce9191de2a40a` as version
+      `3e6b68f9-0194-4f61-8db6-5661e1426e62` at 100%. All six route-specific
+      HTTP/browser checks pass with zero console/page/failed-HTTP errors;
+      rollback `a1224d8f-97e8-42db-9c18-2a9e7a8f0238` is retained. Receipt:
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-458496d3-review-demo-accepted.md`.
+      Historical exact `f4e3262af86d` reached its sole post-release upload
+      attempt from sealed artifact `be657eec...`, but Cloudflare rejected
+      `_redirects` line 1 as an infinite loop (code `100324`) before creating a
+      Worker/version. No rebuild or retry ran on that SHA. Receipt:
       `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-f4e3262-review-demo-deploy-rejected.md`.
 - [x] Public Astro regression smoke passes independently: canonical routes
       return `200`, the full marketing page renders through the footer, and the
-      browser has no console/page errors after the rejected management upload;
+      browser has no console/page errors after the accepted management deploy;
       `apps/funnel` remains absent from the candidate diff. Receipt:
-      `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-f4e3262-review-demo-deploy-rejected.md`.
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-458496d3-review-demo-accepted.md`.
 - [ ] At least one real backend read and lifecycle mutation are proven. The
-      terminal review/demo attempt intentionally carried no backend/auth binding
-      and created no Worker. No demo/live data or lifecycle control was shown or
-      claimed. The dedicated-binding and backend-complete blocker remains
-      authoritative:
+      accepted review/demo deployment intentionally carries no backend/auth
+      binding; all four lifecycle controls are visibly disabled. No live read or
+      mutation is claimed. The dedicated-binding and backend-complete blocker
+      remains authoritative:
       `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-f4e3262-deploy-blocker.md`.
 
 ## Phase 5: Brain
