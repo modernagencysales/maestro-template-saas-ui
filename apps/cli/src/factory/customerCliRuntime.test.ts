@@ -278,13 +278,13 @@ describe("materialized customer CLI runtime closure", () => {
     };
     expect(instance).toMatchObject({
       release: {
-        version: "0.2.0-alpha.4",
-        tag: "maestro-template-v0.2.0-alpha.4",
+        version: "0.2.0-alpha.5",
+        tag: "maestro-template-v0.2.0-alpha.5",
         sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
         sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       ownership: {
-        manifest: "releases/v0.2.0-alpha.4/manifest.json",
+        manifest: "releases/v0.2.0-alpha.5/manifest.json",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       customerExtension: {
@@ -1033,13 +1033,13 @@ describe("materialized customer CLI runtime closure", () => {
         facts: {
           versions: {
             pack: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.4@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.5@[0-9a-f]{40}$/,
             ),
             cli: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.4@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.5@[0-9a-f]{40}$/,
             ),
             template: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.4@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.5@[0-9a-f]{40}$/,
             ),
           },
           versionsCompatible: true,
