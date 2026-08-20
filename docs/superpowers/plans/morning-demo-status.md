@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T22:55:00-04:00
+Last controller update: 2026-08-19T22:58:00-04:00
 
-| Lane          | State          | Current evidence                                                                                                                                | Next gate                               | Blocker                                                                                                                                   |
-| ------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active         | Control branch pushed through `384530b`; T+0:30 infrastructure gate passed early; fake preflight passed under Node `22.23.2` / pnpm `10.12.1`   | T+2:00 foundation gate at 00:25         | none                                                                                                                                      |
-| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                            | Live revision/visual receipt            | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
-| Social        | candidate      | Clean local `32dc26e6c3b61aab9372830dab6f64b685a5d27d`; all five route steps pass; pinned typecheck baseline classified green                   | Complete guarded push, then build queue | cycle-3 profile exits 1 only in inherited AfterAll provider assertion; remote branch not yet proved                                       |
-| Owned Funnel  | active         | Clean assigned branch at `36396b0`; persistent goal confirmed; `modernagencysales/owned-funnel-review` remote exists                            | Private Pro routes                      | management URL does not exist                                                                                                             |
-| Brain         | verifying      | Exact tested `83ff6747` is on protected `main`; corrected Woodpecker epoch `794` passed clone/trusted-policy checks and is in full verification | Epoch 794 terminal receipt              | cycle 1 epoch 793 failed because manual clone omitted the required trusted-ref input                                                      |
-| Focused tests | active         | Brain `83ff67473e7e` passed serialized typecheck/build with exits `0`/`0`; final tree clean and hashed receipt preserved                        | Next immutable candidate                | inherited `4df62869` run ended but its external runner removed the temporary directory before result capture                              |
-| Deploy/review | active         | Brain cycle-2 Woodpecker epoch `794` is running on exact `main` SHA `83ff6747`; no gate file changed                                            | Brain guarded staging receipt           | Owned management URL does not exist                                                                                                       |
+| Lane          | State          | Current evidence                                                                                                                               | Next gate                               | Blocker                                                                                                                                   |
+| ------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Controller    | active         | Control branch pushed through `384530b`; T+0:30 infrastructure gate passed early; fake preflight passed under Node `22.23.2` / pnpm `10.12.1`  | T+2:00 foundation gate at 00:25         | none                                                                                                                                      |
+| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                           | Live revision/visual receipt            | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
+| Social        | candidate      | Clean local `32dc26e6c3b61aab9372830dab6f64b685a5d27d`; all five route steps pass; pinned typecheck baseline classified green                  | Complete guarded push, then build queue | cycle-3 profile exits 1 only in inherited AfterAll provider assertion; remote branch not yet proved                                       |
+| Owned Funnel  | active         | Clean assigned branch at `36396b0`; persistent goal confirmed; `modernagencysales/owned-funnel-review` remote exists                           | Private Pro routes                      | management URL does not exist                                                                                                             |
+| Brain         | blocked        | Exact tested `83ff6747` is on protected `main`; epoch `794` passed clone/trusted policy then failed `check:knip`; staging stayed at `6e3727da` | Owner fix/defer/remove decision         | inherited unused `@saas-ui/chakra-preset` dependency; two-cycle boundary reached                                                          |
+| Focused tests | active         | Brain `83ff67473e7e` passed serialized typecheck/build with exits `0`/`0`; final tree clean and hashed receipt preserved                       | Next immutable candidate                | inherited `4df62869` run ended but its external runner removed the temporary directory before result capture                              |
+| Deploy/review | active         | Brain epoch `794` failure receipt recorded; no staging deployment occurred                                                                     | Admit next tested candidate             | Brain owner decision pending; Owned management URL does not exist                                                                         |
 
 ## Current review URLs
 
@@ -113,3 +113,12 @@ Last controller update: 2026-08-19T22:55:00-04:00
   provider-call assertion not exercised by the route-only scenario. No fourth
   Cucumber cycle is authorized. The prior typecheck was recovered as green
   against its pinned immutable-source diagnostic baseline.
+- `2026-08-19T22:57:10-04:00`: Brain epoch `794` terminated with verify exit `1`
+  at `pnpm check:knip`: unused dependency `@saas-ui/chakra-preset` in
+  `apps/web/package.json`.
+  `git diff --exit-code 6e3727da..83ff6747 -- apps/web/package.json` returned
+  `0`, proving the finding is inherited. No staging deploy occurred. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-83ff67473e7e-woodpecker-794-failure.md`.
+- `2026-08-19T22:58-04:00`: Brain stopped at the two-cycle boundary. No third
+  cycle, dependency edit, or gate change is authorized until the owner chooses
+  fix, defer, or remove; removing the Knip gate is not recommended.
