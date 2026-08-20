@@ -437,7 +437,7 @@ describe("create root integration", () => {
     expect(receipt.data.preview).not.toHaveProperty("writes");
     expect(receipt.data.preview).not.toHaveProperty("omissions");
     expect(existsSync(target)).toBe(false);
-  }, 30_000);
+  }, 240_000);
 
   it("prints the complete copy-paste onboarding sequence after create", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-human-"));

@@ -68,6 +68,12 @@ type BlueprintReplacementAuthority = ReadonlyMap<
   "copy" | "generate" | undefined
 >;
 
+const buildCurrentPublicTargetPlan: BlueprintTargetPlanBuilder = (options) =>
+  buildSaasApplicationTargetPlan({
+    ...options,
+    patterns: ["records-example"],
+  });
+
 function readBlueprintReplacementAuthority(
   source: CustomerCompositionSource,
 ): BlueprintReplacementAuthority {
@@ -100,7 +106,7 @@ function applyReplacementAuthority(
 
 export function loadCustomerCreateComposition(
   source: CustomerCompositionSource = CURRENT_PUBLIC_SOURCE,
-  buildBlueprintTargetPlan: BlueprintTargetPlanBuilder = buildSaasApplicationTargetPlan,
+  buildBlueprintTargetPlan: BlueprintTargetPlanBuilder = buildCurrentPublicTargetPlan,
   templateInstances?: ReleaseTemplateInstanceConsumer,
 ) {
   return createCustomerCreateComposition(
@@ -129,7 +135,6 @@ export function createCustomerCreateComposition(
       const plan = buildBlueprintTargetPlan({
         name,
         firstOutcome: outcome,
-        patterns: ["records-example"],
         sourceRoot: source.repositoryRoot,
       });
       return applyReplacementAuthority(plan, replacements);
