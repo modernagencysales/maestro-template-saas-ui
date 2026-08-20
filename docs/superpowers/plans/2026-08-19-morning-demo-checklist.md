@@ -46,7 +46,8 @@ controller checks boxes after inspecting the named evidence.
 - [x] Template source manifest and assembled-screen inventory are verified at
       immutable `13a33eee35256f2d22b255750be746418b4189cb`; evidence packet:
       `/data/projects/morning-demo-20260819/evidence/template/lane-status.md`.
-- [ ] Social canonical preset and structural shell compile.
+- [x] Social canonical preset and structural shell compile at exact verified
+      candidate `393dd5cb7ee6`.
 - [x] Owned Funnel canonical preset and structural shell compile at pushed
       candidate `465b8e2b450b92df925e6a34792c1d25d0c7bc81`; the Node `22.23.2`
       canonical web build, client bundle budget, and shell-copy checks exited
@@ -60,13 +61,18 @@ controller checks boxes after inspecting the named evidence.
 
 ## Phase 3: Social
 
-- [ ] `/dashboard` uses the canonical dashboard composition.
-- [ ] `/creators` uses the canonical DataGrid composition.
-- [ ] `/opportunities` uses the canonical list/detail composition.
-- [ ] `/proposals` uses the canonical Kanban composition.
-- [ ] `/reports` uses the canonical reports composition.
-- [ ] Existing backend reads and mutations are preserved behind typed adapters.
-- [ ] Important screens contain deterministic, useful demo data.
+- [x] `/dashboard` uses the canonical dashboard composition.
+- [x] `/creators` uses the canonical DataGrid composition.
+- [x] `/opportunities` uses the canonical list/detail composition.
+- [x] `/proposals` uses the canonical Kanban composition.
+- [x] `/reports` uses the canonical reports composition.
+- [x] Existing backend reads and mutations are preserved behind typed adapters;
+      deployment reused the three existing authorized Convex workspaces and did
+      not mutate durable public data.
+- [x] Important screens contain deterministic, useful demo data. Stable proof
+      covers the priority queue, hosted creator row, three opportunities,
+      populated negotiating/accepted Kanban columns, and revenue/customer
+      metrics.
 - [x] Focused Social checks and web build pass. Exact clean, remote-equal
       replacement `393dd5cb7ee626a9a830c8e7a8571e432c345df9` passed its single
       second-cycle exact-head `pnpm verify` at `2026-08-20T00:13:21-04:00`. The
@@ -75,15 +81,17 @@ controller checks boxes after inspecting the named evidence.
       receipt:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/social-393dd5cb7ee6-verify-pass.md`.
       No fourth Cucumber cycle or duplicate completed check ran.
-- [ ] Stable Social Worker is deployed from an exact commit.
-- [ ] All five routes pass HTTP and browser smoke. Recovery diagnosis for exact
-      `393dd5cb7ee6` is terminal and rejected: generated Worker SSR fails on
-      `createRequire(import.meta.url)`; after an evidence-only substitution,
-      Chromium found missing `__name`, router invariants, signed-out login
-      instead of demo content, and React hydration error `#418`. Rollback
-      `23fc85e0...` remains at 100%; a new exact source candidate is required.
+- [x] Stable Social Worker is deployed from exact commit
+      `393dd5cb7ee626a9a830c8e7a8571e432c345df9` through sealed compatibility
+      version `7e31bdd6-abf0-4509-8967-4481225fa14a` at 100%, with
+      `VITE_SOCIAL_DEMO_MODE=true`, existing bindings retained, and prior
+      version `23fc85e0-43c0-4122-8577-818312c7e81b` retained for rollback.
+- [x] All five routes pass HTTP and real-auth browser smoke on the stable URL.
+      Callback/session and authenticated Convex membership succeed; dashboard,
+      creators, opportunities, proposals Kanban, and reports all contain useful
+      data; console, page, failed-HTTP, and Convex-auth error counts are zero.
       Receipt:
-      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-exact-candidate-blocker.md`.
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-deploy-accepted.md`.
 
 ## Phase 4: Owned Funnel
 
@@ -104,17 +112,23 @@ controller checks boxes after inspecting the named evidence.
       Node `22.23.2` `apps/web build:worker` with exit `0` after Brain and
       Social recovery released their slots. Receipt:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/owned-funnel-f4e3262af86d-worker-pass.md`.
-- [ ] Stable management Worker is deployed from an exact commit.
+- [ ] Stable management Worker is deployed from an exact commit. Exact
+      `f4e3262af86d` reached its sole post-release upload attempt from sealed
+      artifact `be657eec...`, but Cloudflare rejected `_redirects` line 1 as an
+      infinite loop (code `100324`) before creating a Worker/version. No rebuild
+      or retry ran; rollback remains non-creation and all six management routes
+      return `404`. Receipt:
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-f4e3262-review-demo-deploy-rejected.md`.
 - [x] Public Astro regression smoke passes independently: canonical routes
       return `200`, the full marketing page renders through the footer, and the
-      browser has no console/page errors. Receipt:
-      `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-public-audit-20260820.md`.
-- [ ] At least one real backend read and lifecycle mutation are proven.
-      Deployment admission stopped safely because Worker
-      `owned-funnel-management` does not exist and the authorized environment
-      has neither the four required management bindings nor a separately
-      approved WorkOS configuration. No nonfunctional shell was deployed;
-      receipt:
+      browser has no console/page errors after the rejected management upload;
+      `apps/funnel` remains absent from the candidate diff. Receipt:
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-f4e3262-review-demo-deploy-rejected.md`.
+- [ ] At least one real backend read and lifecycle mutation are proven. The
+      terminal review/demo attempt intentionally carried no backend/auth binding
+      and created no Worker. No demo/live data or lifecycle control was shown or
+      claimed. The dedicated-binding and backend-complete blocker remains
+      authoritative:
       `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-f4e3262-deploy-blocker.md`.
 
 ## Phase 5: Brain
@@ -152,6 +166,11 @@ controller checks boxes after inspecting the named evidence.
       context was absent; no edit/save was attempted. Deploy, runtime, artifact,
       and rollback receipt:
       `/data/projects/morning-demo-20260819/evidence/deploy-review/brain-2f6e167cc05f-deploy-runtime-rollback.md`.
+      Successor `0913c92a2093` fixed that context and passed verify `799` plus
+      deploy `800`, but one fresh authenticated smoke failed before page
+      creation on `ClientScopeFocusProvider is missing`; no edit/save mutation
+      ran and rollback `30f8f677...` was restored at 100%. Terminal receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-0913c92a-terminal-runtime-receipt.md`.
 
 ## Phase 6: Review and delivery
 
@@ -175,7 +194,8 @@ controller checks boxes after inspecting the named evidence.
       passed, and headless preservation was proved).
 - [ ] T+2:00 foundation compile gate
 - [ ] T+3:30 Brain gate
-- [ ] T+5:00 Social gate
+- [x] T+5:00 Social gate (accepted late at `2026-08-20T02:16:28-04:00` with
+      exact verify, stable deployment, and five-route real-auth proof).
 - [ ] T+7:00 Owned Funnel gate
 - [ ] T+9:00 visual review gate
 - [ ] T+10:30 repair freeze gate

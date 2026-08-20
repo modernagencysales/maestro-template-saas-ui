@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-20T01:26:00-04:00
+Last controller update: 2026-08-20T02:23:03-04:00
 
-| Lane          | State                          | Current evidence                                                                                                                   | Next gate                                           | Blocker                                                                                                                                       |
-| ------------- | ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active                         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed       | T+2:00 foundation gate at 00:25                     | none                                                                                                                                          |
-| Template      | evidence-ready                 | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                               | Live revision/visual receipt                        | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values     |
-| Social        | source-green-host-rejected     | Exact clean `393dd5cb7ee6` passed second-cycle `pnpm verify`; hosted/runtime/browser diagnosis is terminal and traffic is restored | New deploy-compatible exact candidate required      | generated Workerd `createRequire`; missing `__name`/hydration; signed-out demo reaches login; rollback `23fc85e0` remains 100%                |
-| Owned Funnel  | artifact-green-not-provisioned | Exact clean `f4e3262af86d` passed its sole Worker build; artifact `be657eec...` is sealed; public Astro audit is green             | Owner provisions approved private bindings/session  | target Worker does not exist; four management bindings and separate WorkOS configuration are absent; no deployment or rollback version exists |
-| Brain         | runtime-rejected-rolled-back   | Exact protected-main `2f6e167cc05f` passed Woodpecker `796` and deploy `797`; authenticated smoke failed at the app error boundary | New exact sidebar-context fix and deployment epoch  | candidate `e7d79bf4` rejected; rollback `30f8f677` restored at 100%; no edit/save proof admitted                                              |
-| Focused tests | complete                       | Social verify, Brain pipeline `796`, and Owned Worker build terminal receipts are sealed; all broad work ran serially              | Return exact-head verdicts                          | none within the requested focused-test admission scope                                                                                        |
-| Deploy/review | terminal-receipts-sealed       | URL matrix now records Social and Brain rollbacks plus Owned non-creation admission blocker; public Astro remains green            | Owner/new exact candidates or approved provisioning | no currently accepted candidate can be promoted: Social/Brain need new SHAs; Owned needs approved live bindings and WorkOS configuration      |
+| Lane          | State                        | Current evidence                                                                                                                        | Next gate                                               | Blocker                                                                                                                                   |
+| ------------- | ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Controller    | active                       | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed            | T+2:00 foundation gate at 00:25                         | none                                                                                                                                      |
+| Template      | evidence-ready               | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                    | Live revision/visual receipt                            | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
+| Social        | candidate-accepted-deployed  | Exact clean `393dd5cb7ee6` passed sealed verify; real-auth preview and stable five-route proofs passed with useful data and zero errors | Delivery handoff                                        | version `7e31bdd6` is live at 100%; prior `23fc85e0` retained as rollback; no active Social blocker                                       |
+| Owned Funnel  | deploy-rejected-noncreation  | Exact `f4e3262af86d` artifact `be657eec...` passed build but its sole upload was rejected by Cloudflare `100324`; public Astro is green | New exact deployable candidate only if authorized       | invalid infinite-loop `_redirects`; Worker/version absent; all six management routes 404; backend/live/lifecycle proof unavailable        |
+| Brain         | runtime-rejected-rolled-back | Exact protected-main `0913c92a2093` passed verify `799` and deploy `800`; fresh authenticated smoke failed before page creation         | New exact provider-order fix and deployment epoch       | missing `ClientScopeFocusProvider`; rollback `30f8f677` restored at 100%; no edit/save proof admitted                                     |
+| Focused tests | complete                     | Social verify, Brain pipeline `796`, and Owned Worker build terminal receipts are sealed; all broad work ran serially                   | Return exact-head verdicts                              | none within the requested focused-test admission scope                                                                                    |
+| Deploy/review | terminal-receipts-sealed     | URL matrix records accepted Social, Brain successor rollback, rejected Owned upload/non-creation, and green public Astro audit          | Brain exact fix; Owned new admission only if authorized | Social accepted; Brain needs a new SHA; Owned needs a deployable exact artifact plus backend/auth authority for live/lifecycle claims     |
 
 ## Current review URLs
 
@@ -19,7 +19,7 @@ Last controller update: 2026-08-20T01:26:00-04:00
 - Storybook: <https://saas-ui-pro-storybook-review.tim-bb0.workers.dev>
 - Social: <https://b2b-creator-os.tim-bb0.workers.dev>
 - Owned Funnel public: <https://shop.maestrogtm.com/owned-funnel-builder/>
-- Owned Funnel management: pending
+- Owned Funnel management: unavailable (`404`; no Worker created)
 - Brain: <https://staging.maestrogtm.com/brain>
 - Dmitry:
   <https://meta-campaign-audit-prototype-production.up.railway.app/campaign-setup-audit>
@@ -329,3 +329,49 @@ Last controller update: 2026-08-20T01:26:00-04:00
   timestamp, traffic, or rollback coordinate. No Brain credential was reused and
   the independently green public Astro deployment was unchanged. Receipt:
   `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-f4e3262-deploy-blocker.md`.
+- `2026-08-20T01:43:45-04:00`: Social compatibility preview
+  `5d7776cd-e762-4e57-985d-a80a29d55766` completed a real WorkOS review with the
+  approved smoke credential names. Callback returned `307`, session returned
+  `200` with both session and user present, and all five canonical routes had
+  zero console errors, page errors, or failed HTTP responses. Every route
+  nevertheless rendered `This workspace does not exist` for synthetic workspace
+  `maestro-smoke-TTH53AD0`, so no Social composition or useful demo data was
+  accepted. Production workspace provisioning was not authorized; no promotion
+  occurred. Read-only Cloudflare closure reconfirmed rollback
+  `23fc85e0-43c0-4122-8577-818312c7e81b` at 100%, and source remains clean and
+  remote-equal at exact `393dd5cb7ee6`. No full verify or Cucumber rerun ran.
+  Receipt:
+  `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-authenticated-preview-blocker.md`.
+- `2026-08-20T02:16:28-04:00`: Social exact clean, pushed, remote-equal
+  `393dd5cb7ee6` was accepted and deployed. Read-only diagnosis proved the
+  approved user already owned three workspaces and the generated lowercase-only
+  route validator rejected their uppercase suffixes. An evidence-owned
+  mixed-case compatibility artifact preserved tracked source, bindings, hooks,
+  and durable state. Real WorkOS/Convex preview proof passed dashboard,
+  creators, opportunities, proposals Kanban, and reports with useful data and
+  zero console, page, HTTP, or Convex-auth errors. Version
+  `7e31bdd6-abf0-4509-8967-4481225fa14a` was then promoted to 100%, and the same
+  real-auth five-route proof passed on the stable hostname. Prior version
+  `23fc85e0-43c0-4122-8577-818312c7e81b` remains the rollback coordinate. The
+  sealed `pnpm verify` evidence was reused; full verify and Cucumber were not
+  rerun. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-deploy-accepted.md`.
+- `2026-08-20T02:19:45-04:00`: Brain exact successor `0913c92a2093` passed
+  Woodpecker verify `799` and the sole staging deployment pipeline `800`. Public
+  `/brain` returned the expected `307`. One fresh authenticated first-use smoke
+  then failed before page creation or mutation on
+  `ClientScopeFocusProvider is missing`. Candidate Worker `a6546219...` was
+  rejected and the authoritative baseline `30f8f677-e999-423f-9654-0488ef2ee151`
+  restored at 100%. Pipelines `801` and `802` were canceled with zero started
+  steps. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-0913c92a-terminal-runtime-receipt.md`.
+- `2026-08-20T02:23:03-04:00`: Owned Funnel exact `f4e3262af86d` reached its
+  single owner-narrowed review/demo deployment attempt from sealed artifact
+  `be657eec...`. Cloudflare rejected the upload before Worker creation with code
+  `100324`: `client/_redirects` line 1 is an infinite loop. No rebuild or retry
+  ran. Post-checks show versions `[]`, no deployments, no Worker/secrets, and
+  all six intended management routes `404`; no demo/live/mutation claim is
+  admitted. Public Astro root/index remain `200` with expected content and zero
+  browser console/page errors; `apps/funnel` is unchanged. Rollback remains
+  non-creation. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-f4e3262-review-demo-deploy-rejected.md`.
