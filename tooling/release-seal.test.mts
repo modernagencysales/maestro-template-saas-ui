@@ -169,6 +169,15 @@ describe("release seal factory-only exclusions", () => {
     expect(prior.expectedHashes?.[".factory/project.yaml"]).toBe(
       "sha256:0896a4e957bd83a89ba66530952cfc7caa0bb5682a2355d4a12937322c701771",
     );
+    expect(
+      prior.paths?.filter(
+        ({ path }) =>
+          path ===
+          "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+      ),
+    ).toEqual([
+      expect.objectContaining({ ownership: "factory-only", action: "omit" }),
+    ]);
   });
 
   it("lets an exact reviewed customer path override an inherited factory subtree", () => {
@@ -259,9 +268,10 @@ describe("release seal factory-only exclusions", () => {
           action: "copy",
         }),
         expect.objectContaining({
-          path: "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
-          ownership: "template-owned",
-          action: "copy",
+          path: "tooling/release",
+          match: "subtree",
+          ownership: "factory-only",
+          action: "omit",
         }),
         expect.objectContaining({
           path: "tooling/saas-ui",

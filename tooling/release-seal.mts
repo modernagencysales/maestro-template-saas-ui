@@ -302,9 +302,16 @@ export function resolvePriorManifest(
   if (hash(baseBytes) !== value.baseManifest.sha256)
     throw new Error("Prior base manifest checksum does not match.");
   const base = resolvePriorManifest(basePath, visited);
+  const additional = value.additionalPaths as readonly CustomerReleasePath[];
+  const replaced = new Set(
+    additional.map((entry) => `${entry.match}:${entry.path}`),
+  );
+  const inherited = (base.paths ?? []).filter(
+    (entry) => !replaced.has(`${entry.match}:${entry.path}`),
+  );
   const paths = composedReleasePaths(
-    base.paths ?? [],
-    value.additionalPaths as readonly CustomerReleasePath[],
+    inherited,
+    additional,
     value.upgrade.operations,
   );
   const expectedHashes = Object.fromEntries(
@@ -410,13 +417,6 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     ownership: "generated",
     action: "generate",
     upgrade: "regenerate",
-  },
-  {
-    path: "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
-    match: "exact",
-    ownership: "template-owned",
-    action: "copy",
-    upgrade: "replace",
   },
   {
     path: "tooling/saas-ui",
