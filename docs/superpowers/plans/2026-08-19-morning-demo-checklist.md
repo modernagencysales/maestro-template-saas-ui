@@ -1,0 +1,98 @@
+# Morning Demo Execution Checklist
+
+Controller authority: this file is the central completion ledger. Only the
+controller checks boxes after inspecting the named evidence.
+
+## Phase 0: Preserve and prepare
+
+- [x] Canonical Pro source is pinned at `13a33eee35256f2d22b255750be746418b4189cb`.
+- [x] Maestro-worker GitHub authentication has actual push/delete proof.
+- [x] Maestro-worker Node/Corepack toolchain is coherent.
+- [x] OrbStack and `codex-lb` remain healthy on headless.
+- [ ] Control plan and checklist commits are pushed.
+- [ ] Existing headless tmux sessions and dirty worktrees are re-snapshotted.
+- [ ] Worker `morning-demo` tmux session exists with all named windows.
+- [ ] Every Codex window has created its committed persistent goal.
+- [ ] No product lane owns or edits another lane's checkout.
+
+## Phase 1: Durable checkouts
+
+- [ ] `control` checkout exists and tracks the control branch.
+- [ ] `template` checkout is clean and pinned to `13a33eee`.
+- [ ] `social` checkout is clean on `codex/morning-demo-social-pro`.
+- [ ] Owned Funnel review repository exists in `modernagencysales`.
+- [ ] `owned-funnel` checkout is clean on `codex/morning-demo-owned-pro`.
+- [ ] `brain` checkout is clean on `codex/morning-demo-brain-pro`.
+- [ ] Package-manager versions are recorded for every checkout.
+
+## Phase 2: Canonical foundation
+
+- [ ] Template source manifest and assembled-screen inventory are verified.
+- [ ] Social canonical preset and structural shell compile.
+- [ ] Owned Funnel canonical preset and structural shell compile.
+- [ ] Brain canonical preset and structural shell compile.
+- [ ] Product-specific deviations are confined to routes, adapters, labels, and mutations.
+
+## Phase 3: Social
+
+- [ ] `/dashboard` uses the canonical dashboard composition.
+- [ ] `/creators` uses the canonical DataGrid composition.
+- [ ] `/opportunities` uses the canonical list/detail composition.
+- [ ] `/proposals` uses the canonical Kanban composition.
+- [ ] `/reports` uses the canonical reports composition.
+- [ ] Existing backend reads and mutations are preserved behind typed adapters.
+- [ ] Important screens contain deterministic, useful demo data.
+- [ ] Focused Social checks and web build pass.
+- [ ] Stable Social Worker is deployed from an exact commit.
+- [ ] All five routes pass HTTP and browser smoke.
+
+## Phase 4: Owned Funnel
+
+- [ ] Public Astro checkout and known dirty files remain untouched.
+- [ ] Private management overview route exists in `apps/web`.
+- [ ] Contacts route uses canonical DataGrid and real management reads.
+- [ ] Submissions route uses canonical DataGrid and real management reads.
+- [ ] Runs list and run-detail routes use real backend reads.
+- [ ] Effects route uses real backend reads.
+- [ ] Lifecycle actions reuse the existing typed backend mutation path.
+- [ ] Deterministic demo workspace is populated.
+- [ ] `apps/web` has a focused Worker deployment contract.
+- [ ] Focused Owned Funnel checks and web build pass.
+- [ ] Stable management Worker is deployed from an exact commit.
+- [ ] Public Astro regression smoke passes.
+- [ ] At least one real backend read and lifecycle mutation are proven.
+
+## Phase 5: Brain
+
+- [ ] Outer Brain shell uses the canonical Pro preset and structure.
+- [ ] Notion-style editor internals remain intact.
+- [ ] Architecture contract says `Pro shell + Notion-style editor`.
+- [ ] Focused Brain/UI checks and web build pass.
+- [ ] Candidate is deployed to staging from an exact commit.
+- [ ] Public auth redirect smoke passes.
+- [ ] Authenticated Brain load/edit/save smoke passes.
+
+## Phase 6: Review and delivery
+
+- [ ] Template, Social, Owned Funnel, and Brain share a consistent shell review.
+- [ ] DataGrid alignment is visually approved wherever present.
+- [ ] Kanban alignment is visually approved wherever present.
+- [ ] Browser consoles show no unhandled errors on primary routes.
+- [ ] Worker/runtime logs show no candidate-specific unhandled errors.
+- [ ] Review URL matrix includes commit and deployment receipts.
+- [ ] Candidate PRs are open or updated only after review readiness.
+- [ ] One final required CI cycle is recorded per delivery candidate.
+- [ ] Exact blockers and deferred formal cleanup are recorded.
+- [ ] Owner receives the complete URL matrix and attach command.
+
+## Deadline gates
+
+- [ ] T+0:30 infrastructure gate
+- [ ] T+2:00 foundation compile gate
+- [ ] T+3:30 Brain gate
+- [ ] T+5:00 Social gate
+- [ ] T+7:00 Owned Funnel gate
+- [ ] T+9:00 visual review gate
+- [ ] T+10:30 repair freeze gate
+- [ ] T+11:30 final verification gate
+- [ ] T+12:00 completion audit
