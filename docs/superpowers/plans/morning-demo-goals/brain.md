@@ -112,3 +112,17 @@ behavior, authentication, and persistence; deliver authenticated staging proof.
   coordinate.
 - Terminal receipt:
   `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-0ecfcd19f10f-terminal-controller-ambiguity.md`.
+
+### Fresh-proof supersession
+
+- Later owner authorization permitted one fresh replacement state and one
+  corrected exact-client proof, with no new CI or deployment.
+- The single run proved create/edit/save, navigation/reload persistence,
+  persisted linking, and export readiness. `Copy markdown` became enabled after
+  its preparing state with no console, page, HTTP, Convex, or error-boundary
+  failure.
+- Playwright exited `1` only because the proof expects stale label
+  `Export markdown`; it was not rerun. State was deleted.
+- Worker `20ee5e88-f66b-4c71-95ac-3544dec776b9` remains at 100%; rollback was
+  not warranted. Terminal receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-0ecfcd19f10f-terminal-runtime-clean.md`.

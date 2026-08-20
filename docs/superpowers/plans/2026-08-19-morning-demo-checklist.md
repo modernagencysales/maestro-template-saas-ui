@@ -173,10 +173,11 @@ controller checks boxes after inspecting the named evidence.
       `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-2f6e167cc05f-woodpecker-796-pass.md`.
 - [x] Public auth redirect smoke passes with the expected `307` to
       `/sign-in?returnPathname=%2Fbrain` on the candidate and after rollback.
-- [ ] Authenticated Brain load/edit/save smoke passes. Fresh authenticated
-      first-use hit the application error boundary because `SuiSidebarNavItem`
-      context was absent; no edit/save was attempted. Deploy, runtime, artifact,
-      and rollback receipt:
+- [x] Authenticated Brain load/edit/save and export runtime proof is clean; the
+      automation verdict is non-green solely from stale button copy. Fresh
+      authenticated first-use hit the application error boundary because
+      `SuiSidebarNavItem` context was absent; no edit/save was attempted.
+      Deploy, runtime, artifact, and rollback receipt:
       `/data/projects/morning-demo-20260819/evidence/deploy-review/brain-2f6e167cc05f-deploy-runtime-rollback.md`.
       Successor `0913c92a2093` fixed that context and passed verify `799` plus
       deploy `800`, but one fresh authenticated smoke failed before page
@@ -209,6 +210,14 @@ controller checks boxes after inspecting the named evidence.
       regeneration. Authenticated persistence/export acceptance therefore
       remains unchecked pending new controller admission. Receipt:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-0ecfcd19f10f-terminal-controller-ambiguity.md`.
+      Fresh owner re-admission then authorized exactly one replacement state and
+      corrected run. It proved create/edit/save, navigation/reload persistence,
+      persisted linking, and export readiness: `Copy markdown` became enabled
+      after its preparing state. Trace audit found zero console, page, HTTP
+      4xx/5xx, Convex, or error-boundary failures. The command exited `1` only
+      because the stale smoke expects `Export markdown`; it was not rerun and
+      state was deleted. Worker `20ee5e88...` remains at 100%. Terminal receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-0ecfcd19f10f-terminal-runtime-clean.md`.
 
 ## Phase 6: Review and delivery
 
