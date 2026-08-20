@@ -5,25 +5,39 @@ controller checks boxes after inspecting the named evidence.
 
 ## Phase 0: Preserve and prepare
 
-- [x] Canonical Pro source is pinned at `13a33eee35256f2d22b255750be746418b4189cb`.
+- [x] Canonical Pro source is pinned at
+      `13a33eee35256f2d22b255750be746418b4189cb`.
 - [x] Maestro-worker GitHub authentication has actual push/delete proof.
 - [x] Maestro-worker Node/Corepack toolchain is coherent.
 - [x] OrbStack and `codex-lb` remain healthy on headless.
 - [x] Control plan and checklist commits are pushed (`2c48d37`, `e291061`).
 - [ ] Existing headless tmux sessions and dirty worktrees are re-snapshotted.
-- [ ] Worker `morning-demo` tmux session exists with all named windows.
-- [ ] Every Codex window has created its committed persistent goal.
-- [ ] No product lane owns or edits another lane's checkout.
+- [x] Worker `morning-demo` tmux session exists with all named windows (eight
+      live windows observed at `2026-08-19T22:32-04:00`).
+- [x] Every Codex window has created its committed persistent goal (controller
+      plus Template, Social, Owned Funnel, Brain, Focused Tests, and
+      Deploy/Review confirmed active by `2026-08-19T22:39-04:00`).
+- [x] No product lane owns or edits another lane's checkout (pane working
+      directories and clean starting heads inspected at
+      `2026-08-19T22:39-04:00`).
 
 ## Phase 1: Durable checkouts
 
-- [ ] `control` checkout exists and tracks the control branch.
-- [ ] `template` checkout is clean and pinned to `13a33eee`.
-- [ ] `social` checkout is clean on `codex/morning-demo-social-pro`.
-- [ ] Owned Funnel review repository exists in `modernagencysales`.
-- [ ] `owned-funnel` checkout is clean on `codex/morning-demo-owned-pro`.
-- [ ] `brain` checkout is clean on `codex/morning-demo-brain-pro`.
-- [ ] Package-manager versions are recorded for every checkout.
+- [x] `control` checkout exists and tracks
+      `codex/morning-demo-execution-control` at
+      `a7a9af3a5675ad85ab019ebe0f011a6815b8e0e1`.
+- [x] `template` checkout is clean and pinned to
+      `13a33eee35256f2d22b255750be746418b4189cb`.
+- [x] `social` checkout is clean on `codex/morning-demo-social-pro` at
+      `65c49626854bab8f0726cdaa0473c409c759d50c`.
+- [x] Owned Funnel review repository exists as
+      `modernagencysales/owned-funnel-review`.
+- [x] `owned-funnel` checkout is clean on `codex/morning-demo-owned-pro` at
+      `36396b0e7fe99a345d0204da78ad296c45672d82`.
+- [x] `brain` checkout is clean on `codex/morning-demo-brain-pro` at
+      `6e3727da5fedd7fdc75da1c22f2d1c418a0db415`.
+- [x] Package-manager versions are recorded: `pnpm@10.12.1` for control,
+      template, Social, and Owned Funnel; `pnpm@9.15.4` for Brain.
 
 ## Phase 2: Canonical foundation
 
@@ -31,7 +45,8 @@ controller checks boxes after inspecting the named evidence.
 - [ ] Social canonical preset and structural shell compile.
 - [ ] Owned Funnel canonical preset and structural shell compile.
 - [ ] Brain canonical preset and structural shell compile.
-- [ ] Product-specific deviations are confined to routes, adapters, labels, and mutations.
+- [ ] Product-specific deviations are confined to routes, adapters, labels, and
+      mutations.
 
 ## Phase 3: Social
 
