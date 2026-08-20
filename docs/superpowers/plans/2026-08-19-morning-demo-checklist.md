@@ -11,7 +11,9 @@ controller checks boxes after inspecting the named evidence.
 - [x] Maestro-worker Node/Corepack toolchain is coherent.
 - [x] OrbStack and `codex-lb` remain healthy on headless.
 - [x] Control plan and checklist commits are pushed (`2c48d37`, `e291061`).
-- [ ] Existing headless tmux sessions and dirty worktrees are re-snapshotted.
+- [x] Existing headless tmux sessions and dirty worktrees were re-snapshotted
+      read-only at `2026-08-19T22:37:14-04:00` via the established dedicated
+      `headless@headless` SSH identity; no session or worktree was changed.
 - [x] Worker `morning-demo` tmux session exists with all named windows (eight
       live windows observed at `2026-08-19T22:32-04:00`).
 - [x] Every Codex window has created its committed persistent goal (controller
@@ -102,7 +104,9 @@ controller checks boxes after inspecting the named evidence.
 
 ## Deadline gates
 
-- [ ] T+0:30 infrastructure gate
+- [x] T+0:30 infrastructure gate (passed early at `2026-08-19T22:39-04:00`;
+      worker defaults are Node `22.23.2` and pnpm `10.12.1`, fake preflight
+      passed, and headless preservation was proved).
 - [ ] T+2:00 foundation compile gate
 - [ ] T+3:30 Brain gate
 - [ ] T+5:00 Social gate

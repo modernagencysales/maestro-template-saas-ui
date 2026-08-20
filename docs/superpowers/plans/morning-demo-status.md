@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T22:36:00-04:00
+Last controller update: 2026-08-19T22:39:00-04:00
 
-| Lane          | State  | Current evidence                                                                                                                                     | Next gate                            | Blocker                                                                                                                                                        |
-| ------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active | Clean control head `a7a9af3`; eight live `morning-demo` windows; baseline URL sweep returned HTTP 200                                                | T+0:30 infrastructure gate at 22:55  | headless SSH re-snapshot failed: `Permission denied (publickey,password,keyboard-interactive)`; local preflight failed because `node_modules`/`tsx` are absent |
-| Template      | active | Clean canonical head `13a33eee`; persistent goal confirmed; pinned dependency install started                                                        | Source inventory and focused gates   | initial preflight failed because `node_modules`/`tsx` were absent                                                                                              |
-| Social        | active | Clean assigned branch at `65c4962`; persistent goal confirmed                                                                                        | Foundation sync                      | seed work remains in a separate dirty headless worktree                                                                                                        |
-| Owned Funnel  | active | Clean assigned branch at `36396b0`; persistent goal confirmed; `modernagencysales/owned-funnel-review` remote exists                                 | Private Pro routes                   | management URL does not exist                                                                                                                                  |
-| Brain         | active | Clean assigned branch at rollback baseline `6e3727da`; persistent goal confirmed                                                                     | Safe canonical shell delta           | canonical shell hashes differ                                                                                                                                  |
-| Focused tests | active | Persistent goal confirmed; existing broad `pnpm verify` for `4df6286958b6` observed in `/home/maestro/test-runs/20260820T023102Z-4df6286958b6-78718` | Establish serialized candidate queue | control checkout preflight lacks dependencies; no competing broad job authorized                                                                               |
-| Deploy/review | active | Persistent goal confirmed; baseline Template, UI Lab, Storybook, Social, public Owned Funnel, Brain auth redirect, and Dmitry URLs returned HTTP 200 | Candidate receipts                   | Owned management URL does not exist                                                                                                                            |
+| Lane          | State  | Current evidence                                                                                                                                                                       | Next gate                       | Blocker                                                                                         |
+| ------------- | ------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- | ----------------------------------------------------------------------------------------------- |
+| Controller    | active | Control branch pushed through `384530b`; T+0:30 infrastructure gate passed early; fake preflight passed under Node `22.23.2` / pnpm `10.12.1`                                          | T+2:00 foundation gate at 00:25 | none                                                                                            |
+| Template      | active | Clean canonical head `13a33eee`; focused route-tree and Pro/Worker tests passed                                                                                                        | Source inventory and web gates  | `pnpm check:saas-ui-foundation` reports a stale vendored-source receipt                         |
+| Social        | active | Clean assigned branch at `65c4962`; persistent goal confirmed                                                                                                                          | Foundation sync                 | seed work remains in a separate dirty headless worktree                                         |
+| Owned Funnel  | active | Clean assigned branch at `36396b0`; persistent goal confirmed; `modernagencysales/owned-funnel-review` remote exists                                                                   | Private Pro routes              | management URL does not exist                                                                   |
+| Brain         | active | Clean assigned branch at rollback baseline `6e3727da`; persistent goal confirmed                                                                                                       | Safe canonical shell delta      | canonical shell hashes differ                                                                   |
+| Focused tests | active | Existing broad `pnpm verify` for `4df6286958b6` remains the sole broad job; serialized queue is recorded under `/data/projects/morning-demo-20260819/evidence/focused-tests/queue.tsv` | Await immutable lane candidates | none; an unrelated Aug 14 orphan was removed by the supervisor without touching the current run |
+| Deploy/review | active | Baseline URL matrix exists; established headless execution path is `ssh -i /home/maestro/.ssh/id_ed25519_headless_codex_lb headless@headless`                                          | Candidate receipts              | Owned management URL does not exist; no tested candidate handoff yet                            |
 
 ## Current review URLs
 
@@ -51,3 +51,14 @@ Last controller update: 2026-08-19T22:36:00-04:00
 - `2026-08-19T22:36-04:00`: Controller and all six worker lanes confirmed their
   committed persistent goals active; pane working directories matched lane
   ownership.
+- `2026-08-19T22:37-04:00`: Re-snapshotted all headless tmux panes and dirty Git
+  worktrees read-only through the existing dedicated `headless@headless`
+  identity; OrbStack processes were live and no session or worktree was changed.
+- `2026-08-19T22:38-04:00`: Worker defaults were confirmed as Node `v22.23.2`
+  and pnpm `10.12.1`; `pnpm maestro -- preflight --mode fake` passed.
+- `2026-08-19T22:39-04:00`: Supervisor reported removal of confirmed orphaned
+  broad run `20260814T061539Z-6511ca715378-66388` (PPID 1, age 5d20h, stuck
+  `pnpm clean-store fetch`). Current exact-head run
+  `20260820T023102Z-4df6286958b6-78718` remains untouched as the sole broad job.
+- `2026-08-19T22:39-04:00`: T+0:30 infrastructure gate passed early; next time
+  gate is T+2:00 at `2026-08-20T00:25-04:00`.
