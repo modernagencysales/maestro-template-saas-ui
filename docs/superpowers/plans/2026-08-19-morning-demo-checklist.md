@@ -81,17 +81,15 @@ controller checks boxes after inspecting the named evidence.
       receipt:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/social-393dd5cb7ee6-verify-pass.md`.
       No fourth Cucumber cycle or duplicate completed check ran.
-- [x] Stable Social Worker is deployed from exact commit
-      `393dd5cb7ee626a9a830c8e7a8571e432c345df9` through sealed compatibility
-      version `7e31bdd6-abf0-4509-8967-4481225fa14a` at 100%, with
-      `VITE_SOCIAL_DEMO_MODE=true`, existing bindings retained, and prior
-      version `23fc85e0-43c0-4122-8577-818312c7e81b` retained for rollback.
-- [x] All five routes pass HTTP and real-auth browser smoke on the stable URL.
-      Callback/session and authenticated Convex membership succeed; dashboard,
-      creators, opportunities, proposals Kanban, and reports all contain useful
-      data; console, page, failed-HTTP, and Convex-auth error counts are zero.
-      Receipt:
-      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-deploy-accepted.md`.
+- [ ] Canonical Railway managed-Node deployment is proven at an exact merged
+      commit. The live Worker compatibility version is preserved only as
+      diagnostic baseline because `railway.json` and `docs/template/hosting.md`
+      forbid a competing release target.
+- [ ] All five routes pass HTTP and real-auth browser smoke on the immutable
+      Railway revision. Worker callback/session, Convex membership, useful data,
+      Kanban, and zero-error proof remain valid diagnostic history but do not
+      satisfy the Railway hosting contract. Correction receipt:
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-coordination-host-authority-correction.md`.
 
 ## Phase 4: Owned Funnel
 
