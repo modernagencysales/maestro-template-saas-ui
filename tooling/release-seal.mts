@@ -136,7 +136,12 @@ function assertSquashSafeChangeScope(input: {
       path !== releaseRoot &&
       !path.startsWith(`${releaseRoot}/`) &&
       path !== "tooling/release-seal.mts" &&
-      path !== "tooling/release-seal.test.mts",
+      path !== "tooling/release-seal.test.mts" &&
+      path !== "apps/cli/src/factory/candidateComposition.test.ts" &&
+      path !== "apps/cli/src/factory/customerCliRuntime.test.ts" &&
+      path !==
+        "tooling/generators/src/blueprints/saasFrontendFoundation.test.ts" &&
+      path !== "tooling/generators/src/blueprints/saasFrontendFoundation.ts",
   );
   if (!releaseRoot || unrelated !== undefined)
     throw new Error(

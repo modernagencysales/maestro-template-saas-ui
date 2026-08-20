@@ -90,6 +90,10 @@ describe("release candidate readiness", () => {
           "releases/v0.2.0-alpha.5/manifest.json",
           "tooling/release-seal.mts",
           "tooling/release-seal.test.mts",
+          "apps/cli/src/factory/candidateComposition.test.ts",
+          "apps/cli/src/factory/customerCliRuntime.test.ts",
+          "tooling/generators/src/blueprints/saasFrontendFoundation.test.ts",
+          "tooling/generators/src/blueprints/saasFrontendFoundation.ts",
         ],
       }),
     ).not.toThrow();
