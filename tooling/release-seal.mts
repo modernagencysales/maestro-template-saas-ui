@@ -18,13 +18,22 @@ import {
   classifyCustomerSourcePath,
 } from "./release/src/customerTarget/ownership.js";
 import {
+  composedExpectedHashes,
+  composedReleasePaths,
+} from "./release/src/customerTarget/createAdapter.archive.js";
+import {
   resolveCustomerReleasePath,
   type CustomerReleasePath,
 } from "./release/src/customerTarget/manifest.js";
 import type { UpgradeOperationV1 } from "./release/src/upgrade/contract.js";
 
 type Json = null | boolean | number | string | Json[] | { [key: string]: Json };
-type Args = { version: string; sourceCommit: string; check: boolean };
+type Args = {
+  version: string;
+  sourceCommit: string;
+  check: boolean;
+  squashSafe: boolean;
+};
 type Output = { path: string; bytes: Buffer };
 type SealManifest = {
   readonly baseManifest: { readonly path: string };
@@ -98,54 +107,80 @@ export function validateReleaseSourceState(input: {
   readonly headCommit: string;
   readonly sourceIsAncestor: boolean;
   readonly worktreeStatus: string;
+  readonly squashSafe?: boolean;
+  readonly releaseRoot?: string;
+  readonly changedPaths?: readonly string[];
 }): void {
-  if (!input.check && input.headCommit !== input.sourceCommit)
-    throw new Error(
-      "Write sealing requires HEAD to equal the frozen source commit.",
-    );
+  if (!input.check && input.headCommit !== input.sourceCommit) {
+    assertSquashSafeChangeScope(input);
+  }
   if (input.check && !input.sourceIsAncestor)
     throw new Error("Checked release source is not an ancestor of HEAD.");
   if (input.worktreeStatus !== "")
     throw new Error("Release sealing requires a clean source checkout.");
 }
 
+function assertSquashSafeChangeScope(input: {
+  readonly squashSafe?: boolean;
+  readonly sourceIsAncestor: boolean;
+  readonly releaseRoot?: string;
+  readonly changedPaths?: readonly string[];
+}): void {
+  if (!input.squashSafe || !input.sourceIsAncestor)
+    throw new Error(
+      "Write sealing requires HEAD to equal the frozen source commit.",
+    );
+  const releaseRoot = input.releaseRoot;
+  const unrelated = input.changedPaths?.find(
+    (path) =>
+      path !== releaseRoot &&
+      !path.startsWith(`${releaseRoot}/`) &&
+      path !== "tooling/release-seal.mts" &&
+      path !== "tooling/release-seal.test.mts",
+  );
+  if (!releaseRoot || unrelated !== undefined)
+    throw new Error(
+      `Squash-safe sealing found an unrelated changed path: ${unrelated ?? "missing release root"}`,
+    );
+}
+
 function parseArgs(argv: readonly string[]): Args {
+  const tokens = argv.filter((token) => token !== "--squash-safe");
   let version: string | undefined;
   let sourceCommit: string | undefined;
   let check = false;
-  for (let index = 0; index < argv.length; index += 1) {
-    const token = argv[index];
+  for (let index = 0; index < tokens.length; index += 1) {
+    const token = tokens[index];
     if (token === "--check") check = true;
-    else if (token === "--version") version = argv[++index];
-    else if (token === "--source-commit") sourceCommit = argv[++index];
+    else if (token === "--version") version = tokens[++index];
+    else if (token === "--source-commit") sourceCommit = tokens[++index];
     else throw new Error(`Unknown release seal argument: ${token ?? ""}`);
   }
   if (!version || !/^[0-9A-Za-z][0-9A-Za-z.-]*$/u.test(version))
     throw new Error("release:seal requires a closed --version");
   if (!sourceCommit || !/^[0-9a-f]{40}$/u.test(sourceCommit))
     throw new Error("release:seal requires an exact --source-commit");
-  return { version, sourceCommit, check };
+  return {
+    version,
+    sourceCommit,
+    check,
+    squashSafe: tokens.length !== argv.length,
+  };
 }
 
 function assertSource(args: Args): void {
   if (text(["cat-file", "-t", args.sourceCommit]) !== "commit")
     throw new Error("Release source is not a commit.");
   const head = text(["rev-parse", "HEAD"]);
-  let sourceIsAncestor = head === args.sourceCommit;
-  if (args.check) {
-    try {
-      git(["merge-base", "--is-ancestor", args.sourceCommit, head]);
-      sourceIsAncestor = true;
-    } catch {
-      sourceIsAncestor = false;
-    }
-  }
+  const state = resolveReleaseSourceState(args, head);
   validateReleaseSourceState({
     check: args.check,
     sourceCommit: args.sourceCommit,
     headCommit: head,
-    sourceIsAncestor,
     worktreeStatus: text(["status", "--porcelain", "--untracked-files=all"]),
+    squashSafe: args.squashSafe,
+    releaseRoot: `releases/v${args.version}`,
+    ...state,
   });
   const tree = git(["ls-tree", "-rz", "--full-tree", "-r", args.sourceCommit]);
   for (const record of tree.toString("utf8").split("\0").filter(Boolean)) {
@@ -160,6 +195,27 @@ function assertSource(args: Args): void {
         `Materialized release source contains a symlink: ${path}`,
       );
   }
+}
+
+function resolveReleaseSourceState(args: Args, head: string) {
+  let sourceIsAncestor = head === args.sourceCommit;
+  if (args.check || args.squashSafe) {
+    try {
+      git(["merge-base", "--is-ancestor", args.sourceCommit, head]);
+      sourceIsAncestor = true;
+    } catch {
+      sourceIsAncestor = false;
+    }
+  }
+  return {
+    sourceIsAncestor,
+    changedPaths:
+      args.squashSafe && head !== args.sourceCommit
+        ? text(["diff", "--name-only", `${args.sourceCommit}..${head}`])
+            .split("\n")
+            .filter(Boolean)
+        : [],
+  };
 }
 
 function sourcePaths(commit: string): readonly string[] {
@@ -198,7 +254,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> =>
   typeof value === "object" && value !== null && !Array.isArray(value);
 
 // eslint-disable-next-line complexity -- AP-008 tracks splitting this pre-existing 16-complexity manifest validator; Task 6 changes adjacent release-seal rules.
-function resolvePriorManifest(
+export function resolvePriorManifest(
   manifestPath: string,
   visited = new Set<string>(),
 ): PriorManifest {
@@ -225,7 +281,9 @@ function resolvePriorManifest(
     typeof value.baseManifest.path !== "string" ||
     typeof value.baseManifest.sha256 !== "string" ||
     typeof value.release.sourceCommit !== "string" ||
-    !Array.isArray(value.additionalPaths)
+    !Array.isArray(value.additionalPaths) ||
+    !isRecord(value.upgrade) ||
+    !Array.isArray(value.upgrade.operations)
   )
     throw new Error("Prior composed release manifest is incomplete.");
   const basePath = resolve(canonicalPath, "..", value.baseManifest.path);
@@ -233,13 +291,26 @@ function resolvePriorManifest(
   if (hash(baseBytes) !== value.baseManifest.sha256)
     throw new Error("Prior base manifest checksum does not match.");
   const base = resolvePriorManifest(basePath, visited);
+  const paths = composedReleasePaths(
+    base.paths ?? [],
+    value.additionalPaths as readonly CustomerReleasePath[],
+    value.upgrade.operations,
+  );
+  const expectedHashes = Object.fromEntries(
+    Object.entries(
+      composedExpectedHashes(
+        base.expectedHashes,
+        paths,
+        value.upgrade.operations,
+      ),
+    ).filter(
+      (entry): entry is [string, string] => typeof entry[1] === "string",
+    ),
+  );
   return {
     release: { sourceCommit: value.release.sourceCommit },
-    paths: [
-      ...(base.paths ?? []),
-      ...(value.additionalPaths as readonly CustomerReleasePath[]),
-    ],
-    expectedHashes: base.expectedHashes,
+    paths,
+    expectedHashes,
   };
 }
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
@@ -718,7 +789,7 @@ async function build(args: Args): Promise<readonly Output[]> {
       .map((entry) => [entry.path, hash(blob(args.sourceCommit, entry.path))]),
   );
   const priorHashes = new Map<string, string>();
-  for (const path of sourcePaths(prior.release.sourceCommit)) {
+  for (const [path, priorHash] of Object.entries(prior.expectedHashes ?? {})) {
     const ownership = resolveCustomerReleasePath(prior.paths ?? [], path);
     const removed = additionalPaths.some(
       (entry) =>
@@ -727,7 +798,7 @@ async function build(args: Args): Promise<readonly Output[]> {
         entry.ownership === "factory-only",
     );
     if (ownership?.ownership === "template-owned" || removed)
-      priorHashes.set(path, hash(blob(prior.release.sourceCommit, path)));
+      priorHashes.set(path, priorHash);
   }
   const oldKinds = new Map(
     current.upgrade.operations

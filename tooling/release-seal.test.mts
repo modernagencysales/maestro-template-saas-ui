@@ -4,6 +4,7 @@ import {
   buildReviewedAdditionalPaths,
   buildReviewedOwnershipInventory,
   parseReviewedFactoryOnlyExclusions,
+  resolvePriorManifest,
   validateReleaseSourceState,
 } from "./release-seal.mjs";
 
@@ -74,6 +75,38 @@ describe("release candidate readiness", () => {
     ).toThrow("Write sealing requires HEAD to equal the frozen source commit.");
   });
 
+  it("allows a squash-safe seal from an ancestor with only release tooling and candidate changes", () => {
+    expect(() =>
+      validateReleaseSourceState({
+        check: false,
+        sourceCommit,
+        headCommit: "b".repeat(40),
+        sourceIsAncestor: true,
+        worktreeStatus: "",
+        squashSafe: true,
+        releaseRoot: "releases/v0.2.0-alpha.5",
+        changedPaths: [
+          "releases/v0.2.0-alpha.5/manifest.json",
+          "tooling/release-seal.mts",
+          "tooling/release-seal.test.mts",
+        ],
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      validateReleaseSourceState({
+        check: false,
+        sourceCommit,
+        headCommit: "b".repeat(40),
+        sourceIsAncestor: true,
+        worktreeStatus: "",
+        squashSafe: true,
+        releaseRoot: "releases/v0.2.0-alpha.5",
+        changedPaths: ["apps/web/src/main.tsx"],
+      }),
+    ).toThrow("Squash-safe sealing found an unrelated changed path");
+  });
+
   it("allows check mode from a clean descendant of the source", () => {
     expect(() =>
       validateReleaseSourceState({
@@ -114,6 +147,14 @@ describe("release candidate readiness", () => {
 });
 
 describe("release seal factory-only exclusions", () => {
+  it("carries composed upgrade hashes without reading the prior source commit", () => {
+    const prior = resolvePriorManifest("releases/v0.2.0-alpha.4/manifest.json");
+
+    expect(prior.expectedHashes?.[".factory/project.yaml"]).toBe(
+      "sha256:0896a4e957bd83a89ba66530952cfc7caa0bb5682a2355d4a12937322c701771",
+    );
+  });
+
   it("lets an exact reviewed customer path override an inherited factory subtree", () => {
     const path =
       "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json";
