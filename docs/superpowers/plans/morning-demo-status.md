@@ -1,10 +1,10 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T22:25:00-04:00
+Last controller update: 2026-08-19T22:31:00-04:00
 
 | Lane | State | Current evidence | Next gate | Blocker |
 | --- | --- | --- | --- | --- |
-| Controller | preparing | Execution plan committed locally at `2c48d37` | Push checklist and launch tmux | none |
+| Controller | preparing | Plan `2c48d37` and ledger `e291061` are pushed | Prepare clean checkouts and launch tmux | none |
 | Template | pending | Canonical source `13a33eee` is pushed and HTTP 200 | Durable worker checkout | none |
 | Social | pending | Existing PR #29 and HTTP routes; canonical hashes differ | Clean worker branch and foundation sync | seed work is in a separate dirty headless worktree |
 | Owned Funnel | pending | Clean local review repo; Astro backend management exists | Publish remote and add private Pro routes | no GitHub remote or web Worker config |
@@ -27,3 +27,4 @@ Last controller update: 2026-08-19T22:25:00-04:00
 
 - `2026-08-19T22:25-04:00`: Owner authorized full 12-hour execution.
 - `2026-08-19T22:25-04:00`: Product changes remain unstarted until the durable control artifacts and lane goals are committed.
+- `2026-08-19T22:31-04:00`: Control plan and task ledger pushed to `codex/morning-demo-execution-control`.

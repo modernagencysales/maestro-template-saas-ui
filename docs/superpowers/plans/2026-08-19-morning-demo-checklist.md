@@ -9,7 +9,7 @@ controller checks boxes after inspecting the named evidence.
 - [x] Maestro-worker GitHub authentication has actual push/delete proof.
 - [x] Maestro-worker Node/Corepack toolchain is coherent.
 - [x] OrbStack and `codex-lb` remain healthy on headless.
-- [ ] Control plan and checklist commits are pushed.
+- [x] Control plan and checklist commits are pushed (`2c48d37`, `e291061`).
 - [ ] Existing headless tmux sessions and dirty worktrees are re-snapshotted.
 - [ ] Worker `morning-demo` tmux session exists with all named windows.
 - [ ] Every Codex window has created its committed persistent goal.
