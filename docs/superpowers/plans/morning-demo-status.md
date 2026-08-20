@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T23:19:00-04:00
+Last controller update: 2026-08-19T23:21:00-04:00
 
-| Lane          | State          | Current evidence                                                                                                                                                 | Next gate                                | Blocker                                                                                                                                                |
-| ------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                                     | T+2:00 foundation gate at 00:25          | none                                                                                                                                                   |
-| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                                             | Live revision/visual receipt             | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values              |
-| Social        | blocked-push   | Clean local `32dc26e6c3b61aab9372830dab6f64b685a5d27d`; five route steps and web build pass; invalid pre-remote verify stopped at exit `130`                     | Classify hook failure, then push         | preserved pre-push hook rejects at `typecheck:saas-ui` on a proposal-view diagnostic and `pnpm-lock.yaml` baseline hash mismatch; remote branch absent |
-| Owned Funnel  | blocked-owner  | Clean pushed successor `8b8b228628f59ae5e39ba599fa8783a1da23fa94`; canonical parent build green; both Worker cycles failed the same effective signature conflict | Owner fix/defer/remove decision          | two-cycle boundary reached; no third Worker cycle, full verify, or deploy authorized                                                                   |
-| Brain         | ci-running     | Remote branch/protected `main` equal `e9337f50f2c43998b1ab7fd58bd5183fb152c79c`; pipeline `795` clone/trusted policy passed; full verify running                 | Pipeline `795`, then guarded deploy      | staging remains at rollback `6e3727da`; deployment gate closed until CI succeeds                                                                       |
-| Focused tests | active         | Owned frozen at two-cycle boundary; Brain Woodpecker `795` recorded as the sole broad job                                                                        | Observe Brain CI; no competing broad job | none                                                                                                                                                   |
-| Deploy/review | active         | Response chain recovered; headless SSH and process-local Woodpecker token mapping proved without exposing values                                                 | Brain CI, staging, authenticated smoke   | Owned frozen at two-cycle boundary; Social remote absent                                                                                               |
+| Lane          | State          | Current evidence                                                                                                                                    | Next gate                                | Blocker                                                                                                                                   |
+| ------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                        | T+2:00 foundation gate at 00:25          | none                                                                                                                                      |
+| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                                | Live revision/visual receipt             | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
+| Social        | queued         | Clean pushed/remote-equal `4495a4f3d63da1cb9041c69c448dcc44fe81c437`; preserved hooks, Saas UI typecheck gate, and proposal composition 7/7 pass    | Exact-head admission after Brain `795`   | current-head build/full verification pending; no fourth Cucumber cycle or duplicate parent checks                                         |
+| Owned Funnel  | blocked-owner  | Clean pushed successor `8b8b228628f59ae5e39ba599fa8783a1da23fa94`; canonical parent build green; Worker re-review exit `1`, log SHA-256 `6a1481ea…` | Owner fix/defer/remove decision          | two-cycle boundary reached; no third Worker cycle, full verify, or deploy authorized                                                      |
+| Brain         | ci-running     | Remote branch/protected `main` equal `e9337f50f2c43998b1ab7fd58bd5183fb152c79c`; pipeline `795` clone/trusted policy passed; full verify running    | Pipeline `795`, then guarded deploy      | staging remains at rollback `6e3727da`; deployment gate closed until CI succeeds                                                          |
+| Focused tests | active         | Owned frozen at two-cycle boundary; Brain Woodpecker `795` recorded as the sole broad job                                                           | Observe Brain CI; no competing broad job | none                                                                                                                                      |
+| Deploy/review | active         | Response chain recovered; headless SSH and process-local Woodpecker token mapping proved without exposing values                                    | Brain CI, staging, authenticated smoke   | Owned frozen at two-cycle boundary; Social remote absent                                                                                  |
 
 ## Current review URLs
 
@@ -193,3 +193,16 @@ Last controller update: 2026-08-19T23:19:00-04:00
   completeness ancestor `83ff67473e7ebc374654e2b8aef5bb246e4ec690`. Clone and
   trusted-CI policy passed; full verification is running as the sole broad job.
   The staging gate remains closed pending a terminal success.
+- `2026-08-19T23:18:48-04:00`: Focused Tests finalized the Owned Funnel
+  second-cycle receipt. Exact Worker log SHA-256 is
+  `6a1481ea3b197d4cb059ce1b6d273f59a68a404b4c1534a79fc38ecd9ff4492b`; failed
+  output is preserved at
+  `evidence/focused-tests/artifacts/owned-funnel-8b8b228628f5-worker-failed-dist`.
+  Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/owned-funnel-8b8b228628f5-failure.md`.
+- `2026-08-19T23:21-04:00`: Social's bounded hook repair was committed and
+  pushed at exact clean `4495a4f3d63da1cb9041c69c448dcc44fe81c437`; local and
+  remote branch match. Preserved pre-push hooks passed, including the Saas UI
+  diagnostic-baseline gate, and the focused proposal composition suite is 7/7.
+  Exact-head admission is queued behind active Brain pipeline `795`; no fourth
+  Cucumber cycle or duplicate parent checks are authorized.

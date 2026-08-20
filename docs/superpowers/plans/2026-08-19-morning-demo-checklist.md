@@ -67,11 +67,11 @@ controller checks boxes after inspecting the named evidence.
 - [ ] `/reports` uses the canonical reports composition.
 - [ ] Existing backend reads and mutations are preserved behind typed adapters.
 - [ ] Important screens contain deterministic, useful demo data.
-- [x] Focused Social checks and web build pass at clean local candidate
-      `32dc26e6c3b61aab9372830dab6f64b685a5d27d`: the route scenario passed all
-      five steps (profile exit `1` only in the inherited global WorkOS
-      `AfterAll` assertion), the pinned typecheck baseline was green, and the
-      exact-head web build exited `0` at `2026-08-19T23:05:46-04:00`.
+- [ ] Focused Social checks and web build pass. Parent `32dc26e6c3b6` passed the
+      route scenario and web build, but the current clean pushed delivery head
+      is `4495a4f3d63da1cb9041c69c448dcc44fe81c437`; its exact-head admission is
+      queued behind Brain pipeline `795`, so the parent build is not counted as
+      final-head evidence.
 - [ ] Stable Social Worker is deployed from an exact commit.
 - [ ] All five routes pass HTTP and browser smoke.
 
