@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T22:48:00-04:00
+Last controller update: 2026-08-19T22:55:00-04:00
 
-| Lane          | State          | Current evidence                                                                                                                                        | Next gate                                      | Blocker                                                                                                                                   |
-| ------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active         | Control branch pushed through `384530b`; T+0:30 infrastructure gate passed early; fake preflight passed under Node `22.23.2` / pnpm `10.12.1`           | T+2:00 foundation gate at 00:25                | none                                                                                                                                      |
-| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                                    | Live revision/visual receipt                   | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
-| Social        | active         | Clean assigned branch at `65c4962`; persistent goal confirmed                                                                                           | Foundation sync                                | seed work remains in a separate dirty headless worktree                                                                                   |
-| Owned Funnel  | active         | Clean assigned branch at `36396b0`; persistent goal confirmed; `modernagencysales/owned-funnel-review` remote exists                                    | Private Pro routes                             | management URL does not exist                                                                                                             |
-| Brain         | main-admitted  | Remote `main` and candidate branch both resolve to exact tested `83ff67473e7ebc374654e2b8aef5bb246e4ec690`; required branch-protection context restored | Guarded staging deploy and authenticated smoke | CI/deploy status pending                                                                                                                  |
-| Focused tests | active         | Brain `83ff67473e7e` passed serialized typecheck/build with exits `0`/`0`; final tree clean and hashed receipt preserved                                | Next immutable candidate                       | inherited `4df62869` run ended but its external runner removed the temporary directory before result capture                              |
-| Deploy/review | active         | Brain `83ff6747` is exact-tested and linearly admitted to `main`; GitHub commit status is pending                                                       | Brain guarded staging receipt                  | Owned management URL does not exist                                                                                                       |
+| Lane          | State          | Current evidence                                                                                                                                | Next gate                               | Blocker                                                                                                                                   |
+| ------------- | -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Controller    | active         | Control branch pushed through `384530b`; T+0:30 infrastructure gate passed early; fake preflight passed under Node `22.23.2` / pnpm `10.12.1`   | T+2:00 foundation gate at 00:25         | none                                                                                                                                      |
+| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                            | Live revision/visual receipt            | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
+| Social        | candidate      | Clean local `32dc26e6c3b61aab9372830dab6f64b685a5d27d`; all five route steps pass; pinned typecheck baseline classified green                   | Complete guarded push, then build queue | cycle-3 profile exits 1 only in inherited AfterAll provider assertion; remote branch not yet proved                                       |
+| Owned Funnel  | active         | Clean assigned branch at `36396b0`; persistent goal confirmed; `modernagencysales/owned-funnel-review` remote exists                            | Private Pro routes                      | management URL does not exist                                                                                                             |
+| Brain         | verifying      | Exact tested `83ff6747` is on protected `main`; corrected Woodpecker epoch `794` passed clone/trusted-policy checks and is in full verification | Epoch 794 terminal receipt              | cycle 1 epoch 793 failed because manual clone omitted the required trusted-ref input                                                      |
+| Focused tests | active         | Brain `83ff67473e7e` passed serialized typecheck/build with exits `0`/`0`; final tree clean and hashed receipt preserved                        | Next immutable candidate                | inherited `4df62869` run ended but its external runner removed the temporary directory before result capture                              |
+| Deploy/review | active         | Brain cycle-2 Woodpecker epoch `794` is running on exact `main` SHA `83ff6747`; no gate file changed                                            | Brain guarded staging receipt           | Owned management URL does not exist                                                                                                       |
 
 ## Current review URLs
 
@@ -96,3 +96,20 @@ Last controller update: 2026-08-19T22:48:00-04:00
   canonical checkout remained clean at `13a33eee`. Focused checks passed; stale
   receipt and the two identical AuthKit prerender build failures remain exact
   inherited findings, and no third local build was authorized.
+- `2026-08-19T22:49-04:00`: Brain Woodpecker epoch `793` failed verification
+  cycle 1 because the manual clone lacked `origin/main` and the required
+  `MAESTRO_CI_COMPLETENESS_TRUSTED_REF` input was unset. No product or gate code
+  failed.
+- `2026-08-19T22:51-04:00`: Brain verification cycle 2 epoch `794` was started
+  with exact trusted ancestor `6e3727da5fedd7fdc75da1c22f2d1c418a0db415`. Clone
+  and trusted-CI-policy passed; full verification is running on exact `main` SHA
+  `83ff6747` without gate changes.
+- `2026-08-19T22:51-04:00`: Social cycle 1 candidate `73a59ad` failed on a real
+  Page-context regression; cycle 2 `1ee5810` proved that repair and failed on a
+  non-exact heading selector. Owner authorized exactly one cycle 3 on clean
+  `32dc26e`.
+- `2026-08-19T22:53-04:00`: Social cycle 3 passed all five candidate route
+  steps; command exit `1` came only from an inherited profile-wide `AfterAll`
+  provider-call assertion not exercised by the route-only scenario. No fourth
+  Cucumber cycle is authorized. The prior typecheck was recovered as green
+  against its pinned immutable-source diagnostic baseline.
