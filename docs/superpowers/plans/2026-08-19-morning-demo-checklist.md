@@ -81,9 +81,14 @@ controller checks boxes after inspecting the named evidence.
 
 ## Phase 5: Brain
 
-- [ ] Outer Brain shell uses the canonical Pro preset and structure.
-- [ ] Notion-style editor internals remain intact.
-- [ ] Architecture contract says `Pro shell + Notion-style editor`.
+- [x] Outer Brain shell uses the canonical Pro preset and structure in pushed
+      candidate `83ff67473e7ebc374654e2b8aef5bb246e4ec690`; focused shell/route
+      evidence is 4 files and 13 tests passing.
+- [x] Notion-style editor internals remain intact; the exact candidate diff is
+      confined to common layouts, the theme preset, a shell test, and the Brain
+      launch UX contract.
+- [x] Architecture contract says `Pro shell + Notion-style editor` in
+      `83ff67473e7ebc374654e2b8aef5bb246e4ec690`.
 - [ ] Focused Brain/UI checks and web build pass.
 - [ ] Candidate is deployed to staging from an exact commit.
 - [ ] Public auth redirect smoke passes.
