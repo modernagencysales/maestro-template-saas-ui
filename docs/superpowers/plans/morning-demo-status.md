@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T23:21:00-04:00
+Last controller update: 2026-08-19T23:39:00-04:00
 
-| Lane          | State          | Current evidence                                                                                                                                 | Next gate                                | Blocker                                                                                                                                   |
-| ------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                     | T+2:00 foundation gate at 00:25          | none                                                                                                                                      |
-| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                             | Live revision/visual receipt             | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
-| Social        | queued         | Clean pushed/remote-equal `4495a4f3d63da1cb9041c69c448dcc44fe81c437`; preserved hooks, Saas UI typecheck gate, and proposal composition 7/7 pass | Exact-head admission after Brain `795`   | current-head build/full verification pending; no fourth Cucumber cycle or duplicate parent checks                                         |
-| Owned Funnel  | queued-final   | Owner-authorized clean pushed `3630bcf55acd81c7b392a2d7ff0fa338e5b30176`; resolved Worker config omits custom split policy; regression 4/4 green | One final Worker build after Brain `795` | no retry if final cycle fails; full verify/deploy remain closed pending Worker success                                                    |
-| Brain         | ci-running     | Remote branch/protected `main` equal `e9337f50f2c43998b1ab7fd58bd5183fb152c79c`; pipeline `795` clone/trusted policy passed; full verify running | Pipeline `795`, then guarded deploy      | staging remains at rollback `6e3727da`; deployment gate closed until CI succeeds                                                          |
-| Focused tests | active         | Owned frozen at two-cycle boundary; Brain Woodpecker `795` recorded as the sole broad job                                                        | Observe Brain CI; no competing broad job | none                                                                                                                                      |
-| Deploy/review | active         | Response chain recovered; headless SSH and process-local Woodpecker token mapping proved without exposing values                                 | Brain CI, staging, authenticated smoke   | Owned frozen at two-cycle boundary; Social remote absent                                                                                  |
+| Lane          | State          | Current evidence                                                                                                                                 | Next gate                            | Blocker                                                                                                                                   |
+| ------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                     | T+2:00 foundation gate at 00:25      | none                                                                                                                                      |
+| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                             | Live revision/visual receipt         | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
+| Social        | verifying      | Clean pushed/remote-equal `4495a4f3d63da1cb9041c69c448dcc44fe81c437`; exact-head `pnpm verify` started at `23:37:55` as sole broad job           | Terminal exact-head verdict          | no fourth Cucumber cycle or duplicate focused checks                                                                                      |
+| Owned Funnel  | queued-final   | Owner-authorized clean pushed `3630bcf55acd81c7b392a2d7ff0fa338e5b30176`; resolved Worker config omits custom split policy; regression 4/4 green | One final Worker build after Social  | no retry if final cycle fails; full verify/deploy remain closed pending Worker success                                                    |
+| Brain         | blocked-ci     | Pipeline `795` passed Knip/gates/lint/evals, then failed exact-head web typecheck on unchanged GridList/Persona props; no deploy                 | Owner fix/defer/remove decision      | staging remains at rollback `6e3727da`; two verification failures recorded; no rerun                                                      |
+| Focused tests | active         | Social exact-head verify is the sole broad job; serialization race was preserved rather than interrupted                                         | Owned final Worker build next        | none                                                                                                                                      |
+| Deploy/review | active         | Headless SSH and secret-safe Woodpecker mapping proved; Brain failure receipt admitted                                                           | Await admitted exact-head candidates | Brain CI red; Owned final Worker build pending; Social verify running                                                                     |
 
 ## Current review URLs
 
@@ -214,3 +214,18 @@ Last controller update: 2026-08-19T23:21:00-04:00
   resolved-config regression 4/4, ESLint, Prettier, web typecheck, and normal
   hooks passed. Exactly one `build:worker` is queued behind Brain `795`, with no
   retry if it fails.
+- `2026-08-19T23:36:39-04:00`: Brain Woodpecker `795` terminated before deploy.
+  Clone, trusted policy, repaired Knip (`156/161`, resolved `5`), subsequent
+  gates, sharded lint, and evals passed. `@maestro/web#typecheck` failed TS2322
+  on `GridList.Root interactive` and `Persona.Root size` in source files
+  unchanged from both rollback and parent. Exact `e9337f50` changes only
+  `apps/web/package.json` and `pnpm-lock.yaml`; staging remains at rollback
+  `6e3727da5fedd7fdc75da1c22f2d1c418a0db415`. No deploy, authenticated smoke, or
+  rerun followed. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-e9337f50f2c4-woodpecker-795-failure.md`.
+- `2026-08-19T23:37:55-04:00`: Focused Tests admitted Social exact clean,
+  remote-equal `4495a4f3d63da1cb9041c69c448dcc44fe81c437` for its one-time
+  `pnpm verify` as the sole broad job. This admission started before the Owned
+  final-cycle priority reached the lane; the running deterministic gate was
+  preserved. Owned `3630bcf55acd` remains next for exactly one Worker build,
+  with no overlap or retry.

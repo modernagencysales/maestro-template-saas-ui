@@ -69,9 +69,10 @@ controller checks boxes after inspecting the named evidence.
 - [ ] Important screens contain deterministic, useful demo data.
 - [ ] Focused Social checks and web build pass. Parent `32dc26e6c3b6` passed the
       route scenario and web build, but the current clean pushed delivery head
-      is `4495a4f3d63da1cb9041c69c448dcc44fe81c437`; its exact-head admission is
-      queued behind Brain pipeline `795`, so the parent build is not counted as
-      final-head evidence.
+      is `4495a4f3d63da1cb9041c69c448dcc44fe81c437`. Its exact-head
+      `pnpm verify` began as the sole broad job at `2026-08-19T23:37:55-04:00`;
+      the parent build is not counted as final-head evidence until that
+      admission reaches a terminal verdict.
 - [ ] Stable Social Worker is deployed from an exact commit.
 - [ ] All five routes pass HTTP and browser smoke.
 
@@ -107,7 +108,11 @@ controller checks boxes after inspecting the named evidence.
       `83ff67473e7ebc374654e2b8aef5bb246e4ec690`; serialized typecheck/build
       exits are `0`/`0`, with receipt at
       `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-83ff67473e7e-receipt.md`.
-- [ ] Candidate is deployed to staging from an exact commit.
+- [ ] Candidate is deployed to staging from an exact commit. Woodpecker `795`
+      for exact protected-main head `e9337f50f2c4` passed the repaired Knip
+      boundary and later failed `@maestro/web#typecheck` on two unchanged source
+      props. No staging deploy occurred; receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-e9337f50f2c4-woodpecker-795-failure.md`.
 - [ ] Public auth redirect smoke passes.
 - [ ] Authenticated Brain load/edit/save smoke passes.
 
