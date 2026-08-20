@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T23:13:00-04:00
+Last controller update: 2026-08-19T23:19:00-04:00
 
-| Lane          | State          | Current evidence                                                                                                                             | Next gate                                | Blocker                                                                                                                                                |
-| ------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                 | T+2:00 foundation gate at 00:25          | none                                                                                                                                                   |
-| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                         | Live revision/visual receipt             | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values              |
-| Social        | blocked-push   | Clean local `32dc26e6c3b61aab9372830dab6f64b685a5d27d`; five route steps and web build pass; invalid pre-remote verify stopped at exit `130` | Classify hook failure, then push         | preserved pre-push hook rejects at `typecheck:saas-ui` on a proposal-view diagnostic and `pnpm-lock.yaml` baseline hash mismatch; remote branch absent |
-| Owned Funnel  | build-partial  | Clean pushed `465b8e2b450b92df925e6a34792c1d25d0c7bc81`; canonical web build exit `0`, including budget/shell-copy checks; output preserved  | Worker build, then exact-head verify     | management URL does not exist; Worker/full-verification receipts pending                                                                               |
-| Brain         | build-passed   | Clean local `e9337f50f2c43998b1ab7fd58bd5183fb152c79c`; Knip/typecheck/13 tests green; production build exit `0`, log SHA-256 `43a64dc1…`    | Push, main fast-forward, guarded CI      | remote branch/main remain at parent `83ff6747`; staging remains at rollback `6e3727da`                                                                 |
-| Focused tests | active         | Social invalid verify excluded; Owned canonical build passed; Brain production build passed; Owned Worker build resumes next                 | Owned Worker build and exact-head verify | none                                                                                                                                                   |
-| Deploy/review | active         | Same pane recovered through a fresh response chain; durable URL matrix preserved; no candidate deployment inferred                           | Admit pushed, verified candidates        | Owned Worker/full gates pending; Brain not yet pushed; Social remote absent                                                                            |
+| Lane          | State          | Current evidence                                                                                                                                                 | Next gate                                | Blocker                                                                                                                                                |
+| ------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                                     | T+2:00 foundation gate at 00:25          | none                                                                                                                                                   |
+| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                                             | Live revision/visual receipt             | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values              |
+| Social        | blocked-push   | Clean local `32dc26e6c3b61aab9372830dab6f64b685a5d27d`; five route steps and web build pass; invalid pre-remote verify stopped at exit `130`                     | Classify hook failure, then push         | preserved pre-push hook rejects at `typecheck:saas-ui` on a proposal-view diagnostic and `pnpm-lock.yaml` baseline hash mismatch; remote branch absent |
+| Owned Funnel  | blocked-owner  | Clean pushed successor `8b8b228628f59ae5e39ba599fa8783a1da23fa94`; canonical parent build green; both Worker cycles failed the same effective signature conflict | Owner fix/defer/remove decision          | two-cycle boundary reached; no third Worker cycle, full verify, or deploy authorized                                                                   |
+| Brain         | ci-running     | Remote branch/protected `main` equal `e9337f50f2c43998b1ab7fd58bd5183fb152c79c`; pipeline `795` clone/trusted policy passed; full verify running                 | Pipeline `795`, then guarded deploy      | staging remains at rollback `6e3727da`; deployment gate closed until CI succeeds                                                                       |
+| Focused tests | active         | Owned frozen at two-cycle boundary; Brain Woodpecker `795` recorded as the sole broad job                                                                        | Observe Brain CI; no competing broad job | none                                                                                                                                                   |
+| Deploy/review | active         | Response chain recovered; headless SSH and process-local Woodpecker token mapping proved without exposing values                                                 | Brain CI, staging, authenticated smoke   | Owned frozen at two-cycle boundary; Social remote absent                                                                                               |
 
 ## Current review URLs
 
@@ -165,3 +165,31 @@ Last controller update: 2026-08-19T23:13:00-04:00
   committed lane goal and durable queue/URL matrix. Brain then encountered the
   same response-chain error after its build completed; its pane was likewise
   preserved and recovered without repeating checks.
+- `2026-08-19T23:16:08-04:00`: Owned Funnel Worker cycle 1 at exact clean,
+  remote-equal `465b8e2b450b` failed with Rolldown `INVALID_OPTION` because
+  `codeSplitting.includeDependenciesRecursively=false` was combined with
+  effective `preserveEntrySignatures="strict"`. The Worker log SHA-256 is
+  `561cfd64a359930dd9c3a61c9161108ebb7cc24a9517003b153994c2a46b4b68`; the
+  canonical build remained green with log SHA-256
+  `906f0d874d8da411f767c57a690b708b4b39e1e74e47b46618b7eef8e1dc8ee3`.
+- `2026-08-19T23:18:48-04:00`: Owned Funnel's authorized one-fix re-review at
+  clean pushed `8b8b228628f59ae5e39ba599fa8783a1da23fa94` failed the same
+  effective strict-signature conflict; Rolldown also warned the attempted
+  `preserveEntrySignatures` key was invalid at its configured output location.
+  This is the second failed Worker cycle. No full verify or deploy ran, and no
+  third cycle is authorized without an explicit owner fix/defer/remove choice.
+- `2026-08-19T23:18-04:00`: Brain candidate branch and protected `main` were
+  independently confirmed at exact `e9337f50f2c4`. The fast-forward was linear
+  and non-force; required context `ci/woodpecker/pr/verify`, admin enforcement,
+  linear history, force-push prohibition, and deletion prohibition were all
+  restored or unchanged. Commit status was pending.
+- `2026-08-19T23:19-04:00`: Brain recovered authenticated Woodpecker access on
+  headless by mapping the existing BWS-provided API-token name process-locally
+  to the CLI's expected variable without printing or exporting the value.
+  Pipeline listing succeeded; the sole broad slot was released to Brain for its
+  one guarded exact-SHA cycle.
+- `2026-08-19T23:19:25-04:00`: Brain Woodpecker pipeline `795` started for exact
+  protected-main SHA `e9337f50f2c43998b1ab7fd58bd5183fb152c79c` with trusted
+  completeness ancestor `83ff67473e7ebc374654e2b8aef5bb246e4ec690`. Clone and
+  trusted-CI policy passed; full verification is running as the sole broad job.
+  The staging gate remains closed pending a terminal success.

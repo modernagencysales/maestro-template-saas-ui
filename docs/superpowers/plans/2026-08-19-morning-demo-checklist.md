@@ -47,7 +47,11 @@ controller checks boxes after inspecting the named evidence.
       immutable `13a33eee35256f2d22b255750be746418b4189cb`; evidence packet:
       `/data/projects/morning-demo-20260819/evidence/template/lane-status.md`.
 - [ ] Social canonical preset and structural shell compile.
-- [ ] Owned Funnel canonical preset and structural shell compile.
+- [x] Owned Funnel canonical preset and structural shell compile at pushed
+      candidate `465b8e2b450b92df925e6a34792c1d25d0c7bc81`; the Node `22.23.2`
+      canonical web build, client bundle budget, and shell-copy checks exited
+      `0`. The separate Worker build remains red and is not covered by this
+      item.
 - [x] Brain canonical preset and structural shell compile at exact candidate
       `83ff67473e7ebc374654e2b8aef5bb246e4ec690` (serialized typecheck/build
       exits `0`/`0`).
