@@ -236,6 +236,17 @@ function hasBlob(commit: string, path: string): boolean {
     return false;
   }
 }
+
+export function selectReleaseInputBytes(input: {
+  readonly path: string;
+  readonly source?: Buffer;
+  readonly candidate?: Buffer;
+}): Buffer {
+  const bytes = input.source ?? input.candidate;
+  if (!bytes) throw new Error(`Release input unavailable: ${input.path}`);
+  return bytes;
+}
+
 function safePath(path: string): boolean {
   return (
     path.length > 0 &&
@@ -917,7 +928,15 @@ async function build(args: Args): Promise<readonly Output[]> {
   outputs.push({ path: impactPath, bytes: impactBytes });
 
   const migrationPath = `${releaseRoot}/migrations/manifest.json`;
-  const migrationBytes = blob(args.sourceCommit, migrationPath);
+  const migrationBytes = selectReleaseInputBytes({
+    path: migrationPath,
+    source: hasBlob(args.sourceCommit, migrationPath)
+      ? blob(args.sourceCommit, migrationPath)
+      : undefined,
+    candidate: existsSync(join(root, migrationPath))
+      ? readFileSync(join(root, migrationPath))
+      : undefined,
+  });
   const manifestValue = {
     ...current,
     baseManifest: {

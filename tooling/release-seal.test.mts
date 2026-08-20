@@ -5,6 +5,7 @@ import {
   buildReviewedOwnershipInventory,
   parseReviewedFactoryOnlyExclusions,
   resolvePriorManifest,
+  selectReleaseInputBytes,
   validateReleaseSourceState,
 } from "./release-seal.mjs";
 
@@ -147,6 +148,21 @@ describe("release candidate readiness", () => {
 });
 
 describe("release seal factory-only exclusions", () => {
+  it("uses a candidate-owned release input when the frozen source predates it", () => {
+    const candidate = Buffer.from("alpha.5 migration handoff");
+    const source = Buffer.from("existing release handoff");
+
+    expect(
+      selectReleaseInputBytes({
+        path: "releases/v0.2.0-alpha.5/migrations/manifest.json",
+        candidate,
+      }),
+    ).toEqual(candidate);
+    expect(
+      selectReleaseInputBytes({ path: "manifest.json", source, candidate }),
+    ).toEqual(source);
+  });
+
   it("carries composed upgrade hashes without reading the prior source commit", () => {
     const prior = resolvePriorManifest("releases/v0.2.0-alpha.4/manifest.json");
 
