@@ -69,10 +69,11 @@ controller checks boxes after inspecting the named evidence.
 - [ ] Important screens contain deterministic, useful demo data.
 - [ ] Focused Social checks and web build pass. Parent `32dc26e6c3b6` passed the
       route scenario and web build, but the current clean pushed delivery head
-      is `4495a4f3d63da1cb9041c69c448dcc44fe81c437`. Its exact-head
-      `pnpm verify` began as the sole broad job at `2026-08-19T23:37:55-04:00`;
-      the parent build is not counted as final-head evidence until that
-      admission reaches a terminal verdict.
+      `4495a4f3d63da1cb9041c69c448dcc44fe81c437` failed exact-head `pnpm verify`
+      after all tests and the production build passed: `check:env-boundary`
+      rejected a candidate-introduced direct `import.meta.env` read. The owning
+      lane committed and pushed bounded repair `393dd5cb7ee6`; local and remote
+      are exact and its immutable replacement admission is queued.
 - [ ] Stable Social Worker is deployed from an exact commit.
 - [ ] All five routes pass HTTP and browser smoke.
 
@@ -89,7 +90,12 @@ controller checks boxes after inspecting the named evidence.
 - [ ] Lifecycle actions reuse the existing typed backend mutation path.
 - [ ] Deterministic demo workspace is populated.
 - [ ] `apps/web` has a focused Worker deployment contract.
-- [ ] Focused Owned Funnel checks and web build pass.
+- [ ] Focused Owned Funnel checks and web build pass. Final owner-authorized
+      Worker cycle `3630bcf55acd` cleared the earlier Rolldown option conflict
+      and completed client/SSR bundles, but prerender failed because the preview
+      plugin imported absent `dist/server/server.js` while the Worker emitted
+      `dist/server/index.js`. No retry, full verify, or deploy is authorized on
+      this candidate.
 - [ ] Stable management Worker is deployed from an exact commit.
 - [ ] Public Astro regression smoke passes.
 - [ ] At least one real backend read and lifecycle mutation are proven.

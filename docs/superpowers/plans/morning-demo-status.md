@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T23:39:00-04:00
+Last controller update: 2026-08-20T00:00:00-04:00
 
-| Lane          | State          | Current evidence                                                                                                                                 | Next gate                            | Blocker                                                                                                                                   |
-| ------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                     | T+2:00 foundation gate at 00:25      | none                                                                                                                                      |
-| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                             | Live revision/visual receipt         | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
-| Social        | verifying      | Clean pushed/remote-equal `4495a4f3d63da1cb9041c69c448dcc44fe81c437`; exact-head `pnpm verify` started at `23:37:55` as sole broad job           | Terminal exact-head verdict          | no fourth Cucumber cycle or duplicate focused checks                                                                                      |
-| Owned Funnel  | queued-final   | Owner-authorized clean pushed `3630bcf55acd81c7b392a2d7ff0fa338e5b30176`; resolved Worker config omits custom split policy; regression 4/4 green | One final Worker build after Social  | no retry if final cycle fails; full verify/deploy remain closed pending Worker success                                                    |
-| Brain         | blocked-ci     | Pipeline `795` passed Knip/gates/lint/evals, then failed exact-head web typecheck on unchanged GridList/Persona props; no deploy                 | Owner fix/defer/remove decision      | staging remains at rollback `6e3727da`; two verification failures recorded; no rerun                                                      |
-| Focused tests | active         | Social exact-head verify is the sole broad job; serialization race was preserved rather than interrupted                                         | Owned final Worker build next        | none                                                                                                                                      |
-| Deploy/review | active         | Headless SSH and secret-safe Woodpecker mapping proved; Brain failure receipt admitted                                                           | Await admitted exact-head candidates | Brain CI red; Owned final Worker build pending; Social verify running                                                                     |
+| Lane          | State          | Current evidence                                                                                                                  | Next gate                              | Blocker                                                                                                                                   |
+| ------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed      | T+2:00 foundation gate at 00:25        | none                                                                                                                                      |
+| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                              | Live revision/visual receipt           | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
+| Social        | queued-recheck | `4495a4f3d63d` passed tests/build then failed env-boundary; bounded repair is clean and remote-equal at `393dd5cb7ee6`            | One replacement exact-head verify      | no fourth Cucumber or duplicate completed checks; no deploy until replacement exact-head verify                                           |
+| Owned Funnel  | blocked-final  | Final `3630bcf55acd` cleared Rolldown conflict and completed Worker SSR, then prerender failed on missing `dist/server/server.js` | Owner defer/remove/new-cycle authority | third/final cycle consumed; no retry, full verify, or deploy                                                                              |
+| Brain         | blocked-ci     | Pipeline `795` passed Knip/gates/lint/evals, then failed exact-head web typecheck on unchanged GridList/Persona props; no deploy  | Owner fix/defer/remove decision        | staging remains at rollback `6e3727da`; two verification failures recorded; no rerun                                                      |
+| Focused tests | active         | Social and final Owned terminal receipts preserved; Social replacement is clean, remote-equal, and queued                         | One Social replacement verify          | Owned final cycle closed                                                                                                                  |
+| Deploy/review | active         | Headless SSH and secret-safe Woodpecker mapping proved; Brain/Social/Owned failure receipts admitted                              | Await admitted exact-head candidates   | Brain CI red; Owned final cycle red; Social replacement not yet remote-equal                                                              |
 
 ## Current review URLs
 
@@ -229,3 +229,27 @@ Last controller update: 2026-08-19T23:39:00-04:00
   final-cycle priority reached the lane; the running deterministic gate was
   preserved. Owned `3630bcf55acd` remains next for exactly one Worker build,
   with no overlap or retry.
+- `2026-08-19T23:57:09-04:00`: Social exact-head `pnpm verify` terminated exit
+  `1`. Formatting, lint, typechecks, strict Effect diagnostics, all package and
+  tooling tests, and the production build passed. `check:env-boundary` then
+  rejected the candidate-introduced direct `import.meta.env` read at
+  `apps/web/src/features/demo/social-demo-fixtures.ts:12`. Log SHA-256 is
+  `05bbcbcc6d89ef7d4fee9a3053db8c83f90094b07cb9fc73b5bb30a4d357df69`; receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/social-4495a4f3d63d-verify-receipt.md`.
+  No fourth Cucumber or duplicate completed check ran.
+- `2026-08-19T23:58:18-04:00`: Owned Funnel's owner-authorized third/final
+  Worker build at exact clean, remote-equal `3630bcf55acd` terminated exit `1`.
+  The prior Rolldown conflict was cleared; client and Worker SSR bundles
+  completed, emitting `dist/server/index.js`. Prerender failed after three
+  internal fetch attempts because the TanStack preview plugin imported absent
+  `dist/server/server.js`. Preserved log SHA-256 is
+  `807ce089b7efd8930f725d7f40ac759ef07c6237bfcee71b313964abbbeb3797` and
+  artifact SHA-256 is
+  `82e29d939e494c90e87000095ef1edad89f82501d7ea23cc96038ff1498dca02`; receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/owned-funnel-3630bcf55acd-final-worker-failure.md`.
+  No retry, full verify, or deploy is authorized on this candidate.
+- `2026-08-20T00:00-04:00`: Social's owning lane committed and pushed bounded
+  env-boundary repair `393dd5cb7ee626a9a830c8e7a8571e432c345df9`. The focused
+  boundary gate, ESLint, Prettier, diff check, 7 relevant tests, and preserved
+  hooks pass; local and remote branch are exact. One replacement exact-head
+  verification is queued with no fourth Cucumber or duplicate focused checks.
