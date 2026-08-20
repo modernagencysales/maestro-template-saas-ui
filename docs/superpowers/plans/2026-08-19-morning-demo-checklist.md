@@ -105,8 +105,17 @@ controller checks boxes after inspecting the named evidence.
       Social recovery released their slots. Receipt:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/owned-funnel-f4e3262af86d-worker-pass.md`.
 - [ ] Stable management Worker is deployed from an exact commit.
-- [ ] Public Astro regression smoke passes.
+- [x] Public Astro regression smoke passes independently: canonical routes
+      return `200`, the full marketing page renders through the footer, and the
+      browser has no console/page errors. Receipt:
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-public-audit-20260820.md`.
 - [ ] At least one real backend read and lifecycle mutation are proven.
+      Deployment admission stopped safely because Worker
+      `owned-funnel-management` does not exist and the authorized environment
+      has neither the four required management bindings nor a separately
+      approved WorkOS configuration. No nonfunctional shell was deployed;
+      receipt:
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/owned-funnel-f4e3262-deploy-blocker.md`.
 
 ## Phase 5: Brain
 
@@ -122,7 +131,7 @@ controller checks boxes after inspecting the named evidence.
       `83ff67473e7ebc374654e2b8aef5bb246e4ec690`; serialized typecheck/build
       exits are `0`/`0`, with receipt at
       `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-83ff67473e7e-receipt.md`.
-- [ ] Candidate is deployed to staging from an exact commit. Woodpecker `795`
+- [x] Candidate was deployed to staging from an exact commit. Woodpecker `795`
       for exact protected-main head `e9337f50f2c4` passed the repaired Knip
       boundary and later failed `@maestro/web#typecheck` on two unchanged source
       props. No staging deploy occurred; receipt:
@@ -131,10 +140,18 @@ controller checks boxes after inspecting the named evidence.
       and passes frozen install, exact-head typecheck, focused regressions,
       Knip, and production build. It advanced to protected `main`, and the
       single guarded exact-head Woodpecker pipeline `796` passed. Staging
-      deployment and authenticated smoke are not yet claimed. Receipt:
+      deployment pipeline `797` succeeded for exact protected-main
+      `2f6e167cc05f`, after which authenticated smoke rejected the runtime and
+      restored rollback Worker `30f8f677-e999-423f-9654-0488ef2ee151` at 100%.
+      Receipts:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-2f6e167cc05f-woodpecker-796-pass.md`.
-- [ ] Public auth redirect smoke passes.
-- [ ] Authenticated Brain load/edit/save smoke passes.
+- [x] Public auth redirect smoke passes with the expected `307` to
+      `/sign-in?returnPathname=%2Fbrain` on the candidate and after rollback.
+- [ ] Authenticated Brain load/edit/save smoke passes. Fresh authenticated
+      first-use hit the application error boundary because `SuiSidebarNavItem`
+      context was absent; no edit/save was attempted. Deploy, runtime, artifact,
+      and rollback receipt:
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/brain-2f6e167cc05f-deploy-runtime-rollback.md`.
 
 ## Phase 6: Review and delivery
 
@@ -143,7 +160,9 @@ controller checks boxes after inspecting the named evidence.
 - [ ] Kanban alignment is visually approved wherever present.
 - [ ] Browser consoles show no unhandled errors on primary routes.
 - [ ] Worker/runtime logs show no candidate-specific unhandled errors.
-- [ ] Review URL matrix includes commit and deployment receipts.
+- [x] Review URL matrix includes exact commit, build/CI evidence, deployment or
+      non-deployment admission, stable URL, HTTP/browser/runtime result, and
+      rollback/non-creation coordinate for Social, Owned Funnel, and Brain.
 - [ ] Candidate PRs are open or updated only after review readiness.
 - [ ] One final required CI cycle is recorded per delivery candidate.
 - [ ] Exact blockers and deferred formal cleanup are recorded.
