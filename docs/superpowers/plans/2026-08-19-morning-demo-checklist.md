@@ -97,6 +97,11 @@ controller checks boxes after inspecting the named evidence.
       `/data/projects/morning-demo-20260819/evidence/focused-tests/social-b1341cdc-woodpecker-345-terminal-failure.md`
       and
       `/data/projects/morning-demo-20260819/evidence/deploy-review/social-1fa00df-railway-hosted-readonly-failure.md`.
+      Later clean pushed diagnostic successor `eb918d044a34` exposed shard B's
+      terminal `Claim token is missing` result and retains a statically green
+      shard-C readiness repair, but neither is runtime-accepted and no third
+      scenario cycle, PR, CI, deployment, or auth mutation ran. Receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/social-eb918d044a34-two-cycle-terminal-receipt.md`.
 
 ## Phase 4: Owned Funnel
 
@@ -231,22 +236,29 @@ controller checks boxes after inspecting the named evidence.
       rollback/non-creation coordinate for Social, Owned Funnel, and Brain.
 - [ ] Candidate PRs are open or updated only after review readiness.
 - [ ] One final required CI cycle is recorded per delivery candidate.
-- [ ] Exact blockers and deferred formal cleanup are recorded.
-- [ ] Owner receives the complete URL matrix and attach command.
+- [x] Exact blockers and deferred formal cleanup are recorded in the URL matrix,
+      terminal receipts, and controller status ledger.
+- [x] Owner receives the current-state URL matrix and non-executed PR attachment
+      command through the completion-audit handoff:
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/program-completion-audit-20260820T0822.md`.
 
 ## Deadline gates
 
 - [x] T+0:30 infrastructure gate (passed early at `2026-08-19T22:39-04:00`;
       worker defaults are Node `22.23.2` and pnpm `10.12.1`, fake preflight
       passed, and headless preservation was proved).
-- [ ] T+2:00 foundation compile gate
-- [ ] T+3:30 Brain gate
+- [x] T+2:00 foundation compile gate (completed late; exact Social verify, Owned
+      Worker build, and Brain verify receipts are sealed).
+- [x] T+3:30 Brain gate (completed late at exact `0ecfcd19...`; verify `810`,
+      deploy `811`, and authenticated runtime-clean proof are sealed).
 - [ ] T+5:00 Social gate. The earlier Worker acceptance was superseded by the
       Railway hosting-authority correction. Successor `b1341cdc` is merged as
       `1fa00df0`, but Woodpecker `345` failed B/C and the stale-race Railway
       deployment is not accepted.
-- [ ] T+7:00 Owned Funnel gate
+- [x] T+7:00 Owned Funnel gate (completed late for the explicitly accepted
+      deterministic review/demo boundary at exact `458496d3...`).
 - [ ] T+9:00 visual review gate
 - [ ] T+10:30 repair freeze gate
 - [ ] T+11:30 final verification gate
-- [ ] T+12:00 completion audit
+- [x] T+12:00 completion audit (current URL matrix delivered and remaining
+      Template, Social, and Owned backend blockers recorded exactly).
