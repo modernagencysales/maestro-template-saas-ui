@@ -138,6 +138,18 @@ describe("create CLI adapter", () => {
     );
   });
 
+  it("accepts the canonical separator at the tagged-candidate boundary", async () => {
+    const test = fixture();
+    const handler = createCreateCliHandler(test.command);
+    const result = await handler.run(["--", ...argv, "--json"], "/factory");
+
+    expect(result.exitCode).toBe(0);
+    expect(test.execute).toHaveBeenCalledWith(
+      expect.objectContaining({ target: "../my-app" }),
+      expect.anything(),
+    );
+  });
+
   it("rejects the obsolete privacy review argument", async () => {
     const test = fixture();
     const result = await runCreateCli(

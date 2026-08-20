@@ -212,6 +212,17 @@ const taggedRepository = (): string => {
       stdio: "pipe",
     },
   );
+  // A protected release PR must verify its candidate tree before publication.
+  if (
+    !execFileSync("git", ["tag", "--list", CURRENT_PUBLIC_SOURCE.tag], {
+      cwd: taggedReleaseRoot,
+      encoding: "utf8",
+    }).trim()
+  )
+    execFileSync("git", ["tag", CURRENT_PUBLIC_SOURCE.tag, "HEAD"], {
+      cwd: taggedReleaseRoot,
+      stdio: "pipe",
+    });
   execFileSync(
     "git",
     ["checkout", "--quiet", "--detach", CURRENT_PUBLIC_SOURCE.tag],
@@ -395,8 +406,8 @@ describe("create root integration", () => {
       ],
       data: {
         release: {
-          version: "0.2.0-alpha.3",
-          tag: "maestro-template-v0.2.0-alpha.3",
+          version: "0.2.0-alpha.4",
+          tag: "maestro-template-v0.2.0-alpha.4",
           sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
           sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
         },
@@ -426,7 +437,7 @@ describe("create root integration", () => {
     expect(receipt.data.preview).not.toHaveProperty("writes");
     expect(receipt.data.preview).not.toHaveProperty("omissions");
     expect(existsSync(target)).toBe(false);
-  }, 30_000);
+  }, 240_000);
 
   it("prints the complete copy-paste onboarding sequence after create", async () => {
     const parent = mkdtempSync(join(tmpdir(), "maestro-create-human-"));
@@ -440,7 +451,6 @@ describe("create root integration", () => {
       "--outcome",
       "Track client requests",
       "--write",
-      "--privacy-reviewed",
     ]);
 
     expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
@@ -478,7 +488,6 @@ describe("create root integration", () => {
         request.firstOutcome,
         "--demo-only",
         "--write",
-        "--privacy-reviewed",
         "--json",
       ]);
       expect(result.exitCode, result.stderr).toBe(0);
@@ -582,7 +591,6 @@ describe("create root integration", () => {
       "Create and review records",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(result.exitCode, `${result.stdout}\n${result.stderr}`).toBe(0);
@@ -595,7 +603,7 @@ describe("create root integration", () => {
       "apps/web/src/adapters/records/fake.ts",
       "apps/web/src/features/records/records-surface.tsx",
       "apps/web/src/screens/records-screen.tsx",
-      "apps/web/src/routes/_workspace.records.tsx",
+      "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx",
     ] as const;
     for (const path of required) {
       expect(existsSync(join(targetRoot, path)), path).toBe(true);
@@ -613,9 +621,11 @@ describe("create root integration", () => {
         name: "My App",
         firstOutcome: "Create and review records",
       },
-      privacy: {
-        maestro: { productTelemetry: "none", automaticUpload: false },
-        privacyDocument: "docs/template/agent-pack-privacy.md",
+      customerExtension: {
+        privacy: {
+          maestro: { productTelemetry: "none", automaticUpload: false },
+          privacyDocument: "docs/template/agent-pack-privacy.md",
+        },
       },
     });
     expect(

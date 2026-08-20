@@ -15,13 +15,13 @@ const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
   new URL("../../../../", import.meta.url),
 );
 // Immutable release trust anchors: publishing a new sealed release updates these pins.
-const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.3/manifest.json";
+const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.4/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
-  "sha256:762df464359e16160b3ddbc51b014406dbb2d7a37e79968425157484c011cf49";
+  "sha256:cdaf30204436569ec23aceefcf5cd75b8e84c2ea1f8173fb5e40a927918ed6ae";
 const BASE_BLUEPRINT_CHECKSUM =
-  "sha256:25dca99a8e051d3bba8159ad31398c5cc16d52128ee4bd5b6ef100d3567012f7";
-const BASE_TAG = "maestro-template-v0.2.0-alpha.3";
-const BASE_COMMIT = "6f7d01f158d922dd9e69069713a46c9ebab5235e";
+  "sha256:97360a20c522dcfb12fd46e1fc590459f6b87999b76e4b48f08d568f3dafbf62";
+const BASE_TAG = "maestro-template-v0.2.0-alpha.4";
+const BASE_COMMIT = "3b42202bd362899c03126ed8e919b2ddae83b3b6";
 
 export type CustomerCompositionSource = Readonly<{
   repositoryRoot: string;
@@ -43,13 +43,13 @@ export const CURRENT_PUBLIC_SOURCE = Object.freeze({
   sourceCommit: BASE_COMMIT,
   blueprintManifestPath: resolve(
     TRUSTED_REPOSITORY_ROOT,
-    "releases/v0.2.0-alpha.3/blueprints/saas-application.json",
+    "releases/v0.2.0-alpha.4/blueprints/saas-application.json",
   ),
   blueprintManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
   // Alpha.3 seals replacement directives in the blueprint manifest itself.
   blueprintAuthorityManifestPath: resolve(
     TRUSTED_REPOSITORY_ROOT,
-    "releases/v0.2.0-alpha.3/blueprints/saas-application.json",
+    "releases/v0.2.0-alpha.4/blueprints/saas-application.json",
   ),
   blueprintAuthorityManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
 }) satisfies CustomerCompositionSource;
@@ -57,6 +57,7 @@ export const CURRENT_PUBLIC_SOURCE = Object.freeze({
 type BlueprintTargetPlanBuilder = (options: {
   readonly name: string;
   readonly firstOutcome?: string;
+  readonly patterns?: readonly ("records-example" | "workflow-automation")[];
   readonly sourceRoot?: string;
 }) => BlueprintTargetPlan;
 
@@ -66,6 +67,12 @@ type BlueprintReplacementAuthority = ReadonlyMap<
   string,
   "copy" | "generate" | undefined
 >;
+
+const buildCurrentPublicTargetPlan: BlueprintTargetPlanBuilder = (options) =>
+  buildSaasApplicationTargetPlan({
+    ...options,
+    patterns: ["records-example"],
+  });
 
 function readBlueprintReplacementAuthority(
   source: CustomerCompositionSource,
@@ -99,7 +106,7 @@ function applyReplacementAuthority(
 
 export function loadCustomerCreateComposition(
   source: CustomerCompositionSource = CURRENT_PUBLIC_SOURCE,
-  buildBlueprintTargetPlan: BlueprintTargetPlanBuilder = buildSaasApplicationTargetPlan,
+  buildBlueprintTargetPlan: BlueprintTargetPlanBuilder = buildCurrentPublicTargetPlan,
   templateInstances?: ReleaseTemplateInstanceConsumer,
 ) {
   return createCustomerCreateComposition(

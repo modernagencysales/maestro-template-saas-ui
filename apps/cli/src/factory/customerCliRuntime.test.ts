@@ -42,6 +42,17 @@ const taggedRepository = (): string => {
     ["clone", "--quiet", "--shared", repositoryRoot, taggedReleaseRoot],
     { stdio: "pipe" },
   );
+  // A protected release PR must verify its candidate tree before publication.
+  if (
+    !execFileSync("git", ["tag", "--list", CURRENT_PUBLIC_SOURCE.tag], {
+      cwd: taggedReleaseRoot,
+      encoding: "utf8",
+    }).trim()
+  )
+    execFileSync("git", ["tag", CURRENT_PUBLIC_SOURCE.tag, "HEAD"], {
+      cwd: taggedReleaseRoot,
+      stdio: "pipe",
+    });
   execFileSync(
     "git",
     ["checkout", "--quiet", "--detach", CURRENT_PUBLIC_SOURCE.tag],
@@ -243,7 +254,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Inspect local support facts",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -262,21 +272,25 @@ describe("materialized customer CLI runtime closure", () => {
         readonly manifestChecksum: string;
       };
       readonly blueprint: { readonly digest: string };
-      readonly privacy: { readonly privacyDocument: string | null };
+      readonly customerExtension: {
+        readonly privacy: { readonly privacyDocument: string | null };
+      };
     };
     expect(instance).toMatchObject({
       release: {
-        version: "0.2.0-alpha.3",
-        tag: "maestro-template-v0.2.0-alpha.3",
+        version: "0.2.0-alpha.4",
+        tag: "maestro-template-v0.2.0-alpha.4",
         sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
         sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       ownership: {
-        manifest: "releases/v0.2.0-alpha.3/manifest.json",
+        manifest: "releases/v0.2.0-alpha.4/manifest.json",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
-      privacy: {
-        privacyDocument: "docs/template/agent-pack-privacy.md",
+      customerExtension: {
+        privacy: {
+          privacyDocument: "docs/template/agent-pack-privacy.md",
+        },
       },
     });
     expect(instance.ownership.manifestChecksum).toBe(
@@ -355,7 +369,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Track one governed record",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -422,7 +435,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Review a generic private package",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -604,7 +616,6 @@ describe("materialized customer CLI runtime closure", () => {
       "Track one customer request",
       "--demo-only",
       "--write",
-      "--privacy-reviewed",
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
@@ -1022,13 +1033,13 @@ describe("materialized customer CLI runtime closure", () => {
         facts: {
           versions: {
             pack: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.3@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.4@[0-9a-f]{40}$/,
             ),
             cli: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.3@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.4@[0-9a-f]{40}$/,
             ),
             template: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.3@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.4@[0-9a-f]{40}$/,
             ),
           },
           versionsCompatible: true,

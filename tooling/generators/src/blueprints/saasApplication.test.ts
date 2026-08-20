@@ -61,6 +61,12 @@ const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
   "tooling/quality/check-recipes.test.mts",
   "tooling/quality/mutation-script.test.mts",
 ] as const;
+const CURRENT_ACCEPTANCE_COPY_REPLACEMENTS = new Set([
+  "tooling/acceptance/checkout-state.mts",
+  "tooling/acceptance/product-contract.mts",
+  "tooling/acceptance/run-acceptance.mts",
+  "tooling/acceptance/playwright-report.mts",
+]);
 
 describe("workflow automation customer closure", () => {
   it("omits workflow-owned release files without omitting sparse App Map inputs", () => {
@@ -366,6 +372,28 @@ describe("saas application blueprint", () => {
     ).toEqual([]);
   });
 
+  it("replaces only current acceptance paths backed by copied bytes", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan({
+        name: "Records App",
+        patterns: ["records-example"],
+      }).entries.map((entry) => [entry.path, entry]),
+    );
+    for (const path of CURRENT_ACCEPTANCE_COPY_REPLACEMENTS)
+      expect(entries.get(path), path).toMatchObject({ replaces: "copy" });
+    for (const path of [
+      "product.contract.yaml",
+      "product.contract.schema.json",
+      "docs/template/generated/product-contract.md",
+      "playwright.acceptance.config.ts",
+      "docs/product/records-plan.md",
+      "tests/acceptance/records.spec.ts",
+      "tests/acceptance/support/fixtures.ts",
+      "tests/acceptance/support/runtime.ts",
+    ])
+      expect(entries.get(path), path).not.toHaveProperty("replaces");
+  });
+
   it("projects workflow data resources only when workflow is selected", () => {
     const resources = (patterns: readonly "workflow-automation"[] = []) => {
       const entry = buildSaasApplicationTargetPlan({
@@ -587,6 +615,7 @@ describe("saas application blueprint", () => {
     const mismatches = buildSaasApplicationTargetPlan().entries.flatMap(
       (entry) => {
         if (saasFrontendFoundationPaths().includes(entry.path)) return [];
+        if (CURRENT_ACCEPTANCE_COPY_REPLACEMENTS.has(entry.path)) return [];
         const baseWrite = reviewedBaseWrite(paths, entry.path, sourcePaths);
         return baseWrite === entry.replaces
           ? []

@@ -29,7 +29,9 @@ export function runCreateCli<Args, Data extends AgentPackJsonValue>(
   argv: readonly string[],
   cwd: string,
 ): Promise<CliResult> {
-  const parsed = parseCreateCli(argv.slice(1));
+  const parsed = parseCreateCli(
+    (argv[0] === "--" ? argv.slice(1) : argv).slice(1),
+  );
   return runAgentPackCommandAsCli(
     command,
     parsed.input,

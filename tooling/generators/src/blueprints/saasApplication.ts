@@ -780,6 +780,10 @@ function buildTargetPlan(
           ...CURRENT_EMAIL_BASE_COPY_REPLACEMENTS.map(
             (path) => [path, "copy"] as const,
           ),
+          ["tooling/acceptance/checkout-state.mts", "copy"],
+          ["tooling/acceptance/product-contract.mts", "copy"],
+          ["tooling/acceptance/run-acceptance.mts", "copy"],
+          ["tooling/acceptance/playwright-report.mts", "copy"],
           ["docs/template/env-manifest.json", "copy"],
           ["docs/template/env-manifest.md", "copy"],
           ["docs/template/operations-runbook.md", "copy"],

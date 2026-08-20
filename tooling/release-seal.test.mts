@@ -145,11 +145,13 @@ describe("release seal factory-only exclusions", () => {
       ".claude/settings.json",
       "README.md",
       "docs/agent/host-projection-lifecycle.md",
+      "docs/licenses/saas-ui/pro-NOTICE.md",
       "patches/@confect__cli@9.1.5.patch",
       "tooling/app-map/INTEGRATION_REQUEST.md",
       "tooling/app-map/src/mcp.test.ts",
       "tooling/app-map/src/build.ts",
       "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+      "tooling/saas-ui/manifest.ts",
       "tooling/release-seal.mts",
       "tooling/release-seal.test.mts",
     ];
@@ -180,6 +182,11 @@ describe("release seal factory-only exclusions", () => {
           action: "copy",
         }),
         expect.objectContaining({
+          path: "docs/licenses/saas-ui",
+          ownership: "template-owned",
+          action: "copy",
+        }),
+        expect.objectContaining({
           path: "tooling/app-map/INTEGRATION_REQUEST.md",
           ownership: "factory-only",
           action: "omit",
@@ -196,6 +203,11 @@ describe("release seal factory-only exclusions", () => {
         }),
         expect.objectContaining({
           path: "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+          ownership: "template-owned",
+          action: "copy",
+        }),
+        expect.objectContaining({
+          path: "tooling/saas-ui",
           ownership: "template-owned",
           action: "copy",
         }),
@@ -230,6 +242,25 @@ describe("release seal factory-only exclusions", () => {
     });
 
     expect(paths).not.toContainEqual(inherited);
+  });
+  it("removes the retired inherited Justfile authority", () => {
+    const removal = factoryRule("Justfile", "exact");
+    const paths = buildReviewedAdditionalPaths({
+      value: [],
+      sourcePaths: [],
+      protectedCustomerPaths: [],
+      basePaths: [
+        {
+          path: "Justfile",
+          match: "exact",
+          ownership: "generated",
+          action: "generate",
+          upgrade: "regenerate",
+        },
+      ],
+    });
+
+    expect(paths).toContainEqual(removal);
   });
   it("derives explicit reviewed exclusions before inventory classification", () => {
     const sourcePaths = [

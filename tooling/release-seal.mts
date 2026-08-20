@@ -243,6 +243,13 @@ function resolvePriorManifest(
   };
 }
 const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
+  {
+    path: "Justfile",
+    match: "exact",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
   ...[
     "apps/web/src/routes/build-pack.$packId.generating.tsx",
     "apps/web/src/routes/build-pack.$packId.index.tsx",
@@ -329,6 +336,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     action: "copy",
     upgrade: "replace",
   },
+  {
+    path: "tooling/saas-ui",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
   ...[
     "apps/cli/src/factory/adopt.ts",
     "apps/cli/src/factory/adopt.test.ts",
@@ -379,6 +393,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
   },
   {
     path: "docs/agent",
+    match: "subtree",
+    ownership: "template-owned",
+    action: "copy",
+    upgrade: "replace",
+  },
+  {
+    path: "docs/licenses/saas-ui",
     match: "subtree",
     ownership: "template-owned",
     action: "copy",
@@ -574,7 +595,11 @@ export function buildReviewedAdditionalPaths(input: {
       );
       if (inherited === undefined) return true;
       if (JSON.stringify(inherited) === JSON.stringify(candidate)) return false;
-      if (candidate.ownership === "factory-only") return false;
+      if (candidate.ownership === "factory-only")
+        return (
+          candidate.path === "Justfile" &&
+          !input.sourcePaths.includes(candidate.path)
+        );
       throw new Error(
         `Release additional path conflicts with inherited authority: ${candidate.match}:${candidate.path}`,
       );
@@ -614,7 +639,11 @@ async function build(args: Args): Promise<readonly Output[]> {
   ) as BlueprintManifest;
   const { buildSaasApplicationTargetPlan } =
     await import("./generators/src/blueprints/saasApplication.js");
-  const plan = buildSaasApplicationTargetPlan();
+  const plan = buildSaasApplicationTargetPlan({
+    name: "SaaS Application",
+    firstOutcome: "Deliver the first customer outcome",
+    patterns: ["records-example"],
+  });
   const outputs: Output[] = [];
   const assets = [] as { path: string; sha256: string }[];
   const protectedCustomerSourcePaths: string[] = [];
@@ -691,7 +720,13 @@ async function build(args: Args): Promise<readonly Output[]> {
   const priorHashes = new Map<string, string>();
   for (const path of sourcePaths(prior.release.sourceCommit)) {
     const ownership = resolveCustomerReleasePath(prior.paths ?? [], path);
-    if (ownership?.ownership === "template-owned")
+    const removed = additionalPaths.some(
+      (entry) =>
+        entry.path === path &&
+        entry.match === "exact" &&
+        entry.ownership === "factory-only",
+    );
+    if (ownership?.ownership === "template-owned" || removed)
       priorHashes.set(path, hash(blob(prior.release.sourceCommit, path)));
   }
   const oldKinds = new Map(
