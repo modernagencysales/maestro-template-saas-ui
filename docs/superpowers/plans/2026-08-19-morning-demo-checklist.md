@@ -63,13 +63,19 @@ controller checks boxes after inspecting the named evidence.
 - [ ] `/reports` uses the canonical reports composition.
 - [ ] Existing backend reads and mutations are preserved behind typed adapters.
 - [ ] Important screens contain deterministic, useful demo data.
-- [ ] Focused Social checks and web build pass.
+- [x] Focused Social checks and web build pass at clean local candidate
+      `32dc26e6c3b61aab9372830dab6f64b685a5d27d`: the route scenario passed all
+      five steps (profile exit `1` only in the inherited global WorkOS
+      `AfterAll` assertion), the pinned typecheck baseline was green, and the
+      exact-head web build exited `0` at `2026-08-19T23:05:46-04:00`.
 - [ ] Stable Social Worker is deployed from an exact commit.
 - [ ] All five routes pass HTTP and browser smoke.
 
 ## Phase 4: Owned Funnel
 
-- [ ] Public Astro checkout and known dirty files remain untouched.
+- [x] Public Astro source remains untouched by pushed management candidate
+      `465b8e2b450b92df925e6a34792c1d25d0c7bc81`; the exact commit has no diff
+      under `apps/funnel`, and the checkout is clean.
 - [ ] Private management overview route exists in `apps/web`.
 - [ ] Contacts route uses canonical DataGrid and real management reads.
 - [ ] Submissions route uses canonical DataGrid and real management reads.

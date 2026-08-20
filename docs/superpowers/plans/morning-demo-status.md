@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T22:58:00-04:00
+Last controller update: 2026-08-19T23:13:00-04:00
 
-| Lane          | State          | Current evidence                                                                                                                               | Next gate                               | Blocker                                                                                                                                   |
-| ------------- | -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active         | Control branch pushed through `384530b`; T+0:30 infrastructure gate passed early; fake preflight passed under Node `22.23.2` / pnpm `10.12.1`  | T+2:00 foundation gate at 00:25         | none                                                                                                                                      |
-| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                           | Live revision/visual receipt            | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
-| Social        | candidate      | Clean local `32dc26e6c3b61aab9372830dab6f64b685a5d27d`; all five route steps pass; pinned typecheck baseline classified green                  | Complete guarded push, then build queue | cycle-3 profile exits 1 only in inherited AfterAll provider assertion; remote branch not yet proved                                       |
-| Owned Funnel  | active         | Clean assigned branch at `36396b0`; persistent goal confirmed; `modernagencysales/owned-funnel-review` remote exists                           | Private Pro routes                      | management URL does not exist                                                                                                             |
-| Brain         | blocked        | Exact tested `83ff6747` is on protected `main`; epoch `794` passed clone/trusted policy then failed `check:knip`; staging stayed at `6e3727da` | Owner fix/defer/remove decision         | inherited unused `@saas-ui/chakra-preset` dependency; two-cycle boundary reached                                                          |
-| Focused tests | active         | Brain `83ff67473e7e` passed serialized typecheck/build with exits `0`/`0`; final tree clean and hashed receipt preserved                       | Next immutable candidate                | inherited `4df62869` run ended but its external runner removed the temporary directory before result capture                              |
-| Deploy/review | active         | Brain epoch `794` failure receipt recorded; no staging deployment occurred                                                                     | Admit next tested candidate             | Brain owner decision pending; Owned management URL does not exist                                                                         |
+| Lane          | State          | Current evidence                                                                                                                             | Next gate                                | Blocker                                                                                                                                                |
+| ------------- | -------------- | -------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                 | T+2:00 foundation gate at 00:25          | none                                                                                                                                                   |
+| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                         | Live revision/visual receipt             | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values              |
+| Social        | blocked-push   | Clean local `32dc26e6c3b61aab9372830dab6f64b685a5d27d`; five route steps and web build pass; invalid pre-remote verify stopped at exit `130` | Classify hook failure, then push         | preserved pre-push hook rejects at `typecheck:saas-ui` on a proposal-view diagnostic and `pnpm-lock.yaml` baseline hash mismatch; remote branch absent |
+| Owned Funnel  | build-partial  | Clean pushed `465b8e2b450b92df925e6a34792c1d25d0c7bc81`; canonical web build exit `0`, including budget/shell-copy checks; output preserved  | Worker build, then exact-head verify     | management URL does not exist; Worker/full-verification receipts pending                                                                               |
+| Brain         | build-passed   | Clean local `e9337f50f2c43998b1ab7fd58bd5183fb152c79c`; Knip/typecheck/13 tests green; production build exit `0`, log SHA-256 `43a64dc1…`    | Push, main fast-forward, guarded CI      | remote branch/main remain at parent `83ff6747`; staging remains at rollback `6e3727da`                                                                 |
+| Focused tests | active         | Social invalid verify excluded; Owned canonical build passed; Brain production build passed; Owned Worker build resumes next                 | Owned Worker build and exact-head verify | none                                                                                                                                                   |
+| Deploy/review | active         | Same pane recovered through a fresh response chain; durable URL matrix preserved; no candidate deployment inferred                           | Admit pushed, verified candidates        | Owned Worker/full gates pending; Brain not yet pushed; Social remote absent                                                                            |
 
 ## Current review URLs
 
@@ -122,3 +122,46 @@ Last controller update: 2026-08-19T22:58:00-04:00
 - `2026-08-19T22:58-04:00`: Brain stopped at the two-cycle boundary. No third
   cycle, dependency edit, or gate change is authorized until the owner chooses
   fix, defer, or remove; removing the Knip gate is not recommended.
+- `2026-08-19T23:05:46-04:00`: Social exact local head `32dc26e6c3b6` completed
+  `pnpm --dir apps/web build` with exit `0`; generated `.output` was moved
+  recoverably to the focused-test evidence artifacts directory and the source
+  checkout remained clean.
+- `2026-08-19T23:09-04:00`: Owned Funnel candidate
+  `465b8e2b450b92df925e6a34792c1d25d0c7bc81` was committed and pushed. The
+  controller independently proved clean local/remote equality and no candidate
+  diff to `.prettierignore`, generated product-contract/topology authority, the
+  product plan, or public `apps/funnel` source.
+- `2026-08-19T23:11:25-04:00`: Focused Tests mistakenly started Social
+  `pnpm verify` before remote equality. The controller guard arrived during
+  `check:format`; the lane terminated it at `23:12:18` with exit `130` and
+  retained its hashed log only as invalid-admission evidence. It will not be
+  retried until the exact remote branch exists.
+- `2026-08-19T23:12-04:00`: Social's preserved pre-push hook rejected clean
+  `32dc26e` at `typecheck:saas-ui`, reporting a proposal-view diagnostic and a
+  `pnpm-lock.yaml` diagnostic-baseline hash mismatch. The remote branch remains
+  absent while the owning lane classifies the clean-head finding.
+- `2026-08-19T23:12:18-04:00`: Focused Tests admitted remote-equal Owned Funnel
+  `465b8e2b450b` for its canonical web build. Brain's owner-authorized clean fix
+  `e9337f50f2c4` is queued immediately afterward for its sole remaining local
+  production build; neither candidate is being raced by another broad job.
+- `2026-08-19T23:13-04:00`: codex-lb recovery was re-audited: all product/test
+  panes survived. Deploy/Review alone hit an `Invalid previous_response_id`
+  response-chain error; its existing pane and URL-matrix work were preserved and
+  a goal-resume recovery was issued.
+- `2026-08-19T23:13:23-04:00`: Owned Funnel exact pushed head `465b8e2b450b`
+  passed the canonical `apps/web build` with exit `0`, including the client
+  bundle budget and shell-copy checks. Its output was preserved under
+  `evidence/focused-tests/artifacts/owned-funnel-465b8e2b450b-canonical-dist`;
+  the separate Worker build and exact-head verification remain pending.
+- `2026-08-19T23:14:44-04:00`: Brain clean local fix `e9337f50f2c4` passed its
+  exact-head production build with exit `0`. The build log SHA-256 is
+  `43a64dc1d8953ab47215957536d5c27e97ac1209b880b011730a194c7e55924a`; the only
+  warning is the already-classified inherited non-failing
+  `::highlight(studio-pending-replacement)` optimizer warning. Output was
+  preserved in a candidate-specific evidence directory and the tree remained
+  clean.
+- `2026-08-19T23:15-04:00`: Deploy/Review recovered in the same tmux pane via a
+  fresh response chain and began recreating its exact persistent goal from the
+  committed lane goal and durable queue/URL matrix. Brain then encountered the
+  same response-chain error after its build completed; its pane was likewise
+  preserved and recovered without repeating checks.
