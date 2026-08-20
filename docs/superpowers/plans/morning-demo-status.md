@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-20T00:04:00-04:00
+Last controller update: 2026-08-20T01:13:42-04:00
 
-| Lane          | State          | Current evidence                                                                                                                              | Next gate                                       | Blocker                                                                                                                                   |
-| ------------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                  | T+2:00 foundation gate at 00:25                 | none                                                                                                                                      |
-| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                          | Live revision/visual receipt                    | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
-| Social        | queued-recheck | `4495a4f3d63d` passed tests/build then failed env-boundary; bounded repair is clean and remote-equal at `393dd5cb7ee6`                        | One replacement exact-head verify               | no fourth Cucumber or duplicate completed checks; no deploy until replacement exact-head verify                                           |
-| Owned Funnel  | blocked-final  | Final `3630bcf55acd` cleared Rolldown conflict and completed Worker SSR, then prerender failed on missing `dist/server/server.js`             | Owner defer/remove/new-cycle authority          | third/final cycle consumed; no retry, full verify, or deploy                                                                              |
-| Brain         | queued-new-ci  | Clean pushed replacement `2f6e167cc05f` passes frozen install, app typecheck, focused 3/3, Knip, and build; protected `main` stays `e9337f50` | One owner-authorized guarded cycle after Social | no overlap; deploy/authenticated smoke only on green; staging remains at rollback `6e3727da`                                              |
-| Focused tests | active         | Social and final Owned terminal receipts preserved; Social replacement is clean, remote-equal, and queued                                     | One Social replacement verify                   | Owned final cycle closed                                                                                                                  |
-| Deploy/review | active         | Headless SSH and secret-safe Woodpecker mapping proved; Brain/Social/Owned failure receipts admitted                                          | Await admitted exact-head candidates            | Brain CI red; Owned final cycle red; Social replacement not yet remote-equal                                                              |
+| Lane          | State                      | Current evidence                                                                                                                        | Next gate                                       | Blocker                                                                                                                                   |
+| ------------- | -------------------------- | --------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Controller    | active                     | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed            | T+2:00 foundation gate at 00:25                 | none                                                                                                                                      |
+| Template      | evidence-ready             | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                    | Live revision/visual receipt                    | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
+| Social        | source-green-host-rejected | Exact clean `393dd5cb7ee6` passed second-cycle `pnpm verify`; recovery browser diagnosis sealed three independent runtime/auth blockers | New deploy-compatible exact candidate required  | generated Workerd `createRequire` failure; missing `__name`/hydration failures; signed-out demo mode reaches login; rollback remains 100% |
+| Owned Funnel  | worker-green               | Exact clean, remote-equal `f4e3262af86d` passed its one Node `22.23.2` `build:worker`; log/artifact hashes are sealed                   | Deployment review or owner-selected next gate   | no full verify or deploy was requested; invalid `_redirects` warning remains non-failing                                                  |
+| Brain         | ci-green                   | Exact protected-main `2f6e167cc05f` passed the sole guarded Woodpecker exact-head verification, pipeline `796`                          | Green-only staging deployment/auth smoke        | verification is complete; staging/authenticated persistence proof not yet claimed                                                         |
+| Focused tests | complete                   | Social verify, Brain pipeline `796`, and Owned Worker build terminal receipts are sealed; all broad work ran serially                   | Return exact-head verdicts                      | none within the requested focused-test admission scope                                                                                    |
+| Deploy/review | active                     | Social terminal blocker/rollback sealed; Brain exact-head CI is green; Owned exact-head Worker artifact is green                        | New Social candidate; Brain/Owned deploy review | Social requires a new exact candidate; Brain staging/auth smoke and Owned deployment are not yet claimed                                  |
 
 ## Current review URLs
 
@@ -269,3 +269,44 @@ Last controller update: 2026-08-20T00:04:00-04:00
   protected-main advance with complete protection restoration, exactly one
   Woodpecker pipeline using the policy-valid trusted ancestor, and green-only
   staging plus authenticated `/brain` edit/save proof. No overlap is permitted.
+- `2026-08-20T00:13:21-04:00`: Social exact clean, remote-equal replacement
+  `393dd5cb7ee626a9a830c8e7a8571e432c345df9` completed its single second-cycle
+  exact-head `pnpm verify` with exit `0`. The preserved log SHA-256 is
+  `8442a226b5982c4b5e5c4a66f80d3cc9bde0d3069e91f7e683d799e755fc2490`; receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/social-393dd5cb7ee6-verify-pass.md`.
+  No verification rerun, fourth Cucumber cycle, or duplicate focused check was
+  used to seal the receipt.
+- `2026-08-20T00:31:42-04:00`: Brain exact
+  `2f6e167cc05ff35c04be32347390850cbe594a39` was admitted on protected `main` to
+  one Woodpecker exact-head verification, pipeline `796`. At recovery handoff it
+  remains the sole broad job under processes `1613500/1613501/1614045`; observe
+  only, with no duplicate or overlap.
+- `2026-08-20T00:52:19-04:00`: Focused Tests independently confirmed Owned
+  Funnel exact clean local/remote equality at
+  `f4e3262af86d1babe73f5bcff31a3e8598f15e62`. Its sole admitted command is Node
+  `22.23.2` `apps/web build:worker`, queued after Brain pipeline `796` with a
+  required preserved log hash and artifact. It has not started and cannot
+  overlap the active Brain broad job.
+- `2026-08-20T01:12:37-04:00`: Social recovery ended without a new deployment.
+  Exact `393dd5cb7ee6` remains verify-green but is not browser-deployable:
+  unmodified Worker SSR fails on generated `createRequire(import.meta.url)`; an
+  evidence-only diagnostic substitution exposed missing `__name` and router
+  invariants; a browser-only diagnostic shim then reached login rather than
+  useful demo data and raised React hydration error `#418` on all five routes.
+  Production remains at rollback version `23fc85e0...` with 100% traffic. No
+  full verify or Cucumber rerun occurred. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-exact-candidate-blocker.md`.
+- `2026-08-20T01:12:26-04:00`: The supplied Brain verification processes had
+  exited, and a read-only Woodpecker query returned terminal `success` for the
+  sole guarded pipeline `796` on protected `main` exact
+  `2f6e167cc05ff35c04be32347390850cbe594a39`. No duplicate pipeline or local
+  verification ran. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-2f6e167cc05f-woodpecker-796-pass.md`.
+- `2026-08-20T01:13:19-04:00`: After Brain and the concurrently recorded Social
+  recovery released their slots, Owned Funnel exact clean, remote-equal
+  `f4e3262af86d1babe73f5bcff31a3e8598f15e62` passed its single Node `22.23.2`
+  `apps/web build:worker` with exit `0`. Log SHA-256 is
+  `6a4f8e81574c736e01aa651c4840700c45fc4650b555c0b7dc95a7d5698fc90a`; artifact
+  SHA-256 is `be657eec5325a87d43b3768cc6c072812e72d1aff09a63e57e79139afb0bc0e4`.
+  No overlap, retry, or full verify ran. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/owned-funnel-f4e3262af86d-worker-pass.md`.

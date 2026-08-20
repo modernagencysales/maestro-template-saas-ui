@@ -67,15 +67,23 @@ controller checks boxes after inspecting the named evidence.
 - [ ] `/reports` uses the canonical reports composition.
 - [ ] Existing backend reads and mutations are preserved behind typed adapters.
 - [ ] Important screens contain deterministic, useful demo data.
-- [ ] Focused Social checks and web build pass. Parent `32dc26e6c3b6` passed the
-      route scenario and web build, but the current clean pushed delivery head
-      `4495a4f3d63da1cb9041c69c448dcc44fe81c437` failed exact-head `pnpm verify`
-      after all tests and the production build passed: `check:env-boundary`
-      rejected a candidate-introduced direct `import.meta.env` read. The owning
-      lane committed and pushed bounded repair `393dd5cb7ee6`; local and remote
-      are exact and its immutable replacement admission is queued.
+- [x] Focused Social checks and web build pass. Exact clean, remote-equal
+      replacement `393dd5cb7ee626a9a830c8e7a8571e432c345df9` passed its single
+      second-cycle exact-head `pnpm verify` at `2026-08-20T00:13:21-04:00`. The
+      sealed log SHA-256 is
+      `8442a226b5982c4b5e5c4a66f80d3cc9bde0d3069e91f7e683d799e755fc2490`;
+      receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/social-393dd5cb7ee6-verify-pass.md`.
+      No fourth Cucumber cycle or duplicate completed check ran.
 - [ ] Stable Social Worker is deployed from an exact commit.
-- [ ] All five routes pass HTTP and browser smoke.
+- [ ] All five routes pass HTTP and browser smoke. Recovery diagnosis for exact
+      `393dd5cb7ee6` is terminal and rejected: generated Worker SSR fails on
+      `createRequire(import.meta.url)`; after an evidence-only substitution,
+      Chromium found missing `__name`, router invariants, signed-out login
+      instead of demo content, and React hydration error `#418`. Rollback
+      `23fc85e0...` remains at 100%; a new exact source candidate is required.
+      Receipt:
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-exact-candidate-blocker.md`.
 
 ## Phase 4: Owned Funnel
 
@@ -90,12 +98,12 @@ controller checks boxes after inspecting the named evidence.
 - [ ] Lifecycle actions reuse the existing typed backend mutation path.
 - [ ] Deterministic demo workspace is populated.
 - [ ] `apps/web` has a focused Worker deployment contract.
-- [ ] Focused Owned Funnel checks and web build pass. Final owner-authorized
-      Worker cycle `3630bcf55acd` cleared the earlier Rolldown option conflict
-      and completed client/SSR bundles, but prerender failed because the preview
-      plugin imported absent `dist/server/server.js` while the Worker emitted
-      `dist/server/index.js`. No retry, full verify, or deploy is authorized on
-      this candidate.
+- [x] Focused Owned Funnel checks and web build pass. The prior `3630bcf55acd`
+      cycle exposed the missing `dist/server/server.js` prerender entry. Exact
+      clean, remote-equal successor `f4e3262af86d` passed exactly one serialized
+      Node `22.23.2` `apps/web build:worker` with exit `0` after Brain and
+      Social recovery released their slots. Receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/owned-funnel-f4e3262af86d-worker-pass.md`.
 - [ ] Stable management Worker is deployed from an exact commit.
 - [ ] Public Astro regression smoke passes.
 - [ ] At least one real backend read and lifecycle mutation are proven.
@@ -121,9 +129,10 @@ controller checks boxes after inspecting the named evidence.
       `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-e9337f50f2c4-woodpecker-795-failure.md`.
       Replacement `2f6e167cc05f` is clean, remote-equal on the candidate branch,
       and passes frozen install, exact-head typecheck, focused regressions,
-      Knip, and production build. Owner authorized one new guarded cycle after
-      Social releases the broad slot; protected `main` remains `e9337f50` until
-      then.
+      Knip, and production build. It advanced to protected `main`, and the
+      single guarded exact-head Woodpecker pipeline `796` passed. Staging
+      deployment and authenticated smoke are not yet claimed. Receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-2f6e167cc05f-woodpecker-796-pass.md`.
 - [ ] Public auth redirect smoke passes.
 - [ ] Authenticated Brain load/edit/save smoke passes.
 
