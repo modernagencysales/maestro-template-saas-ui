@@ -16,10 +16,10 @@ controller checks boxes after inspecting the named evidence.
       live windows observed at `2026-08-19T22:32-04:00`).
 - [x] Every Codex window has created its committed persistent goal (controller
       plus Template, Social, Owned Funnel, Brain, Focused Tests, and
-      Deploy/Review confirmed active by `2026-08-19T22:39-04:00`).
+      Deploy/Review confirmed active by `2026-08-19T22:36-04:00`).
 - [x] No product lane owns or edits another lane's checkout (pane working
       directories and clean starting heads inspected at
-      `2026-08-19T22:39-04:00`).
+      `2026-08-19T22:36-04:00`).
 
 ## Phase 1: Durable checkouts
 

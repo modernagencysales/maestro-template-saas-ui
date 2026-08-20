@@ -1,6 +1,6 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T22:38:00-04:00
+Last controller update: 2026-08-19T22:36:00-04:00
 
 | Lane          | State  | Current evidence                                                                                                                                     | Next gate                            | Blocker                                                                                                                                                        |
 | ------------- | ------ | ---------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -48,6 +48,6 @@ Last controller update: 2026-08-19T22:38:00-04:00
   `4df6286958b6` remained active in
   `/home/maestro/test-runs/20260820T023102Z-4df6286958b6-78718`; no second broad
   job was started.
-- `2026-08-19T22:39-04:00`: Controller and all six worker lanes confirmed their
+- `2026-08-19T22:36-04:00`: Controller and all six worker lanes confirmed their
   committed persistent goals active; pane working directories matched lane
   ownership.
