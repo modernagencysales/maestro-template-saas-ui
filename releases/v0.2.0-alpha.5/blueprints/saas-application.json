@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "3b42202bd362899c03126ed8e919b2ddae83b3b6",
+    "sourceCommit": "bf8198730f21f32a40222367c2c476e001214722",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -31,7 +31,7 @@
       },
       {
         "path": "base/package.json.txt",
-        "sha256": "sha256:5b0ebe68f81cfd743482310033df6df153d586debbd4f2662d2109b9e1e691d4"
+        "sha256": "sha256:e0a45f173beee1c9e96b99ce4416a4cb6c0f76cbf7da2c40fbe9740167623f52"
       },
       {
         "path": "base/packages/convex/confect/_generated/spec.ts.txt",
@@ -699,7 +699,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:fdbe7def9b79d139cdb839ff7c17098a4b0ae8f2e19bedddaddbd63cedf59016",
+      "sha256": "sha256:1f6c3ba3d79582071724d5dc2a0e78396c6ceb9cea24c531df4b679c4ca23658",
       "replaces": "copy"
     },
     {
@@ -3656,6 +3656,14 @@
       "replaces": "copy"
     },
     {
+      "path": "docs/template/saas-ui-screen-catalog.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b435787fcb5ccd302dfba679f82e6386f73e5f07b0857eeeaf2752f0e4d06c41",
+      "replaces": "copy"
+    },
+    {
       "path": "docs/template/saas-ui-starter-files.json",
       "ownership": "generated",
       "action": "generate",
@@ -3787,7 +3795,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:2571cb84feb93940b152d5dcde4662ccc9e1addf636a0cb5810d377baad23bf5",
+      "sha256": "sha256:6d62b234344feb15869b127530f18af49de44bb3a027dbea4ff5f59de48e9ad0",
       "replaces": "copy"
     },
     {
@@ -3803,7 +3811,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:5b0ebe68f81cfd743482310033df6df153d586debbd4f2662d2109b9e1e691d4",
+      "sha256": "sha256:e0a45f173beee1c9e96b99ce4416a4cb6c0f76cbf7da2c40fbe9740167623f52",
       "replaces": "generate"
     },
     {

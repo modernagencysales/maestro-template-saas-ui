@@ -3,7 +3,7 @@
   "private": true,
   "packageManager": "pnpm@10.12.1",
   "scripts": {
-    "check:saas-ui-foundation": "tsx tooling/quality/check-saas-ui-foundation.mts",
+    "check:saas-ui-foundation": "tsx tooling/quality/check-saas-ui-foundation.mts && tsx tooling/saas-ui/screen-catalog.mts --check",
     "check:saas-ui-artifact-safety": "tsx tooling/quality/check-saas-ui-artifact-safety.mts",
     "maestro": "tsx apps/cli/src/index.ts",
     "product-contract:generate": "tsx tooling/acceptance/product-contract.mts generate --source-root .",
