@@ -6537,6 +6537,14 @@
       "sha256": "sha256:fb7f8cd03eeb5a387a0f6915eff74be37af25b715997c5ae4a1e591922058e76"
     },
     {
+      "path": "tooling/saas-ui/screen-catalog.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:992379f6df35bd1902ea2180b2623ed12f7af91eb14f73bf156897ad726ee975",
+      "replaces": "copy"
+    },
+    {
       "path": "tsconfig.base.json",
       "ownership": "generated",
       "action": "generate",

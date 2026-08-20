@@ -17,9 +17,9 @@ const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
 // Immutable release trust anchors: publishing a new sealed release updates these pins.
 const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.5/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
-  "sha256:50fa3075694b71871ce2dd6643bccb27cee69a5a33578da5818ef423a5b7fe9c";
+  "sha256:eb726eefafdf93b550be242ca7aa1ec2b919811a06161120e9c37211540cd46d";
 const BASE_BLUEPRINT_CHECKSUM =
-  "sha256:673dd2289cdea6823092435a99a4054fc53b9c5064c3b68cd74fd2950af5a004";
+  "sha256:fa2ea0aa664252035e36321f4287b5f9b5d862263aff0d9f68d5320f9ea4eedc";
 const BASE_TAG = "maestro-template-v0.2.0-alpha.5";
 const BASE_COMMIT = "bf8198730f21f32a40222367c2c476e001214722";
 

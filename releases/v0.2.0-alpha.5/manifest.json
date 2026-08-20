@@ -104,7 +104,7 @@
   "additionalPaths": [],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:673dd2289cdea6823092435a99a4054fc53b9c5064c3b68cd74fd2950af5a004"
+    "sha256": "sha256:fa2ea0aa664252035e36321f4287b5f9b5d862263aff0d9f68d5320f9ea4eedc"
   },
   "migrationHandoff": {
     "required": false,
@@ -116,7 +116,7 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.5/upgrade/app-map-input.json",
-    "sha256": "sha256:212787080d58fefe833424e441c9724f2032889d05579fa262a69d6aa268e21d",
+    "sha256": "sha256:e5d84cd9ffa869af3c6dee096d8d38a5c5580524b9e3d99fca9f089f06c536f9",
     "projection": {
       "path": "releases/v0.2.0-alpha.5/upgrade/app-map-impact.json",
       "sha256": "sha256:a550c2d70eee980f202d2f6784c3381e51f9ee9e38333868a9bd15aeca3dc9de"
