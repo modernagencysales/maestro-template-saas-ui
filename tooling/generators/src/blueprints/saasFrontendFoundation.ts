@@ -49,6 +49,7 @@ const FRONTEND_SUPPORT_PATHS = [
   "tooling/quality/check-saas-ui-typecheck.mts",
   "tooling/quality/generate-saas-ui-typecheck-baseline.mts",
   "tooling/quality/check-saas-ui-foundation.mts",
+  "tooling/saas-ui/screen-catalog.mts",
   "tooling/quality/src/direct-run.mts",
   "tooling/quality/saas-ui-foundation.ts",
   "tooling/quality/saas-ui-foundation.test.ts",

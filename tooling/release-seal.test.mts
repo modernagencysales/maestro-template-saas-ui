@@ -4,6 +4,8 @@ import {
   buildReviewedAdditionalPaths,
   buildReviewedOwnershipInventory,
   parseReviewedFactoryOnlyExclusions,
+  resolvePriorManifest,
+  selectReleaseInputBytes,
   validateReleaseSourceState,
 } from "./release-seal.mjs";
 
@@ -74,6 +76,44 @@ describe("release candidate readiness", () => {
     ).toThrow("Write sealing requires HEAD to equal the frozen source commit.");
   });
 
+  it("allows a squash-safe seal from an ancestor with only release tooling and candidate changes", () => {
+    expect(() =>
+      validateReleaseSourceState({
+        check: false,
+        sourceCommit,
+        headCommit: "b".repeat(40),
+        sourceIsAncestor: true,
+        worktreeStatus: "",
+        squashSafe: true,
+        releaseRoot: "releases/v0.2.0-alpha.5",
+        changedPaths: [
+          "releases/v0.2.0-alpha.5/manifest.json",
+          "tooling/release-seal.mts",
+          "tooling/release-seal.test.mts",
+          "apps/cli/src/factory/createComposition.ts",
+          "apps/cli/src/factory/createRootIntegration.test.ts",
+          "apps/cli/src/factory/candidateComposition.test.ts",
+          "apps/cli/src/factory/customerCliRuntime.test.ts",
+          "tooling/generators/src/blueprints/saasFrontendFoundation.test.ts",
+          "tooling/generators/src/blueprints/saasFrontendFoundation.ts",
+        ],
+      }),
+    ).not.toThrow();
+
+    expect(() =>
+      validateReleaseSourceState({
+        check: false,
+        sourceCommit,
+        headCommit: "b".repeat(40),
+        sourceIsAncestor: true,
+        worktreeStatus: "",
+        squashSafe: true,
+        releaseRoot: "releases/v0.2.0-alpha.5",
+        changedPaths: ["apps/web/src/main.tsx"],
+      }),
+    ).toThrow("Squash-safe sealing found an unrelated changed path");
+  });
+
   it("allows check mode from a clean descendant of the source", () => {
     expect(() =>
       validateReleaseSourceState({
@@ -114,6 +154,38 @@ describe("release candidate readiness", () => {
 });
 
 describe("release seal factory-only exclusions", () => {
+  it("uses a candidate-owned release input when the frozen source predates it", () => {
+    const candidate = Buffer.from("alpha.5 migration handoff");
+    const source = Buffer.from("existing release handoff");
+
+    expect(
+      selectReleaseInputBytes({
+        path: "releases/v0.2.0-alpha.5/migrations/manifest.json",
+        candidate,
+      }),
+    ).toEqual(candidate);
+    expect(
+      selectReleaseInputBytes({ path: "manifest.json", source, candidate }),
+    ).toEqual(source);
+  });
+
+  it("carries composed upgrade hashes without reading the prior source commit", () => {
+    const prior = resolvePriorManifest("releases/v0.2.0-alpha.4/manifest.json");
+
+    expect(prior.expectedHashes?.[".factory/project.yaml"]).toBe(
+      "sha256:0896a4e957bd83a89ba66530952cfc7caa0bb5682a2355d4a12937322c701771",
+    );
+    expect(
+      prior.paths?.filter(
+        ({ path }) =>
+          path ===
+          "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
+      ),
+    ).toEqual([
+      expect.objectContaining({ ownership: "factory-only", action: "omit" }),
+    ]);
+  });
+
   it("lets an exact reviewed customer path override an inherited factory subtree", () => {
     const path =
       "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json";
@@ -202,9 +274,10 @@ describe("release seal factory-only exclusions", () => {
           action: "copy",
         }),
         expect.objectContaining({
-          path: "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
-          ownership: "template-owned",
-          action: "copy",
+          path: "tooling/release",
+          match: "subtree",
+          ownership: "factory-only",
+          action: "omit",
         }),
         expect.objectContaining({
           path: "tooling/saas-ui",

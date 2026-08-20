@@ -235,9 +235,13 @@ describe("mandatory SaaS UI frontend foundation", () => {
       "check:saas-ui-artifact-safety",
     ]) {
       const command = packageJson.scripts?.[name] ?? "";
-      const executable = /^tsx (\S+)$/u.exec(command)?.[1];
-      expect(executable, name).toBeDefined();
-      expect(paths.has(executable ?? ""), `${name}: ${executable}`).toBe(true);
+      for (const part of command.split(" && ")) {
+        const executable = /^tsx (\S+)(?: .*)?$/u.exec(part)?.[1];
+        expect(executable, `${name}: ${part}`).toBeDefined();
+        expect(paths.has(executable ?? ""), `${name}: ${executable}`).toBe(
+          true,
+        );
+      }
     }
   });
 });
