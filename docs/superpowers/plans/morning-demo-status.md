@@ -1,23 +1,26 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-20T02:47:18-04:00
+Last controller update: 2026-08-20T08:05:20-04:00
 
-| Lane          | State                          | Current evidence                                                                                                                                             | Next gate                                                            | Blocker                                                                                                                                   |
-| ------------- | ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active                         | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                                 | T+2:00 foundation gate at 00:25                                      | none                                                                                                                                      |
-| Template      | evidence-ready                 | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                                         | Live revision/visual receipt                                         | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
-| Social        | merged-source-railway-unproven | Exact `393dd5cb7ee6` is merged to `main`; Worker proof is preserved diagnostic history; source-controlled compatibility successor is held behind Brain `803` | Focused successor validation, then exact Railway Node revision proof | checked-in Railway authority has no accessible GitHub-linked project/revision coordinate; no further Worker build/deploy/smoke allowed    |
-| Owned Funnel  | candidate-accepted-review-demo | Exact `458496d3c467` passed focused route contract/build and stable six-route browser proof; public Astro remains green                                      | Delivery handoff; backend-complete work separately                   | version `3e6b68f9` live at 100%; deterministic fallback only; secrets empty, lifecycle disabled, no live read/mutation claim              |
-| Brain         | runtime-rejected-rolled-back   | Exact protected-main `0913c92a2093` passed verify `799` and deploy `800`; fresh authenticated smoke failed before page creation                              | New exact provider-order fix and deployment epoch                    | missing `ClientScopeFocusProvider`; rollback `30f8f677` restored at 100%; no edit/save proof admitted                                     |
-| Focused tests | complete                       | Social verify, Brain pipelines, and Owned `458496d3` focused/build receipts are sealed; serialized gates are terminal                                        | Return exact-head verdicts                                           | none within the requested focused-test admission scope                                                                                    |
-| Deploy/review | terminal-receipts-sealed       | URL matrix records accepted Social and Owned review/demo deployments, Brain rollback, and green public Astro audit                                           | Brain exact fix; Owned backend-complete work separately              | Social/Owned review URLs accepted; Brain needs a new SHA; Owned live reads/mutations still need dedicated backend/auth authority          |
+| Lane          | State                                       | Current evidence                                                                                                                                                          | Next gate                                                                        | Blocker                                                                                                                                                                                                |
+| ------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Controller    | active                                      | Control branch pushed through `7a2bd0d`; proxy recovered on codex-lb `1.23.0`; all worker panes survived; T+0:30 gate passed                                              | T+2:00 foundation gate at 00:25                                                  | none                                                                                                                                                                                                   |
+| Template      | evidence-ready                              | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                                                      | Live revision/visual receipt                                                     | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values                                                              |
+| Social        | merged-ci-red-hosted-auth-failed            | Successor `b1341cdc` merged as `1fa00df0`; Woodpecker `345` remains red; exactly one later approved real-WorkOS read-only smoke ended `redirect-uri-invalid` before login | Exact WorkOS callback registration requires separate authority; no rerun implied | Railway `882b7d71` is live but not accepted; callback/session false, routes 0/5; Worker and `clean-copy` preserved                                                                                     |
+| Owned Funnel  | candidate-accepted-review-demo              | Exact `458496d3c467` passed focused route contract/build and stable six-route browser proof; public Astro remains green                                                   | Delivery handoff; backend-complete work separately                               | version `3e6b68f9` live at 100%; deterministic fallback only; secrets empty, lifecycle disabled, no live read/mutation claim                                                                           |
+| Brain         | deployed-green-auth-proof-command-ambiguous | Exact protected-main `0ecfcd19f10f` passed focused 64/64, verify `810`, deploy `811`, and public `307`; Worker `20ee5e88` is live at 100%                                 | Explicit admission for one corrected fresh seeded proof                          | Sole Playwright invocation stopped before discovery because `BRAIN_PROOF_STAGING_WORKSPACE_ID` was omitted; no product runtime/mutation/assertion ran; state deleted; safe `30f8f677` is sole rollback |
+| Focused tests | terminal-social-ci-failure-sealed           | Social pipeline `345` exact logs are sealed: verify/A green, B recruitment red, C intelligence red; Brain and Owned receipts preserved                                    | Return terminal exact-head verdicts only                                         | no Social rerun or duplicate is authorized                                                                                                                                                             |
+| Deploy/review | brain-deployed-proof-unresolved             | URL matrix records Brain exact green CI/deploy and the pre-discovery proof ambiguity, plus Social/Owned terminal states                                                   | Corrected Brain seeded proof only with new admission                             | Brain runtime acceptance is unproved; Social Railway remains unaccepted; Owned remains deterministic demo only                                                                                         |
 
 ## Current review URLs
 
 - Template: <https://maestro-template-saas-ui.tim-bb0.workers.dev>
 - UI Lab: <https://maestro-template-saas-ui.tim-bb0.workers.dev/ui-lab>
 - Storybook: <https://saas-ui-pro-storybook-review.tim-bb0.workers.dev>
-- Social: <https://b2b-creator-os.tim-bb0.workers.dev>
+- Social Railway (live stale-race deployment; not accepted):
+  <https://b2b-creator-os-production.up.railway.app>
+- Social diagnostic Worker (preserved fallback):
+  <https://b2b-creator-os.tim-bb0.workers.dev>
 - Owned Funnel public: <https://shop.maestrogtm.com/owned-funnel-builder/>
 - Owned Funnel management: <https://owned-funnel-management.tim-bb0.workers.dev>
 - Brain: <https://staging.maestrogtm.com/brain>
@@ -408,3 +411,97 @@ Last controller update: 2026-08-20T02:47:18-04:00
   project has `source: null`, a CLI caller, and no Git revision, so it is not
   canonical auto-deploy proof. Receipt:
   `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-coordination-host-authority-correction.md`.
+- `2026-08-20T03:40:13-04:00`: Brain exact successor `094819975d9f` had already
+  passed Woodpecker verify `803` and staging deploy `804` as Worker
+  `81ebe51c...`. The one explicitly authorized corrected client-scoped
+  `@seeded-behavior` smoke used non-excluded
+  `Staging fixture 02ceeed320ec90e9dbc2`; initial load and page creation
+  succeeded, navigating to `untitled-b0c635594d44`, then the destination
+  rendered `This workspace view could not be rendered` and logged
+  `useSidebar must be used within a SidebarProvider` twice. No HTTP 4xx/5xx
+  occurred, but title/body edit/save was not reached. The fresh WorkOS state was
+  deleted, the test was not rerun, and no CI/deploy pipeline or product edit was
+  started. The controller-authorized rollback ran exactly once; safe Worker
+  `30f8f677...` is restored at 100% and public `/brain` still returns the exact
+  307 sign-in redirect. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-094819975d9f-seeded-runtime-failure-rollback.md`.
+- `2026-08-20T03:48:09-04:00`: Read-only Brain diagnosis matched the runtime
+  string uniquely to `@notion-kit/ui/sidebar` and reconstructed the empty-to-
+  ready transition: the empty fixture needed no provider, while the created page
+  mounted `BrainWorkspaceContent` -> `BrainPageTree` and failed. The canonical
+  bounded owner is `BrainWorkspaceContent`, which can locally supply the Notion
+  Kit provider while leaving the Saas UI Pro outer shell intact. Existing
+  private-sync tests currently add that provider only in test code, providing
+  the exact behavioral regression seam. No product edit, focused gate, CI,
+  deployment, or smoke ran. Fix-ready handoff:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-094819975d9f-sidebar-provider-fix-ready.md`.
+- `2026-08-20T04:13:28-04:00`: Social Woodpecker PR pipeline `345` terminated
+  failure on exact successor `b1341cdc`. Verify and shard A succeeded. Shard B
+  passed opportunity and records, then recruitment timed out waiting for exact
+  `Creator profile claimed`. Shard C passed proposals, then intelligence timed
+  out waiting for the `Ada Builder` button and later scenarios failed the
+  source-cleanliness/teardown guards. No cancel, retry, duplicate, or rerun ran.
+  Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/social-b1341cdc-woodpecker-345-terminal-failure.md`.
+- `2026-08-20T04:19:35-04:00`: A stale acceleration race was audited. PR 33 had
+  merged exact successor `b1341cdc` as remote `main` `1fa00df0`, and one
+  repository-root Railway deployment `882b7d71` had started at `04:09:01` while
+  pipeline `345` was pending. Railway built `/railway.json` successfully;
+  limited HTTP/auth-boundary probes reached the Node service, but WorkOS
+  rejected the callback and no authenticated five-route/useful-data proof or
+  hosted Cucumber ran. The deployment is live but not accepted. Required GitHub
+  protection is restored; Worker `7e31bdd6` remains at 100%; `clean-copy` still
+  has only original deployment `95f17dbf`. The controller prohibited rollback,
+  redeploy, retry, auth mutation, and continued smoke. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/deploy-review/social-1fa00df-railway-stale-acceleration-incident.md`.
+- `2026-08-20T04:31:50-04:00`: With Woodpecker `345` still recorded red, the
+  controller authorized exactly one separate protected-credential, read-only
+  usability smoke against Railway deployment `882b7d71` / merged `1fa00df0`. The
+  sole run reached `/api/auth/sign-in` (`307`) and WorkOS authorize (`302`),
+  then WorkOS returned `redirect-uri-invalid` (`200`) before rendering the email
+  form. Callback/session were false and the five canonical routes were `0/5`; no
+  mutation, CI, deployment change, promotion, or retry occurred. The fresh
+  temporary auth-state directory was deleted and zero matching directories
+  remained. Worker `7e31bdd6` and `clean-copy` deployment `95f17dbf` remain
+  unchanged. Hosted disposition: not accepted. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/deploy-review/social-1fa00df-railway-hosted-readonly-failure.md`.
+- `2026-08-20T05:05:29-04:00`: Brain exact successor `21d9971856fc` moved the
+  Notion Kit `SidebarProvider` into its canonical ready-workspace boundary and
+  removed the test-only provider. Focused proof passed 2 files/8 tests plus
+  ESLint, Prettier, and web typecheck. Protected `main` and the candidate branch
+  equal the exact SHA. The sole Woodpecker verify `805` and sole staging deploy
+  `806` were terminal success; Convex was `utmost-bear-718` and candidate Worker
+  `c7b8a439-c9b4-431b-b9c8-af81a832032e`. Public `/brain` returned the exact 307
+  sign-in redirect. One fresh exact-client `@seeded-behavior` smoke on
+  `Staging fixture 02ceeed320ec90e9dbc2` proved page creation, title/body save,
+  navigation, reload persistence, and persisted internal linking. It then opened
+  `More`, where `capabilities/brain/exports:export_` threw because
+  `exportMarkdownPagesImpl` ran multiple paginated queries in one Convex
+  function. The app entered its error boundary, so the full scenario is not
+  accepted and was not rerun. Fresh auth state was deleted; the restricted trace
+  was sealed. One rollback restored safe Worker `30f8f677...` at 100%, and
+  post-rollback `/brain` retained the exact 307 redirect. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-21d9971856fc-terminal-runtime-receipt.md`.
+- `2026-08-20T06:08:19-04:00`: Brain exact `744e0d0c2fb8` passed focused export
+  proof, verify `807`, deploy `808`, public redirect, and the persistence
+  portion of one fresh seeded smoke. Convex still rejected the serial second
+  pagination call, so export acceptance failed; state was deleted and safe
+  Worker `30f8f677...` was restored once at 100%. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-744e0d0c2fb8-terminal-runtime-receipt.md`.
+- `2026-08-20T07:05:15-04:00`: Pagination-free exact successor `6aa7271` was
+  admitted linearly and ran sole verify `809`. CI passed 15,520 of 15,521 tests
+  but failed the deterministic resolver call-site authority contract because
+  exports no longer imported the canonical public markdown resolver. No deploy,
+  auth, or smoke followed. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-6aa7271794df-woodpecker-809-failure.md`.
+- `2026-08-20T08:05:20-04:00`: Exact canonical-resolver successor
+  `0ecfcd19f10fa6e5155c689361788abee88a1733` passed focused 64/64, sole verify
+  `810`, and sole deploy `811`. Convex `utmost-bear-718` and Worker
+  `20ee5e88-f66b-4c71-95ac-3544dec776b9` are live at 100%; public `/brain`
+  returns the exact signed-out `307`. One fresh auth capture succeeded, but the
+  sole Playwright command omitted the separately required workspace-ID env and
+  stopped before discovery: zero tests, mutations, runtime evaluations, or
+  export assertions ran. State was deleted and no rerun occurred. This is a
+  controller-command ambiguity, not a runtime rejection; no rollback ran, and
+  `30f8f677...` remains the only authorized rollback. Receipt:
+  `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-0ecfcd19f10f-terminal-controller-ambiguity.md`.

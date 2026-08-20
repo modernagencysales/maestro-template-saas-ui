@@ -82,14 +82,21 @@ controller checks boxes after inspecting the named evidence.
       `/data/projects/morning-demo-20260819/evidence/focused-tests/social-393dd5cb7ee6-verify-pass.md`.
       No fourth Cucumber cycle or duplicate completed check ran.
 - [ ] Canonical Railway managed-Node deployment is proven at an exact merged
-      commit. The live Worker compatibility version is preserved only as
-      diagnostic baseline because `railway.json` and `docs/template/hosting.md`
-      forbid a competing release target.
+      commit. One exact-main deployment `882b7d71...` was created from merged
+      `1fa00df0...` during a stale pending-check acceleration race, but required
+      Woodpecker `345` later failed shards B and C. The running Railway image is
+      therefore explicitly not deployment-accepted. The live Worker
+      compatibility version remains diagnostic fallback only.
 - [ ] All five routes pass HTTP and real-auth browser smoke on the immutable
-      Railway revision. Worker callback/session, Convex membership, useful data,
-      Kanban, and zero-error proof remain valid diagnostic history but do not
-      satisfy the Railway hosting contract. Correction receipt:
-      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-393dd5cb7ee6-coordination-host-authority-correction.md`.
+      Railway revision. Partial stale-race checks proved health, alias
+      redirects, and typed unauthenticated Node routing. Exactly one later
+      controller-approved protected-credential run reached WorkOS, which
+      returned `redirect-uri-invalid` before login; callback/session were false,
+      routes were `0/5`, and fresh auth state was deleted. No mutation or retry
+      ran. Terminal receipts:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/social-b1341cdc-woodpecker-345-terminal-failure.md`
+      and
+      `/data/projects/morning-demo-20260819/evidence/deploy-review/social-1fa00df-railway-hosted-readonly-failure.md`.
 
 ## Phase 4: Owned Funnel
 
@@ -176,6 +183,32 @@ controller checks boxes after inspecting the named evidence.
       creation on `ClientScopeFocusProvider is missing`; no edit/save mutation
       ran and rollback `30f8f677...` was restored at 100%. Terminal receipt:
       `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-0913c92a-terminal-runtime-receipt.md`.
+      Exact successor `094819975d9f` then passed verify `803` and deploy `804`.
+      Its one explicitly authorized corrected client-scoped `@seeded-behavior`
+      smoke used non-excluded `Staging fixture 02ceeed320ec90e9dbc2`; page
+      creation succeeded, but the destination failed with
+      `useSidebar must be     used within a SidebarProvider` before title/body
+      edit/save. The smoke was not rerun, fresh auth state was deleted, and safe
+      rollback `30f8f677...` is again at 100%. Terminal receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-094819975d9f-seeded-runtime-failure-rollback.md`.
+      Exact provider-boundary successor `21d9971856fc` passed focused proof,
+      verify `805`, and deploy `806`. Its one fresh exact-client smoke then
+      passed create, title/body save, navigation, reload persistence, and
+      persisted internal linking. The overall smoke remains unchecked because
+      opening `More` mounted the markdown-export query, which ran multiple
+      paginated queries in one Convex function and entered the workspace error
+      boundary. The test was not rerun, auth state was deleted, and safe
+      rollback `30f8f677...` was restored at 100%. Terminal receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-21d9971856fc-terminal-runtime-receipt.md`.
+      Pagination-free canonical-resolver successor `0ecfcd19f10f` then passed
+      sole verify `810` and deploy `811`; Worker `20ee5e88...` remains at 100%
+      and public `/brain` returns the exact 307 redirect. Its sole fresh-auth
+      Playwright invocation stopped before test discovery because the command
+      omitted separately required `BRAIN_PROOF_STAGING_WORKSPACE_ID`; zero
+      product assertions or mutations ran. State was deleted with no rerun or
+      regeneration. Authenticated persistence/export acceptance therefore
+      remains unchecked pending new controller admission. Receipt:
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-0ecfcd19f10f-terminal-controller-ambiguity.md`.
 
 ## Phase 6: Review and delivery
 
@@ -199,8 +232,10 @@ controller checks boxes after inspecting the named evidence.
       passed, and headless preservation was proved).
 - [ ] T+2:00 foundation compile gate
 - [ ] T+3:30 Brain gate
-- [x] T+5:00 Social gate (accepted late at `2026-08-20T02:16:28-04:00` with
-      exact verify, stable deployment, and five-route real-auth proof).
+- [ ] T+5:00 Social gate. The earlier Worker acceptance was superseded by the
+      Railway hosting-authority correction. Successor `b1341cdc` is merged as
+      `1fa00df0`, but Woodpecker `345` failed B/C and the stale-race Railway
+      deployment is not accepted.
 - [ ] T+7:00 Owned Funnel gate
 - [ ] T+9:00 visual review gate
 - [ ] T+10:30 repair freeze gate
