@@ -89,7 +89,10 @@ controller checks boxes after inspecting the named evidence.
       launch UX contract.
 - [x] Architecture contract says `Pro shell + Notion-style editor` in
       `83ff67473e7ebc374654e2b8aef5bb246e4ec690`.
-- [ ] Focused Brain/UI checks and web build pass.
+- [x] Focused Brain/UI checks and exact-head web build pass for
+      `83ff67473e7ebc374654e2b8aef5bb246e4ec690`; serialized typecheck/build
+      exits are `0`/`0`, with receipt at
+      `/data/projects/morning-demo-20260819/evidence/focused-tests/brain-83ff67473e7e-receipt.md`.
 - [ ] Candidate is deployed to staging from an exact commit.
 - [ ] Public auth redirect smoke passes.
 - [ ] Authenticated Brain load/edit/save smoke passes.
