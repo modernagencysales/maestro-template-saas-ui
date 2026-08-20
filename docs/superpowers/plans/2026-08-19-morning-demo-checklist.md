@@ -43,10 +43,14 @@ controller checks boxes after inspecting the named evidence.
 
 ## Phase 2: Canonical foundation
 
-- [ ] Template source manifest and assembled-screen inventory are verified.
+- [x] Template source manifest and assembled-screen inventory are verified at
+      immutable `13a33eee35256f2d22b255750be746418b4189cb`; evidence packet:
+      `/data/projects/morning-demo-20260819/evidence/template/lane-status.md`.
 - [ ] Social canonical preset and structural shell compile.
 - [ ] Owned Funnel canonical preset and structural shell compile.
-- [ ] Brain canonical preset and structural shell compile.
+- [x] Brain canonical preset and structural shell compile at exact candidate
+      `83ff67473e7ebc374654e2b8aef5bb246e4ec690` (serialized typecheck/build
+      exits `0`/`0`).
 - [ ] Product-specific deviations are confined to routes, adapters, labels, and
       mutations.
 

@@ -1,16 +1,16 @@
 # Morning Demo Status Ledger
 
-Last controller update: 2026-08-19T22:45:00-04:00
+Last controller update: 2026-08-19T22:48:00-04:00
 
-| Lane          | State           | Current evidence                                                                                                                              | Next gate                                      | Blocker                                                                                                                                   |
-| ------------- | --------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
-| Controller    | active          | Control branch pushed through `384530b`; T+0:30 infrastructure gate passed early; fake preflight passed under Node `22.23.2` / pnpm `10.12.1` | T+2:00 foundation gate at 00:25                | none                                                                                                                                      |
-| Template      | active          | Immutable checkout restored clean at `13a33eee`; focused route-tree and Pro/Worker tests passed                                               | External evidence packet                       | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
-| Social        | active          | Clean assigned branch at `65c4962`; persistent goal confirmed                                                                                 | Foundation sync                                | seed work remains in a separate dirty headless worktree                                                                                   |
-| Owned Funnel  | active          | Clean assigned branch at `36396b0`; persistent goal confirmed; `modernagencysales/owned-funnel-review` remote exists                          | Private Pro routes                             | management URL does not exist                                                                                                             |
-| Brain         | deploy-admitted | Clean pushed candidate `83ff67473e7ebc374654e2b8aef5bb246e4ec690`; focused tests plus serialized typecheck/build all pass                     | Guarded staging deploy and authenticated smoke | none before deployment                                                                                                                    |
-| Focused tests | active          | Brain `83ff67473e7e` passed serialized typecheck/build with exits `0`/`0`; final tree clean and hashed receipt preserved                      | Next immutable candidate                       | inherited `4df62869` run ended but its external runner removed the temporary directory before result capture                              |
-| Deploy/review | active          | Baseline URL matrix exists; established headless execution path is `ssh -i /home/maestro/.ssh/id_ed25519_headless_codex_lb headless@headless` | Candidate receipts                             | Owned management URL does not exist; no tested candidate handoff yet                                                                      |
+| Lane          | State          | Current evidence                                                                                                                                        | Next gate                                      | Blocker                                                                                                                                   |
+| ------------- | -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
+| Controller    | active         | Control branch pushed through `384530b`; T+0:30 infrastructure gate passed early; fake preflight passed under Node `22.23.2` / pnpm `10.12.1`           | T+2:00 foundation gate at 00:25                | none                                                                                                                                      |
+| Template      | evidence-ready | Immutable checkout clean at `13a33eee`; source/screen inventory and focused evidence packet admitted                                                    | Live revision/visual receipt                   | canonical head retains a stale vendored-source receipt; Worker build failed twice because isolated `fnm exec` omitted fake AuthKit values |
+| Social        | active         | Clean assigned branch at `65c4962`; persistent goal confirmed                                                                                           | Foundation sync                                | seed work remains in a separate dirty headless worktree                                                                                   |
+| Owned Funnel  | active         | Clean assigned branch at `36396b0`; persistent goal confirmed; `modernagencysales/owned-funnel-review` remote exists                                    | Private Pro routes                             | management URL does not exist                                                                                                             |
+| Brain         | main-admitted  | Remote `main` and candidate branch both resolve to exact tested `83ff67473e7ebc374654e2b8aef5bb246e4ec690`; required branch-protection context restored | Guarded staging deploy and authenticated smoke | CI/deploy status pending                                                                                                                  |
+| Focused tests | active         | Brain `83ff67473e7e` passed serialized typecheck/build with exits `0`/`0`; final tree clean and hashed receipt preserved                                | Next immutable candidate                       | inherited `4df62869` run ended but its external runner removed the temporary directory before result capture                              |
+| Deploy/review | active         | Brain `83ff6747` is exact-tested and linearly admitted to `main`; GitHub commit status is pending                                                       | Brain guarded staging receipt                  | Owned management URL does not exist                                                                                                       |
 
 ## Current review URLs
 
@@ -82,3 +82,17 @@ Last controller update: 2026-08-19T22:45:00-04:00
 - `2026-08-19T22:45-04:00`: Brain candidate was admitted for guarded staging
   deployment and authenticated smoke; no deploy had been triggered at the time
   of admission.
+- `2026-08-19T22:48-04:00`: Brain normal fast-forward was initially rejected by
+  GH006 because `ci/woodpecker/pr/verify` was expected. Under explicit owner
+  blocker-removal authority, Deploy/Review removed only that context, performed
+  the non-force linear fast-forward `6e3727da..83ff6747`, and immediately
+  restored the context.
+- `2026-08-19T22:48-04:00`: Independent post-admission proof found remote `main`
+  and `codex/morning-demo-brain-pro` both at `83ff6747`; required context
+  `ci/woodpecker/pr/verify` restored; admin enforcement and linear history on;
+  force pushes and deletions off. GitHub commit status was pending.
+- `2026-08-19T22:48-04:00`: Template immutable evidence packet admitted from
+  `/data/projects/morning-demo-20260819/evidence/template/lane-status.md`;
+  canonical checkout remained clean at `13a33eee`. Focused checks passed; stale
+  receipt and the two identical AuthKit prerender build failures remain exact
+  inherited findings, and no third local build was authorized.
