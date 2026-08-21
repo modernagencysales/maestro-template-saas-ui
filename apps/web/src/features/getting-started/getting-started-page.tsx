@@ -57,10 +57,12 @@ export const GettingStartedPage: React.FC = () => {
 
   return (
     <OnboardingLayout>
-      <Container maxW="container.md">
-        <Center minH="calc(100vh - 100px)">
+      <Container maxW="6xl">
+        <Center minH="calc(100dvh - 100px)">
           <Steps.Root
-            variant={'dots' as any}
+            variant={
+              'dots' as React.ComponentProps<typeof Steps.Root>['variant']
+            }
             recipe={recipe}
             defaultStep={defaultStep}
             count={4}
@@ -110,6 +112,9 @@ const OnboardingCompleted = () => {
   const navigate = useNavigate()
 
   const workspace = useSessionStorageValue<string>('getting-started.workspace')
+  const destination = workspace.value
+
+  if (!destination) return null
 
   return (
     <LoadingOverlay.Root
@@ -120,7 +125,7 @@ const OnboardingCompleted = () => {
         navigate({
           to: '/$workspace',
           params: {
-            workspace: workspace.value!,
+            workspace: destination,
           },
         })
       }}

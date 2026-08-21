@@ -1,18 +1,10 @@
-import { createFileRoute } from '@tanstack/react-router'
-
-import { ReportsPage } from '#features/reports/reports-page.tsx'
+import { createFileRoute, redirect } from '@tanstack/react-router'
 
 export const Route = createFileRoute('/_app/$workspace/_dashboard/')({
-  head: () => ({
-    meta: [
-      {
-        title: 'Reports',
-      },
-    ],
-  }),
-  component: RouteComponent,
+  beforeLoad: ({ params }) => {
+    throw redirect({
+      to: '/$workspace/updates',
+      params: { workspace: params.workspace },
+    })
+  },
 })
-
-function RouteComponent() {
-  return <ReportsPage />
-}

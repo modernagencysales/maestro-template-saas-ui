@@ -1,6 +1,6 @@
+import { cloudflare } from "@cloudflare/vite-plugin";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
 import react from "@vitejs/plugin-react";
-import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import { fileURLToPath, URL } from "node:url";
 
@@ -16,6 +16,7 @@ export default defineConfig(({ mode }) => ({
     },
   },
   plugins: [
+    cloudflare({ viteEnvironment: { name: "ssr" } }),
     tanstackStart({
       router: {
         enableRouteGeneration:
@@ -27,7 +28,6 @@ export default defineConfig(({ mode }) => ({
       },
     }),
     react(),
-    nitro(),
   ],
   server: {
     port: 3000,

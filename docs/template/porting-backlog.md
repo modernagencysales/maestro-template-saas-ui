@@ -763,7 +763,13 @@ Convex component wiring (M).
      safety check, and empty deviation ledger enforce one frontend authority.
 131. **Design-system / component gallery screen** — MED — shipped as the direct
      `/$workspace/showcase` Pro surface; it imports installed blocks without a
-     second gallery abstraction.
+     second gallery abstraction. 131a. **Active full Pro demo and assembled
+     Storybook UI Lab** — HIGH — in progress. Mechanically transplant the pinned
+     `saas-ui-pro/apps/demo` shell and complete screens into the existing
+     TanStack `_app` route tree, then expose Writer, Kanban, DataGrid, filters,
+     SplitPage, sidebar, and stacked-navbar compositions under `/ui-lab`.
+     Routing, WorkOS, and Convex/Confect differences stay behind adapters;
+     visible composition remains source-faithful.
 132. **Saas UI settings surface** — MED — shipped. The literal Starter settings
      route tree and components remain authoritative; durable behavior enters
      only through backend adapters.

@@ -6,7 +6,10 @@ coverage/
 .env
 .env.*
 !.env.example
+.dev.vars
+.dev.vars.*
 apps/*/dist/
+apps/*/.output/
 packages/*/dist/
 tooling/*/dist/
 test-results/

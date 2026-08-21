@@ -1,30 +1,24 @@
 'use client'
 
-import { Chart, useChart } from '@chakra-ui/charts'
 import {
   ButtonGroup,
   Card,
   Grid,
   HStack,
   Heading,
-  IconButton,
   List,
-  Page,
-  Stat,
   Text,
-} from '@saas-ui/react'
-import { SegmentedControl, Sidebar, useSidebar } from '@saas-ui/react'
-import { LuPanelLeftOpen } from 'react-icons/lu'
+} from '@chakra-ui/react'
+import { BarChart, PieChart } from '@saas-ui/charts'
 import {
-  Bar,
-  BarChart,
-  CartesianGrid,
-  Cell,
-  Pie,
-  PieChart,
-  XAxis,
-  YAxis,
-} from 'recharts'
+  IconButton,
+  Page,
+  SegmentedControl,
+  Sidebar,
+  Stat,
+  useSidebar,
+} from '@saas-ui/react'
+import { LuPanelLeftOpen } from 'react-icons/lu'
 
 export function ReportsPage() {
   const { open } = useSidebar()
@@ -53,7 +47,7 @@ export function ReportsPage() {
         }
       />
       <Page.Body>
-        <Grid templateColumns="repeat(3, 1fr)" gap="4">
+        <Grid templateColumns={{ base: '1fr', lg: 'repeat(3, 1fr)' }} gap="4">
           <Card.Root gridColumn="span 2">
             <Card.Header gap="0" pb="2">
               <Heading as="h3" size="sm" fontWeight="medium" color="fg.muted">
@@ -154,78 +148,48 @@ export function ReportsPage() {
 }
 
 function RevenueChart() {
-  const chart = useChart({
-    data: [
-      { date: 'Jan', Revenue: 12500 },
-      { date: 'Feb', Revenue: 15800 },
-      { date: 'Mar', Revenue: 14200 },
-      { date: 'Apr', Revenue: 16900 },
-      { date: 'May', Revenue: 13600 },
-      { date: 'Jun', Revenue: 11200 },
-      { date: 'Jul', Revenue: 17500 },
-      { date: 'Aug', Revenue: 19200 },
-      { date: 'Sep', Revenue: 18100 },
-      { date: 'Oct', Revenue: 21500 },
-    ],
-    series: [{ name: 'Revenue', color: 'indigo.solid' }],
-  })
-
   return (
-    <Chart.Root chart={chart} height={240}>
-      <BarChart data={chart.data} barSize={20}>
-        <CartesianGrid stroke={chart.color('border.subtle')} vertical={false} />
-        <XAxis axisLine={false} tickLine={false} dataKey={chart.key('date')} />
-        <YAxis
-          axisLine={false}
-          tickLine={false}
-          domain={[0, 100]}
-          tickFormatter={(value) =>
-            Intl.NumberFormat('en-US', {
-              style: 'currency',
-              currency: 'USD',
-            }).format(value)
-          }
-        />
-        {chart.series.map((item) => (
-          <Bar
-            key={item.name}
-            isAnimationActive={false}
-            dataKey={chart.key(item.name)}
-            fill={chart.color(item.color)}
-            radius={2}
-          />
-        ))}
-      </BarChart>
-    </Chart.Root>
+    <BarChart
+      categories={['Revenue']}
+      valueFormatter={(value) =>
+        Intl.NumberFormat('en-US', {
+          style: 'currency',
+          currency: 'USD',
+        }).format(value)
+      }
+      yAxisWidth={100}
+      showLegend={false}
+      barSize={22}
+      data={[
+        { date: 'Jan', Revenue: 12500 },
+        { date: 'Feb', Revenue: 15800 },
+        { date: 'Mar', Revenue: 14200 },
+        { date: 'Apr', Revenue: 16900 },
+        { date: 'May', Revenue: 13600 },
+        { date: 'Jun', Revenue: 11200 },
+        { date: 'Jul', Revenue: 17500 },
+        { date: 'Aug', Revenue: 19200 },
+        { date: 'Sep', Revenue: 18100 },
+        { date: 'Oct', Revenue: 21500 },
+      ]}
+      height={240}
+    />
   )
 }
 
 function ChurnRateByTierChart() {
-  const chart = useChart({
-    data: [
-      { name: 'Starter', value: 70, color: 'indigo.solid' },
-      { name: 'Pro', value: 40, color: 'pink.solid' },
-      { name: 'Enterprise', value: 25, color: 'neutral.solid' },
-    ],
-  })
-
   return (
-    <Chart.Root chart={chart} boxSize="100px">
-      <PieChart>
-        <Pie
-          dataKey={chart.key('value')}
-          data={chart.data}
-          innerRadius={35}
-          outerRadius={50}
-          stroke="none"
-          paddingAngle={2}
-          isAnimationActive={false}
-        >
-          {chart.data.map((item) => (
-            <Cell key={item.name} fill={chart.color(item.color)} />
-          ))}
-        </Pie>
-      </PieChart>
-    </Chart.Root>
+    <PieChart
+      category="tier"
+      categoryColors={['indigo', 'pink', 'fg']}
+      data={[
+        { tier: 'Starter', value: 7 },
+        { tier: 'Pro', value: 4 },
+        { tier: 'Enterprise', value: 2.5 },
+      ]}
+      valueFormatter={(value) => `${value}%`}
+      width={100}
+      height={100}
+    />
   )
 }

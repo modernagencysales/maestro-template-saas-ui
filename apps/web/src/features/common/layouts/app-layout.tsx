@@ -1,8 +1,6 @@
 'use client'
 
-import { AppShell, AppShellProps, Sidebar } from '@saas-ui/react'
-
-import { PaymentOverdueBanner } from '#features/billing/components/payment-overdue-banner'
+import { AppShell, AppShellProps } from '@saas-ui/react'
 
 export interface AppLayoutProps extends AppShellProps {}
 
@@ -15,19 +13,8 @@ export const AppLayout: React.FC<AppLayoutProps> = ({
   ...rest
 }) => {
   return (
-    <Sidebar.Provider variant="inset">
-      <Sidebar.FlyoutTrigger />
-
-      <AppShell
-        sidebar={sidebar}
-        header={<PaymentOverdueBanner />}
-        bg="sidebar.bg"
-        {...rest}
-      >
-        <Sidebar.Inset>{children}</Sidebar.Inset>
-      </AppShell>
-
-      <Sidebar.Backdrop />
-    </Sidebar.Provider>
+    <AppShell h="$100vh" sidebar={sidebar} {...rest}>
+      {children}
+    </AppShell>
   )
 }
