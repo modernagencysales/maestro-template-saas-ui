@@ -1,0 +1,11 @@
+{
+  "product": "Maestro Brain",
+  "canonicalBranch": "product/maestro-brain",
+  "defaultRoute": "/clients",
+  "host": "127.0.0.1",
+  "port": 5199,
+  "mode": "fake",
+  "backend": "not configured",
+  "requiredText": ["Clients", "Agency Brain", "Connections", "Settings"],
+  "forbiddenText": ["Pro surfaces", "Showcase", "Kanban"]
+}

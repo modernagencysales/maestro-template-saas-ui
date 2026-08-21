@@ -13,6 +13,8 @@
     "test:workflow": "pnpm --dir tooling/workflow test",
     "test:pr-backlog": "pnpm --dir tooling/pr-backlog test",
     "test:stack": "pnpm --dir tooling/stack test",
+    "demo:brain": "tsx scripts/demo-brain.mts",
+    "demo:brain:contract": "vitest run scripts/demo-brain.test.mts apps/web/src/demo-identity.test.ts --coverage.enabled=false",
     "brain:factory:materialize": "tsx tooling/brain-factory/src/materialize.mts",
     "brain:factory:check": "tsx tooling/brain-factory/src/check.mts",
     "brain:factory:adopt-evidence": "tsx tooling/brain-factory/src/adopt-lane-evidence.mts",

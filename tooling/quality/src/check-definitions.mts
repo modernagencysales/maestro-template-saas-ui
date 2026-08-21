@@ -16,10 +16,20 @@ export const checkDescriptors = {
           "pnpm check:workflow-graph-boundary",
           "taste",
           "contract-review",
+          "maestro-brain-demo",
           "staging-deploy",
           "production-promote.sh",
         ],
         message: "Buildkite pipeline must include deterministic and AI gates",
+      },
+      {
+        file: ".buildkite/scripts/demo-brain.sh",
+        includes: [
+          "pnpm demo:brain:contract",
+          "pnpm demo:brain -- --verify-only --no-open",
+        ],
+        message:
+          "canonical Maestro Brain branch must prove product identity in a browser",
       },
       {
         file: ".buildkite/scripts/ci-self-protection.sh",
@@ -96,6 +106,8 @@ export const checkDescriptors = {
           "contract-review",
           "taste:eval",
           "test:mutation",
+          "demo:brain",
+          "demo:brain:contract",
         ],
         message: "package scripts must expose required quality gates",
       },

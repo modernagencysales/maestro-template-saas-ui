@@ -16,7 +16,10 @@ export class WebEnvConfigError extends Error {
   }
 }
 
-const fallbackConvexUrl = "https://example-template.convex.cloud";
+// Convex requires a syntactically valid deployment-shaped hostname even when
+// fake mode never claims a live backend. `convexConfigured` remains false, so
+// product surfaces must describe this as an unconfigured backend.
+const fallbackConvexUrl = "https://calm-finch-123.convex.cloud";
 
 export type ResolvedWebEnv = {
   readonly env: WebEnv;

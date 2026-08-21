@@ -76,6 +76,14 @@ steps:
     agents:
       queue: "linux-medium"
 
+  - label: ":brain: canonical product demo"
+    key: "maestro-brain-demo"
+    if: build.branch == "product/maestro-brain"
+    depends_on: "phase-1"
+    command: ".buildkite/scripts/demo-brain.sh"
+    agents:
+      queue: "linux-medium"
+
   - label: ":test_tube: mutation"
     key: "mutation"
     if: build.source == "schedule" || build.env("RUN_MUTATION") == "true"

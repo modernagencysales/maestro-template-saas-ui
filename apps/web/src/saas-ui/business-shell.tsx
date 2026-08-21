@@ -25,6 +25,7 @@ import {
   type TemplateRouteKey,
 } from "../navigation/workspace";
 import { isReferenceRoutesEnabled } from "../env";
+import { demoIdentity } from "../demo-identity";
 import { DataLifecycleSurface } from "../features/data-lifecycle/data-lifecycle-surface";
 import { LiveWorkflowRunsPanel } from "../features/workflows/live-runs-panel";
 import {
@@ -800,25 +801,35 @@ function GlobalAskSearchButton({
 
 function BrandMark() {
   return (
-    <HStack gap="3">
-      <Flex
-        align="center"
-        bg="black"
-        borderRadius="md"
-        color="white"
-        h="9"
-        justify="center"
-        w="9"
+    <Stack gap="1.5">
+      <HStack gap="3">
+        <Flex
+          align="center"
+          bg="black"
+          borderRadius="md"
+          color="white"
+          h="9"
+          justify="center"
+          w="9"
+        >
+          <Icon as={Activity} boxSize="5" />
+        </Flex>
+        <Box>
+          <Text fontWeight="bold">{demoIdentity.product}</Text>
+          <Text color="gray.500" fontSize="xs">
+            {demoIdentity.mode} · backend {demoIdentity.backend}
+          </Text>
+        </Box>
+      </HStack>
+      <Text
+        color="gray.500"
+        data-testid="demo-build-identity"
+        fontFamily="mono"
+        fontSize="xs"
       >
-        <Icon as={Activity} boxSize="5" />
-      </Flex>
-      <Box>
-        <Text fontWeight="bold">Maestro</Text>
-        <Text color="gray.500" fontSize="xs">
-          Business app
-        </Text>
-      </Box>
-    </HStack>
+        {demoIdentity.ref} · {demoIdentity.commit}
+      </Text>
+    </Stack>
   );
 }
 
