@@ -5,6 +5,18 @@ Treat it as product infrastructure: preserve the generic framework, avoid
 project-specific business logic, and keep the repo easy for future agents to
 inspect and extend.
 
+## Template And Product Branches
+
+- `main` is the reusable template. Its generic reference screens are deliberate.
+- `product/maestro-brain` is the canonical integrated Maestro Brain product
+  line.
+- Temporary `codex/*` branches are integration inputs, never demo authority.
+- For any request to open, demo, inspect, or change the Maestro Brain product,
+  first switch to a clean `product/maestro-brain` worktree and follow `DEMO.md`.
+- Never claim that the product UI is running from a generic `main` checkout. Use
+  `pnpm demo:brain`; its branch, commit, visible-screen, browser-error, and port
+  checks are the executable authority.
+
 ## Layer Law
 
 ```text
