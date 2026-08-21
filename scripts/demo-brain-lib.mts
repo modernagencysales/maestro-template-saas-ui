@@ -19,6 +19,7 @@ export const parseDemoArgs = (args: readonly string[]): DemoArgs => {
 
   for (let index = 0; index < args.length; index += 1) {
     const argument = args[index];
+    if (argument === "--") continue;
     if (argument === "--no-open") {
       openBrowser = false;
       continue;

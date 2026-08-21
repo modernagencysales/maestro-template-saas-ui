@@ -46,7 +46,7 @@ describe("Maestro Brain demo guard", () => {
       verifyOnly: false,
     });
     expect(
-      parseDemoArgs(["--no-open", "--verify-only", "--port", "5201"]),
+      parseDemoArgs(["--", "--no-open", "--verify-only", "--port", "5201"]),
     ).toEqual({
       host: "127.0.0.1",
       port: 5201,
