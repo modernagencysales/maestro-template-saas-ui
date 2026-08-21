@@ -108,7 +108,8 @@ if (build.status !== 0) {
 }
 
 const clientRoot = join(repositoryRoot, "apps/web/dist/client");
-const server = createStaticServer(clientRoot);
+const serverEntry = join(repositoryRoot, "apps/web/dist/server/server.js");
+const server = await createDemoServer(clientRoot, serverEntry);
 await new Promise<void>((resolveListen, rejectListen) => {
   server.once("error", rejectListen);
   server.listen(args.port, args.host, resolveListen);
@@ -193,27 +194,66 @@ try {
   throw error;
 }
 
-function createStaticServer(root: string): Server {
-  return createServer((request, response) => {
-    const rawPath = new URL(request.url ?? "/", "http://demo.local").pathname;
-    const decodedPath = decodeURIComponent(rawPath);
-    const relativePath = normalize(decodedPath).replace(/^[/\\]+/, "");
-    let target = join(root, relativePath || "index.html");
-    if (!target.startsWith(root)) {
-      response.writeHead(400).end("Invalid path");
-      return;
+async function createDemoServer(
+  root: string,
+  serverEntry: string,
+): Promise<Server> {
+  const startServer = (await import(serverEntry)) as {
+    readonly default: {
+      readonly fetch: (request: Request) => Promise<Response>;
+    };
+  };
+
+  return createServer(async (request, response) => {
+    try {
+      const rawPath = new URL(request.url ?? "/", "http://demo.local").pathname;
+      const decodedPath = decodeURIComponent(rawPath);
+      const relativePath = normalize(decodedPath).replace(/^[/\\]+/, "");
+      const target = join(root, relativePath);
+      if (!target.startsWith(root)) {
+        response.writeHead(400).end("Invalid path");
+        return;
+      }
+      if (
+        relativePath &&
+        existsSync(target) &&
+        !statSync(target).isDirectory()
+      ) {
+        response.setHeader("Content-Type", contentTypeFor(target));
+        response.setHeader("Cache-Control", "no-store");
+        response.writeHead(200);
+        if (request.method === "HEAD") {
+          response.end();
+          return;
+        }
+        createReadStream(target).pipe(response);
+        return;
+      }
+
+      const headers = new Headers();
+      for (const [name, value] of Object.entries(request.headers)) {
+        if (Array.isArray(value)) {
+          for (const item of value) headers.append(name, item);
+        } else if (value !== undefined) {
+          headers.set(name, value);
+        }
+      }
+      const appResponse = await startServer.default.fetch(
+        new Request(
+          `http://${request.headers.host ?? `${manifest.host}:${manifest.port}`}${request.url ?? "/"}`,
+          { method: request.method, headers },
+        ),
+      );
+      for (const [name, value] of appResponse.headers) {
+        response.setHeader(name, value);
+      }
+      response.setHeader("Cache-Control", "no-store");
+      response.writeHead(appResponse.status);
+      response.end(Buffer.from(await appResponse.arrayBuffer()));
+    } catch (error) {
+      response.writeHead(500, { "Content-Type": "text/plain; charset=utf-8" });
+      response.end(error instanceof Error ? error.stack : String(error));
     }
-    if (!existsSync(target) || statSync(target).isDirectory()) {
-      target = join(root, "index.html");
-    }
-    response.setHeader("Content-Type", contentTypeFor(target));
-    response.setHeader("Cache-Control", "no-store");
-    response.writeHead(200);
-    if (request.method === "HEAD") {
-      response.end();
-      return;
-    }
-    createReadStream(target).pipe(response);
   });
 }
 
