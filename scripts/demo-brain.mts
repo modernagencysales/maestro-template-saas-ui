@@ -136,7 +136,9 @@ try {
     await page.getByRole("navigation", { name: "Primary" }).waitFor();
     const pageText = await page.locator("body").innerText();
     assertDemoPageText(pageText, manifest);
-    const identity = page.getByTestId("demo-build-identity");
+    const identity = page
+      .getByRole("complementary")
+      .getByTestId("demo-build-identity");
     await identity.waitFor();
     const identityText = await identity.innerText();
     if (
