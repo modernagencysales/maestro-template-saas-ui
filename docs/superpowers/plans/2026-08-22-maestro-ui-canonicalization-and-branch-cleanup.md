@@ -180,6 +180,19 @@ These are inventory facts, not deletion approval. In particular,
 `product/maestro-brain` stays available until the generated target, launcher
 cutover, recovery tag, and explicit cleanup receipt are all proven.
 
+## Compatibility Experiment At Start
+
+The current graph produced 234 raw `error TS` lines from the real web
+`tsc --noEmit` command. In an isolated disposable worktree, aligning the obvious
+pinned Pro versions—Chakra 3.28.1, Pro React next.5, Saas UI React next.48,
+chakra-preset next.9—and deduplicating TipTap at 3.30.1 still produced 227.
+
+That experiment was discarded. It proves WP-UI-01 is not a lockfile-only
+upgrade: registry materialization, package-export equivalence, upstream source
+closure, and application adapter types must be repaired together. No candidate
+matrix becomes authoritative until it reaches zero diagnostics and passes the
+runtime/visual gates.
+
 ## Release Definition Of Done
 
 - Real TypeScript diagnostics are zero.
