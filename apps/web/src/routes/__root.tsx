@@ -10,7 +10,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/react-router-devtools";
 import { AuthKitProvider } from "@workos/authkit-tanstack-react-start/client";
-import { ConvexProviderWithAuth } from "convex/react";
+import { ConvexProvider, ConvexProviderWithAuth } from "convex/react";
 import { I18nProvider } from "@workspace/i18n";
 import { ModalsProvider } from "@workspace/ui/modals";
 
@@ -20,6 +20,7 @@ import { Provider } from "../provider.tsx";
 import { loadInitialAuthForConvex } from "#lib/auth/workos-auth-loader";
 import { useAuthFromAuthKit } from "#lib/auth/workos-auth";
 import type { CompatibilityApi } from "#lib/trpc/react";
+import { isFixtureAuthRuntime } from "#lib/auth/route-auth";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -28,7 +29,9 @@ export const Route = createRootRouteWithContext<{
   convexQueryClient: import("@convex-dev/react-query").ConvexQueryClient;
 }>()({
   beforeLoad: async ({ context }) => ({
-    auth: await loadInitialAuthForConvex(context.convexClient),
+    auth: isFixtureAuthRuntime()
+      ? { user: { id: "fixture-runtime" } }
+      : await loadInitialAuthForConvex(context.convexClient),
   }),
   loader: ({ context }) => ({ auth: context.auth }),
   head: () => ({
@@ -65,21 +68,7 @@ function BaseRootDocument(props: { children: React.ReactNode }) {
         <HeadContent />
       </head>
       <body>
-        <AuthKitProvider initialAuth={Route.useLoaderData().auth}>
-          <ConvexProviderWithAuth
-            client={Route.useRouteContext().convexClient}
-            useAuth={useAuthFromAuthKit}
-          >
-            <Provider>
-              <I18nProvider locale="en" messages={{}}>
-                <ModalsProvider>{props.children}</ModalsProvider>
-              </I18nProvider>
-
-              <ReactQueryDevtools buttonPosition="bottom-right" />
-              <TanStackRouterDevtools position="bottom-right" />
-            </Provider>
-          </ConvexProviderWithAuth>
-        </AuthKitProvider>
+        <RuntimeProviders>{props.children}</RuntimeProviders>
 
         <div id="app-loader">
           <img src="/img/logo-icon.svg" alt="logo" width="24" height="24" />
@@ -117,5 +106,29 @@ function BaseRootDocument(props: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
+  );
+}
+
+function RuntimeProviders(props: { children: React.ReactNode }) {
+  const client = Route.useRouteContext().convexClient;
+  const application = (
+    <Provider>
+      <I18nProvider locale="en" messages={{}}>
+        <ModalsProvider>{props.children}</ModalsProvider>
+      </I18nProvider>
+
+      <ReactQueryDevtools buttonPosition="bottom-right" />
+      <TanStackRouterDevtools position="bottom-right" />
+    </Provider>
+  );
+  if (isFixtureAuthRuntime()) {
+    return <ConvexProvider client={client}>{application}</ConvexProvider>;
+  }
+  return (
+    <AuthKitProvider initialAuth={Route.useLoaderData().auth}>
+      <ConvexProviderWithAuth client={client} useAuth={useAuthFromAuthKit}>
+        {application}
+      </ConvexProviderWithAuth>
+    </AuthKitProvider>
   );
 }

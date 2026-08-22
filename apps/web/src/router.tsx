@@ -4,14 +4,18 @@ import { setupRouterSsrQueryIntegration } from "@tanstack/react-router-ssr-query
 
 import { getQueryClient } from "#lib/react-query";
 import { createCompatibilityApi } from "#lib/trpc/react";
+import { isFixtureAuthRuntime } from "#lib/auth/route-auth";
+import { resolveRuntimeConvex } from "#lib/convex/runtime-convex";
 
 import { routeTree } from "./routeTree.gen";
 
 export function getRouter() {
-  const convexQueryClient = new ConvexQueryClient(
-    (import.meta as ImportMeta & { env: { VITE_CONVEX_URL: string } }).env
+  const runtime = resolveRuntimeConvex({
+    fixture: isFixtureAuthRuntime(),
+    url: (import.meta as ImportMeta & { env: { VITE_CONVEX_URL?: string } }).env
       .VITE_CONVEX_URL,
-  );
+  });
+  const convexQueryClient = new ConvexQueryClient(runtime.url);
   const queryClient = getQueryClient({
     defaultOptions: {
       queries: {
@@ -20,7 +24,7 @@ export function getRouter() {
       },
     },
   });
-  convexQueryClient.connect(queryClient);
+  if (runtime.connect) convexQueryClient.connect(queryClient);
   const router = createTanstackRouter({
     routeTree,
     context: {

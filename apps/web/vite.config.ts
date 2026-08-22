@@ -4,6 +4,14 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import { fileURLToPath, URL } from "node:url";
 
+import {
+  assertProductionAuthConfiguration,
+  resolveWebAuthMode,
+} from "./src/lib/auth/runtime-auth";
+
+process.env.VITE_MAESTRO_AUTH_MODE = resolveWebAuthMode(process.env);
+assertProductionAuthConfiguration(process.env);
+
 export default defineConfig(({ mode }) => ({
   build: { sourcemap: false },
   esbuild: { drop: ["console"] },

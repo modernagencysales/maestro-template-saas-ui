@@ -49,6 +49,17 @@ describe("protected route auth", () => {
     ).toEqual({ auth: { user: { id: "contracts-runtime" } } });
   });
 
+  it("admits an explicitly selected fixture-auth review runtime", () => {
+    vi.stubEnv("VITE_MAESTRO_AUTH_MODE", "fixture");
+
+    expect(
+      requireAuthenticatedRoute({
+        auth: { user: null },
+        location: { pathname: "/review/records", searchStr: "" },
+      }),
+    ).toEqual({ auth: { user: { id: "fixture-runtime" } } });
+  });
+
   it("never enables the contracts bypass outside development", () => {
     vi.stubEnv("DEV", false);
     vi.stubEnv("VITE_MAESTRO_CONTRACT_MODE", "1");

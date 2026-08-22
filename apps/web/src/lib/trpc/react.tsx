@@ -10,7 +10,10 @@ import {
 } from "@maestro-template/convex/refs";
 import type React from "react";
 
-import { isIsolatedContractsRuntime } from "#lib/auth/route-auth";
+import {
+  isFixtureAuthRuntime,
+  isIsolatedContractsRuntime,
+} from "#lib/auth/route-auth";
 
 export const realRefs = {
   "auth.me": getFunctionReference(
@@ -171,33 +174,50 @@ const neutralData = (path: string) => {
   return [];
 };
 
-const contractsUserFixture: CurrentUser = {
-  id: "contracts-runtime",
-  email: "contracts@template.local",
-  name: "Contracts runtime",
+const runtimeUserFixture: CurrentUser = {
+  id: "fixture-runtime",
+  email: "fixture@template.local",
+  name: "Fixture runtime",
   image: null,
   workspaces: [],
 };
-const contractsWorkspaceFixtures = new Map<string, Workspace>();
+const contractsUserFixture: CurrentUser = {
+  ...runtimeUserFixture,
+  id: "contracts-runtime",
+  email: "contracts@template.local",
+  name: "Contracts runtime",
+};
+const runtimeWorkspaceFixtures = new Map<string, Workspace>();
 
-const contractsFixture = (
+const workspaceFixture = (
+  slug: string,
+  isolatedContracts: boolean,
+): Workspace => {
+  const prefix = isolatedContracts ? "contracts" : "fixture";
+  const fixtureKey = `${prefix}:${slug}`;
+  const existing = runtimeWorkspaceFixtures.get(fixtureKey);
+  if (existing) return existing;
+  const workspace = {
+    id: `${prefix}-${slug}`,
+    slug,
+    name: isolatedContracts ? "Contracts workspace" : "Fixture workspace",
+  };
+  runtimeWorkspaceFixtures.set(fixtureKey, workspace);
+  return workspace;
+};
+
+const runtimeFixture = (
   path: string,
   input?: Record<string, unknown>,
 ): unknown => {
-  if (!isIsolatedContractsRuntime()) return undefined;
-  if (path === "auth.me") return contractsUserFixture;
-  if (path === "workspaces.bySlug" && typeof input?.slug === "string") {
-    const existing = contractsWorkspaceFixtures.get(input.slug);
-    if (existing) return existing;
-    const workspace = {
-      id: `contracts-${input.slug}`,
-      slug: input.slug,
-      name: "Contracts workspace",
-    };
-    contractsWorkspaceFixtures.set(input.slug, workspace);
-    return workspace;
+  if (!isFixtureAuthRuntime()) return undefined;
+  const isolatedContracts = isIsolatedContractsRuntime();
+  if (path === "auth.me") {
+    return isolatedContracts ? contractsUserFixture : runtimeUserFixture;
   }
-  return undefined;
+  if (path !== "workspaces.bySlug") return undefined;
+  if (typeof input?.slug !== "string") return undefined;
+  return workspaceFixture(input.slug, isolatedContracts);
 };
 export const neutralMutationValue = (path: string) =>
   isNeutral(path) ? null : neutral(path);
@@ -211,7 +231,7 @@ function procedure<TData = unknown>(
   const convexRef = ref as unknown as ConvexQueryRef;
   return {
     useQuery: (input) => {
-      const fixture = contractsFixture(key, input);
+      const fixture = runtimeFixture(key, input);
       if (fixture !== undefined) {
         return { data: fixture as TData, isLoading: false, isPending: false };
       }
@@ -223,7 +243,7 @@ function procedure<TData = unknown>(
       return useConvexQuery(convexRef, input ?? {}) as QueryResult<TData>;
     },
     useSuspenseQuery: (input) => {
-      const fixture = contractsFixture(key, input);
+      const fixture = runtimeFixture(key, input);
       if (fixture !== undefined) {
         const result = {
           data: fixture as TData,
@@ -247,7 +267,7 @@ function procedure<TData = unknown>(
       return [result.data as TData, result as QueryResult<TData>];
     },
     ensureData: async (input) => {
-      const fixture = contractsFixture(key, input);
+      const fixture = runtimeFixture(key, input);
       if (fixture !== undefined) return fixture as TData;
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) return neutralData(key) as TData;
