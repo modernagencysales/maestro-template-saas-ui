@@ -1,0 +1,135 @@
+{
+  "feature": "phase-3-agent-pack-command-contract",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-d-cli",
+      "intention": "establish deterministic repository context and bounded target paths",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-3.1 repository context at integrated commit 338df13eaa079783215e842e37b4e4e49303d570",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test repoContext",
+            "pnpm --dir tooling/agent-pack typecheck"
+          ],
+          "templateBacklogRef": "AP-006 safe factory CLI and MCP",
+          "templateResolutionPath": "Promote the CP-2 agent-pack package into one explicit source/template/target repository context consumed by every command transport."
+        }
+      ],
+      "taskRefs": ["WP-3.1-repository-context"],
+      "rationale": "Commands need one path-safe repository identity before any transport or mutation behavior is projected.",
+      "estLines": 131
+    },
+    {
+      "id": 2,
+      "branch": "codex/ap-d-cli",
+      "intention": "define the versioned command, execution, result, mutation, exit, and rendering ABI",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-3.1 command ABI at integrated commit e4d247874969d7310e0a7cc09f81be75a7291201",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test contracts",
+            "pnpm --dir tooling/agent-pack typecheck"
+          ],
+          "templateBacklogRef": "AP-006 safe factory CLI and MCP",
+          "templateResolutionPath": "Promote the bootstrap package into one typed transport-independent AgentPackCommand contract with stable exits and deterministic human projection."
+        }
+      ],
+      "taskRefs": ["WP-3.1-command-abi"],
+      "rationale": "The typed library ABI must freeze before CLI and MCP adapters consume it.",
+      "estLines": 143
+    },
+    {
+      "id": 3,
+      "branch": "codex/ap-d-cli",
+      "intention": "pin command envelope, exit, renderer, and transport-neutral execution behavior",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-3.1 command contract tests at integrated commit 32934069114d6d94c9773e89c0814dc86a956c55",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test contracts",
+            "pnpm --dir tooling/agent-pack typecheck"
+          ],
+          "templateBacklogRef": "AP-006 safe factory CLI and MCP",
+          "templateResolutionPath": "Pin the promoted ABI with versioned snapshots and behavior tests so later transports cannot create a second result path."
+        }
+      ],
+      "taskRefs": ["WP-3.1-contract-evidence"],
+      "rationale": "Stable snapshots and rendering assertions are independent review evidence for the ABI.",
+      "estLines": 176
+    },
+    {
+      "id": 4,
+      "branch": "codex/ap-d-cli",
+      "intention": "constrain every result payload to the versioned JSON envelope boundary",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-3.1 JSON result constraint at integrated commit c260ad31b3d6b7f94b8c39bcb68864b60e8f45f6",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test contracts",
+            "pnpm --dir tooling/agent-pack typecheck"
+          ],
+          "templateBacklogRef": "AP-006 safe factory CLI and MCP",
+          "templateResolutionPath": "Close the promoted command ABI over JSON-safe payloads so CLI and future MCP serialize the same result envelope."
+        }
+      ],
+      "taskRefs": ["WP-3.1-json-envelope"],
+      "rationale": "Compile-time JSON safety prevents transport-specific serialization behavior.",
+      "estLines": 26
+    }
+  ],
+  "allTaskRefs": [
+    "WP-3.1-repository-context",
+    "WP-3.1-command-abi",
+    "WP-3.1-contract-evidence",
+    "WP-3.1-json-envelope"
+  ]
+}

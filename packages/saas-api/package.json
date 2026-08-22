@@ -1,0 +1,11 @@
+{
+  "name": "@workspace/api",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts",
+    "./shared": "./shared.ts",
+    "./types": "./types.ts"
+  }
+}

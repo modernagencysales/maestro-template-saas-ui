@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "transition": {
+    "id": "data-0.1-to-0.2",
+    "fromVersion": "0.1.0-alpha.1",
+    "toVersion": "0.2.0-alpha.1",
+    "immediatePriorVersion": "0.1.0-alpha.1"
+  },
+  "target": {
+    "version": "0.1.0-alpha.1",
+    "relation": "immediate-prior"
+  },
+  "phases": [
+    {
+      "kind": "expand",
+      "evidenceRef": "evidence/schema-expanded"
+    },
+    {
+      "kind": "backward-compatible-code",
+      "evidenceRef": "evidence/code-compatible"
+    }
+  ],
+  "migration": {
+    "id": "backfill-workflow-graph-v2",
+    "irreversible": false,
+    "operatorCommand": "pnpm maestro -- migration run backfill-workflow-graph-v2 --write",
+    "previewCounts": {
+      "scanned": 12,
+      "eligible": 9,
+      "alreadyCompatible": 3
+    },
+    "migrateCounts": {
+      "planned": 9
+    },
+    "compatibilityWindow": {
+      "startsAt": "2026-08-01T00:00:00.000Z",
+      "endsAt": "2026-08-08T00:00:00.000Z",
+      "contractNotBefore": "2026-08-08T00:00:00.000Z"
+    },
+    "evidenceRequirements": [
+      {
+        "id": "preview-counts",
+        "detail": "Capture redacted preview counts."
+      },
+      {
+        "id": "migration-verification",
+        "detail": "Capture post-migration compatibility verification."
+      }
+    ],
+    "recovery": {
+      "kind": "rollback",
+      "operatorCommand": "pnpm maestro -- migration rollback backfill-workflow-graph-v2 --write",
+      "evidenceRequirement": "Capture rollback verification."
+    }
+  }
+}

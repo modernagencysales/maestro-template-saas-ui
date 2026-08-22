@@ -1,9 +1,64 @@
 # Agent Instructions
 
-This repo is a private internal template for custom AI brain and workflow apps.
-Treat it as product infrastructure: preserve the generic framework, avoid
-project-specific business logic, and keep the repo easy for future agents to
-inspect and extend.
+This repository is both the Maestro app factory and, after `maestro create`, the
+base of a generated customer app. Treat it as product infrastructure: preserve
+the generic framework, avoid project-specific business logic in the factory,
+and leave the repository easier for the next person or agent to inspect.
+
+## Identify The Repository Mode
+
+- A factory checkout contains `releases/` and
+  `apps/cli/src/factory/createComposition.ts`. Use it to preview and create a
+  separate target. Never build a customer product directly in the factory.
+- A generated customer target contains `template-instance.json`. Build the
+  product there and preserve the immutable release facts in that file.
+- If neither marker exists, stop and report that the repository mode is
+  ambiguous before writing files.
+
+In either mode, begin with `pnpm maestro -- preflight --mode fake`. In a
+customer target, then run `pnpm maestro -- recipes list` and
+`pnpm template:systems -- --query <responsibility-or-table>` before choosing a
+generator. Preview is the default. Consequential generation uses the reviewed
+scaffold route, its `review-required`/secret-names-only privacy posture, and
+the returned structured `confirmation.argv`. Run the focused gates named in the
+preview.
+
+The supported customer loop is:
+
+```text
+preflight -> recipes/system lookup -> preview -> reviewed write
+          -> focused verification -> commit reviewed change
+          -> start --mode fake
+```
+
+## Product Contracts
+
+`product.contract.yaml` is the product-contract authority. For each promised
+outcome:
+
+1. Create or select behavior IDs in `product.contract.yaml`.
+2. Write typed plan frontmatter with existing `WorkPackageSchema` classification
+   and current App Map targets.
+3. Design the black-box proof and failure witness before implementation.
+4. Add focused unit/integration tests only for named implementation risks.
+5. Generate docs, check the contract, and run required acceptance.
+6. Promote draft to required only with its revision-bound passing example.
+7. Run `pnpm maestro -- verify --scope full` once on the immutable delivery
+   head and inspect its exact-head receipt.
+
+Use `pnpm check:product-contract` for structural contract admission and
+`pnpm acceptance:required` for required runtime acceptance.
+
+After the focused gates pass, review `git status --short` and commit the recipe
+transaction, including its receipt and generated provenance.
+
+Do not bypass this loop by copying factory files, hand-editing generated files,
+inventing a parallel system, or weakening a red gate. Read
+`docs/template/quickstart.md`, `docs/template/app-factory-guide.md`, and
+`docs/template/customer-target-contract.md` when onboarding or changing the
+factory/customer boundary. Use
+`docs/template/enforced-engineering-rules.md` to select focused checks; reserve
+full verification for an integrated batch or delivery candidate.
 
 ## Layer Law
 
@@ -39,9 +94,28 @@ layers, add the missing boundary instead.
 
 ## Frontend Rules
 
+- Before composing a page, search
+  `docs/template/saas-ui-screen-catalog.json` and inspect the exact pinned
+  source under `repos/saas-ui-pro` or
+  `repos/tanstack-start-starter-kit-pro`. In a generated target where vendored
+  sources are intentionally omitted, fetch the catalogue repository at its
+  recorded pin. Prefer, in order: a complete Pro demo screen, an assembled Pro
+  Storybook block/template, a Starter screen, then loose primitives only when
+  no assembled source applies.
+- Copy the selected screen composition mechanically. Keep routing, auth, data,
+  and mutations behind thin adapters; do not redesign upstream JSX, spacing,
+  component selection, or interaction structure during the transplant.
 - Keep reusable UI in blocks and package UI primitives.
 - Use Saas UI primitives for the visible business-app shell when they cover the
   need.
+- The pinned upstream Starter Kit Pro and Saas UI Pro registry are the single
+  frontend authority; follow [the frontend authority guide](docs/template/saas-ui-frontend-authority.md).
+- Keep `docs/template/saas-ui-deviations.json` as the exact empty array; port
+  product behavior through adapters without forking the pinned frontend.
+- Keep routes under the literal Starter `_app` tree and verify them with
+  [the route-parity runbook](docs/template/saas-ui-golden-review.md). Do not
+  restore `_workspace`, golden feature, business-shell, or custom navigation
+  alternatives.
 - Feature components may use feature adapters; blocks may not import Convex,
   Confect refs, route modules, provider SDKs, or workspace auth internals.
 - React Flow belongs in workflow UI and workflow feature surfaces only.
@@ -56,6 +130,15 @@ layers, add the missing boundary instead.
   workflows or call capabilities; they do not call repos or adapters directly.
 - Runtime-authored capabilities are data, not arbitrary code. Promotion to
   generated Confect source is the compile-time safety path.
+- Author workflows only through `pnpm template:add-workflow`; its Confect-owned
+  runner source is the single raw Convex Workflow boundary. Do not import
+  `@convex-dev/workflow`, instantiate `WorkflowManager`, or call lifecycle/event
+  helpers from application code. Exact compatibility fixtures are the only
+  non-generated exception; there is no inline suppression or project allowlist.
+- Run `pnpm check:workflow:fast` while authoring. Semantic diagnostics include a
+  stable rule id, reason, repair, and rerun command. The generated support
+  ledger is
+  [workflow-semantics.md](docs/template/generated/workflow-semantics.md).
 
 ## Reference Fixture Implementations
 
@@ -83,6 +166,12 @@ Rules when replacing a fixture body:
 
 ## Working Loop
 
+- Before planning a subsystem, schema table, capability, workflow, agent, job,
+  provider, or route, read `docs/template/system-catalog.md`,
+  `docs/template/product-topology.md`, and `docs/template/data-lifecycle.md`,
+  then run `pnpm template:systems -- --query <responsibility-or-table>`. Record
+  `reuse`, `extend`, or a reviewed `introduce` decision. Do not create a
+  parallel system under a new name.
 - Planning starts from work-packages. Each plan/subplan slice must classify work
   as `fixture-to-real`, `pattern-instance`, or `template-gap`.
 - `fixture-to-real` names the existing contract fixture, the real
@@ -91,16 +180,33 @@ Rules when replacing a fixture body:
   follow-up gates from the matching `docs/template/how-to-add-*` playbook.
 - `template-gap` names the missing pattern, a template backlog reference, and
   the proposed promotion/import path. A gap is a template finding, not a waiver.
-- Use `docs/template/app-factory-guide.md` for the generator flow and
-  `pnpm stack:check` for deterministic plan-shape validation.
+- Use `docs/template/app-factory-guide.md` for the generator flow and the
+  focused package scripts named by the selected work package.
 
-- Scaffold first: when a `pnpm template:*` generator covers the module kind, use
-  it instead of hand-writing registrations. Generated output compiles and passes
-  gates; fill in the TODOs where judgment is required.
+- Scaffold first: when a `pnpm template:*` generator covers the module kind,
+  preview its reviewed scaffold equivalent and use the exact confirmation argv
+  instead of hand-writing registrations or directly authorizing a consequential
+  write. Backend generators require the
+  canonical `--system` ID plus `--disposition reuse|extend` and record both in
+  provenance. Generated output compiles and passes gates; fill in the TODOs
+  where judgment is required.
+- Freedom boundary: uncertain behavior starts with `template:prototype` under
+  `experiments/<system>/<name>`. Experiment and private-package code is never a
+  production dependency and cannot register tables, routes, headless operations,
+  jobs, or providers. Promote learned behavior by re-scaffolding with
+  `template:add-feature` or the matching `template:add-*` generator; never
+  import or move the sandbox implementation into runtime paths.
+- Production feature path: use `template:add-feature` for user-facing vertical
+  slices. It emits capability → contract/presenter → feature → screen → thin
+  route, fake-safe fixtures, state tests, ownership, tenancy, audit,
+  observability, rollout, entitlement, lifecycle posture, and provenance.
+- Durable data: read `docs/template/data-resources.json` before adding state.
+  New tables must use `template:add-table`; update lifecycle metadata and the
+  migration decision in the same change. Do not invent a parallel table family
+  because its existing owner has a different noun.
 - Gate discipline: run the focused gates for what you changed before every
-  commit, and `just verify` before declaring any task done. Recipe names in the
-  Justfile are the canonical gate contract shared by local dev, CI, and agent
-  SOPs.
+  commit. Package scripts are the canonical gate contract shared by local dev,
+  CI, and agent SOPs.
 - Verification before completion: never claim done, fixed, or passing without
   pasting the passing command output. A red gate is a finding, not a blocker to
   route around — never edit a gate file to make red turn green.
@@ -110,19 +216,60 @@ Rules when replacing a fixture body:
 - Suppressions (`eslint-disable`, `ts-expect-error`) are debt: do not add them
   without a comment explaining the constraint and a backlog note.
 - When a subsystem changes status (real/fake/seam/planned), update its doc in
-  the same commit.
+  the same commit. When durable schema changes, update
+  `docs/template/system-catalog.json` and run `pnpm check:system-catalog` in the
+  same commit.
+
+## Delivery-Batch CI
+
+Tasks are implementation checkpoints, not release units. Commit per task and run
+the task's focused affected tests, narrow typecheck, and owned static gates. Do
+not run broad verification or create a PR merely because a task completed.
+
+A delivery batch is an independently mergeable product outcome. Run full
+required verification once on its immutable final head. A changed head
+invalidates prior evidence. Woodpecker verification for the current PR head is
+the only blocking full-verification authority; never copy or manufacture status
+across commits.
+
+## Verification And Review Boundary
+
+Verification proves the requested product outcome; it must not become a second
+product or recursively verify its own evidence.
+
+- The frozen commit, required CI definition, verifier/gate implementation, and
+  reviewed test harness are trusted authorities for the delivery batch. Review
+  their actual diff and behavior; do not assume they are malicious, rewritten
+  after review, or conspiring with the candidate code.
+- Adversarial findings must show a concrete bypass controlled by untrusted
+  product input or shipped application code within the documented threat model.
+  Hypothetical malicious harnesses, forged commits, self-modifying gates,
+  compromised runners, and demands that a verifier prove its own honesty are
+  out of scope unless the task explicitly concerns supply-chain or CI security.
+- A reviewer may not expand the threat model. New trust-boundary requirements
+  require owner approval before they become blockers or authorize code changes.
+- After one fix and one re-review of a concrete finding, proceed to the required
+  deterministic gate. Do not start another speculative hardening cycle; record
+  non-blocking ideas as follow-up and finish the requested outcome.
+- After two failed verification cycles for the same batch, stop and ask the
+  owner whether to fix, defer, or remove the failing gate. A third cycle requires
+  explicit owner approval.
 
 ## Testing Doctrine
 
 - New behavior needs tests before implementation.
 - Use focused tests for adapters, reducers, schemas, and gates.
 - Use generated Confect refs in Confect tests.
-- Broad local test gates must use:
+- Broad local test gates are for an integrated batch or delivery candidate:
 
 ```bash
 pnpm test
 pnpm verify
 ```
+
+`pnpm verify` is the delivery-batch gate. Run it once after all tasks in the
+batch are integrated and reviewed, not after each task commit. Woodpecker is the
+blocking verdict authority.
 
 ## Provider And Secret Boundary
 
@@ -135,7 +282,7 @@ pnpm verify
 
 ## CI Verdict Retrieval
 
-Use Buildkite, GitHub, and local scripts as the source of truth. If an AI gate
+Use Woodpecker, GitHub, and local scripts as the source of truth. If an AI gate
 or CI context is unavailable, report the missing context explicitly instead of
 assuming success.
 
@@ -143,17 +290,17 @@ assuming success.
 
 - `apps/web`: reference app.
 - `apps/cli`: headless CLI.
-- `apps/voice-relay`: optional voice/capture relay.
 - `packages/convex`: Confect/Convex backend.
-- `packages/ui`: UI primitives and blocks.
+- `apps/web/src/components`: installed Saas UI Pro components and local UI seams.
 - `packages/workflow-ui`: React Flow workflow builder.
 - `packages/template-core`: shared template contracts.
 - `packages/integrations`: provider interfaces and adapters.
 - `tooling/quality`: gates and CI helpers.
 - `tooling/generators`: app-factory generators.
 - `docs/template`: operating docs and playbooks.
-- `repos/effect`: vendored Effect source, read-only reference material.
-- `repos/confect`: vendored Confect source, read-only reference material.
+- Factory-only upstream research trees are omitted from generated customer
+  targets. In a customer target, use `docs/template/confect-effect-guide.md` and
+  the shipped typed contracts instead.
 
 ## Vendored Repositories
 
@@ -161,21 +308,18 @@ This project vendors external repositories under `repos/`.
 
 - Use vendored repositories as read-only reference material when working with
   related libraries.
-- Prefer examples and patterns from vendored source and tests over generated
-  guesses or web snippets.
-- Do not edit files under `repos/` unless explicitly asked to update a vendored
-  subtree.
-- Do not import from `repos/`; application code imports from normal package
-  dependencies.
-- When writing Effect code, inspect `repos/effect/AGENTS.md` and relevant tests
-  under `repos/effect/packages/effect/test/`.
-- When writing Confect code, inspect `repos/confect/CLAUDE.md`,
-  `repos/confect/apps/example/confect/`, and relevant tests under
-  `repos/confect/packages/*/test/`.
+- Factory checkouts may include read-only upstream research trees; application
+  code never imports from them. Generated customer targets omit those trees.
+- In customer targets, use `docs/template/confect-effect-guide.md`, shipped
+  typed contracts, and local focused tests for Effect and Confect guidance.
 
 ## Playbook Index
 
 - [Blueprint catalog](docs/template/blueprint-catalog.md)
+- [Canonical system catalog](docs/template/system-catalog.md)
+- [Product topology](docs/template/product-topology.md)
+- [Data resource catalog](docs/template/data-lifecycle.md)
+- [Sandbox and promotion boundary](docs/template/promotion-boundary.md)
 - [Generator output contract](docs/template/generator-output-contract.md)
 - [Client intake questionnaire](docs/template/client-intake-questionnaire.md)
 - [Client handoff packet](docs/template/client-handoff-packet.md)
@@ -197,3 +341,17 @@ This project vendors external repositories under `repos/`.
 When rules conflict, prefer tenant safety, generated contracts, typed errors,
 redaction, and small focused changes. If still ambiguous, write the assumption
 in the PR description or implementation note and ask for rule review.
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`packages/convex/convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

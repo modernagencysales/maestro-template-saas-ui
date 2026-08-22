@@ -1,0 +1,156 @@
+{
+  "feature": "phase-2-host-bootstrap",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-c-hosts-s01",
+      "intention": "freeze the repo-native host, plugin, and MCP profile contract",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-2.2 skill-only Maestro Convex contract",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test convexPlugin",
+            "pnpm --dir tooling/agent-pack typecheck",
+            "pnpm check:secret-canaries"
+          ],
+          "templateBacklogRef": "AP-004 official Convex agent context",
+          "templateResolutionPath": "Promote the reviewed host and fail-closed MCP profile policy into one typed tooling contract consumed by every host projection."
+        }
+      ],
+      "taskRefs": ["WP-2.2"],
+      "rationale": "All host installers and projections must consume one frozen policy contract before host-specific behavior is added.",
+      "estLines": 290
+    },
+    {
+      "id": 2,
+      "branch": "codex/ap-c-hosts-s02",
+      "intention": "pin and drift-check committed official Convex agent context",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "docs/template/convex-compatibility.json",
+          "tooling/convex-compat/src/matrix.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Managed output drifts from the reviewed remote commit",
+          "Normal onboarding accidentally requires mutable network metadata",
+          "A package-local Convex project diverges from the root project"
+        ],
+        "policyDataOwnership": "docs/template/convex-compatibility.json and the committed AI-file manifest",
+        "promptVersioningImpact": "Official Convex context is checksummed and changes only through reviewed dependency refreshes.",
+        "evalOrGateCoverage": [
+          "pnpm --dir tooling/agent-pack test convexAiFiles",
+          "pnpm --dir tooling/convex-compat test",
+          "pnpm check:config-drift"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-2.1 official root Convex AI context",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test convexAiFiles",
+            "pnpm --dir tooling/convex-compat test",
+            "pnpm check:config-drift"
+          ],
+          "templateBacklogRef": "AP-004 official Convex agent context",
+          "templateResolutionPath": "Import the pinned official outputs through a disposable refresh and enforce their committed state offline without editing controller-owned root projections."
+        }
+      ],
+      "taskRefs": ["WP-2.1"],
+      "rationale": "Official content provenance and rollback ownership form one reviewable compatibility boundary.",
+      "estLines": 300
+    },
+    {
+      "id": 3,
+      "branch": "codex/ap-c-hosts-s03",
+      "intention": "prove reversible skill-only Claude Code distribution",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast",
+        "prompt-model-policy-boundary"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-2.3 Claude Code installation",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test claudeInstall",
+            "pnpm --dir tooling/agent-pack test agentPack",
+            "pnpm check:secret-canaries"
+          ],
+          "templateBacklogRef": "AP-005 Claude and Codex distribution",
+          "templateResolutionPath": "Project the canonical skill into a local Claude marketplace and prove discovery and exact-file removal in a disposable home."
+        }
+      ],
+      "taskRefs": ["WP-2.3"],
+      "rationale": "Claude-specific packaging remains a thin projection of the frozen common contract.",
+      "estLines": 290
+    },
+    {
+      "id": 4,
+      "branch": "codex/ap-c-hosts-s04",
+      "intention": "prove reversible parity-checked Codex skill distribution",
+      "layers": ["checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast",
+        "prompt-model-policy-boundary"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-2.4 Codex installation",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test codexInstall",
+            "pnpm --dir tooling/agent-pack test agentPack",
+            "pnpm check:config-drift"
+          ],
+          "templateBacklogRef": "AP-005 Claude and Codex distribution",
+          "templateResolutionPath": "Generate Codex-native skill metadata from the canonical source and prove offline discovery and exact-file removal in a disposable home."
+        }
+      ],
+      "taskRefs": ["WP-2.4"],
+      "rationale": "Codex receives equivalent context without a second hand-maintained skill or any Phase 2 MCP entry.",
+      "estLines": 290
+    }
+  ],
+  "allTaskRefs": ["WP-2.1", "WP-2.2", "WP-2.3", "WP-2.4"]
+}

@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import refs from "../confect/_generated/refs";
@@ -189,16 +190,12 @@ describe("action Confect contracts", () => {
   });
 
   it("exports a finalized fake/local Confect implementation", () => {
-    expect(actionsImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(actionsImpl)).toBe(true);
   });
 
   it("generates URL-safe trigger idempotency keys and digest dedupe keys", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const trigger = yield* confect.mutation(
         refs.public.ops.actions.configureTrigger,
         {

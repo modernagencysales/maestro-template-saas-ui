@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
@@ -194,16 +195,12 @@ describe("billing Confect contracts", () => {
   });
 
   it("exports a finalized fake/local Confect implementation", () => {
-    expect(billingImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(billingImpl)).toBe(true);
   });
 
   it("rejects padded usage idempotency keys before writing ledger-shaped IDs", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_700_000_000_000),
         SeededTenancy,
@@ -233,9 +230,7 @@ describe("billing Confect contracts", () => {
 
   it("rejects padded webhook dedupe keys before recording webhook state", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.internal.ops.billing.applyWebhook, {
           workspaceId: "workspace_123",
@@ -261,9 +256,7 @@ describe("billing Confect contracts", () => {
 
   it("persists billing webhooks and returns duplicate on exact replay", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const first = yield* confect.mutation(
         refs.internal.ops.billing.applyWebhook,
         {
@@ -324,9 +317,7 @@ describe("billing Confect contracts", () => {
 
   it("rejects webhook dedupe-key reuse with a different payload", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       yield* confect.mutation(refs.internal.ops.billing.applyWebhook, {
         workspaceId: "workspace_webhook",
         provider: "dodo",
@@ -376,9 +367,7 @@ describe("billing Confect contracts", () => {
 
   it("rejects provider webhook dedupe-key reuse across workspaces", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const first = yield* confect.mutation(
         refs.internal.ops.billing.applyWebhook,
         {
@@ -439,9 +428,7 @@ describe("billing Confect contracts", () => {
 
   it("records usage durably, debits the ledger, and increments active entitlement usage", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_700_000_000_000),
         SeededTenancy,
@@ -511,9 +498,7 @@ describe("billing Confect contracts", () => {
 
   it("returns existing usage records idempotently without double-debiting credits", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_700_000_000_000),
         SeededTenancy,
@@ -581,9 +566,7 @@ describe("billing Confect contracts", () => {
 
   it("rejects idempotency-key reuse with a different billing payload", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_700_000_000_000),
         SeededTenancy,
@@ -620,7 +603,7 @@ describe("billing Confect contracts", () => {
         .mutation(refs.public.ops.billing.recordUsage, {
           workspaceId: seeded.workspaceId,
           idempotencyKey: "usage-mismatch",
-          provider: "mailersend",
+          provider: "email",
           units: 12,
           costCredits: 4,
           entitlementKey: "llm_credits",
@@ -657,9 +640,7 @@ describe("billing Confect contracts", () => {
 
   it("rejects workspace outsiders before recording durable usage", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_700_000_000_000),
         SeededTenancy,
@@ -723,9 +704,7 @@ describe("billing Confect contracts", () => {
 
     for (const scenario of scenarios) {
       const program = Effect.gen(function* () {
-        const confect = yield* Effect.serviceOptional(
-          TestConfect.TestConfect<typeof databaseSchema>(),
-        );
+        const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
         const seeded = yield* confect.run(
           seedTenancy(1_700_000_000_000),
           SeededTenancy,
@@ -824,16 +803,23 @@ const BillingUsageSnapshot = Schema.Struct({
   usageCount: Schema.Number,
   ledgerCount: Schema.Number,
   entitlementUsed: Schema.optional(Schema.Number),
-  ledgerType: Schema.optional(Schema.Literal("credit", "debit")),
+  ledgerType: Schema.optional(Schema.Literals(["credit", "debit"])),
   ledgerReason: Schema.optional(
-    Schema.Literal("manual_adjustment", "llm_usage", "seat_charge", "refund"),
+    Schema.Literals([
+      "manual_adjustment",
+      "llm_usage",
+      "seat_charge",
+      "refund",
+    ]),
   ),
   ledgerCreatedBy: Schema.optional(Schema.String),
 });
 
 const WebhookSnapshot = Schema.Struct({
   count: Schema.Number,
-  status: Schema.optional(Schema.Literal("processed", "duplicate", "failed")),
+  status: Schema.optional(
+    Schema.Literals(["processed", "duplicate", "failed"]),
+  ),
   eventType: Schema.optional(Schema.String),
 });
 

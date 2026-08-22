@@ -1,0 +1,153 @@
+{
+  "schemaVersion": 1,
+  "auditedAt": "2026-07-31",
+  "current": {
+    "convex": "1.42.1",
+    "@convex-dev/workflow": "0.4.4",
+    "@convex-dev/workpool": "0.4.7",
+    "convex-test": "0.0.54",
+    "@convex-dev/migrations": "0.3.5",
+    "@confect/cli": "10.0.0-next.9",
+    "@confect/core": "10.0.0-next.9",
+    "@confect/server": "10.0.0-next.9",
+    "@confect/test": "10.0.0-next.9",
+    "effect": "4.0.0-beta.102",
+    "@effect/platform-node": "4.0.0-beta.102",
+    "@effect/vitest": "4.0.0-beta.102",
+    "@effect/language-service": "0.87.1",
+    "ioredis": "5.11.1"
+  },
+  "officialAgentContext": {
+    "repository": "get-convex/agent-skills",
+    "resolvedCommit": "ec1e6baae7d86c7843c22938c75979c016f5c6e9",
+    "skillsInstaller": "1.5.20",
+    "installerInvocation": "npx --yes skills@1.5.20 add get-convex/agent-skills --yes --copy",
+    "lockFormat": 1,
+    "managedManifest": "docs/template/convex-ai-files.manifest.json",
+    "normalOnboarding": "committed-offline-outputs",
+    "removal": "checksummed-owned-files-without-remote-metadata",
+    "posture": "controlled-install-verified-in-disposable-checkout"
+  },
+  "candidate": {
+    "convex": "1.42.3",
+    "@convex-dev/workflow": "0.4.4",
+    "@convex-dev/workpool": "0.4.8",
+    "convex-test": "0.0.54",
+    "status": "behaviorally-tested-fail-not-adopted",
+    "proofs": [
+      "fresh-frozen-install-workpool-0.4.8",
+      "component-state-machine-duplicate-completion-behavior",
+      "component-state-machine-duplicate-cancellation-behavior",
+      "source-order-regression-explanation"
+    ],
+    "findings": ["WF-WORKPOOL-DUPLICATE-COMPLETION", "WF-WORKPOOL-CANCEL-RACE"]
+  },
+  "workpoolSafety": {
+    "requiredBehaviorRules": [
+      "WF-WORKPOOL-DUPLICATE-COMPLETION",
+      "WF-WORKPOOL-CANCEL-RACE"
+    ],
+    "behaviorFixture": "tooling/convex-compat/src/candidate-install.test.ts",
+    "supportedAlternative": "Use workflow-optional mode: reject Workpool retry and cancellation activation and make no production workflow compatibility claim.",
+    "current": {
+      "version": "0.4.7",
+      "productionSupport": "unsupported",
+      "behavioralOutcomes": {
+        "WF-WORKPOOL-DUPLICATE-COMPLETION": "unsafe-attempt-mutated-before-pending-completion-dedup",
+        "WF-WORKPOOL-CANCEL-RACE": "unsafe-concurrent-double-delete"
+      }
+    },
+    "candidate": {
+      "version": "0.4.8",
+      "productionSupport": "unsupported",
+      "adoption": "rejected",
+      "behavioralOutcomes": {
+        "WF-WORKPOOL-DUPLICATE-COMPLETION": "unsafe-attempt-mutated-before-pending-completion-dedup",
+        "WF-WORKPOOL-CANCEL-RACE": "unsafe-concurrent-double-delete"
+      }
+    }
+  },
+  "workflowPublicInventory": [
+    "defineWorkflow",
+    "WorkflowManager.start",
+    "WorkflowManager.status",
+    "cancel",
+    "restart",
+    "cleanup",
+    "list",
+    "listByName",
+    "listSteps",
+    "sendEvent",
+    "createEvent",
+    "vWorkflowId",
+    "vEventId",
+    "vResultValidator"
+  ],
+  "workflowStepInventory": [
+    "runQuery",
+    "runMutation",
+    "runAction",
+    "runWorkflow",
+    "sleep",
+    "awaitEvent"
+  ],
+  "inlineTransactions": {
+    "supportedConvexVersion": "1.42.1",
+    "supportedFields": [
+      "bytesRead",
+      "bytesWritten",
+      "databaseQueries",
+      "documentsRead",
+      "documentsWritten",
+      "functionsScheduled",
+      "scheduledFunctionArgsBytes"
+    ],
+    "presets": {
+      "tiny": {
+        "documentsRead": 5,
+        "bytesWritten": 100
+      },
+      "small-atomic": {
+        "documentsWritten": 100,
+        "bytesWritten": 1048576
+      }
+    },
+    "evidence": [
+      "workflow-0.4.4-transaction-option-fixture",
+      "committed-convex-function-guidelines"
+    ]
+  },
+  "payloadBudgets": {
+    "upstream": {
+      "workflowStepReturnBytes": 819200,
+      "workflowJournalBytes": 8388608,
+      "workpoolFunctionArgsBytes": 1000000,
+      "workpoolCompletionContextBytes": 1000000
+    },
+    "maestro": {
+      "step-args": { "softBytes": 393216, "hardBytes": 524288 },
+      "step-result": { "softBytes": 524288, "hardBytes": 655360 },
+      "journal-cumulative": { "softBytes": 4194304, "hardBytes": 6291456 },
+      "event-value": { "softBytes": 131072, "hardBytes": 262144 },
+      "nested-workflow-args": { "softBytes": 393216, "hardBytes": 524288 },
+      "workflow-return": { "softBytes": 524288, "hardBytes": 655360 },
+      "on-complete-context": { "softBytes": 65536, "hardBytes": 131072 },
+      "product-projection": { "softBytes": 131072, "hardBytes": 262144 }
+    }
+  },
+  "sourceFacts": {
+    "scheduledChildOptionPropagation": "unsupported-on-0.4.4",
+    "defaultStart": "eager-first-poll-with-terminal-id-on-caught-failure",
+    "queuedStart": "startAsync-true-via-workpool",
+    "payloadPreview": "component-receives-values-before-application-redaction",
+    "cleanup": "batched-and-nested-asynchronous-residuals-possible",
+    "eventIdOwnership": "workflow-component",
+    "workpoolSchedule": "requested-runAt-is-not-actual-start-and-may-be-clamped",
+    "terminalRetryError": "NonRetryableError",
+    "runtimeClosure": "function-handle-does-not-freeze-transitive-closure",
+    "workpool047DuplicateCompletion": "behaviorally-reproduced-attempt-mutation-before-dedup",
+    "workpool047CancelRace": "behaviorally-reproduced-concurrent-double-delete",
+    "date": "generation-state-normalized-except-locale-timezone-methods",
+    "mathRandom": "seeded-by-workflow-id"
+  }
+}

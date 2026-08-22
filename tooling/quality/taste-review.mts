@@ -470,11 +470,14 @@ async function callOpenAI(
   }
 }
 
-async function callJudgeText(userMessage: string): Promise<string> {
+async function callJudgeText(
+  userMessage: string,
+  rubric = RUBRIC,
+): Promise<string> {
   const provider = requireProvider();
-  if (provider.kind === "openai") return callOpenAI(RUBRIC, userMessage);
+  if (provider.kind === "openai") return callOpenAI(rubric, userMessage);
   try {
-    return await callOpenRouter(RUBRIC, userMessage);
+    return await callOpenRouter(rubric, userMessage);
   } catch (error) {
     if (
       error instanceof TasteInfrastructureError &&
@@ -483,7 +486,7 @@ async function callJudgeText(userMessage: string): Promise<string> {
       console.warn(
         "taste-review: OpenRouter infrastructure-blocked; falling back to OpenAI.",
       );
-      return callOpenAI(RUBRIC, userMessage);
+      return callOpenAI(rubric, userMessage);
     }
     throw error;
   }

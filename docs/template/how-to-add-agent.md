@@ -3,27 +3,41 @@
 Use the agent generator:
 
 ```bash
-pnpm template:add-agent -- --name workflow_architect --write
+pnpm template:systems -- --query workflows
+pnpm template:add-agent -- --name workflow_architect --system workflow-runtime --disposition reuse --write
 ```
 
-`pnpm template:add-agent-seat` remains an alias for older task briefs.
+Plain `add-agent` creates a neutral declaration. It does not choose a UI seat,
+thread lifecycle, tool runtime, CLI/API/MCP surface, or headless exposure.
+Choose those patterns only when the product needs them.
+
+Use the product system the agent serves. The declaration is an actor-view of
+that owner, not a new system with its own parallel state.
 
 ## Files Created
 
-- `packages/convex/confect/agents/<name>.spec.ts`
-- `packages/convex/confect/agents/<name>.impl.ts`
-- `packages/convex/confect/agents/<name>.tools.ts`
-- `packages/convex/test/<name>.agent.test.ts`
+- `packages/convex/confect/agents/<name>.ts`
 - `docs/template/generated/agents/<name>.md`
+- `docs/template/generated/provenance/add-agent/<name>.json`
 
-Generated agent seats are web-facing by default with `surfaces: ["web"]`. They
-do not create API, CLI, MCP, generated manifest/headless metadata, or explicit
-generated ref mappings until a separate headless contract review approves them.
+Neutral declarations use `surfaces: []`, `capabilities: []`, and no headless
+exposure. They do not invent functions, thread state, tools, generated refs, or
+registrations.
 
-After writing an agent slice, run `pnpm confect:codegen`,
+When a web thread seat is explicitly required, use:
+
+```bash
+pnpm template:add-agent-seat -- --name workflow_architect --system workflow-runtime --disposition reuse --write
+```
+
+That explicit command preserves the complete web-seat pattern: Confect spec and
+implementation, tool declaration, thread tests, docs, and provenance.
+
+After writing a neutral declaration, review the generated docs and run the
+focused generator tests. For an explicit seat, also run `pnpm confect:codegen`,
 `pnpm confect:manifest`, and the focused agent tests before wiring generated
-refs into the web surface. Keep API, CLI, and MCP denied unless a later headless
-contract task adds typed public errors, idempotency posture, generated
+refs into the selected surface. Keep API, CLI, and MCP denied unless a later
+headless contract task adds typed public errors, idempotency posture, generated
 manifest/headless metadata, explicit generated ref mappings, and surface tests.
 
 ## Tests

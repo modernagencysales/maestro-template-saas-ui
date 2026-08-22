@@ -15,19 +15,28 @@ describe("check:route-tree", () => {
           includes: expect.arrayContaining([
             "generated `routeTree`",
             'defaultPreload: "intent"',
-            "scrollRestoration: true",
+            "setupRouterSsrQueryIntegration",
             "apps/web/src/routeTree.gen.ts",
           ]),
         }),
         expect.objectContaining({
           file: "docs/template/repo-map.md",
           includes: expect.arrayContaining([
-            "/brain",
-            "/workflows",
-            "/capabilities",
-            "/agents",
-            "/runs",
-            "/settings",
+            "apps/web/src/routes/_app/",
+            "workspace dashboard",
+            "contacts",
+            "inbox",
+            "search",
+            "getting-started",
+            "settings",
+          ]),
+        }),
+        expect.objectContaining({
+          file: "apps/web/src/router.tsx",
+          includes: expect.arrayContaining([
+            "routeTree",
+            'defaultPreload: "intent"',
+            "setupRouterSsrQueryIntegration",
           ]),
         }),
         expect.objectContaining({

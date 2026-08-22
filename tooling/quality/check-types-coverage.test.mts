@@ -13,16 +13,41 @@ describe("check:types-coverage", () => {
         expect.objectContaining({
           file: "package.json",
           includes: expect.arrayContaining([
-            "type-coverage --project tsconfig.type-coverage.json --at-least 99.7",
+            "tsx tooling/quality/run-type-coverage.mts",
+          ]),
+        }),
+        expect.objectContaining({
+          file: "tooling/quality/run-type-coverage.mts",
+          includes: expect.arrayContaining([
+            'import.meta.resolve("type-coverage/bin/type-coverage")',
+            "--max-old-space-size=8192",
+            "--at-least",
+            '"99.7"',
+            "--ignore-files",
+            "verifiedImmutableReceiptPaths",
           ]),
         }),
         expect.objectContaining({
           file: "tsconfig.type-coverage.json",
-          includes: expect.arrayContaining(["include", "exclude"]),
+          includes: expect.arrayContaining([
+            "include",
+            "exclude",
+            "**/*.test.*",
+            "**/*.spec.*",
+            "**/__tests__/**",
+            "packages/convex/test/**",
+            "tests/**",
+            "tooling/agent-pack/evals/runs/**",
+          ]),
         }),
         expect.objectContaining({
           file: "docs/template/type-coverage-ratchet.md",
-          includes: expect.arrayContaining(["99.7", "100%"]),
+          includes: expect.arrayContaining([
+            "99.7",
+            "100%",
+            "source-only",
+            "strict TypeScript",
+          ]),
         }),
       ]),
     );

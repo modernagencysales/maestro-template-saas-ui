@@ -1,0 +1,63 @@
+{
+  "feature": "phase-1-wp-1.4-typed-event-compiler-2a",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-b-workflow",
+      "intention": "compile typed event waits through an exact owned-event locator without promoting allocation or public controls",
+      "layers": ["workflows", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/events.ts",
+          "packages/convex/confect/workflows/_kit/graphRunner.ts",
+          "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+          "packages/convex/test/workflow-conformance.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A raw-name wait bypasses product EventId ownership",
+          "A locator result crosses workspace, run, generation, definition, or instance ownership",
+          "A registry or schema mismatch reaches the component await",
+          "A typed event loses its actual Convex validator or inferred payload type"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "The event definition, schema, validated instance key, and generation-bound locator comparison are immutable workflow-version inputs.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm --dir packages/convex typecheck",
+          "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.4-stack-2a.json"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.4 typed event compiler 2A",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm --dir packages/convex typecheck"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Add only the shared typed definition, owned locator contract, exact pre-await comparison, and ID-bound executor while leaving event semantics restricted. Mandatory stack 2B will add persistence, allocation, authenticated send/public translation, generator projection, and semantic promotion."
+        }
+      ],
+      "taskRefs": ["WP-1.4"],
+      "rationale": "The compiler can safely await a component event only after an opaque owned locator proves every immutable identity field and supplies the shared validator.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": ["WP-1.4"]
+}

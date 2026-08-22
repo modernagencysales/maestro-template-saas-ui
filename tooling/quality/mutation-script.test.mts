@@ -35,7 +35,7 @@ async function runScript(
   env: NodeJS.ProcessEnv = {},
 ): Promise<{ readonly exitCode: number | null; readonly stdout: string }> {
   return await new Promise((resolve, reject) => {
-    const child = spawn("bash", [".buildkite/scripts/mutation.sh", ...args], {
+    const child = spawn("bash", ["tooling/ci/mutation.sh", ...args], {
       cwd: repoRoot,
       // The CI toolchain bootstrap must never run inside a test timeout.
       env: { ...process.env, TEMPLATE_CI_SETUP: "skip", ...env },
@@ -61,7 +61,7 @@ async function runScript(
   });
 }
 
-describe("mutation Buildkite shim", () => {
+describe("mutation CI shim", () => {
   it("keeps fake mode cheap for local and diligence runs", async () => {
     const result = await runScript(["--mode", "fake"]);
 
@@ -69,7 +69,7 @@ describe("mutation Buildkite shim", () => {
   });
 
   it("skips outside scheduled/manual mutation runs", async () => {
-    const result = await runScript([], { BUILDKITE: "", RUN_MUTATION: "" });
+    const result = await runScript([], { CI: "", RUN_MUTATION: "" });
 
     expect(result.stdout).toContain(
       "mutation: skipped outside scheduled/manual mutation runs",

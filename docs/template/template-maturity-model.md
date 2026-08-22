@@ -16,12 +16,14 @@ handoff evidence, and production operations.
 typed architectural direction.
 
 **Required evidence:** hosted URL, `apps/web/src/routes/index.tsx`,
-`apps/web/src/saas-ui/business-shell.tsx`, visual smoke snapshots,
-`docs/template/investor-reviewer-packet.md`.
+`apps/web/src/features/common/layouts/app-layout.tsx`,
+`apps/web/src/features/common/layouts/dashboard-layout.tsx`,
+`apps/web/src/features/common/components/app-sidebar.tsx`,
+`docs/template/saas-ui-frontend-authority.md`, visual smoke snapshots, and
+`docs/template/reviewer-guide.md`.
 
-**Required commands:** `pnpm check:format`, `pnpm smoke:web-static`,
-`pnpm smoke:hosted:browser`, `pnpm smoke:hosted:a11y`,
-`pnpm smoke:hosted:visual`.
+**Required commands:** `pnpm check:format`, `pnpm build`, and
+`pnpm smoke:starter-route-parity`.
 
 **Investor inference:** the story is inspectable, but this level alone is not a
 client implementation platform.
@@ -31,9 +33,9 @@ client implementation platform.
 **Meaning:** docs clearly separate real code from fake, planned, and
 live-provider seams.
 
-**Required evidence:** `docs/template/porting-backlog.md`,
-`docs/template/porting-roadmap.md`, `docs/template/security.md`,
-`docs/template/reviewer-guide.md`, and this maturity model.
+**Required evidence:** `docs/template/customer-target-contract.md`,
+`docs/template/security.md`, `docs/template/reviewer-guide.md`, and this
+maturity model.
 
 **Required commands:** `pnpm check:format`, `pnpm check:docs-freshness`,
 `pnpm review:completion`.
@@ -84,13 +86,16 @@ Flow constrained to workflow surfaces.
 **Boundary:** L4 proves the template can start real client builds with strong
 guardrails. [template-defaults.md](./template-defaults.md) is the default versus
 extension-path decision record for surfaces such as billing, notification
-center, retention jobs, and deploy promotion. It still leaves fork- or
+center, retention jobs, and deploy promotion. The upstream layout authority is
+`apps/web/src/features/common/layouts/app-layout.tsx` with
+`dashboard-layout.tsx` and `app-sidebar.tsx`, as defined by
+`docs/template/saas-ui-frontend-authority.md`. It still leaves fork- or
 product-specific work such as full tenant admin flows, every mutation toast, and
 every future modal/popover adoption.
 
 **Required evidence:** `tooling/generators/src/index.ts`,
 `docs/template/quickstart.md`, `docs/template/generator-output-contract.md`,
-`apps/web/src/router.tsx`, `packages/ui/src/*`, `.buildkite/*`, and
+`apps/web/src/router.tsx`, `apps/web/src/components/*`, and
 `project.config.json`.
 
 **Required commands:** `pnpm check:generators`, `pnpm check:route-tree`,
@@ -113,5 +118,15 @@ checklist, and client-specific security review.
 **Required commands:** `pnpm template:doctor -- --mode live`,
 `pnpm deploy:doctor`, `pnpm verify`, hosted smoke against the client domain, and
 provider-specific sandbox or production smoke checks.
+
+**Hosted auth checklist:**
+
+1. Register the exact hosted callback in WorkOS before testing credentials.
+2. Confirm `WORKOS_CLIENT_ID` matches in the web host and Convex deployment.
+   Unset inherited `CONVEX_DEPLOY_KEY` when selecting Convex by deployment name.
+3. Redeploy `packages/convex/convex/auth.config.ts` after setting the Convex
+   env.
+4. In a browser, complete one real sign-in through
+   `access/provisioning:ensureProvisioned` and require a workspace result.
 
 **Investor inference:** the factory has produced a production-ready client app.

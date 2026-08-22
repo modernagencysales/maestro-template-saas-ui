@@ -1,25 +1,95 @@
 #!/usr/bin/env node
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
-import { basename, dirname, resolve } from "node:path";
+import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import {
+  parseDataResourceCatalog,
+  type DataDeleteMode,
+  type DataExportMode,
+  type DataResourceCatalog,
+  type DataRetention,
+  type DataSensitivity,
+  type DataTenantScope,
+} from "@maestro-template/template-core/dataResourceCatalog";
+import {
+  parseProductTopology,
+  type ProductTopology,
+} from "@maestro-template/template-core/productTopology";
+import {
+  canonicalSystemById,
+  findCanonicalSystems,
+  normalizeSystemLookup,
+  parseSystemCatalog,
+  type SystemCatalog,
+} from "@maestro-template/template-core/systemCatalog";
+import { planUpgrade } from "@maestro-template/release-tooling/upgrade";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
+import {
+  buildSaasApplicationFiles,
+  buildSaasApplicationHandoff,
+  saasApplicationBlueprint,
+} from "./blueprints/saasApplication";
+export {
+  buildSaasApplicationAlpha1TargetPlan,
+  buildSaasApplicationFiles,
+  buildSaasApplicationTargetPlan,
+} from "./blueprints/saasApplication";
+export {
+  isRecordsOnlyWorkflowProvenancePath,
+  isWorkflowAutomationPath,
+} from "./blueprints/saasApplicationPatterns";
+export { buildSaasApplicationAlpha2TargetPlan } from "./blueprints/alpha2SaasApplicationPlan";
+import { buildWorkflowFiles } from "./workflow-files";
+export { buildWorkflowFiles } from "./workflow-files";
+import { bumpRelease, publishRelease } from "./workflow-release-commands";
+import { isGeneratorDirectRun } from "./direct-run";
+import { buildCrudFeatureFiles } from "./feature-crud";
+import { executePrivatePackagePlan } from "./private-package";
+export {
+  buildPrivatePackagePlan,
+  executePrivatePackagePlan,
+  type PrivatePackagePlan,
+} from "./private-package";
+export { parseCustomerTemplateInstance } from "./customer-runtime";
+export { createTemplateInstanceMigration } from "./templateInstanceMigration";
 
 export type ProviderMode = "fake" | "test" | "live";
+export type SystemGeneratorDisposition = "reuse" | "extend";
 
-export type BlueprintId = "source-grounded-gtm-brain" | "gtm-implementation";
+export type BlueprintId =
+  "source-grounded-gtm-brain" | "gtm-implementation" | "saas-application";
 
-export type TemplateBlueprint = {
-  readonly id: BlueprintId;
+export type WorkflowBackedBlueprintId = Exclude<
+  BlueprintId,
+  "saas-application"
+>;
+export type WorkflowOptionalBlueprintId = "saas-application";
+
+type TemplateBlueprintBase = {
   readonly label: string;
   readonly summary: string;
   readonly domainNouns: readonly string[];
   readonly sourceTypes: readonly string[];
+  readonly providerPosture: "fake-first";
+  readonly surfaces: readonly ("web" | "api" | "cli" | "mcp")[];
+};
+
+export type WorkflowBackedTemplateBlueprint = TemplateBlueprintBase & {
+  readonly id: WorkflowBackedBlueprintId;
   readonly defaultCapability: string;
   readonly defaultWorkflow: string;
   readonly defaultAgent: string;
-  readonly providerPosture: "fake-first";
-  readonly surfaces: readonly ["web", "api", "cli", "mcp"];
 };
+
+export type WorkflowOptionalTemplateBlueprint = TemplateBlueprintBase & {
+  readonly id: WorkflowOptionalBlueprintId;
+  readonly defaultCapability: null;
+  readonly defaultWorkflow: null;
+  readonly defaultAgent: null;
+};
+
+export type TemplateBlueprint =
+  WorkflowBackedTemplateBlueprint | WorkflowOptionalTemplateBlueprint;
 
 export type TemplateInstance = {
   readonly name: string;
@@ -128,15 +198,31 @@ export type HandoffPacket = {
   readonly markdown: string;
 };
 
-export type TemplateQuickstart = {
-  readonly blueprint: BlueprintId;
+type TemplateQuickstartBase = {
   readonly instance: TemplateInstance;
-  readonly firstCapability: string;
-  readonly firstWorkflow: string;
-  readonly firstAgent: string;
   readonly files: readonly GeneratedFile[];
   readonly nextCommands: readonly string[];
 };
+
+export type WorkflowBackedTemplateQuickstart = TemplateQuickstartBase & {
+  readonly blueprint: WorkflowBackedBlueprintId;
+  readonly firstCapability: string;
+  readonly firstWorkflow: string;
+  readonly firstAgent: string;
+};
+
+export type WorkflowOptionalTemplateQuickstart = TemplateQuickstartBase & {
+  readonly blueprint: WorkflowOptionalBlueprintId;
+  readonly workflowPosture: "optional-unavailable";
+  readonly firstCapability: null;
+  readonly firstWorkflow: null;
+  readonly firstAgent: null;
+  readonly targets: readonly string[];
+  readonly collisions: readonly string[];
+};
+
+export type TemplateQuickstart =
+  WorkflowBackedTemplateQuickstart | WorkflowOptionalTemplateQuickstart;
 
 export type ClientIntake = {
   readonly instance: TemplateInstance;
@@ -145,6 +231,8 @@ export type ClientIntake = {
 
 export type CapabilityGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly exposure?: "web" | "workflow" | "headless";
   readonly write?: boolean;
@@ -152,6 +240,8 @@ export type CapabilityGeneratorOptions = {
 
 export type ClientDomainGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly write?: boolean;
 };
@@ -159,18 +249,42 @@ export type ClientDomainGeneratorOptions = {
 export type ClientDomainGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly files: readonly GeneratedFile[];
 };
 
 export type CapabilityGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly exposure: "web" | "workflow" | "headless";
   readonly files: readonly GeneratedFile[];
 };
 
+export type FeatureGeneratorOptions = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly description?: string;
+  readonly write?: boolean;
+};
+
+export type FeatureGeneratorResult = {
+  readonly name: string;
+  readonly pascalName: string;
+  readonly route: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly files: readonly GeneratedFile[];
+  readonly followUp: readonly string[];
+};
+
 export type WorkflowGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly write?: boolean;
 };
@@ -178,11 +292,15 @@ export type WorkflowGeneratorOptions = {
 export type WorkflowGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly files: readonly GeneratedFile[];
 };
 
 export type AgentGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly write?: boolean;
 };
@@ -190,14 +308,25 @@ export type AgentGeneratorOptions = {
 export type AgentGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
-  readonly surfaces: readonly ["web"];
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly surfaces: readonly [];
   readonly headlessExposure: false;
   readonly files: readonly GeneratedFile[];
   readonly followUp: readonly string[];
 };
 
+export type AgentSeatGeneratorResult = Omit<
+  AgentGeneratorResult,
+  "surfaces"
+> & {
+  readonly surfaces: readonly ["web"];
+};
+
 export type PromotionGeneratorOptions = {
   readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
   readonly write?: boolean;
 };
@@ -205,9 +334,51 @@ export type PromotionGeneratorOptions = {
 export type PromotionGeneratorResult = {
   readonly name: string;
   readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
   readonly target: "capability" | "workflow";
   readonly files: readonly GeneratedFile[];
   readonly followUp: readonly string[];
+};
+
+export type PrototypeGeneratorOptions = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly hypothesis: string;
+  readonly write?: boolean;
+};
+
+export type PrototypeGeneratorResult = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly files: readonly GeneratedFile[];
+  readonly followUp: readonly string[];
+};
+
+export type TableGeneratorOptions = {
+  readonly name: string;
+  readonly system: string;
+  readonly disposition: SystemGeneratorDisposition;
+  readonly tenantScope: DataTenantScope;
+  readonly sensitivity: DataSensitivity;
+  readonly pii: readonly string[];
+  readonly exportMode: DataExportMode;
+  readonly deleteMode: DataDeleteMode;
+  readonly retention: DataRetention;
+  readonly appendOnly?: boolean;
+  readonly businessEntity?: boolean;
+  readonly description?: string;
+  readonly write?: boolean;
+};
+
+export type TableGeneratorResult = {
+  readonly name: string;
+  readonly pascalName: string;
+  readonly system: string;
+  readonly disposition: "extend";
+  readonly files: readonly GeneratedFile[];
 };
 
 export type TemplateUpgradeReport = {
@@ -221,15 +392,6 @@ export type TemplateUpgradeReport = {
   readonly privatePackageCompatibility: readonly string[];
   readonly manualReview: readonly string[];
   readonly commands: readonly string[];
-};
-
-export type PrivatePackagePlan = {
-  readonly fixturePath: string;
-  readonly mode: "dry-run" | "import";
-  readonly ok: boolean;
-  readonly packageName: string;
-  readonly files: readonly GeneratedFile[];
-  readonly checks: readonly DoctorCheck[];
 };
 
 const defaultModules = [
@@ -269,6 +431,36 @@ const defaultRepoRoot = resolve(
 const envManifestPath = (repoRoot = defaultRepoRoot): string =>
   resolve(repoRoot, "docs/template/env-manifest.json");
 
+const systemCatalogPath = (repoRoot = defaultRepoRoot): string =>
+  resolve(repoRoot, "docs/template/system-catalog.json");
+
+const dataResourceCatalogPath = (repoRoot = defaultRepoRoot): string =>
+  resolve(repoRoot, "docs/template/data-resources.json");
+
+const productTopologyPath = (repoRoot = defaultRepoRoot): string =>
+  resolve(repoRoot, "docs/template/product-topology.json");
+
+export const readSystemCatalog = (repoRoot = defaultRepoRoot): SystemCatalog =>
+  parseSystemCatalog(
+    JSON.parse(readFileSync(systemCatalogPath(repoRoot), "utf8")) as unknown,
+  );
+
+export const readDataResourceCatalog = (
+  repoRoot = defaultRepoRoot,
+): DataResourceCatalog =>
+  parseDataResourceCatalog(
+    JSON.parse(
+      readFileSync(dataResourceCatalogPath(repoRoot), "utf8"),
+    ) as unknown,
+  );
+
+export const readProductTopology = (
+  repoRoot = defaultRepoRoot,
+): ProductTopology =>
+  parseProductTopology(
+    JSON.parse(readFileSync(productTopologyPath(repoRoot), "utf8")) as unknown,
+  );
+
 const readEnvManifest = (
   repoRoot = defaultRepoRoot,
 ): EnvManifest | undefined => {
@@ -286,7 +478,7 @@ const providerManifestGroup = {
   workos: "workos",
   posthog: "posthog",
   dodo: "dodo",
-  email: "mailersend",
+  email: "email",
   llm: "openrouter",
   storage: "storage",
 } as const satisfies Record<TemplateProvider, string>;
@@ -326,7 +518,8 @@ const defaultUpgradeRequiredChecks = [
   "pnpm check:secret-canaries",
 ] as const;
 
-const defaultBlueprintId: BlueprintId = "source-grounded-gtm-brain";
+const defaultBlueprintId: WorkflowBackedBlueprintId =
+  "source-grounded-gtm-brain";
 const plannedBlueprintIds = [
   "implementation-consulting-brain",
   "internal-ops-agent-workspace",
@@ -361,6 +554,7 @@ export const buildBlueprintCatalog = (): readonly TemplateBlueprint[] => [
     surfaces: ["web", "api", "cli", "mcp"],
   },
   gtmImplementationBlueprint,
+  saasApplicationBlueprint,
 ];
 
 const findBlueprint = (blueprint: BlueprintId): TemplateBlueprint => {
@@ -409,10 +603,28 @@ const writeGeneratedFiles = (
   }
 };
 
+const assertGeneratedPathsAreNew = (
+  files: readonly GeneratedFile[],
+  cwd: string,
+): void => {
+  const existing = files
+    .map(({ path }) => path)
+    .filter((path) => existsSync(resolve(cwd, path)));
+  if (existing.length > 0) {
+    throw new Error(
+      `Refusing to overwrite existing paths: ${existing.join(", ")}. Reuse or extend the existing slice, or choose a new reviewed name.`,
+    );
+  }
+};
+
 const withGeneratorProvenance = (
   generator: string,
   name: string,
   files: readonly GeneratedFile[],
+  ownership?: {
+    readonly system: string;
+    readonly disposition: SystemGeneratorDisposition;
+  },
 ): readonly GeneratedFile[] => {
   const commandFamily =
     generator === "private-package"
@@ -428,6 +640,7 @@ const withGeneratorProvenance = (
           generator,
           commandFamily,
           name,
+          ...(ownership === undefined ? {} : { ownership }),
           generatedPaths: files.map((file) => file.path),
         },
         null,
@@ -437,12 +650,20 @@ const withGeneratorProvenance = (
   ];
 };
 
-const readOptionalJson = <T>(path: string): T | undefined => {
-  if (!existsSync(path)) {
-    return undefined;
-  }
-
-  return JSON.parse(readFileSync(path, "utf8")) as T;
+const reviewedTransitionMatches = (
+  candidate: unknown,
+  from: string,
+  to: string,
+): boolean => {
+  if (typeof candidate !== "object" || candidate === null) return false;
+  const manifest = Reflect.get(candidate, "manifest") as unknown;
+  if (typeof manifest !== "object" || manifest === null) return false;
+  const transition = Reflect.get(manifest, "transition") as unknown;
+  if (typeof transition !== "object" || transition === null) return false;
+  return (
+    Reflect.get(transition, "fromVersion") === from &&
+    Reflect.get(transition, "toVersion") === to
+  );
 };
 
 export const buildTemplateInstance = (options?: {
@@ -450,6 +671,7 @@ export const buildTemplateInstance = (options?: {
   readonly blueprint?: BlueprintId;
   readonly providerMode?: ProviderMode;
   readonly generatedAt?: string;
+  // eslint-disable-next-line complexity -- AP-008 tracks consolidating duplicated factory/runtime compatibility parsing.
 }): TemplateInstance => {
   const name = options?.name?.trim() || "Acme AI Operations";
   const blueprint = options?.blueprint ?? defaultBlueprintId;
@@ -503,6 +725,7 @@ export const buildTemplateInstance = (options?: {
   };
 };
 
+// eslint-disable-next-line complexity -- AP-008 tracks consolidating duplicated factory/runtime compatibility parsing.
 export const parseTemplateInstance = (raw: string): TemplateInstance => {
   const parsed = JSON.parse(raw) as Partial<TemplateInstance>;
 
@@ -637,6 +860,14 @@ export const buildDemoSeedPlan = (options?: {
 }): DemoSeedPlan => {
   const blueprint = options?.blueprint ?? defaultBlueprintId;
   const blueprintConfig = findBlueprint(blueprint);
+  if (
+    blueprintConfig.defaultWorkflow === null ||
+    blueprintConfig.defaultCapability === null
+  ) {
+    throw new Error(
+      `Blueprint ${blueprint} has no workflow demo seed; use its application seed instead.`,
+    );
+  }
   const workspaceSlug = options?.workspaceSlug ?? "acme-ai-operations";
   const sources = [
     {
@@ -733,10 +964,10 @@ owner.
 - WorkOS: use fake AuthKit IDs until production auth is approved.
 - PostHog: keep analytics disabled or test-only until event capture is approved.
 - Dodo: keep billing in test/fake mode until pricing, webhooks, and ledger reconciliation are reviewed.
-- MailerSend: keep email disabled or console-only until the sender domain is verified.
+- Email: keep delivery disabled or fake-only until Postmark sender signatures and webhooks are verified.
 - OpenRouter-compatible LLM: use deterministic fake completions until spend caps, model allowlist, and redaction posture are approved.
 - Storage and search: use local/fake providers until source ownership, retention, export, and delete posture are documented.
-- Cloudflare and Buildkite: use local commands first, then configure hosted smoke and CI promotion after the fork is stable.
+- Cloudflare and Woodpecker: use local commands first, then configure hosted smoke and CI promotion after the fork is stable.
 
 ## First Live-Ready Pass
 
@@ -896,20 +1127,81 @@ const buildBlueprintQuickstartFiles = (
   ];
 };
 
-export const buildTemplateQuickstart = (options?: {
+type TemplateQuickstartOptions = {
   readonly name?: string;
   readonly blueprint?: BlueprintId;
   readonly providerMode?: ProviderMode;
   readonly generatedAt?: string;
-}): TemplateQuickstart => {
+  readonly cwd?: string;
+};
+
+export function buildTemplateQuickstart(
+  options: TemplateQuickstartOptions & {
+    readonly blueprint: WorkflowOptionalBlueprintId;
+  },
+): WorkflowOptionalTemplateQuickstart;
+export function buildTemplateQuickstart(
+  options?: TemplateQuickstartOptions & {
+    readonly blueprint?: WorkflowBackedBlueprintId;
+  },
+): WorkflowBackedTemplateQuickstart;
+export function buildTemplateQuickstart(
+  options?: TemplateQuickstartOptions,
+): TemplateQuickstart;
+// eslint-disable-next-line complexity -- AP-008 tracks splitting blueprint-specific quickstart projection.
+export function buildTemplateQuickstart(
+  options?: TemplateQuickstartOptions,
+): TemplateQuickstart {
   const blueprint = options?.blueprint ?? defaultBlueprintId;
   const blueprintConfig = findBlueprint(blueprint);
-  const instance = buildTemplateInstance({
+  const baseInstance = buildTemplateInstance({
     ...(options?.name ? { name: options.name } : {}),
     blueprint,
     providerMode: options?.providerMode ?? "fake",
     ...(options?.generatedAt ? { generatedAt: options.generatedAt } : {}),
   });
+  const instance: TemplateInstance =
+    blueprint === "saas-application"
+      ? {
+          ...baseInstance,
+          modules: ["workspace", "records", "web", "api", "cli"],
+          requiredSecretNames: [],
+        }
+      : baseInstance;
+  if (blueprint === "saas-application") {
+    const files = withGeneratorProvenance("quickstart", instance.slug, [
+      {
+        path: "template-instance.json",
+        content: `${JSON.stringify(instance, null, 2)}\n`,
+      },
+      ...buildSaasApplicationFiles({ name: instance.name }),
+      {
+        path: "docs/template/generated/handoff-packet.md",
+        content: buildSaasApplicationHandoff(instance.name),
+      },
+    ]);
+    const targets = files.map(({ path }) => path);
+    const targetCwd = options?.cwd;
+    const collisions = targetCwd
+      ? targets.filter((path) => existsSync(resolve(targetCwd, path)))
+      : [];
+
+    return {
+      blueprint,
+      instance,
+      workflowPosture: "optional-unavailable",
+      firstCapability: null,
+      firstWorkflow: null,
+      firstAgent: null,
+      files,
+      targets,
+      collisions,
+      nextCommands: [
+        `pnpm maestro -- create ../${instance.slug} --name ${JSON.stringify(instance.name)} --outcome "Create and review records" --write`,
+        `pnpm --dir ../${instance.slug} maestro -- start --mode fake`,
+      ],
+    };
+  }
   const seed = buildDemoSeedPlan({
     blueprint,
     workspaceSlug: instance.slug,
@@ -962,24 +1254,37 @@ export const buildTemplateQuickstart = (options?: {
     ...buildBlueprintQuickstartFiles(blueprint),
   ];
 
+  const generatedFiles = withGeneratorProvenance(
+    "quickstart",
+    instance.slug,
+    files,
+  );
+  if (
+    blueprintConfig.defaultCapability === null ||
+    blueprintConfig.defaultWorkflow === null ||
+    blueprintConfig.defaultAgent === null
+  ) {
+    throw new Error(`Blueprint ${blueprint} is missing its workflow contract.`);
+  }
+
   return {
-    blueprint,
+    blueprint: blueprint as WorkflowBackedBlueprintId,
     instance,
     firstCapability: blueprintConfig.defaultCapability,
     firstWorkflow: blueprintConfig.defaultWorkflow,
     firstAgent: blueprintConfig.defaultAgent,
-    files: withGeneratorProvenance("quickstart", instance.slug, files),
+    files: generatedFiles,
     nextCommands: [
       "pnpm template:doctor -- --mode fake",
       "review docs/template/generated/provider-setup-checklist.md",
       `pnpm template:seed-demo -- --blueprint ${blueprint} --write`,
-      "pnpm template:add-client-domain -- --name customerContext --write",
-      `pnpm template:add-capability -- --name ${blueprintConfig.defaultCapability} --write`,
-      `pnpm template:add-workflow -- --name ${blueprintConfig.defaultWorkflow} --write`,
+      "pnpm template:add-client-domain -- --name customerContext --system knowledge-brain --disposition extend --write",
+      `pnpm template:add-capability -- --name ${blueprintConfig.defaultCapability} --system knowledge-brain --disposition extend --write`,
+      `pnpm template:add-workflow -- --name ${blueprintConfig.defaultWorkflow} --system knowledge-brain --disposition extend --write`,
       "pnpm template:handoff -- --mode fake --write",
     ],
   };
-};
+}
 
 export const buildClientIntake = (options?: {
   readonly name?: string;
@@ -1053,7 +1358,7 @@ for a source-backed B2B AI/GTM app. No live secrets required in fake mode.
 - WorkOS: fake until auth ownership and domains are approved.
 - PostHog: fake/test until event capture is approved.
 - Dodo: fake/test until pricing and reconciliation are approved.
-- MailerSend: console/fake until sender domain and templates are approved.
+- Email: fake until Postmark sender signatures, streams, templates, and webhooks are approved.
 - LLM: deterministic fake until spend caps, model allowlist, and redaction are
   approved.
 
@@ -1094,6 +1399,8 @@ export const buildClientDomainFiles = (
   const basePath = `generated/domains/${name}`;
   const metadata = {
     domain: name,
+    system: options.system,
+    disposition: options.disposition,
     description,
     extensionBoundary: "generated-or-private-package",
     sourceTypes: ["markdown", "link", "note"],
@@ -1116,6 +1423,8 @@ export const buildClientDomainFiles = (
 
 ${description}
 
+Canonical system: \`${options.system}\` (\`${options.disposition}\`).
+
 ## Purpose
 
 Use this generated domain as the client-specific boundary for nouns, source
@@ -1136,7 +1445,12 @@ package until reviewed.
   return {
     name,
     pascalName,
-    files: withGeneratorProvenance("add-client-domain", name, files),
+    system: options.system,
+    disposition: options.disposition,
+    files: withGeneratorProvenance("add-client-domain", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
   };
 };
 
@@ -1292,6 +1606,8 @@ describe("${name} generated capability domain", () => {
       content: `${JSON.stringify(
         {
           capability: name,
+          system: options.system,
+          disposition: options.disposition,
           description,
           exposure,
           authScope: "workspace member",
@@ -1327,6 +1643,7 @@ ${description}
 
 ## Contract
 
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
 - Args: \`${name}Args\`
 - Returns: \`${name}Returns\`
 - Typed errors: ${typedErrors.join(", ")}
@@ -1346,14 +1663,263 @@ ${description}
   return {
     name,
     pascalName,
+    system: options.system,
+    disposition: options.disposition,
     exposure,
-    files: withGeneratorProvenance("add-capability", name, files),
+    files: withGeneratorProvenance("add-capability", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
+  };
+};
+
+export const buildFeatureFiles = (
+  options: FeatureGeneratorOptions,
+): FeatureGeneratorResult => buildCrudFeatureFiles(options);
+
+const tenantOwnerField = (
+  tenantScope: DataTenantScope,
+): {
+  readonly field: string;
+  readonly table: string;
+  readonly index: string;
+} => {
+  if (tenantScope === "workspace") {
+    return { field: "workspaceId", table: "workspaces", index: "by_workspace" };
+  }
+  if (tenantScope === "organization") {
+    return {
+      field: "organizationId",
+      table: "organizations",
+      index: "by_organization",
+    };
+  }
+  if (tenantScope === "user") {
+    return { field: "userId", table: "users", index: "by_user" };
+  }
+  return { field: "key", table: "", index: "by_key" };
+};
+
+export const buildTableFiles = (
+  options: TableGeneratorOptions,
+  catalogs?: {
+    readonly systems?: SystemCatalog;
+    readonly dataResources?: DataResourceCatalog;
+  },
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting durable-table projection metadata.
+): TableGeneratorResult => {
+  if (options.disposition !== "extend") {
+    throw new RangeError("New durable tables must use --disposition extend");
+  }
+
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const systems = catalogs?.systems ?? readSystemCatalog();
+  const dataResources = catalogs?.dataResources ?? readDataResourceCatalog();
+  const system = canonicalSystemById(systems, options.system);
+  if (system.lifecycle !== "active") {
+    throw new RangeError(
+      `Canonical system ${system.id} is ${system.lifecycle} and cannot receive a durable table`,
+    );
+  }
+  if (
+    systems.systems.some(({ tables }) => tables.includes(name)) ||
+    dataResources.resources.some(({ id }) => id === name)
+  ) {
+    throw new RangeError(`Durable table ${name} is already registered`);
+  }
+
+  const owner = tenantOwnerField(options.tenantScope);
+  const writeAuthority = system.canonicalEntrypoints[0];
+  if (writeAuthority === undefined) {
+    throw new RangeError(
+      `Canonical system ${system.id} has no write authority entrypoint`,
+    );
+  }
+  const ownerField =
+    options.tenantScope === "global"
+      ? "    key: Schema.String,"
+      : `    ${owner.field}: Id("${owner.table}"),`;
+  const businessFields = options.businessEntity
+    ? `
+    title: Schema.String,
+    detail: Schema.String,
+    status: Schema.Literals(["planned", "active", "complete"]),`
+    : "";
+  const idImport =
+    options.tenantScope === "global"
+      ? ""
+      : 'import { Id } from "../_generated/id";\n';
+  const description =
+    options.description ??
+    `Durable ${name} state owned by the ${system.id} canonical system.`;
+  const decisionPath = `docs/template/schema-decisions/${name}.md`;
+  const tablePath = `packages/convex/confect/tables/${name}.ts`;
+  const nextSystems: SystemCatalog = {
+    ...systems,
+    systems: systems.systems.map((candidate) =>
+      candidate.id === system.id
+        ? {
+            ...candidate,
+            tables: [...candidate.tables, name].sort(),
+          }
+        : candidate,
+    ),
+  };
+  const nextDataResources = parseDataResourceCatalog({
+    ...dataResources,
+    resources: [
+      ...dataResources.resources,
+      {
+        id: name,
+        system: system.id,
+        sourcePath: tablePath,
+        tenantScope: options.tenantScope,
+        sensitivity: options.sensitivity,
+        pii: [...options.pii],
+        exportMode: options.exportMode,
+        deleteMode: options.deleteMode,
+        retention: options.retention,
+        appendOnly: options.appendOnly ?? false,
+        workspaceLifecycle:
+          options.tenantScope === "workspace" ? "managed" : "excluded",
+        writePosture: "implemented",
+        writeAuthority,
+        migrationRef: decisionPath,
+        detail: description,
+      },
+    ].sort((left, right) => left.id.localeCompare(right.id)),
+  });
+  const files: readonly GeneratedFile[] = [
+    {
+      path: tablePath,
+      content: `import { Table } from "@confect/server";
+import * as Schema from "effect/Schema";
+${idImport}
+// ${description}
+export default Table.make(() =>
+  Schema.Struct({
+${ownerField}
+${businessFields}
+    createdAt: Schema.Number,
+    updatedAt: Schema.Number,
+  }),
+).index("${owner.index}", ["${owner.field}"]);
+`,
+    },
+    {
+      path: decisionPath,
+      content: `# ${pascalName} Schema Decision
+
+Canonical system: \`${system.id}\`
+Disposition: \`extend\`
+Status: proposed
+
+## Purpose
+
+${description}
+
+## Data Contract
+
+- Tenant scope: \`${options.tenantScope}\`
+- Sensitivity: \`${options.sensitivity}\`
+- PII categories: ${options.pii.length === 0 ? "none" : options.pii.map((value) => `\`${value}\``).join(", ")}
+- Export: \`${options.exportMode}\`
+- Delete/redaction: \`${options.deleteMode}\`
+- Retention: \`${options.retention}\`
+- Append-only: \`${String(options.appendOnly ?? false)}\`
+- Write authority: \`${writeAuthority}\`
+
+## Migration And Rollback
+
+Document indexes, backfill, compatibility window, rollback behavior, and the
+query that proves the table is necessary before approving this decision.
+`,
+    },
+    {
+      path: "docs/template/system-catalog.json",
+      content: `${JSON.stringify(nextSystems, null, 2)}\n`,
+    },
+    {
+      path: "docs/template/data-resources.json",
+      content: `${JSON.stringify(nextDataResources, null, 2)}\n`,
+    },
+  ];
+
+  return {
+    name,
+    pascalName,
+    system: system.id,
+    disposition: "extend",
+    files: withGeneratorProvenance("add-table", name, files, {
+      system: system.id,
+      disposition: "extend",
+    }),
   };
 };
 
 export const buildAgentFiles = (
   options: AgentGeneratorOptions,
 ): AgentGeneratorResult => {
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const description =
+    options.description ??
+    `Generated ${name} agent declaration. Select a UI seat before adding surface behavior.`;
+  const followUp = [
+    "Select a UI seat before adding surface-specific behavior.",
+    "Review capability grants before adding model-call or provider-backed behavior.",
+  ] as const;
+  const files: readonly GeneratedFile[] = [
+    {
+      path: `packages/convex/confect/agents/${name}.ts`,
+      content: `export const ${name}Agent = {
+  id: "${name}",
+  system: "${options.system}",
+  disposition: "${options.disposition}",
+  systemDisposition: "${options.disposition}",
+  displayName: "${pascalName}",
+  description: ${JSON.stringify(description)},
+  surfaces: [],
+  capabilities: [],
+  headlessExposure: false,
+} as const;
+`,
+    },
+    {
+      path: `docs/template/generated/agents/${name}.md`,
+      content: `# ${pascalName} Agent
+
+${description}
+
+This declaration is surface-neutral. Use \`pnpm template:add-agent-seat\` to select a UI seat and generate its explicit runtime contract.
+
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
+- Surfaces: none
+- Capabilities: none
+- Headless exposure: none
+`,
+    },
+  ];
+
+  return {
+    name,
+    pascalName,
+    system: options.system,
+    disposition: options.disposition,
+    surfaces: [],
+    headlessExposure: false,
+    files: withGeneratorProvenance("add-agent", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
+    followUp,
+  };
+};
+
+export const buildAgentSeatFiles = (
+  options: AgentGeneratorOptions,
+): AgentSeatGeneratorResult => {
   const name = camelCase(options.name);
   const pascalName = pascalCase(options.name);
   const description =
@@ -1380,6 +1946,8 @@ import * as S from "effect/Schema";
 
 export const ${manifestName} = {
   agent: "${name}",
+  system: "${options.system}",
+  systemDisposition: "${options.disposition}",
   displayName: "${pascalName}",
   description: ${JSON.stringify(description)},
   surfaces: ["web"],
@@ -1705,6 +2273,7 @@ ${description}
 
 ## Generated Contract
 
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
 - Agent: \`${name}\`
 - Surfaces: \`["web"]\`
 - Agent seat: web-facing
@@ -1731,536 +2300,15 @@ ${description}
   return {
     name,
     pascalName,
+    system: options.system,
+    disposition: options.disposition,
     surfaces: ["web"],
     headlessExposure: false,
-    files: withGeneratorProvenance("add-agent", name, files),
+    files: withGeneratorProvenance("add-agent", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
     followUp,
-  };
-};
-
-export const buildWorkflowFiles = (
-  options: WorkflowGeneratorOptions,
-): WorkflowGeneratorResult => {
-  const name = camelCase(options.name);
-  const pascalName = pascalCase(options.name);
-  const description =
-    options.description ??
-    `Generated ${name} workflow. Replace the source-to-receipt graph after review.`;
-  const files: readonly GeneratedFile[] = [
-    {
-      path: `packages/convex/confect/workflowContracts/${name}.spec.ts`,
-      content: `import { FunctionSpec, GroupSpec } from "@confect/core";
-import * as Schema from "effect/Schema";
-import {
-  collectContractManifest,
-  collectContractSchemas,
-  defineContractFunction,
-} from "../capabilities/_kit/capability";
-import {
-  MemberNotInWorkspace,
-  NotFound,
-  Unauthorized,
-  ValidationFailed,
-  WorkspaceNotFound,
-} from "../errors";
-import { Id } from "../_generated/id";
-import { WorkflowStatusResult } from "../workflows/_kit/status";
-
-const WorkflowErrors = Schema.Union(
-  Unauthorized,
-  MemberNotInWorkspace,
-  WorkspaceNotFound,
-  NotFound,
-  ValidationFailed,
-);
-
-const StartArgs = Schema.Struct({
-  workspaceId: Id("workspaces"),
-  idempotencyKey: Schema.String,
-});
-
-const StartReturns = Schema.Struct({
-  status: Schema.Literal("queued"),
-  workflow: Schema.Literal("${name}"),
-  componentWorkflowId: Schema.String,
-});
-
-const StatusArgs = Schema.Struct({
-  workspaceId: Id("workspaces"),
-  componentWorkflowId: Schema.String,
-});
-
-const ApproveArgs = Schema.Struct({
-  workspaceId: Id("workspaces"),
-  componentWorkflowId: Schema.String,
-  nodeId: Schema.String,
-});
-
-const ApproveReturns = Schema.Struct({
-  eventId: Schema.String,
-});
-
-export const start = defineContractFunction(
-  FunctionSpec.publicMutation({
-    name: "start",
-    args: () => StartArgs,
-    returns: () => StartReturns,
-    error: () => WorkflowErrors,
-  }),
-  {
-    namespace: "workflows.${name}",
-    name: "start",
-    operationId: "workflows.${name}.start",
-    kind: "mutation",
-    surfaces: ["web", "api", "cli", "mcp"],
-    typedErrors: [
-      "Unauthorized",
-      "MemberNotInWorkspace",
-      "WorkspaceNotFound",
-      "NotFound",
-      "ValidationFailed",
-    ],
-    idempotent: false,
-    argsSchemaName: "workflows.${name}.start.args",
-    returnsSchemaName: "workflows.${name}.start.returns",
-    argsSchema: StartArgs,
-    returnsSchema: StartReturns,
-  },
-);
-
-export const status = defineContractFunction(
-  FunctionSpec.publicQuery({
-    name: "status",
-    args: () => StatusArgs,
-    returns: () => WorkflowStatusResult,
-    error: () => WorkflowErrors,
-  }),
-  {
-    namespace: "workflows.${name}",
-    name: "status",
-    operationId: "workflows.${name}.status",
-    kind: "query",
-    surfaces: ["web", "api", "cli", "mcp"],
-    typedErrors: [
-      "Unauthorized",
-      "MemberNotInWorkspace",
-      "WorkspaceNotFound",
-      "NotFound",
-      "ValidationFailed",
-    ],
-    idempotent: true,
-    argsSchemaName: "workflows.${name}.status.args",
-    returnsSchemaName: "workflows.${name}.status.returns",
-    argsSchema: StatusArgs,
-    returnsSchema: WorkflowStatusResult,
-  },
-);
-
-export const approve = defineContractFunction(
-  FunctionSpec.publicMutation({
-    name: "approve",
-    args: () => ApproveArgs,
-    returns: () => ApproveReturns,
-    error: () => WorkflowErrors,
-  }),
-  {
-    namespace: "workflows.${name}",
-    name: "approve",
-    operationId: "workflows.${name}.approve",
-    kind: "mutation",
-    surfaces: ["web", "api", "cli", "mcp"],
-    typedErrors: [
-      "Unauthorized",
-      "MemberNotInWorkspace",
-      "WorkspaceNotFound",
-      "NotFound",
-      "ValidationFailed",
-    ],
-    idempotent: false,
-    argsSchemaName: "workflows.${name}.approve.args",
-    returnsSchemaName: "workflows.${name}.approve.returns",
-    argsSchema: ApproveArgs,
-    returnsSchema: ApproveReturns,
-  },
-);
-
-const contractFunctions = [start, status, approve] as const;
-
-export const manifest = collectContractManifest(contractFunctions);
-export const schemaRegistry = collectContractSchemas(contractFunctions);
-
-export default GroupSpec.make()
-  .addFunction(start.spec)
-  .addFunction(status.spec)
-  .addFunction(approve.spec);
-`,
-    },
-    {
-      path: `packages/convex/confect/workflowContracts/${name}.impl.ts`,
-      content: `import {
-  getStatus,
-  sendEvent,
-  type WorkflowComponent,
-  type WorkflowId,
-} from "@convex-dev/workflow";
-import { FunctionImpl, GroupImpl } from "@confect/server";
-import * as Clock from "effect/Clock";
-import * as Effect from "effect/Effect";
-import * as Layer from "effect/Layer";
-import * as Option from "effect/Option";
-import {
-  componentsGeneric,
-  makeFunctionReference,
-  type FunctionReference,
-} from "convex/server";
-import databaseSchema from "../_generated/schema";
-import {
-  DatabaseReader,
-  MutationCtx,
-  QueryCtx,
-} from "../_generated/services";
-import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
-import {
-  MemberNotInWorkspace,
-  NotFound,
-  Unauthorized,
-  ValidationFailed,
-  WorkspaceNotFound,
-} from "../errors";
-import { startWorkflowAndRecordOwnership } from "../workflows/_kit/ownership";
-import {
-  projectWorkflowStatus,
-  type WorkflowStatusRunProjection,
-} from "../workflows/_kit/status";
-import { ${name}Graph } from "../workflows/${name}.graph";
-import ${name} from "./${name}.spec";
-
-const withConfectClock = <A, E, R>(
-  effect: Effect.Effect<A, E, R>,
-): Effect.Effect<A, E, Exclude<R, Clock.Clock>> =>
-  // Confect provides Clock at runtime, but its current handler type omits it.
-  effect as Effect.Effect<A, E, Exclude<R, Clock.Clock>>;
-
-const workflowComponent =
-  componentsGeneric().workflow as unknown as WorkflowComponent;
-
-type WorkflowRunFunctionArgs = {
-  readonly args: {
-    readonly workspaceId: string;
-    readonly idempotencyKey: string;
-  };
-  readonly startAsync?: boolean;
-};
-
-const ${name}RunRef = makeFunctionReference<
-  "mutation",
-  WorkflowRunFunctionArgs,
-  WorkflowId
->("workflowRunners/${name}:run") as unknown as FunctionReference<
-  "mutation",
-  "internal",
-  WorkflowRunFunctionArgs,
-  WorkflowId
->;
-
-const errorMessage = (error: unknown): string | null => {
-  if (
-    typeof error === "object" &&
-    error !== null &&
-    "message" in error &&
-    typeof error.message === "string"
-  ) {
-    return error.message;
-  }
-
-  return null;
-};
-
-const toWorkflowValidationFailed = (error: unknown): ValidationFailed =>
-  new ValidationFailed({
-    field: "workflow",
-    message: errorMessage(error) ?? "Unable to start workflow.",
-  });
-
-type WorkflowError =
-  | Unauthorized
-  | MemberNotInWorkspace
-  | WorkspaceNotFound
-  | NotFound
-  | ValidationFailed;
-
-const toWorkflowError = (error: unknown): WorkflowError => {
-  if (
-    error instanceof Unauthorized ||
-    error instanceof MemberNotInWorkspace ||
-    error instanceof WorkspaceNotFound ||
-    error instanceof NotFound ||
-    error instanceof ValidationFailed
-  ) {
-    return error;
-  }
-
-  return toWorkflowValidationFailed(error);
-};
-
-const findWorkflowRun = (
-  workspaceId: string,
-  componentWorkflowId: string,
-) =>
-  Effect.gen(function* () {
-    const reader = yield* DatabaseReader;
-    const run = yield* reader
-      .table("workflowRuns")
-      .index("by_workspace_component_workflow", (q) =>
-        q
-          .eq("workspaceId", workspaceId)
-          .eq("componentWorkflowId", componentWorkflowId),
-      )
-      .first()
-      .pipe(Effect.map(Option.getOrNull), Effect.orDie);
-
-    if (!run) {
-      return yield* Effect.fail(
-        new NotFound({
-          resource: "workflowRuns",
-          id: componentWorkflowId,
-        }),
-      );
-    }
-
-    return run;
-  });
-
-const startImpl = FunctionImpl.make(
-  databaseSchema,
-  ${name},
-  "start",
-  ({ workspaceId, idempotencyKey }) =>
-    Effect.gen(function* () {
-      const access = yield* withConfectClock(
-        requireWorkspaceAccess(workspaceId, "editor"),
-      );
-      const startedAt = yield* withConfectClock(Clock.currentTimeMillis);
-      const componentWorkflowId = yield* startWorkflowAndRecordOwnership({
-        workflowRef: ${name}RunRef,
-        workflowArgs: { workspaceId, idempotencyKey },
-        workspaceId,
-        workflowId: ${name}Graph.id,
-        workflowVersion: ${name}Graph.version,
-        graphJson: JSON.stringify(${name}Graph),
-        idempotencyKey,
-        startedByUserId: access.userId,
-        startedAt: startedAt,
-        workflowKind: "workflow.${name}",
-      }).pipe(Effect.mapError(toWorkflowValidationFailed));
-
-      return {
-        status: "queued" as const,
-        workflow: "${name}" as const,
-        componentWorkflowId,
-      };
-    }).pipe(Effect.mapError(toWorkflowError)),
-);
-
-const statusImpl = FunctionImpl.make(
-  databaseSchema,
-  ${name},
-  "status",
-  ({ workspaceId, componentWorkflowId }) =>
-    Effect.gen(function* () {
-      yield* withConfectClock(requireWorkspaceAccess(workspaceId, "viewer"));
-      const run = yield* findWorkflowRun(workspaceId, componentWorkflowId);
-      const ctx = yield* QueryCtx;
-      const rawStatus = yield* Effect.promise(() =>
-        getStatus(ctx, workflowComponent, componentWorkflowId as WorkflowId),
-      ).pipe(Effect.mapError(toWorkflowValidationFailed));
-      const runProjection = {
-        ...(run.status !== undefined ? { status: run.status } : {}),
-        ...(run.deadlineAt !== undefined ? { deadlineAt: run.deadlineAt } : {}),
-        ...(run.timedOutAt !== undefined ? { timedOutAt: run.timedOutAt } : {}),
-        ...(run.timeoutErrorCode !== undefined
-          ? { timeoutErrorCode: run.timeoutErrorCode }
-          : {}),
-        ...(run.timeoutSummary !== undefined
-          ? { timeoutSummary: run.timeoutSummary }
-          : {}),
-      } satisfies WorkflowStatusRunProjection;
-
-      return projectWorkflowStatus(rawStatus, runProjection);
-    }).pipe(Effect.mapError(toWorkflowError)),
-);
-
-const approveImpl = FunctionImpl.make(
-  databaseSchema,
-  ${name},
-  "approve",
-  ({ workspaceId, componentWorkflowId, nodeId }) =>
-    Effect.gen(function* () {
-      yield* withConfectClock(requireWorkspaceAccess(workspaceId, "editor"));
-      yield* findWorkflowRun(workspaceId, componentWorkflowId);
-      const ctx = yield* MutationCtx;
-      const eventId = yield* Effect.promise(() =>
-        sendEvent(ctx, workflowComponent, {
-          workflowId: componentWorkflowId as WorkflowId,
-          name: ${name}Graph.id + "." + nodeId + ".approved",
-          value: null,
-        }),
-      ).pipe(Effect.mapError(toWorkflowValidationFailed));
-
-      return { eventId };
-    }).pipe(Effect.mapError(toWorkflowError)),
-);
-
-export default GroupImpl.make(databaseSchema, ${name}).pipe(
-  Layer.provide(startImpl),
-  Layer.provide(statusImpl),
-  Layer.provide(approveImpl),
-  GroupImpl.finalize,
-);
-`,
-    },
-    {
-      path: `packages/convex/confect/workflows/${name}.graph.ts`,
-      content: `import type { DurableWorkflowGraph } from "./graph";
-
-export const ${name}Graph = {
-  id: "workflow_${name}",
-  version: 1,
-  startNodeId: "start",
-  nodes: [
-    {
-      id: "start",
-      kind: "source",
-      label: "${name} start",
-      retry: { maxAttempts: 1, backoffMs: 0 },
-    },
-    {
-      id: "receipt",
-      kind: "output",
-      label: "Trust Receipt",
-      retry: { maxAttempts: 1, backoffMs: 0 },
-    },
-  ],
-  edges: [
-    {
-      id: "edge_start_receipt",
-      sourceNodeId: "start",
-      targetNodeId: "receipt",
-    },
-  ],
-  joins: [],
-} satisfies DurableWorkflowGraph;
-`,
-    },
-    {
-      path: `packages/convex/convex/workflowRunners/${name}.ts`,
-      content: `import { defineWorkflow } from "@convex-dev/workflow";
-import { v } from "convex/values";
-import { components } from "../_generated/api";
-import {
-  runDurableGraphWorkflow,
-  type RunDurableGraphStep,
-} from "../../confect/workflows/_kit/graphRunner";
-import { ${name}Graph } from "../../confect/workflows/${name}.graph";
-
-export const run = defineWorkflow(components.workflow, {
-  args: {
-    workspaceId: v.string(),
-    idempotencyKey: v.string(),
-  },
-  returns: v.any(),
-}).handler((step, args) =>
-  runDurableGraphWorkflow(step as RunDurableGraphStep, {
-    graph: ${name}Graph,
-    inputs: args,
-    policySnapshot: {},
-    capabilityRegistry: {},
-  }),
-);
-`,
-    },
-    {
-      path: `packages/convex/test/${name}.workflow.test.ts`,
-      content: `import { describe, expect, it } from "vitest";
-import { ${name}Graph } from "../confect/workflows/${name}.graph";
-import {
-  runDurableGraphWorkflow,
-  type RunDurableGraphStep,
-} from "../confect/workflows/_kit/graphRunner";
-
-describe("${name} durable workflow scaffold", () => {
-  it("runs the generated source-to-output graph", async () => {
-    const step: RunDurableGraphStep = {
-      runQuery: async () => {
-        throw new Error("Generated source/output graph should not run queries.");
-      },
-      runMutation: async () => {
-        throw new Error("Generated source/output graph should not run mutations.");
-      },
-      runAction: async () => {
-        throw new Error("Generated source/output graph should not run actions.");
-      },
-      sleep: async () => {},
-      awaitEvent: async () => {
-        throw new Error("Generated source/output graph should not await events.");
-      },
-    };
-
-    const inputs = {
-      workspaceId: "workspace_123",
-      idempotencyKey: "workflow-test-1",
-    };
-    const policySnapshot = { mode: "test" };
-
-    const result = await runDurableGraphWorkflow(step, {
-      graph: ${name}Graph,
-      inputs,
-      policySnapshot,
-      capabilityRegistry: {},
-    });
-
-    expect(result).toEqual({
-      inputs,
-      context: {
-        start: inputs,
-      },
-      policySnapshot,
-    });
-  });
-});
-`,
-    },
-    {
-      path: `docs/template/generated/workflows/${name}.md`,
-      content: `# ${pascalName} Workflow
-
-${description}
-
-## Generated Files
-
-- \`packages/convex/convex/workflowRunners/${name}.ts\`: plain Convex \`defineWorkflow\` durable replay handler.
-- \`packages/convex/confect/workflowContracts/${name}.spec.ts\`: typed start, status, and approval contract.
-- \`packages/convex/confect/workflowContracts/${name}.impl.ts\`: Confect implementation that records workflow ownership and projects component status.
-- \`packages/convex/confect/workflows/${name}.graph.ts\`: durable graph data, initially source to Trust Receipt output only.
-- \`packages/convex/test/${name}.workflow.test.ts\`: focused runner scaffold for the default graph.
-
-## Required Follow-Up
-
-1. Add the generated Confect group to the workflow spec tree.
-2. Run \`pnpm --dir packages/convex exec convex codegen\` after writing the generated files so \`workflowRunners/${name}:run\` exists before typecheck.
-   Run \`pnpm confect:codegen\` when validating the generated \`workflowContracts.${name}\` public wrappers; if Confect sync removes \`packages/convex/convex/workflowRunners/${name}.ts\`, rerun this generator before Convex codegen and typecheck.
-3. Keep React Flow as a projection of \`${name}.graph.ts\`; do not persist canvas node state as the workflow contract.
-4. Generated approval nodes require the generated \`workflowContracts.${name}.approve\` mutation before they are usable.
-5. Generated capability nodes require registry entries with concrete \`buildArgs\` mappers for the target internal capability ref.
-6. Run \`pnpm check:workflow-graph-boundary\`, \`pnpm check:confect-contracts\`, and focused workflow tests.
-`,
-    },
-  ];
-
-  return {
-    name,
-    pascalName,
-    files: withGeneratorProvenance("add-workflow", name, files),
   };
 };
 
@@ -2419,6 +2467,8 @@ describe("${name} promoted capability domain", () => {
       content: `${JSON.stringify(
         {
           capability: name,
+          system: options.system,
+          disposition: options.disposition,
           promoted: true,
           targetGroup: `capabilities/${name}`,
           authScope: "workspace member",
@@ -2446,6 +2496,7 @@ ${description}
 
 ## Promotion Contract
 
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
 - Confect spec: \`${name}.spec.ts\`
 - Confect impl: \`${name}.impl.ts\`
 - Typed errors: Unauthorized, ValidationFailed, Forbidden
@@ -2465,8 +2516,13 @@ ${description}
   return {
     name,
     pascalName,
+    system: options.system,
+    disposition: options.disposition,
     target: "capability",
-    files: withGeneratorProvenance("promote-capability", name, files),
+    files: withGeneratorProvenance("promote-capability", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
     followUp: [
       "Add promoted group to the Confect spec tree.",
       "Run pnpm confect:codegen and inspect generated refs.",
@@ -2546,6 +2602,8 @@ export default GroupImpl.make(databaseSchema, ${name}Group).pipe(
         {
           id: name,
           name: pascalName,
+          system: options.system,
+          disposition: options.disposition,
           description,
           promoted: true,
           nodes: [
@@ -2583,6 +2641,7 @@ ${description}
 
 ## Promotion Contract
 
+- Canonical system: \`${options.system}\` (\`${options.disposition}\`)
 - Confect run spec: \`${name}.spec.ts\`
 - Confect run impl: \`${name}.impl.ts\`
 - Durable graph seed: \`${name}.workflow.json\`
@@ -2601,8 +2660,13 @@ ${description}
   return {
     name,
     pascalName,
+    system: options.system,
+    disposition: options.disposition,
     target: "workflow",
-    files: withGeneratorProvenance("promote-workflow", name, files),
+    files: withGeneratorProvenance("promote-workflow", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
     followUp: [
       "Add promoted workflow group to the Confect spec tree.",
       "Wire the durable graph into workflow UI and headless registry surfaces.",
@@ -2624,7 +2688,7 @@ export const buildTemplateUpgradeReport = (options: {
     "tooling/generators",
   ];
   const envChanges = [
-    "Review WorkOS, PostHog, Dodo, MailerSend, LLM, storage, and search env names.",
+    "Review WorkOS, PostHog, Dodo, email, LLM, storage, and search env names.",
     "Confirm fake/test/live provider mode still matches template-instance.json.",
   ];
   const migrations = [
@@ -2669,39 +2733,25 @@ export const buildTemplateUpgradeReport = (options: {
   };
 };
 
-type PrivatePackageManifest = {
-  readonly name?: string;
-  readonly capabilities?: readonly string[];
-  readonly workflows?: readonly string[];
-  readonly agents?: readonly string[];
-  readonly docs?: readonly string[];
-};
-
-const privatePackageName = (
-  fixturePath: string,
-  manifest?: PrivatePackageManifest,
-): string =>
-  manifest?.name?.trim() || slugify(basename(fixturePath)) || "client-package";
-
-const privatePackageCapabilityFiles = (
-  packageName: string,
-  capabilityName: string,
-): readonly GeneratedFile[] => {
-  const name = camelCase(capabilityName);
-  const pascalName = pascalCase(capabilityName);
-  const basePath = `private-packages/${packageName}/src/capabilities/${name}`;
-
-  return [
+export const buildPrototypeFiles = (
+  options: PrototypeGeneratorOptions,
+): PrototypeGeneratorResult => {
+  const name = camelCase(options.name);
+  const pascalName = pascalCase(options.name);
+  const basePath = `experiments/${options.system}/${name}`;
+  const promotionCommand = `pnpm template:add-feature -- --name ${name} --system ${options.system} --disposition ${options.disposition} --write`;
+  const files: readonly GeneratedFile[] = [
     {
-      path: `${basePath}/${name}.contract.json`,
+      path: `${basePath}/experiment.json`,
       content: `${JSON.stringify(
         {
-          capability: name,
-          packageName,
-          authScope: "workspace member",
-          typedErrors: ["Unauthorized", "ValidationFailed", "Forbidden"],
-          surfaces: ["api", "cli", "mcp"],
-          promotionCommand: `pnpm template:promote-capability -- --name ${name} --write`,
+          schemaVersion: 1,
+          id: name,
+          system: options.system,
+          disposition: options.disposition,
+          hypothesis: options.hypothesis.trim(),
+          productionRegistrations: false,
+          promotionCommand,
         },
         null,
         2,
@@ -2709,203 +2759,98 @@ const privatePackageCapabilityFiles = (
     },
     {
       path: `${basePath}/README.md`,
-      content: `# ${pascalName} Capability Module
+      content: `# ${pascalName} Experiment
 
-Private package capability module for \`${packageName}\`.
+Hypothesis: ${options.hypothesis.trim()}
 
-## Import Checklist
+This code is sandbox-only. It may use fake fixtures and local adapters, but it
+must not register production tables, routes, headless operations, jobs, or
+providers. Production code must not import it.
 
-1. Review fixture redaction and source ownership.
-2. Promote with \`pnpm template:promote-capability -- --name ${name} --write\`.
-3. Replace deterministic implementation with client-specific domain logic.
-4. Run \`pnpm check:confect-contracts\` and focused capability tests.
+When the behavior is worth keeping, re-scaffold the vertical slice with:
+
+\`\`\`bash
+${promotionCommand}
+\`\`\`
 `,
     },
-  ];
-};
-
-const privatePackageWorkflowFiles = (
-  packageName: string,
-  workflowName: string,
-): readonly GeneratedFile[] => {
-  const name = camelCase(workflowName);
-  const pascalName = pascalCase(workflowName);
-  const basePath = `private-packages/${packageName}/src/workflows/${name}`;
-
-  return [
     {
-      path: `${basePath}/${name}.workflow.json`,
-      content: `${JSON.stringify(
-        {
-          workflow: name,
-          packageName,
-          promoted: false,
-          nodes: [
-            { id: "source", kind: "source", label: "Source Set" },
-            {
-              id: "capability",
-              kind: "capability",
-              label: "Private Capability",
-            },
-            { id: "approval", kind: "approval", label: "Policy Approval" },
-            { id: "receipt", kind: "output", label: "Trust Receipt" },
-          ],
-          edges: [
-            { id: "e1", source: "source", target: "capability" },
-            { id: "e2", source: "capability", target: "approval" },
-            { id: "e3", source: "approval", target: "receipt" },
-          ],
-        },
-        null,
-        2,
-      )}\n`,
-    },
-    {
-      path: `${basePath}/README.md`,
-      content: `# ${pascalName} Workflow Module
-
-Private package workflow module for \`${packageName}\`.
-
-## Import Checklist
-
-1. Review graph nodes, approvals, idempotency, and Trust Receipt policy.
-2. Promote with \`pnpm template:promote-workflow -- --name ${name} --write\`.
-3. Connect reviewed capability refs to reviewed capability modules.
-4. Run \`pnpm check:workflow-graph-boundary\` and focused workflow tests.
+      path: `${basePath}/src/index.ts`,
+      content: `/** Sandbox-only prototype for ${options.hypothesis.trim()} */
+export const experiment = {
+  id: "${name}",
+  system: "${options.system}",
+  hypothesis: ${JSON.stringify(options.hypothesis.trim())},
+} as const;
 `,
     },
-  ];
-};
-
-const privatePackageIndexFile = (
-  packageName: string,
-  capabilities: readonly string[],
-  workflows: readonly string[],
-  docs: readonly string[],
-): GeneratedFile => ({
-  path: `private-packages/${packageName}/src/index.ts`,
-  content: `export const privatePackage = ${JSON.stringify(
-    {
-      packageName,
-      capabilities: capabilities.map(camelCase),
-      workflows: workflows.map(camelCase),
-      docs,
-      requiredChecks: [
-        "pnpm check:confect-contracts",
-        "pnpm check:workflow-graph-boundary",
-        "pnpm check:schema-migration-notes",
-        "pnpm check:secret-canaries",
-      ],
-    },
-    null,
-    2,
-  )} as const;
-`,
-});
-
-export const buildPrivatePackagePlan = (options: {
-  readonly fixturePath: string;
-  readonly mode?: "dry-run" | "import";
-}): PrivatePackagePlan => {
-  const mode = options.mode ?? "dry-run";
-  const manifestPath = resolve(options.fixturePath, "template-package.json");
-  const manifest = readOptionalJson<PrivatePackageManifest>(manifestPath);
-  const packageName = privatePackageName(options.fixturePath, manifest);
-  const capabilities = manifest?.capabilities?.length
-    ? manifest.capabilities
-    : ["summarizeSource"];
-  const workflows = manifest?.workflows?.length
-    ? manifest.workflows
-    : ["sourceGroundedPlan"];
-  const docs = manifest?.docs?.length ? manifest.docs : ["README.md"];
-  const checks: DoctorCheck[] = [
-    {
-      id: "fixture:manifest",
-      label: "Package manifest",
-      status: manifest ? "pass" : "warn",
-      detail: manifest
-        ? `Found ${manifestPath}`
-        : "No template-package.json found; using safe default package plan",
-    },
-    {
-      id: "fixture:redaction",
-      label: "Fixture redaction",
-      status: "pass",
-      detail: "Generated plan contains no raw customer data or secret values.",
-    },
-    {
-      id: "fixture:contracts",
-      label: "Generated contracts",
-      status: "pass",
-      detail: "Capabilities and workflows require Confect contract checks.",
-    },
-  ];
-  const files: GeneratedFile[] = [
-    {
-      path: `private-packages/${packageName}/package-plan.json`,
-      content: `${JSON.stringify(
-        {
-          packageName,
-          reviewBoundary: "private-packages-first",
-          contractReview: "required-before-promotion",
-          capabilities,
-          workflows,
-          agents: manifest?.agents ?? [],
-          docs,
-          ownershipNotes: [
-            "Assign a client/package owner before promotion.",
-            "Confirm source ownership, retention, and redaction posture.",
-          ],
-          migrationNotes: [
-            "Do not promote directly into template core.",
-            "Promote reviewed contracts through template:promote-* commands.",
-          ],
-          requiredChecks: [
-            "pnpm check:confect-contracts",
-            "pnpm check:schema-migration-notes",
-            "pnpm check:secret-canaries",
-          ],
-        },
-        null,
-        2,
-      )}\n`,
-    },
-    {
-      path: `private-packages/${packageName}/README.md`,
-      content: `# ${packageName} Private Package
-
-This package plan is generated from \`${options.fixturePath}\`.
-
-## Contents
-
-- Capabilities: ${capabilities.join(", ")}
-- Workflows: ${workflows.join(", ")}
-- Docs: ${docs.join(", ")}
-
-## Required Checks
-
-- \`pnpm check:confect-contracts\`
-- \`pnpm check:schema-migration-notes\`
-- \`pnpm check:secret-canaries\`
-`,
-    },
-    privatePackageIndexFile(packageName, capabilities, workflows, docs),
-    ...capabilities.flatMap((capability) =>
-      privatePackageCapabilityFiles(packageName, capability),
-    ),
-    ...workflows.flatMap((workflow) =>
-      privatePackageWorkflowFiles(packageName, workflow),
-    ),
   ];
 
   return {
-    fixturePath: options.fixturePath,
-    mode,
-    ok: checks.every((check) => check.status !== "fail"),
-    packageName,
-    files: withGeneratorProvenance("private-package", packageName, files),
-    checks,
+    name,
+    system: options.system,
+    disposition: options.disposition,
+    files: withGeneratorProvenance("prototype", name, files, {
+      system: options.system,
+      disposition: options.disposition,
+    }),
+    followUp: [
+      "Prototype with fake-safe data inside the experiment directory.",
+      "Record what was learned in the experiment README.",
+      `Promote only by re-scaffolding: ${promotionCommand}`,
+    ],
   };
+};
+
+const valueFlags = new Set([
+  "--name",
+  "--blueprint",
+  "--mode",
+  "--path",
+  "--exposure",
+  "--description",
+  "--hypothesis",
+  "--system",
+  "--disposition",
+  "--query",
+  "--tenant-scope",
+  "--sensitivity",
+  "--pii",
+  "--export-mode",
+  "--delete-mode",
+  "--retention",
+  "--from",
+  "--to",
+  "--version",
+  "--fixture",
+]);
+const booleanFlags = new Set([
+  "--append-only",
+  "--business-entity",
+  "--help",
+  "--write",
+  "-h",
+]);
+
+const validateGeneratorArgv = (argv: readonly string[]): void => {
+  const unconsumed: string[] = [];
+  for (let index = 1; index < argv.length; index += 1) {
+    const token = argv[index];
+    if (token === undefined || token === "--" || booleanFlags.has(token))
+      continue;
+    if (valueFlags.has(token)) {
+      index += 1;
+      continue;
+    }
+    unconsumed.push(token);
+  }
+  if (unconsumed.length === 0) return;
+  if (argv.includes("--query")) {
+    throw new Error(
+      `Ambiguous arguments after --query: ${unconsumed.join(" ")}. Quote multi-word queries, for example --query "social sync".`,
+    );
+  }
+  throw new Error(`Unexpected arguments: ${unconsumed.join(" ")}`);
 };
 
 const parseArgs = (
@@ -2916,13 +2861,28 @@ const parseArgs = (
   readonly blueprint: BlueprintId;
   readonly from: string | undefined;
   readonly to: string | undefined;
+  readonly version: string | undefined;
   readonly fixture: string | undefined;
   readonly mode: ProviderMode;
   readonly exposure: "web" | "workflow" | "headless";
   readonly description: string | undefined;
+  readonly hypothesis: string | undefined;
+  readonly system: string | undefined;
+  readonly disposition: SystemGeneratorDisposition | undefined;
+  readonly query: string | undefined;
+  readonly tenantScope: DataTenantScope | undefined;
+  readonly sensitivity: DataSensitivity | undefined;
+  readonly pii: readonly string[] | undefined;
+  readonly exportMode: DataExportMode | undefined;
+  readonly deleteMode: DataDeleteMode | undefined;
+  readonly retention: DataRetention | undefined;
+  readonly appendOnly: boolean;
+  readonly businessEntity: boolean;
   readonly write: boolean;
   readonly path: string;
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting the legacy generator argv compatibility parser.
 } => {
+  validateGeneratorArgv(argv);
   const [command] = argv;
   const nameIndex = argv.indexOf("--name");
   const blueprintIndex = argv.indexOf("--blueprint");
@@ -2930,8 +2890,19 @@ const parseArgs = (
   const pathIndex = argv.indexOf("--path");
   const exposureIndex = argv.indexOf("--exposure");
   const descriptionIndex = argv.indexOf("--description");
+  const hypothesisIndex = argv.indexOf("--hypothesis");
+  const systemIndex = argv.indexOf("--system");
+  const dispositionIndex = argv.indexOf("--disposition");
+  const queryIndex = argv.indexOf("--query");
+  const tenantScopeIndex = argv.indexOf("--tenant-scope");
+  const sensitivityIndex = argv.indexOf("--sensitivity");
+  const piiIndex = argv.indexOf("--pii");
+  const exportModeIndex = argv.indexOf("--export-mode");
+  const deleteModeIndex = argv.indexOf("--delete-mode");
+  const retentionIndex = argv.indexOf("--retention");
   const fromIndex = argv.indexOf("--from");
   const toIndex = argv.indexOf("--to");
+  const versionIndex = argv.indexOf("--version");
   const fixtureIndex = argv.indexOf("--fixture");
   const mode = modeIndex >= 0 ? argv[modeIndex + 1] : undefined;
   const blueprint =
@@ -2962,6 +2933,59 @@ const parseArgs = (
   }
 
   const path = pathIndex >= 0 ? argv[pathIndex + 1] : undefined;
+  const disposition =
+    dispositionIndex >= 0 ? argv[dispositionIndex + 1] : undefined;
+  if (disposition && !["reuse", "extend"].includes(disposition)) {
+    throw new Error(`Unknown system disposition: ${disposition}`);
+  }
+  const tenantScope =
+    tenantScopeIndex >= 0 ? argv[tenantScopeIndex + 1] : undefined;
+  if (
+    tenantScope &&
+    !["global", "organization", "workspace", "user"].includes(tenantScope)
+  ) {
+    throw new Error(`Unknown tenant scope: ${tenantScope}`);
+  }
+  const sensitivity =
+    sensitivityIndex >= 0 ? argv[sensitivityIndex + 1] : undefined;
+  if (
+    sensitivity &&
+    !["public", "internal", "confidential", "restricted"].includes(sensitivity)
+  ) {
+    throw new Error(`Unknown data sensitivity: ${sensitivity}`);
+  }
+  const exportMode =
+    exportModeIndex >= 0 ? argv[exportModeIndex + 1] : undefined;
+  if (
+    exportMode &&
+    !["markdown", "json", "redacted-json", "not-applicable"].includes(
+      exportMode,
+    )
+  ) {
+    throw new Error(`Unknown export mode: ${exportMode}`);
+  }
+  const deleteMode =
+    deleteModeIndex >= 0 ? argv[deleteModeIndex + 1] : undefined;
+  if (
+    deleteMode &&
+    !["delete", "redact", "retain-audit", "not-applicable"].includes(deleteMode)
+  ) {
+    throw new Error(`Unknown delete mode: ${deleteMode}`);
+  }
+  const retention = retentionIndex >= 0 ? argv[retentionIndex + 1] : undefined;
+  if (
+    retention &&
+    ![
+      "retain-until-workspace-delete",
+      "retain-audit-window",
+      "hash-or-redact-on-export",
+      "retain-until-account-delete",
+      "retain-until-organization-delete",
+      "retain-configuration",
+    ].includes(retention)
+  ) {
+    throw new Error(`Unknown retention action: ${retention}`);
+  }
 
   return {
     command,
@@ -2969,10 +2993,29 @@ const parseArgs = (
     blueprint: blueprint as BlueprintId,
     from: fromIndex >= 0 ? argv[fromIndex + 1] : undefined,
     to: toIndex >= 0 ? argv[toIndex + 1] : undefined,
+    version: versionIndex >= 0 ? argv[versionIndex + 1] : undefined,
     fixture: fixtureIndex >= 0 ? argv[fixtureIndex + 1] : undefined,
     mode: (mode ?? "fake") as ProviderMode,
     exposure: exposure as "web" | "workflow" | "headless",
     description: descriptionIndex >= 0 ? argv[descriptionIndex + 1] : undefined,
+    hypothesis: hypothesisIndex >= 0 ? argv[hypothesisIndex + 1] : undefined,
+    system: systemIndex >= 0 ? argv[systemIndex + 1] : undefined,
+    disposition: disposition as SystemGeneratorDisposition | undefined,
+    query: queryIndex >= 0 ? argv[queryIndex + 1] : undefined,
+    tenantScope: tenantScope as DataTenantScope | undefined,
+    sensitivity: sensitivity as DataSensitivity | undefined,
+    pii:
+      piiIndex >= 0
+        ? (argv[piiIndex + 1] ?? "")
+            .split(",")
+            .map((value) => value.trim())
+            .filter((value) => value.length > 0 && value !== "none")
+        : undefined,
+    exportMode: exportMode as DataExportMode | undefined,
+    deleteMode: deleteMode as DataDeleteMode | undefined,
+    retention: retention as DataRetention | undefined,
+    appendOnly: argv.includes("--append-only"),
+    businessEntity: argv.includes("--business-entity"),
     write: argv.includes("--write"),
     path: path || "template-instance.json",
   };
@@ -2985,10 +3028,51 @@ export const runGeneratorCli = (
   readonly exitCode: 0 | 1;
   readonly stdout: string;
   readonly stderr: string;
+  // eslint-disable-next-line complexity -- AP-008 tracks splitting legacy generator command dispatch.
 } => {
   try {
-    const args = parseArgs(argv);
+    const cliArgv = argv.filter((argument) => argument !== "--");
+    const args = parseArgs(cliArgv);
+    if (
+      args.command !== undefined &&
+      (cliArgv[1] === "--help" || cliArgv[1] === "-h")
+    ) {
+      const prefix = `template:${args.command}`;
+      const usage = runGeneratorCli(["help"], cwd)
+        .stdout.split("\n")
+        .find((line) => line === prefix || line.startsWith(`${prefix} `));
+      if (usage !== undefined)
+        return { exitCode: 0, stdout: `${usage}\n`, stderr: "" };
+    }
     const outputPath = resolve(cwd, args.path);
+    const catalogRoot = existsSync(systemCatalogPath(cwd))
+      ? cwd
+      : defaultRepoRoot;
+    const requireOwnership = (): {
+      readonly system: string;
+      readonly disposition: SystemGeneratorDisposition;
+    } => {
+      if (!args.system) {
+        throw new Error(
+          `Missing required --system for ${args.command}. Run pnpm template:systems to inspect canonical owners before scaffolding.`,
+        );
+      }
+      const system = canonicalSystemById(
+        readSystemCatalog(catalogRoot),
+        args.system,
+      );
+      if (system.lifecycle !== "active") {
+        throw new Error(
+          `Canonical system ${system.id} is ${system.lifecycle} and cannot receive new generated ownership.`,
+        );
+      }
+      if (!args.disposition) {
+        throw new Error(
+          `Missing required --disposition reuse|extend for ${args.command}. Record whether the generated slice delegates to or expands ${system.id}.`,
+        );
+      }
+      return { system: system.id, disposition: args.disposition };
+    };
 
     if (!args.command || args.command === "help" || args.command === "--help") {
       return {
@@ -3003,17 +3087,89 @@ export const runGeneratorCli = (
             "template:intake [--blueprint <supported-blueprint>] [--name <name>] [--mode fake|test|live] [--write]",
             "template:seed-demo [--blueprint <supported-blueprint>] [--mode fake|test|live] [--write]",
             "template:handoff [--blueprint <supported-blueprint>] [--name <name>] [--mode fake|test|live] [--write]",
-            "template:add-client-domain --name <name> [--description <text>] [--write]",
-            "template:add-capability --name <name> [--description <text>] [--exposure web|workflow|headless] [--write]",
-            "template:add-workflow --name <name> [--description <text>] [--write]",
-            "template:add-agent --name <name> [--description <text>] [--write]",
-            "template:add-agent-seat --name <name> [--description <text>] [--write]",
-            "template:promote-capability --name <name> [--description <text>] [--write]",
-            "template:promote-workflow --name <name> [--description <text>] [--write]",
-            "template:upgrade --from <client-version> --to <template-version>",
-            "template:private-package:dry-run --fixture <path>",
-            "template:private-package:import --fixture <path> [--write]",
+            "template:systems [--query <exact-id-alias-responsibility-or-table>]",
+            "template:prototype --name <name> --system <canonical-id> --disposition reuse|extend --hypothesis <text> [--write]",
+            "template:add-client-domain --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:add-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--exposure web|workflow|headless] [--write]",
+            "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
+            "template:add-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:bump-workflow --name <name> --from <N> --to <N+1> [--write]",
+            "template:bump-capability --name <name> --from <N> --to <N+1> [--write]",
+            "template:publish-workflow --name <name> --version <N>",
+            "template:publish-capability --name <name> --version <N>",
+            "template:add-agent --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:add-agent-seat --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:promote-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:promote-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:upgrade --from <client-version> --to <template-version> --path <reviewed-input.json>",
+            "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
+            "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write",
           ].join("\n") + "\n",
+        stderr: "",
+      };
+    }
+
+    if (args.command === "systems") {
+      const catalog = readSystemCatalog(catalogRoot);
+      const topology = readProductTopology(catalogRoot);
+      const catalogMatches = args.query
+        ? findCanonicalSystems(catalog, args.query)
+        : catalog.systems;
+      const normalizedQuery = normalizeSystemLookup(args.query ?? "");
+      const resourceMatches = args.query
+        ? topology.resources.filter((resource) =>
+            [resource.id, resource.path, resource.responsibility].some(
+              (value) => normalizeSystemLookup(value) === normalizedQuery,
+            ),
+          )
+        : topology.resources;
+      const matchedSystemIds = new Set([
+        ...catalogMatches.map(({ id }) => id),
+        ...resourceMatches.map(({ system }) => system),
+      ]);
+      const systems = catalog.systems.filter(({ id }) =>
+        matchedSystemIds.has(id),
+      );
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(
+          {
+            query: args.query ?? null,
+            matches: systems,
+            resources: resourceMatches,
+            guidance:
+              systems.length === 0
+                ? "No exact catalog match. Review the full catalog before proposing an introduce decision."
+                : "Use the canonical id with --system and reuse or extend this owner.",
+          },
+          null,
+          2,
+        )}\n`,
+        stderr: "",
+      };
+    }
+
+    if (args.command === "prototype") {
+      if (!args.name) throw new Error("Missing required --name for prototype");
+      if (!args.hypothesis?.trim()) {
+        throw new Error("Missing required --hypothesis for prototype");
+      }
+      const result = buildPrototypeFiles({
+        name: args.name,
+        ...requireOwnership(),
+        hypothesis: args.hypothesis,
+      });
+
+      if (args.write) {
+        assertGeneratedPathsAreNew(result.files, cwd);
+        writeGeneratedFiles(result.files, cwd);
+      }
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
         stderr: "",
       };
     }
@@ -3068,9 +3224,13 @@ export const runGeneratorCli = (
         ...(args.name ? { name: args.name } : {}),
         blueprint: args.blueprint,
         providerMode: args.mode,
+        cwd,
       });
 
       if (args.write) {
+        if (quickstart.blueprint === "saas-application") {
+          assertGeneratedPathsAreNew(quickstart.files, cwd);
+        }
         writeGeneratedFiles(quickstart.files, cwd);
       }
 
@@ -3170,10 +3330,37 @@ export const runGeneratorCli = (
 
       const result = buildClientDomainFiles({
         name: args.name,
+        ...requireOwnership(),
         ...(args.description ? { description: args.description } : {}),
       });
 
       if (args.write) {
+        writeGeneratedFiles(result.files, cwd);
+      }
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
+    if (args.command === "add-feature") {
+      if (!args.name) {
+        return {
+          exitCode: 1,
+          stdout: "",
+          stderr: "Missing required --name for add-feature\n",
+        };
+      }
+      const result = buildFeatureFiles({
+        name: args.name,
+        ...requireOwnership(),
+        ...(args.description ? { description: args.description } : {}),
+      });
+
+      if (args.write) {
+        assertGeneratedPathsAreNew(result.files, cwd);
         writeGeneratedFiles(result.files, cwd);
       }
 
@@ -3195,9 +3382,70 @@ export const runGeneratorCli = (
 
       const result = buildCapabilityFiles({
         name: args.name,
+        ...requireOwnership(),
         exposure: args.exposure,
         ...(args.description ? { description: args.description } : {}),
       });
+
+      if (args.write) {
+        writeGeneratedFiles(result.files, cwd);
+      }
+
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
+    if (args.command === "add-table") {
+      if (!args.name) {
+        throw new Error("Missing required --name for add-table");
+      }
+      if (!args.tenantScope) {
+        throw new Error("Missing required --tenant-scope for add-table");
+      }
+      if (!args.sensitivity) {
+        throw new Error("Missing required --sensitivity for add-table");
+      }
+      if (args.pii === undefined) {
+        throw new Error(
+          "Missing required --pii <comma-list|none> for add-table",
+        );
+      }
+      if (!args.exportMode) {
+        throw new Error("Missing required --export-mode for add-table");
+      }
+      if (!args.deleteMode) {
+        throw new Error("Missing required --delete-mode for add-table");
+      }
+      if (!args.retention) {
+        throw new Error("Missing required --retention for add-table");
+      }
+      const ownership = requireOwnership();
+      if (ownership.disposition !== "extend") {
+        throw new Error("New durable tables must use --disposition extend");
+      }
+      const result = buildTableFiles(
+        {
+          name: args.name,
+          system: ownership.system,
+          disposition: "extend",
+          tenantScope: args.tenantScope,
+          sensitivity: args.sensitivity,
+          pii: args.pii,
+          exportMode: args.exportMode,
+          deleteMode: args.deleteMode,
+          retention: args.retention,
+          appendOnly: args.appendOnly,
+          businessEntity: args.businessEntity,
+          ...(args.description ? { description: args.description } : {}),
+        },
+        {
+          systems: readSystemCatalog(catalogRoot),
+          dataResources: readDataResourceCatalog(catalogRoot),
+        },
+      );
 
       if (args.write) {
         writeGeneratedFiles(result.files, cwd);
@@ -3219,10 +3467,13 @@ export const runGeneratorCli = (
         };
       }
 
-      const result = buildWorkflowFiles({
+      const ownership = requireOwnership();
+      const generatorArgs = {
         name: args.name,
+        ...ownership,
         ...(args.description ? { description: args.description } : {}),
-      });
+      };
+      const result = buildWorkflowFiles(generatorArgs);
 
       if (args.write) {
         writeGeneratedFiles(result.files, cwd);
@@ -3230,7 +3481,28 @@ export const runGeneratorCli = (
 
       return {
         exitCode: 0,
-        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stdout: `${JSON.stringify(
+          {
+            ...result,
+            privacy: {
+              classification: "review-required",
+              secrets: "names-only",
+            },
+            reviewedEquivalent: {
+              argv: [
+                "node",
+                "maestro-template.mjs",
+                "scaffold",
+                "--generator",
+                "add-workflow",
+                "--args",
+                JSON.stringify(generatorArgs),
+              ],
+            },
+          },
+          null,
+          2,
+        )}\n`,
         stderr: "",
       };
     }
@@ -3244,10 +3516,18 @@ export const runGeneratorCli = (
         };
       }
 
-      const result = buildAgentFiles({
-        name: args.name,
-        ...(args.description ? { description: args.description } : {}),
-      });
+      const result =
+        args.command === "add-agent-seat"
+          ? buildAgentSeatFiles({
+              name: args.name,
+              ...requireOwnership(),
+              ...(args.description ? { description: args.description } : {}),
+            })
+          : buildAgentFiles({
+              name: args.name,
+              ...requireOwnership(),
+              ...(args.description ? { description: args.description } : {}),
+            });
 
       if (args.write) {
         writeGeneratedFiles(result.files, cwd);
@@ -3271,6 +3551,7 @@ export const runGeneratorCli = (
 
       const result = buildCapabilityPromotionFiles({
         name: args.name,
+        ...requireOwnership(),
         ...(args.description ? { description: args.description } : {}),
       });
 
@@ -3296,6 +3577,7 @@ export const runGeneratorCli = (
 
       const result = buildWorkflowPromotionFiles({
         name: args.name,
+        ...requireOwnership(),
         ...(args.description ? { description: args.description } : {}),
       });
 
@@ -3303,6 +3585,48 @@ export const runGeneratorCli = (
         writeGeneratedFiles(result.files, cwd);
       }
 
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
+    if (
+      args.command === "bump-workflow" ||
+      args.command === "bump-capability"
+    ) {
+      if (!args.name) {
+        throw new Error(`Missing required --name for ${args.command}`);
+      }
+      const result = bumpRelease({
+        cwd,
+        kind: args.command === "bump-workflow" ? "workflow" : "capability",
+        name: camelCase(args.name),
+        from: args.from,
+        to: args.to,
+        write: args.write,
+      });
+      return {
+        exitCode: 0,
+        stdout: `${JSON.stringify(result, null, 2)}\n`,
+        stderr: "",
+      };
+    }
+
+    if (
+      args.command === "publish-workflow" ||
+      args.command === "publish-capability"
+    ) {
+      if (!args.name) {
+        throw new Error(`Missing required --name for ${args.command}`);
+      }
+      const result = publishRelease({
+        cwd,
+        kind: args.command === "publish-workflow" ? "workflow" : "capability",
+        name: camelCase(args.name),
+        version: args.version,
+      });
       return {
         exitCode: 0,
         stdout: `${JSON.stringify(result, null, 2)}\n`,
@@ -3319,10 +3643,16 @@ export const runGeneratorCli = (
         };
       }
 
-      const report = buildTemplateUpgradeReport({
-        from: args.from,
-        to: args.to,
-      });
+      const candidate = JSON.parse(readFileSync(outputPath, "utf8")) as unknown;
+      const planned = planUpgrade(candidate);
+      const report =
+        planned.ok && !reviewedTransitionMatches(candidate, args.from, args.to)
+          ? planUpgrade({
+              schemaVersion: 1,
+              reviewedInput: candidate,
+              requestedTransition: { from: args.from, to: args.to },
+            })
+          : planned;
 
       return {
         exitCode: report.ok ? 0 : 1,
@@ -3343,14 +3673,14 @@ export const runGeneratorCli = (
         };
       }
 
-      const plan = buildPrivatePackagePlan({
+      const plan = executePrivatePackagePlan({
         fixturePath: resolve(cwd, args.fixture),
+        fixtureArgument: args.fixture,
+        targetRoot: cwd,
+        ...requireOwnership(),
         mode: args.command === "private-package:import" ? "import" : "dry-run",
+        write: args.write,
       });
-
-      if (args.command === "private-package:import" && args.write) {
-        writeGeneratedFiles(plan.files, cwd);
-      }
 
       return {
         exitCode: plan.ok ? 0 : 1,
@@ -3373,12 +3703,308 @@ export const runGeneratorCli = (
   }
 };
 
-if (
-  process.argv[1]?.endsWith("index.ts") ||
-  process.argv[1]?.endsWith("index.js")
-) {
-  const result = runGeneratorCli(process.argv.slice(2));
-  process.stdout.write(result.stdout);
-  process.stderr.write(result.stderr);
-  process.exitCode = result.exitCode;
+export type ReviewedGeneratorDescriptor = {
+  readonly generatorId:
+    | "add-client-domain"
+    | "add-feature"
+    | "add-capability"
+    | "add-table"
+    | "add-workflow"
+    | "add-agent";
+  readonly recipe: string;
+  readonly command: `pnpm template:${string}`;
+  readonly argumentNames: readonly string[];
+  readonly codegen: readonly string[];
+  readonly focusedGates: readonly string[];
+};
+
+const backendCodegen = [
+  "pnpm confect:codegen",
+  "pnpm confect:manifest",
+  "pnpm format",
+];
+const featureCodegen = [...backendCodegen, "pnpm --dir apps/web build"];
+const backendGates = ["pnpm check:confect-contracts"];
+
+export const REVIEWED_GENERATOR_DESCRIPTORS = [
+  {
+    generatorId: "add-client-domain",
+    recipe: "docs/template/app-factory-guide.md",
+    command: "pnpm template:add-client-domain",
+    argumentNames: ["name", "system", "disposition", "description"],
+    codegen: backendCodegen,
+    focusedGates: backendGates,
+  },
+  {
+    generatorId: "add-feature",
+    recipe: "docs/template/app-factory-guide.md",
+    command: "pnpm template:add-feature",
+    argumentNames: ["name", "system", "disposition", "description"],
+    codegen: featureCodegen,
+    focusedGates: [...backendGates, "pnpm --dir apps/web typecheck"],
+  },
+  {
+    generatorId: "add-capability",
+    recipe: "docs/template/how-to-add-capability.md",
+    command: "pnpm template:add-capability",
+    argumentNames: ["name", "system", "disposition", "description", "exposure"],
+    codegen: backendCodegen,
+    focusedGates: backendGates,
+  },
+  {
+    generatorId: "add-table",
+    recipe: "docs/template/how-to-add-data-lifecycle-resource.md",
+    command: "pnpm template:add-table",
+    argumentNames: [
+      "name",
+      "system",
+      "disposition",
+      "tenantScope",
+      "sensitivity",
+      "pii",
+      "exportMode",
+      "deleteMode",
+      "retention",
+      "appendOnly",
+      "businessEntity",
+      "description",
+    ],
+    codegen: backendCodegen,
+    focusedGates: [
+      ...backendGates,
+      "pnpm check:system-catalog",
+      "pnpm check:data-resources",
+      "pnpm check:schema-migration-notes",
+    ],
+  },
+  {
+    generatorId: "add-workflow",
+    recipe: "docs/template/how-to-add-workflow.md",
+    command: "pnpm template:add-workflow",
+    argumentNames: ["name", "system", "disposition", "description"],
+    codegen: backendCodegen,
+    focusedGates: [...backendGates, "pnpm check:workflow-graph-boundary"],
+  },
+  {
+    generatorId: "add-agent",
+    recipe: "docs/template/how-to-add-agent.md",
+    command: "pnpm template:add-agent",
+    argumentNames: ["name", "system", "disposition", "description"],
+    codegen: backendCodegen,
+    focusedGates: backendGates,
+  },
+] as const satisfies readonly ReviewedGeneratorDescriptor[];
+
+export type ReviewedGeneratorRequest = {
+  readonly generatorId: string;
+  readonly args: Readonly<Record<string, unknown>>;
+  readonly write: boolean;
+  readonly cwd: string;
+};
+
+export type ReviewedGeneratorOutput = {
+  readonly files: readonly GeneratedFile[];
+  readonly provenancePaths: readonly string[];
+  readonly collisions: readonly string[];
+  readonly semanticRuleIds: readonly string[];
+  readonly manualFollowUp: readonly string[];
+  readonly codegen: readonly string[];
+  readonly focusedGates: readonly string[];
+};
+
+export type ReviewedGeneratorRunResult =
+  | { readonly ok: true; readonly output: ReviewedGeneratorOutput }
+  | { readonly ok: false; readonly message: string };
+
+export function resolveReviewedGenerator(generatorId: string):
+  | { readonly supported: true }
+  | {
+      readonly supported: false;
+      readonly nearest: readonly ReviewedGeneratorDescriptor[];
+    } {
+  return REVIEWED_GENERATOR_DESCRIPTORS.some(
+    (descriptor) => descriptor.generatorId === generatorId,
+  )
+    ? { supported: true }
+    : { supported: false, nearest: REVIEWED_GENERATOR_DESCRIPTORS.slice(0, 1) };
+}
+
+export function runReviewedGenerator(
+  request: ReviewedGeneratorRequest,
+): ReviewedGeneratorRunResult {
+  const descriptor = REVIEWED_GENERATOR_DESCRIPTORS.find(
+    (candidate) => candidate.generatorId === request.generatorId,
+  );
+  if (descriptor === undefined) {
+    return {
+      ok: false,
+      message: `Unsupported generator: ${request.generatorId}`,
+    };
+  }
+  const argv = generatorArgv(descriptor, request.args);
+  if (!argv.ok) return argv;
+  const preview = runGeneratorCli(argv.value, request.cwd);
+  if (preview.exitCode !== 0) {
+    return { ok: false, message: preview.stderr.trim() };
+  }
+  const parsed = parseReviewedGeneratorResult(preview.stdout);
+  if (!parsed.ok) return parsed;
+  const reviewedMutableCatalogs = new Set([
+    "docs/template/system-catalog.json",
+    "docs/template/data-resources.json",
+    "packages/convex/confect/ops/dataResources.generated.ts",
+  ]);
+  const collisions = parsed.files
+    .map(({ path }) => path)
+    .filter((path) => !reviewedMutableCatalogs.has(path))
+    .filter((path) => existsSync(resolve(request.cwd, path)));
+  const output = projectReviewedOutput(parsed.value, descriptor, collisions);
+  if (!request.write) return { ok: true, output };
+  if (collisions.length > 0) {
+    return {
+      ok: false,
+      message: `Refusing to overwrite existing paths: ${collisions.join(", ")}.`,
+    };
+  }
+  const written = runGeneratorCli([...argv.value, "--write"], request.cwd);
+  return written.exitCode === 0
+    ? { ok: true, output }
+    : { ok: false, message: written.stderr.trim() };
+}
+
+function generatorArgv(
+  descriptor: ReviewedGeneratorDescriptor,
+  args: Readonly<Record<string, unknown>>,
+):
+  | { readonly ok: true; readonly value: readonly string[] }
+  | {
+      readonly ok: false;
+      readonly message: string;
+    } {
+  const unknown = Object.keys(args).filter(
+    (name) => !descriptor.argumentNames.includes(name),
+  );
+  if (unknown.length > 0) {
+    return {
+      ok: false,
+      message: `Unknown generator arguments: ${unknown.join(", ")}`,
+    };
+  }
+  const argv: string[] = [descriptor.generatorId];
+  for (const name of descriptor.argumentNames) {
+    const value = args[name];
+    if (value === undefined || value === false) continue;
+    const flag = `--${name.replace(/[A-Z]/g, (letter) => `-${letter.toLowerCase()}`)}`;
+    if (value === true) argv.push(flag);
+    else if (typeof value === "string") argv.push(flag, value);
+    else if (
+      Array.isArray(value) &&
+      value.every((item) => typeof item === "string")
+    ) {
+      argv.push(flag, value.length === 0 ? "none" : value.join(","));
+    } else {
+      return {
+        ok: false,
+        message: `Generator argument ${name} has an invalid value.`,
+      };
+    }
+  }
+  return { ok: true, value: argv };
+}
+
+function parseReviewedGeneratorResult(stdout: string):
+  | {
+      readonly ok: true;
+      readonly value: Record<string, unknown>;
+      readonly files: readonly GeneratedFile[];
+    }
+  | { readonly ok: false; readonly message: string } {
+  try {
+    const value: unknown = JSON.parse(stdout);
+    if (value === null || typeof value !== "object" || !("files" in value)) {
+      return { ok: false, message: "Generator returned an invalid result." };
+    }
+    const files = (value as { readonly files: unknown }).files;
+    if (!Array.isArray(files) || !files.every(isGeneratedFile)) {
+      return { ok: false, message: "Generator returned invalid files." };
+    }
+    return { ok: true, value: value as Record<string, unknown>, files };
+  } catch {
+    return { ok: false, message: "Generator returned invalid JSON." };
+  }
+}
+
+function projectReviewedOutput(
+  value: Record<string, unknown>,
+  descriptor: ReviewedGeneratorDescriptor,
+  collisions: readonly string[],
+): ReviewedGeneratorOutput {
+  const files = value.files as readonly GeneratedFile[];
+  return {
+    files,
+    provenancePaths: files
+      .map(({ path }) => path)
+      .filter((path) => path.includes("/provenance/")),
+    collisions,
+    semanticRuleIds: collectStringArrayField(value, "semanticRuleIds"),
+    manualFollowUp: stringArray(value.followUp),
+    codegen: descriptor.codegen,
+    focusedGates: descriptor.focusedGates,
+  };
+}
+
+function collectStringArrayField(
+  value: unknown,
+  field: string,
+): readonly string[] {
+  if (Array.isArray(value)) {
+    return [
+      ...new Set(value.flatMap((item) => collectStringArrayField(item, field))),
+    ];
+  }
+  if (value === null || typeof value !== "object") return [];
+  const record = value as Record<string, unknown>;
+  return [
+    ...stringArray(record[field]),
+    ...Object.values(record).flatMap((item) =>
+      collectStringArrayField(item, field),
+    ),
+  ].filter((item, index, all) => all.indexOf(item) === index);
+}
+
+function stringArray(value: unknown): readonly string[] {
+  return Array.isArray(value) && value.every((item) => typeof item === "string")
+    ? value
+    : [];
+}
+
+function isGeneratedFile(value: unknown): value is GeneratedFile {
+  return (
+    value !== null &&
+    typeof value === "object" &&
+    "path" in value &&
+    typeof value.path === "string" &&
+    "content" in value &&
+    typeof value.content === "string"
+  );
+}
+
+export const runGeneratorCliProcess = (
+  argv: readonly string[] = process.argv.slice(2),
+  output: {
+    readonly stdout: (value: string) => void;
+    readonly stderr: (value: string) => void;
+  } = {
+    stdout: (value) => process.stdout.write(value),
+    stderr: (value) => process.stderr.write(value),
+  },
+): 0 | 1 => {
+  const result = runGeneratorCli(argv);
+  output.stdout(result.stdout);
+  output.stderr(result.stderr);
+  return result.exitCode;
+};
+
+if (isGeneratorDirectRun(import.meta.url)) {
+  process.exitCode = runGeneratorCliProcess();
 }

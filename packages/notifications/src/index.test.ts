@@ -5,6 +5,7 @@ import {
   createActionDigestService,
   createAlertService,
   createEmailService,
+  createFunnelLifecycleEmailService,
   defaultNotificationPreferences,
   markNotificationRead,
   preferenceAllowsChannel,
@@ -13,7 +14,118 @@ import {
 } from "./index";
 
 describe("notification provider seams", () => {
-  it("sends MailerSend-style email in fake mode with idempotency key", async () => {
+  it("delivers lifecycle email through a neutral transport without logging private content", async () => {
+    const requests: unknown[] = [];
+    const transport = async (payload: unknown) => {
+      requests.push(payload);
+    };
+    const logs: unknown[] = [];
+    const service = createFunnelLifecycleEmailService({
+      mode: "live",
+      from: "reports@example.test",
+      transport,
+      sink: (message) => {
+        logs.push(message);
+      },
+    });
+
+    await expect(
+      service.send({
+        kind: "verify-report-email",
+        to: "founder@example.test",
+        reportId: "report_1",
+        destinationUrl: "https://example.test/verify-report?token=secret-token",
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      delivery: "live-ready",
+      idempotencyKey: "idea-funnel.verify-report-email.report_1",
+    });
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      templateAlias: "verify-report-email",
+      idempotencyKey: "idea-funnel.verify-report-email.report_1",
+    });
+    expect(JSON.stringify(requests)).toContain("founder@example.test");
+    expect(JSON.stringify(requests)).toContain("secret-token");
+    expect(JSON.stringify(logs)).not.toContain("founder@example.test");
+    expect(JSON.stringify(logs)).not.toContain("secret-token");
+  });
+
+  it("returns a typed failure when the neutral provider rejects a message", async () => {
+    const service = createEmailService({
+      mode: "live",
+      transport: async () => {
+        throw new Error("rejected");
+      },
+    });
+
+    await expect(
+      service.send({
+        to: "founder@example.test",
+        from: "reports@example.test",
+        subject: "Verify",
+        html: "<p>Private link</p>",
+        idempotencyKey: "verification.report_1",
+        templateData: {},
+      }),
+    ).resolves.toMatchObject({
+      ok: false,
+      error: {
+        _tag: "EmailProviderError",
+        provider: "email",
+      },
+    });
+  });
+
+  it("delivers report verification links through the redacted email seam", async () => {
+    const deliveries: unknown[] = [];
+    const service = createFunnelLifecycleEmailService({
+      mode: "fake",
+      from: "reports@example.test",
+      sink: (message) => {
+        deliveries.push(message);
+      },
+    });
+    await expect(
+      service.send({
+        kind: "verify-report-email",
+        to: "founder@example.test",
+        reportId: "report_1",
+        destinationUrl: "https://example.test/verify/token-secret",
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      idempotencyKey: "idea-funnel.verify-report-email.report_1",
+    });
+    expect(JSON.stringify(deliveries)).not.toContain("token-secret");
+    expect(JSON.stringify(deliveries)).not.toContain("founder@example.test");
+  });
+
+  it("sends idempotent app-idea lifecycle messages through the redacted email seam", async () => {
+    const deliveries: unknown[] = [];
+    const service = createFunnelLifecycleEmailService({
+      mode: "fake",
+      from: "reports@example.test",
+      sink: (message) => {
+        deliveries.push(message);
+      },
+    });
+    await expect(
+      service.send({
+        kind: "build-pack-ready",
+        to: "founder@example.test",
+        reportId: "idea_1",
+        destinationUrl: "https://example.test/build-pack/pack_1",
+      }),
+    ).resolves.toMatchObject({
+      ok: true,
+      idempotencyKey: "idea-funnel.build-pack-ready.idea_1",
+    });
+    expect(JSON.stringify(deliveries)).not.toContain("founder@example.test");
+  });
+
+  it("sends provider-neutral email in fake mode with idempotency key", async () => {
     const deliveries: unknown[] = [];
     const service = createEmailService({
       mode: "fake",

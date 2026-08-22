@@ -1,0 +1,10 @@
+export type AppRouter = any;
+export type RouterInputs = any;
+export type RouterOutputs = any;
+export type ContactDTO = any;
+export type NotificationDTO = any;
+export type TagDTO = any;
+export type UserDTO = any;
+export type WorkspaceDTO = any;
+export type WorkspaceMemberDTO = any;
+export type WorkspaceMemberSettingsDTO = any;

@@ -12,7 +12,30 @@
     "./generated/confectManifest": {
       "types": "./src/generated/confectManifest.ts",
       "default": "./src/generated/confectManifest.ts"
+    },
+    "./systemCatalog": {
+      "types": "./src/systemCatalog.ts",
+      "default": "./src/systemCatalog.ts"
+    },
+    "./dataResourceCatalog": {
+      "types": "./src/dataResourceCatalog.ts",
+      "default": "./src/dataResourceCatalog.ts"
+    },
+    "./productTopology": {
+      "types": "./src/productTopology.ts",
+      "default": "./src/productTopology.ts"
+    },
+    "./templateInstance": {
+      "types": "./src/templateInstance/index.ts",
+      "default": "./src/templateInstance/index.ts"
+    },
+    "./workflow-semantics": {
+      "types": "./src/workflow-semantics/contract.ts",
+      "default": "./src/workflow-semantics/contract.ts"
     }
+  },
+  "dependencies": {
+    "effect": "4.0.0-beta.102"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist --declaration",

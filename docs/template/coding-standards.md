@@ -1,5 +1,9 @@
 # Coding Standards
 
+For executable gate ownership and focused commands, use
+[enforced engineering rules](enforced-engineering-rules.md). This document keeps
+the rationale, examples, and domain exceptions.
+
 ## TypeScript
 
 - No `any`.
@@ -8,6 +12,21 @@
 - No `@ts-ignore`.
 - Prefer narrow interfaces and explicit return types at public boundaries.
 - Use Effect schemas for durable data, public args, returns, and typed errors.
+- Prefer small functions, guard clauses, and input objects when they make the
+  domain clearer; the index owns the executable complexity limits and checks.
+
+## Plans And Acceptance
+
+- Every plan names non-empty quality targets, mechanical architecture rules,
+  product-contract behavior IDs, denial cases, focused tests, and conflict
+  domains.
+- Quality targets must be package scripts and architecture rules must name
+  mechanical entries in the enforced engineering rules index; do not restate
+  coding prose.
+- `product.contract.yaml` owns observable behavior and denial cases; pair each
+  required behavior with a revision-bound Playwright proof.
+- Run `pnpm check:product-contract` and `pnpm acceptance:required` for the
+  structural and runtime admissions; do not add parallel acceptance metadata.
 
 ### Multi-table Convex writes
 
@@ -49,6 +68,9 @@ atomic transaction.
 
 - Source-text-only tests are not behavior proof.
 - New behavior gets focused tests before implementation.
+- Run focused affected checks for each task commit. Run full `pnpm verify` once
+  for the integrated delivery batch on its immutable final head; Woodpecker is
+  the only blocking full-verification authority.
 - Capability tests cover auth first, role denial, cross-workspace denial,
   invalid input, typed error, idempotency, and side-effect ordering.
 - Frontend adapter tests cover loading, empty, ready, mutation success, typed
@@ -56,7 +78,10 @@ atomic transaction.
 
 ## UI
 
-- Do not handroll primitives covered by Saas UI or the template UI package.
+- Do not handroll primitives covered by the pinned Saas UI sources. Use the
+  executable `template/saas-ui-shell-authority`,
+  `template/prefer-saas-ui-primitives`, and `template/saas-ui-semantic-colors`
+  rules.
 - Blocks are reusable and provider-free.
 - Feature components adapt data; blocks render data.
 

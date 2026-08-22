@@ -16,15 +16,19 @@
     "packages/*/src/**/*.tsx",
     "packages/convex/confect/**/*.ts",
     "packages/convex/convex/**/*.ts",
-    "packages/convex/test/**/*.ts",
     "tooling/**/*.ts",
-    "tooling/**/*.mts",
-    "tests/**/*.ts"
+    "tooling/**/*.mts"
   ],
   "exclude": [
+    "**/*.test.*",
+    "**/*.spec.*",
+    "**/__tests__/**",
     "apps/**/dist/**",
     "packages/**/dist/**",
+    "packages/convex/test/**",
+    "tests/**",
     "tooling/**/dist/**",
+    "tooling/agent-pack/evals/runs/**",
     "repos/**",
     "vendor/**",
     "test-results/**"

@@ -1,0 +1,26 @@
+labels:
+  platform: linux/amd64
+  role: factory-ci
+
+clone:
+  git:
+    image: woodpeckerci/plugin-git:2.9.2@sha256:ebde4a4d07e0e24b630082484d192890dd4f6d442d90bf5466f0763860f83652
+    settings:
+      depth: 0
+      partial: false
+      tags: true
+
+when:
+  - event: pull_request
+
+steps:
+  - name: verify-core
+    # Secretless PR verification runs in this disposable, digest-pinned container.
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+    environment:
+      CI: "true"
+      NODE_OPTIONS: "--max-old-space-size=6144"
+    commands:
+      - apt-get update
+      - apt-get install -y --no-install-recommends strace
+      - tooling/ci/verify-chassis.sh

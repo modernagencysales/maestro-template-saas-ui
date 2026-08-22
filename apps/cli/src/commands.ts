@@ -13,6 +13,9 @@ import {
   type ProviderMode,
 } from "@maestro-template/integrations";
 import { parseNamedArgs } from "./namedArgs";
+import { CREATE_HELP } from "./factory/create";
+import { START_HELP } from "./factory/start";
+import { helpForSharedCommand } from "./help";
 import { cliFailure, cliSuccess, formatJsonOutput } from "./result";
 import type {
   CliCapabilityRequest,
@@ -33,6 +36,30 @@ const providerModes = new Set<ProviderMode>(["fake", "test", "live"]);
 const helpResult = (): CliResult =>
   cliSuccess(
     [
+      "Maestro has two repository modes:",
+      "  factory checkout: contains releases/; create a separate app here",
+      "  generated app: contains template-instance.json; build the product here",
+      "",
+      "Factory checkout:",
+      `  ${CREATE_HELP.trim()}`,
+      "",
+      "Generated app loop (preflight -> inspect -> preview -> write -> verify -> run):",
+      "  maestro preflight [--mode fake|test|live] [--details|--json]",
+      "  maestro recipes list|show <recipe-id> [--human|--details|--json]",
+      "  maestro add <outcome-or-recipe> [--answer <question>=<value>] [--write] [--human|--details|--json]",
+      "  maestro verify [--scope focused|full] [--changed <paths>] [--human|--details|--json]",
+      "  maestro check [--mode fake|test|live] [--changed <paths>] [--human|--details|--json]",
+      `  ${START_HELP.trim()}`,
+      "  maestro support-bundle [--output <path>] [--write] [--human|--details|--json]",
+      "",
+      "Advanced factory and operator commands:",
+      "  maestro scaffold --generator <id> --args <json-object> [--write] [--human|--details|--json]",
+      "  maestro doctor <provider> --environment fake|local|dev|preview|staging [--human|--details|--json]",
+      "  maestro adopt preflight|work-package ... (dry-run only)",
+      "  maestro mcp",
+      "  maestro mcp configure --host <claude-code|codex> [--profile <inspect|dev-power>] [--write --privacy-reviewed|--remove] [--human|--details|--json]",
+      "",
+      "Shared headless surfaces:",
       "maestro-template describe",
       "maestro-template operations list",
       "maestro-template operations get <id>",
@@ -60,7 +87,7 @@ const operationsResult = ({
     : cliFailure(`Unknown operation: ${target}\n`);
 };
 
-const parseCapabilityRequest = (
+export const parseCapabilityRequest = (
   argv: readonly string[],
 ): CliCapabilityRequest | CliResult => {
   const [, , , ...requestArgs] = argv;
@@ -164,50 +191,95 @@ const workflowResult = ({ argv }: CliCommandContext): CliResult => {
   }
 };
 
+const matchesHelp = ({ command }: CliCommandContext): boolean =>
+  !command || command === "help" || command === "--help";
+
+const matchesSharedHelp = ({
+  command,
+  subcommand,
+}: CliCommandContext): boolean =>
+  command !== undefined &&
+  (subcommand === "--help" || subcommand === "-h") &&
+  helpForSharedCommand(command) !== undefined;
+
+const matchesDescribe = ({ command }: CliCommandContext): boolean =>
+  command === "describe";
+
+const matchesOperations = ({
+  command,
+  subcommand,
+  target,
+}: CliCommandContext): boolean =>
+  command === "operations" &&
+  (subcommand === "list" || (subcommand === "get" && target !== undefined));
+
+const matchesWorkflowRun = ({
+  command,
+  subcommand,
+}: CliCommandContext): boolean =>
+  command === "workflow" && subcommand === "run";
+
+const matchesCapabilityRun = ({
+  command,
+  subcommand,
+  target,
+}: CliCommandContext): boolean =>
+  command === "capability" && subcommand === "run" && target !== undefined;
+
+const matchesApi = ({ command, subcommand }: CliCommandContext): boolean =>
+  command === "api" && (subcommand === "catalog" || subcommand === "openapi");
+
+const matchesMcp = ({
+  command,
+  subcommand,
+  target,
+}: CliCommandContext): boolean =>
+  command === "mcp" &&
+  (subcommand === "tools" || (subcommand === "call" && target !== undefined));
+
+const matchesIntegrationsReport = ({
+  command,
+  subcommand,
+}: CliCommandContext): boolean =>
+  command === "integrations" && subcommand === "report";
+
 export const createCliHandlers = ({
   capability,
 }: CliCommandDependencies): readonly CliCommandHandler[] => [
   {
-    matches: ({ command }) =>
-      !command || command === "help" || command === "--help",
+    matches: matchesHelp,
     run: () => helpResult(),
   },
   {
-    matches: ({ command }) => command === "describe",
+    matches: matchesSharedHelp,
+    run: ({ command }) => cliSuccess(helpForSharedCommand(command ?? "") ?? ""),
+  },
+  {
+    matches: matchesDescribe,
     run: () => cliSuccess(formatJsonOutput(describeWorkflowTemplate())),
   },
   {
-    matches: ({ command, subcommand, target }) =>
-      command === "operations" &&
-      (subcommand === "list" || (subcommand === "get" && target !== undefined)),
+    matches: matchesOperations,
     run: (context) => operationsResult(context),
   },
   {
-    matches: ({ command, subcommand }) =>
-      command === "workflow" && subcommand === "run",
+    matches: matchesWorkflowRun,
     run: (context) => workflowResult(context),
   },
   {
-    matches: ({ command, subcommand, target }) =>
-      command === "capability" && subcommand === "run" && target !== undefined,
+    matches: matchesCapabilityRun,
     run: (context) => capabilityResult(context, capability),
   },
   {
-    matches: ({ command, subcommand }) =>
-      command === "api" &&
-      (subcommand === "catalog" || subcommand === "openapi"),
+    matches: matchesApi,
     run: (context) => apiResult(context),
   },
   {
-    matches: ({ command, subcommand, target }) =>
-      command === "mcp" &&
-      (subcommand === "tools" ||
-        (subcommand === "call" && target !== undefined)),
+    matches: matchesMcp,
     run: (context) => mcpResult(context),
   },
   {
-    matches: ({ command, subcommand }) =>
-      command === "integrations" && subcommand === "report",
+    matches: matchesIntegrationsReport,
     run: (context, config) => integrationsResult(context, config),
   },
 ];

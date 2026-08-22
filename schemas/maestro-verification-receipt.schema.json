@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maestro.local/schemas/maestro-verification-receipt.schema.json",
+  "title": "Maestro verification receipt",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schemaVersion",
+    "createdAt",
+    "command",
+    "subject",
+    "fingerprints",
+    "scope",
+    "gates"
+  ],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "createdAt": { "type": "string", "format": "date-time" },
+    "command": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "version"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "version": { "const": 1 }
+      }
+    },
+    "subject": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["commit", "dirty"],
+      "properties": {
+        "commit": { "type": "string", "minLength": 1 },
+        "dirty": { "type": "boolean" }
+      }
+    },
+    "fingerprints": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "environment", "providerPosture"],
+      "properties": {
+        "repository": { "type": "string", "pattern": "^repository_sha256:" },
+        "environment": { "type": "string", "pattern": "^environment_sha256:" },
+        "providerPosture": { "type": "string", "pattern": "^providers_sha256:" }
+      }
+    },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind", "changedPaths", "partial"],
+      "properties": {
+        "kind": { "enum": ["full", "focused"] },
+        "changedPaths": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "partial": { "type": "boolean" }
+      },
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "full" },
+            "changedPaths": { "type": "array", "maxItems": 0 },
+            "partial": { "const": false }
+          }
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": { "const": "focused" },
+            "changedPaths": {
+              "type": "array",
+              "items": { "type": "string" }
+            },
+            "partial": { "const": true }
+          }
+        }
+      ]
+    },
+    "gates": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "gateId",
+          "posture",
+          "evidenceClass",
+          "status",
+          "semanticRuleIds"
+        ],
+        "properties": {
+          "gateId": { "type": "string", "minLength": 1 },
+          "posture": { "enum": ["required", "advisory"] },
+          "evidenceClass": {
+            "enum": [
+              "static",
+              "behavioral",
+              "runtime",
+              "live-promotion",
+              "advisory"
+            ]
+          },
+          "status": {
+            "enum": ["pass", "fail", "skipped", "unavailable"]
+          },
+          "semanticRuleIds": {
+            "type": "array",
+            "items": { "type": "string" }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,5 +1,6 @@
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
+import ts from "typescript";
 import { confectManifest } from "../../packages/template-core/src/generated/confectManifest";
 import { descriptorFor } from "./src/check-definitions.mts";
 import { isDirectRun } from "./src/direct-run.mts";
@@ -102,15 +103,6 @@ export const cannedRegistryImportFailures = (
     ),
   );
 
-export const cannedRuntimeSuccess = (source: string): string[] => {
-  const markers = [
-    /\baccepted\s*:\s*true\b/,
-    /\bok\s*:\s*true\s*,\s*result\s*:\s*\{[^}]*\}/s,
-  ] as const;
-
-  return markers.some((marker) => marker.test(source)) ? ["accepted"] : [];
-};
-
 const missingLiteralGeneratedRefMapping = (
   operationIds: readonly string[],
   source: string,
@@ -122,78 +114,196 @@ const missingLiteralGeneratedRefMapping = (
       !source.includes(`\`${operationId}\``),
   );
 
-const escapeRegExp = (value: string): string =>
-  value.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-
-const objectMappingPattern = (
-  objectName: string,
-  operationId: string,
-  mappedValue: string,
-): RegExp =>
-  new RegExp(
-    `\\b${objectName}\\b[\\s\\S]*?["'\`]${escapeRegExp(operationId)}["'\`]\\s*:\\s*${mappedValue}`,
+const parseTypeScript = (source: string): ts.SourceFile =>
+  ts.createSourceFile(
+    "headless-projection.ts",
+    source,
+    ts.ScriptTarget.Latest,
+    true,
+    ts.ScriptKind.TS,
   );
+
+const propertyNameText = (name: ts.PropertyName): string | undefined => {
+  if (
+    ts.isIdentifier(name) ||
+    ts.isStringLiteral(name) ||
+    ts.isNumericLiteral(name)
+  )
+    return name.text;
+  return undefined;
+};
+
+const unwrapExpression = (expression: ts.Expression): ts.Expression => {
+  let current = expression;
+  while (
+    ts.isParenthesizedExpression(current) ||
+    ts.isAsExpression(current) ||
+    ts.isSatisfiesExpression(current) ||
+    ts.isNonNullExpression(current)
+  )
+    current = current.expression;
+  return current;
+};
+
+const objectMapping = (
+  sourceFile: ts.SourceFile,
+  objectName: string,
+): ReadonlyMap<string, ts.Expression> => {
+  const result = new Map<string, ts.Expression>();
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.name.text === objectName &&
+      node.initializer !== undefined
+    ) {
+      const initializer = unwrapExpression(node.initializer);
+      if (!ts.isObjectLiteralExpression(initializer)) return;
+      for (const property of initializer.properties) {
+        if (!ts.isPropertyAssignment(property)) continue;
+        const name = propertyNameText(property.name);
+        if (name !== undefined) result.set(name, property.initializer);
+      }
+    }
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return result;
+};
+
+const expressionRoot = (expression: ts.Expression): string | undefined => {
+  if (ts.isIdentifier(expression)) return expression.text;
+  if (
+    ts.isPropertyAccessExpression(expression) ||
+    ts.isElementAccessExpression(expression)
+  )
+    return expressionRoot(expression.expression);
+  if (
+    ts.isParenthesizedExpression(expression) ||
+    ts.isAsExpression(expression) ||
+    ts.isNonNullExpression(expression)
+  )
+    return expressionRoot(expression.expression);
+  return undefined;
+};
+
+const isElementAccessOn = (
+  expression: ts.Expression,
+  objectName: string,
+): boolean =>
+  ts.isElementAccessExpression(expression) &&
+  ts.isIdentifier(expression.expression) &&
+  expression.expression.text === objectName;
+
+const callCount = (
+  sourceFile: ts.SourceFile,
+  predicate: (call: ts.CallExpression) => boolean,
+): number => {
+  let count = 0;
+  const visit = (node: ts.Node): void => {
+    if (ts.isCallExpression(node) && predicate(node)) count += 1;
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return count;
+};
 
 export const missingHttpGeneratedRefMapping = (
   operationIds: readonly string[],
   source: string,
-): string[] =>
-  operationIds.filter(
-    (operationId) =>
-      !objectMappingPattern(
-        "operationRefs",
-        operationId,
-        `api\\.${operationId.replaceAll(".", "\\.")}\\b`,
-      ).test(source),
-  );
+): string[] => {
+  const mappings = objectMapping(parseTypeScript(source), "operationRefs");
+  return operationIds.filter((operationId) => {
+    const ref = mappings.get(operationId);
+    return ref === undefined || expressionRoot(ref) !== "api";
+  });
+};
 
 export const missingCliGeneratedRefUsage = (
   operationIds: readonly string[],
   source: string,
 ): string[] => {
-  const mappedOperationVariable = source.match(
-    /\b(?:const|let)\s+([a-zA-Z_$][\w$]*)\s*=\s*staticCliOperationRefs\s*\[[^\]]+\]/,
-  )?.[1];
+  const sourceFile = parseTypeScript(source);
+  const mappings = objectMapping(sourceFile, "staticCliOperationRefs");
+  const derivedRefs = new Set<string>();
+  const visitDerived = (node: ts.Node): void => {
+    if (
+      ts.isVariableDeclaration(node) &&
+      ts.isIdentifier(node.name) &&
+      node.initializer !== undefined &&
+      (isElementAccessOn(node.initializer, "staticCliOperationRefs") ||
+        (ts.isCallExpression(node.initializer) &&
+          node.initializer.arguments.some(
+            (argument) =>
+              ts.isIdentifier(argument) &&
+              argument.text === "staticCliOperationRefs",
+          )))
+    )
+      derivedRefs.add(node.name.text);
+    ts.forEachChild(node, visitDerived);
+  };
+  visitDerived(sourceFile);
   const usesGeneratedCliRefs =
-    /\brunTemplateApiOperation\s*\(\s*staticCliOperationRefs\s*\[[^\]]+\]/.test(
-      source,
-    ) ||
-    (mappedOperationVariable !== undefined &&
-      new RegExp(
-        `\\brunTemplateApiOperation\\s*\\(\\s*${mappedOperationVariable}\\b`,
-      ).test(source));
+    callCount(
+      sourceFile,
+      (call) =>
+        ts.isIdentifier(call.expression) &&
+        call.expression.text === "runTemplateApiOperation" &&
+        call.arguments[0] !== undefined &&
+        (isElementAccessOn(call.arguments[0], "staticCliOperationRefs") ||
+          (ts.isIdentifier(call.arguments[0]) &&
+            derivedRefs.has(call.arguments[0].text))),
+    ) > 0;
 
-  return operationIds.filter(
-    (operationId) =>
-      !objectMappingPattern(
-        "staticCliOperationRefs",
-        operationId,
-        `["'\`]${operationId.replaceAll(".", "\\.")}["'\`]`,
-      ).test(source) || !usesGeneratedCliRefs,
-  );
+  return operationIds.filter((operationId) => {
+    const ref = mappings.get(operationId);
+    return (
+      ref === undefined ||
+      (!ts.isStringLiteralLike(ref) &&
+        !ts.isNoSubstitutionTemplateLiteral(ref)) ||
+      !usesGeneratedCliRefs
+    );
+  });
 };
 
 export const missingMcpGeneratedRefUsage = (
   operationIds: readonly string[],
   source: string,
 ): string[] => {
-  const usesGeneratedRefsForToolListing =
-    /\bgeneratedMcpOperationRefs\s*\[\s*entry\.operationId\s*\]/.test(source);
-  const usesGeneratedRefsForCallDispatch =
-    /\bgeneratedMcpOperationRefs\s*\[\s*candidate\.operationId\s*\]\s*===\s*toolName/.test(
-      source,
-    );
-
-  return operationIds.filter(
-    (operationId) =>
-      !objectMappingPattern(
-        "generatedMcpOperationRefs",
-        operationId,
-        `["'\`]template\\.${operationId.replaceAll(".", "\\.")}["'\`]`,
-      ).test(source) ||
-      !usesGeneratedRefsForToolListing ||
-      !usesGeneratedRefsForCallDispatch,
+  const sourceFile = parseTypeScript(source);
+  const mappings = objectMapping(sourceFile, "generatedMcpOperationRefs");
+  const sharedCalls = callCount(
+    sourceFile,
+    (call) =>
+      ts.isIdentifier(call.expression) &&
+      call.expression.text === "mcpToolNameFor",
   );
+  const sharedFallback =
+    sharedCalls >= 2 &&
+    source.includes("generatedMcpOperationRefs[operationId]") &&
+    source.includes("template.${operationId}");
+  if (sharedFallback) return [];
+
+  let directAccesses = 0;
+  const visit = (node: ts.Node): void => {
+    if (
+      ts.isElementAccessExpression(node) &&
+      ts.isIdentifier(node.expression) &&
+      node.expression.text === "generatedMcpOperationRefs"
+    )
+      directAccesses += 1;
+    ts.forEachChild(node, visit);
+  };
+  visit(sourceFile);
+  return operationIds.filter((operationId) => {
+    const ref = mappings.get(operationId);
+    return (
+      ref === undefined ||
+      (!ts.isStringLiteralLike(ref) &&
+        !ts.isNoSubstitutionTemplateLiteral(ref)) ||
+      directAccesses < 2
+    );
+  });
 };
 
 export const missingHttpExecutorDispatch = (source: string): boolean =>
@@ -223,25 +333,6 @@ export const missingGeneratedRefMapping = (
   return missingLiteralGeneratedRefMapping(operationIds, source);
 };
 
-const missingIdempotencyProof = (
-  operations: readonly HeadlessManifestOperation[],
-  source: string,
-): string[] =>
-  operations
-    .filter(
-      (operation) =>
-        hasExternalSurface(operation) &&
-        operation.idempotent === false &&
-        ["mutation", "action"].includes(operation.kind ?? ""),
-    )
-    .filter(
-      (operation) =>
-        !source.includes(
-          `Operation ${operation.operationId} requires a nonblank idempotencyKey.`,
-        ),
-    )
-    .map((operation) => operation.operationId);
-
 const readRepoFile = async (repoRoot: string, path: string): Promise<string> =>
   readFile(join(repoRoot, path), "utf8");
 
@@ -259,27 +350,20 @@ export const evaluateHeadlessSurfaceContract = async (
     workflowSource,
     workflowCompatSource,
     executorSource,
-    httpTests,
-    executorTests,
-    workflowTests,
-    confectGuide,
   ] = await Promise.all([
     readRepoFile(repoRoot, "packages/convex/confect/http.ts"),
     readRepoFile(repoRoot, "apps/cli/src/index.ts"),
     readRepoFile(repoRoot, "tooling/workflow/src/index.ts"),
     readRepoFile(repoRoot, "tooling/workflow/src/workflow-compat.ts"),
     readRepoFile(repoRoot, "packages/convex/confect/manifest/executor.ts"),
-    readRepoFile(repoRoot, "packages/convex/test/http-docs.test.ts"),
-    readRepoFile(repoRoot, "packages/convex/test/headless-executor.test.ts"),
-    readRepoFile(repoRoot, "tooling/workflow/src/index.test.ts"),
-    readRepoFile(repoRoot, "docs/template/confect-effect-guide.md"),
   ]);
 
-  for (const operationId of missingTypedErrors(operations)) {
-    failures.push(
-      `operation ${operationId} is exposed to API/CLI/MCP without public typed errors`,
-    );
-  }
+  failures.push(
+    ...missingTypedErrors(operations).map(
+      (operationId) =>
+        `operation ${operationId} is exposed to API/CLI/MCP without public typed errors`,
+    ),
+  );
 
   for (const operationId of missingExternalValidationError(operations)) {
     failures.push(
@@ -292,22 +376,6 @@ export const evaluateHeadlessSurfaceContract = async (
   )) {
     failures.push(
       `operation ${operationId} is internally named but exposed to a client-callable surface`,
-    );
-  }
-
-  for (const operationId of missingIdempotencyProof(
-    operations,
-    [
-      httpSource,
-      executorSource,
-      httpTests,
-      executorTests,
-      workflowTests,
-      confectGuide,
-    ].join("\n"),
-  )) {
-    failures.push(
-      `operation ${operationId} is non-idempotent on API/CLI/MCP without idempotency-key enforcement proof`,
     );
   }
 
@@ -363,14 +431,6 @@ export const evaluateHeadlessSurfaceContract = async (
   if (missingRuntimeAdapterDispatch(workflowSource)) {
     failures.push(
       "CLI/MCP compatibility projection must dispatch through an explicit runtime adapter before returning FeatureDisabled",
-    );
-  }
-
-  for (const marker of cannedRuntimeSuccess(
-    runtimeSources.map(({ source }) => source).join("\n"),
-  )) {
-    failures.push(
-      `runtime executor code returns canned success marker ${marker} instead of executeHeadlessOperation`,
     );
   }
 

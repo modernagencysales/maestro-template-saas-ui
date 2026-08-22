@@ -1,21 +1,21 @@
 import { Table } from "@confect/server";
 import * as Schema from "effect/Schema";
 
-export const NotificationCategory = Schema.Literal(
+export const NotificationCategory = Schema.Literals([
   "workspace",
   "workflow",
   "billing",
   "security",
   "system",
-);
+]);
 
-export const NotificationPriority = Schema.Literal("low", "normal", "high");
+export const NotificationPriority = Schema.Literals(["low", "normal", "high"]);
 
-export const NotificationDeliveryState = Schema.Literal(
+export const NotificationDeliveryState = Schema.Literals([
   "fake",
   "test",
   "live-ready",
-);
+]);
 
 export const NotificationRecordRow = Schema.Struct({
   workspaceId: Schema.String,

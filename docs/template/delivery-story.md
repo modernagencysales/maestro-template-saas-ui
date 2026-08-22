@@ -21,10 +21,11 @@ being demonstrated, not a shortcut around it:
 - Every change passed the full local verify chain (format, lint with the
   layer-law ESLint pack, typecheck, ~550 tests, coverage ratchet, dependency and
   secret scanning, docs pins) before it was pushed.
-- Every push runs the Buildkite pipeline: a secretless self-protection step that
-  refuses PRs which weaken CI, the deterministic gate suite, two fail-closed LLM
-  review gates (taste and contract review), an automatic staging deploy, and a
-  human-approved production promote.
+- Every pull request runs the Woodpecker verification pipeline: a secretless
+  self-protection step that refuses PRs which weaken CI and the deterministic
+  gate suite. Taste and contract review run through the bounded PR firewall and
+  fail closed; guarded staging and production deployments use separate
+  Woodpecker events.
 - The machinery itself was ported from maestro's production CI, then proven by
   iterating on live builds until the whole pipeline was green end to end —
   including failures that only a bare CI agent could surface.
@@ -37,7 +38,7 @@ being demonstrated, not a shortcut around it:
   builds each fixing the previous failure (bare agents, corepack key rotation,
   tree-walking gates, cross-platform coverage variance). Those commits document
   what running the gates for real actually costs. For fast verification, use the
-  commit ranges and Buildkite anchors in
+  commit ranges and CI anchors in
   [`delivery-receipts.md`](./delivery-receipts.md).
 - Human decisions are recorded where they happened: design calls (keep vendored
   `repos/`, fixture-backed ops domains, thin live surface) live in README design

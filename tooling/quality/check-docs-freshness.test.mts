@@ -29,15 +29,24 @@ describe("check:docs-freshness", () => {
     );
 
     expect(quickstart).toContain(
-      "`template:quickstart -- --write` creates `template-instance.json`",
+      'pnpm maestro -- create ../launch-tracker \\ --name "Launch Tracker"',
     );
     expect(quickstart).toContain(
-      "`template:doctor -- --mode fake` expects `template-instance.json`",
+      "pnpm --dir ../launch-tracker maestro -- preflight --mode fake",
     );
+    expect(quickstart).toContain('git commit -m "feat: add Milestone slice"');
     expect(maturity).toContain(
       "Current baseline: this repo can prove L0 through L4",
     );
     expect(maturity).toContain("L5 is client-fork-specific");
+    expect(maturity).toContain(
+      "apps/web/src/features/common/layouts/app-layout.tsx",
+    );
+    expect(maturity).toContain("docs/template/saas-ui-frontend-authority.md");
+    expect(maturity).not.toContain("apps/web/src/saas-ui/business-shell.tsx");
+    expect(
+      readRepoFile("docs/template/golden-path-business-slice.md"),
+    ).not.toContain("apps/web/src/saas-ui/business-shell.tsx");
     expect(backlog).toContain(
       "Current readiness commands and the maturity model are authoritative",
     );

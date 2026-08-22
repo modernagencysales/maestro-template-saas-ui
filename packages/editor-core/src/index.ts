@@ -1,10 +1,10 @@
 import * as Schema from "effect/Schema";
 
-const NonEmptyString = Schema.String.pipe(Schema.minLength(1));
+const NonEmptyString = Schema.String.pipe(Schema.check(Schema.isMinLength(1)));
 
-export const EditorDocumentTarget = Schema.Union(
+export const EditorDocumentTarget = Schema.Union([
   Schema.Struct({ kind: Schema.Literal("brainPage"), id: NonEmptyString }),
-);
+]);
 
 export type EditorDocumentTarget = Schema.Schema.Type<
   typeof EditorDocumentTarget

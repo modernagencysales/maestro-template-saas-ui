@@ -12,6 +12,24 @@ export type StaticCheckDescriptor = {
   name: string;
   requirements: StaticRequirement[];
 };
+export type StaticCheckEvidenceClass =
+  "static" | "behavioral" | "runtime" | "live-promotion" | "advisory";
+export type StaticCheckPosture = "required" | "advisory";
+export type StaticCheckDiagnosticMetadata = {
+  readonly gateId: string;
+  readonly posture: StaticCheckPosture;
+  readonly evidenceClass: StaticCheckEvidenceClass;
+  readonly canonicalDoc: string;
+  readonly repairHint: string;
+  readonly argv: readonly [string, ...string[]];
+  readonly rerun: readonly [string, ...string[]];
+  readonly focusedPathPrefixes: readonly string[];
+  readonly defaultFocused?: boolean;
+  readonly prerequisiteCheck?: readonly [string, ...string[]];
+  readonly semanticRuleIds?: readonly string[];
+};
+export type RegisteredStaticCheckDescriptor = StaticCheckDescriptor &
+  StaticCheckDiagnosticMetadata;
 
 export type StaticCheckResult = {
   ok: boolean;
@@ -63,11 +81,7 @@ export async function runStaticCheck(
   const result = await evaluateStaticCheck(repoRoot, descriptor);
 
   if (result.ok) {
-    // Pin-only: this harness greps files for pinned content. It protects
-    // gate/config shape; it does not measure behavior. Real measurement gates
-    // (coverage, mutation, knip, depcruise, gitleaks, type-coverage) run as
-    // their own tools — see docs/rule-coverage.md.
-    console.log(`${descriptor.name}: ok (pin-only)`);
+    console.log(`${descriptor.name}: ok`);
     return;
   }
 

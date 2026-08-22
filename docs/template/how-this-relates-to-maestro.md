@@ -43,6 +43,30 @@ an invention:
 - The multi-surface idea — the same capability reachable from web, CLI, MCP, and
   an OpenAPI-described HTTP API — is how maestro actually exposes work.
 
+## What Maestro taught us about whole-system duplication
+
+Maestro's layer and code-duplication gates could keep individual modules clean
+while two separately clean subsystems evolved around the same product job. Its
+convergence work introduced a product-responsibility graph: stable systems and
+jobs, one semantic owner per responsibility, explicit projection/delegate roles,
+owned tables, generator ownership inputs, and AI review for semantic
+near-duplicates that deterministic checks cannot recognize.
+
+This template adopts the proportional core of that solution:
+
+- `docs/template/system-catalog.json` is the small checked-in responsibility,
+  schema ownership, and canonical-entrypoint graph;
+- `pnpm check:system-catalog` proves every hand-authored Confect table has one
+  owner and all catalog paths still resolve;
+- `pnpm template:systems` exposes the graph before planning, while backend
+  generators require `--system` and `--disposition reuse|extend`;
+- the contract-review AI gate judges whether new nouns conceal a parallel
+  lifecycle and whether actor surfaces delegate to the canonical owner.
+
+The template intentionally does not copy Maestro's large migration/conflict
+ledger or run an embedding/model scan over the repository. Exact ownership is a
+fast deterministic gate; semantic similarity stays a bounded plan/PR judgment.
+
 ## What is deliberately different
 
 - **Confect + Effect is a go-forward choice, not an extraction.** maestro today
@@ -52,15 +76,15 @@ an invention:
   intentional bet to get stronger end-to-end type safety and tighter AI-agent
   coding constraints on everything we build from here forward. Do not read the
   Confect layer as "how maestro is built" — read it as "how we intend to build
-  the next apps." The template also vendors `repos/effect/` and `repos/confect/`
-  as read-only source references so coding agents can inspect real upstream
-  patterns before writing typed backend code.
+  the next apps." Factory checkouts may include read-only upstream research
+  trees; generated customer targets instead ship
+  `docs/template/confect-effect-guide.md` and typed contracts as the canonical
+  guidance for backend work.
 
 - **The template starts on fakes.** Providers default to fake/local mode so the
-  shell runs with no client secrets. Real SDKs are installed and the adapters
-  are meant to make real calls once env credentials are present — see
-  `docs/template/porting-backlog.md` for the exact items still being brought
-  over from maestro to make each seam real.
+  shell runs with no client secrets. Real SDKs are installed and adapters make
+  real calls only after their local seam and focused evidence are explicitly
+  reviewed.
 
 ## What is a seam vs. what runs
 
@@ -76,8 +100,8 @@ Be honest with yourself and with reviewers about the current state:
 | Workflow/agent execution                 | Real minimum slice exists; broader scheduling, replay, and advanced autonomy remain backlog items |
 | Quality gates / CI                       | Real gate commands exist; client forks still need live-provider deploy proof                      |
 
-The `porting-backlog.md` is the running list of what turns each seam into
-something that actually runs, drawn item-by-item from maestro.
+Each seam keeps the same architectural rule: typed contracts first, adapters at
+the boundary, and one shared implementation path.
 
 ## How to repeat this extraction
 

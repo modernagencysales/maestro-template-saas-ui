@@ -119,17 +119,15 @@ describe("WorkOS AuthKit seam", () => {
   it("derives Convex auth config from trusted issuer and JWKS values", () => {
     expect(
       deriveWorkosConvexAuthConfig({
-        issuer: "https://api.workos.com",
-        jwksUrl: "https://api.workos.com/sso/jwks/org_acme_demo",
         applicationId: "client_fake_local_key",
       }),
     ).toEqual({
       providers: [
         {
           type: "customJwt",
-          issuer: "https://api.workos.com",
-          jwks: "https://api.workos.com/sso/jwks/org_acme_demo",
-          applicationID: "client_fake_local_key",
+          issuer:
+            "https://api.workos.com/user_management/client_fake_local_key",
+          jwks: "https://api.workos.com/sso/jwks/client_fake_local_key",
         },
       ],
     });

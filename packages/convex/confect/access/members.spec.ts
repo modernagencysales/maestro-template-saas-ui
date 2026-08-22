@@ -20,13 +20,13 @@ const changeRole = FunctionSpec.publicMutation({
     }),
   returns: () => Schema.Null,
   error: () =>
-    Schema.Union(
+    Schema.Union([
       Unauthorized,
       Forbidden,
       MemberNotInWorkspace,
       MembershipNotLive,
       LastOwnerProtected,
-    ),
+    ]),
 });
 
 const remove = FunctionSpec.publicMutation({
@@ -37,13 +37,13 @@ const remove = FunctionSpec.publicMutation({
     }),
   returns: () => Schema.Null,
   error: () =>
-    Schema.Union(
+    Schema.Union([
       Unauthorized,
       Forbidden,
       MemberNotInWorkspace,
       MembershipNotLive,
       LastOwnerProtected,
-    ),
+    ]),
 });
 
 const transferOwnership = FunctionSpec.publicMutation({
@@ -54,16 +54,34 @@ const transferOwnership = FunctionSpec.publicMutation({
     }),
   returns: () => Schema.Null,
   error: () =>
-    Schema.Union(
+    Schema.Union([
       Unauthorized,
       Forbidden,
       MemberNotInWorkspace,
       MembershipNotLive,
       LastOwnerProtected,
+    ]),
+});
+
+const list = FunctionSpec.publicQuery({
+  name: "list",
+  args: () => Schema.Struct({ workspaceId: Id("workspaces") }),
+  returns: () =>
+    Schema.Array(
+      Schema.Struct({
+        id: Id("workspaceMembers"),
+        email: Schema.String,
+        name: Schema.String,
+        avatar: Schema.Null,
+        roles: Schema.Array(Role),
+        status: Schema.Literal("active"),
+      }),
     ),
+  error: () => Schema.Union([Unauthorized, MemberNotInWorkspace]),
 });
 
 export default GroupSpec.make()
+  .addFunction(list)
   .addFunction(changeRole)
   .addFunction(remove)
   .addFunction(transferOwnership);

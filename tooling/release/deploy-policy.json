@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "primitiveOwner": "tooling/release/src/deploy/guardedDeploy.ts",
+  "packageRoutes": {
+    "convex:deploy": "tsx tooling/release/src/deploy/guardedDeploy.ts convex",
+    "deploy:cloudflare": "VITE_CONVEX_URL=\"$(node scripts/_project-config.mjs get production convexUrl)\" pnpm build && pnpm smoke:web-static && tsx tooling/release/src/deploy/guardedDeploy.ts cloudflare"
+  },
+  "authority": {
+    "pipelinePreflightOwner": "tooling/release/src/deploy/authorityCli.ts",
+    "guardedDeployOwner": "tooling/release/src/deploy/guardedDeploy.ts",
+    "requiredActions": ["convex", "cloudflare"],
+    "forbiddenCiEnv": ["PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL"],
+    "requiredBindings": [
+      "PROMOTION_AUTHORITY_ENDPOINT",
+      "TRUSTED_DEPLOY_ROOT_SHA256",
+      "TRUSTED_CI_SELF_PROTECTION_COMMIT",
+      "TRUSTED_ROLLBACK_SEED_COMMIT",
+      "ROLLBACK_RECEIPT_BUILD_ID",
+      "TEMPLATE_STAGING_CONVEX_DEPLOYMENT",
+      "TEMPLATE_STAGING_CONVEX_URL",
+      "TEMPLATE_STAGING_HOSTED_URL",
+      "TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT",
+      "TEMPLATE_PRODUCTION_CONVEX_URL",
+      "TEMPLATE_PRODUCTION_HOSTED_URL"
+    ]
+  },
+  "jobs": {
+    "staging": {
+      "preflight": "staging-authority-preflight",
+      "approval": "trusted-ci-policy",
+      "deploy": "staging-deploy",
+      "script": "tooling/ci/staging-deploy.sh",
+      "credentialSecrets": [
+        "TEMPLATE_STAGING_CLOUDFLARE_API_TOKEN",
+        "TEMPLATE_STAGING_CLOUDFLARE_ACCOUNT_ID",
+        "TEMPLATE_STAGING_CONVEX_DEPLOY_KEY"
+      ]
+    },
+    "production": {
+      "preflight": "production-authority-preflight",
+      "approval": "trusted-ci-policy",
+      "deploy": "production-promote",
+      "script": "tooling/ci/production-promote.sh",
+      "credentialSecrets": [
+        "TEMPLATE_PRODUCTION_CLOUDFLARE_API_TOKEN",
+        "TEMPLATE_PRODUCTION_CLOUDFLARE_ACCOUNT_ID",
+        "TEMPLATE_PRODUCTION_CONVEX_DEPLOY_KEY"
+      ]
+    }
+  },
+  "legacyCredentialSecretsForbidden": ["TEMPLATE_CONVEX_DEPLOY_KEY"],
+  "rollbackScript": "tooling/ci/rollback-promote.sh",
+  "rollbackSeedCommitBinding": "TRUSTED_ROLLBACK_SEED_COMMIT",
+  "trustedSelfProtectionCommitBinding": "TRUSTED_CI_SELF_PROTECTION_COMMIT"
+}

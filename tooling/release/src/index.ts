@@ -1,6 +1,28 @@
 import { existsSync, readFileSync, readdirSync, statSync } from "node:fs";
 import { execFileSync } from "node:child_process";
 import { join, resolve } from "node:path";
+import { validatePromotionAuthorityEndpoint } from "./deploy/durableAuthority.js";
+export * from "./deploy/audit.js";
+export * from "./deploy/authority.js";
+export * from "./deploy/census.js";
+export * from "./deploy/censusEndpoint.js";
+export * from "./deploy/checkpoint.js";
+export * from "./deploy/consumption.js";
+export * from "./deploy/contract.js";
+export * from "./deploy/decision.js";
+export * from "./deploy/durableAuthority.js";
+export { evaluatePromotionRequirements } from "./deploy/requirements.js";
+export type {
+  PromotionEnvironment,
+  PromotionReadinessInput,
+  PromotionReadinessResult,
+  PromotionRequirement,
+  PromotionRequirementEvidence,
+  PromotionRequirementFinding,
+} from "./deploy/requirements.js";
+export * from "./deploy/trustedAuthority.js";
+export * from "./deploy/verdict.js";
+export * from "./deploy/verify.js";
 
 export type WebStaticSmokeReport = {
   readonly ok: boolean;
@@ -77,6 +99,7 @@ export type DeployEnvironmentConfig = {
   readonly cloudflarePagesProject: string;
   readonly cloudflareBranch: string;
   readonly convexDeployName: string;
+  readonly convexUrl: string;
   readonly requiredEnvGroups: readonly string[];
   readonly requiredSecrets: readonly string[];
 };
@@ -100,6 +123,7 @@ export type DeployDoctorReport = {
   readonly requiredSecretNames: readonly string[];
   readonly missingEnvNames: readonly string[];
   readonly missingSecretNames: readonly string[];
+  readonly invalidEnvNames: readonly string[];
   readonly alert?: ReleaseAlertPlan;
 };
 
@@ -167,13 +191,13 @@ const readEnvManifest = (repoRoot: string): EnvManifest | undefined => {
 
 const deployEnvGroupAliases = {
   llm: ["openrouter"],
-  email: ["mailersend"],
+  email: ["email"],
   "fake-providers": [
     "app",
     "workos",
     "posthog",
     "dodo",
-    "mailersend",
+    "email",
     "openrouter",
     "storage",
     "search",
@@ -228,13 +252,17 @@ const deployDoctorAlert = (
   }
 
   const missingNames = [
-    ...new Set([...report.missingEnvNames, ...report.missingSecretNames]),
+    ...new Set([
+      ...report.missingEnvNames,
+      ...report.missingSecretNames,
+      ...report.invalidEnvNames,
+    ]),
   ].sort();
 
   return {
     severity: report.environment === "production" ? "critical" : "warning",
     title: `Deploy doctor failed: ${report.environment}`,
-    body: `Missing ${report.missingEnvNames.length} manifest env names and ${report.missingSecretNames.length} required deploy secrets.`,
+    body: `Missing ${report.missingEnvNames.length} manifest env names and ${report.missingSecretNames.length} required deploy secrets; ${report.invalidEnvNames.length} env names are invalid.`,
     dedupeKey: `deploy-doctor:${report.environment}:${missingNames.join("|") || "unknown"}`,
     metadata: {
       environment: report.environment,
@@ -244,6 +272,7 @@ const deployDoctorAlert = (
       requiredEnvGroups: report.requiredEnvGroups,
       missingEnvNames: report.missingEnvNames,
       missingSecretNames: report.missingSecretNames,
+      invalidEnvNames: report.invalidEnvNames,
     },
   };
 };
@@ -304,9 +333,23 @@ export const buildDeployDoctorReport = (options: {
   const missingSecretNames = selected.requiredSecrets.filter(
     (name) => !env[name]?.trim(),
   );
+  const invalidEnvNames: string[] = [];
+  if (env.PROMOTION_AUTHORITY_ENDPOINT?.trim()) {
+    try {
+      validatePromotionAuthorityEndpoint(
+        env.PROMOTION_AUTHORITY_ENDPOINT,
+        selected.convexUrl,
+      );
+    } catch {
+      invalidEnvNames.push("PROMOTION_AUTHORITY_ENDPOINT");
+    }
+  }
 
   const report: Omit<DeployDoctorReport, "alert"> = {
-    ok: missingSecretNames.length === 0 && missingEnvNames.length === 0,
+    ok:
+      missingSecretNames.length === 0 &&
+      missingEnvNames.length === 0 &&
+      invalidEnvNames.length === 0,
     environment: selected.name,
     domain: selected.domain,
     cloudflarePagesProject: selected.cloudflarePagesProject,
@@ -317,6 +360,7 @@ export const buildDeployDoctorReport = (options: {
     requiredSecretNames: selected.requiredSecrets,
     missingEnvNames,
     missingSecretNames,
+    invalidEnvNames,
   };
 
   const alert = deployDoctorAlert(report);
@@ -403,8 +447,8 @@ const readinessArtifacts = [
   "packages/template-core/src/index.ts",
   "tooling/workflow/src/index.ts",
   "tooling/generators/src/index.ts",
-  "tests/e2e/hosted-reference-app.spec.ts",
-  "tests/e2e/hosted-reference-app.visual.spec.ts",
+  "tests/e2e/saas-ui-golden.spec.ts",
+  "tests/e2e/saas-ui-golden.visual.spec.ts",
 ] as const;
 
 const clientReleaseHandoffArtifacts = [
@@ -477,12 +521,12 @@ const validateClientReleaseArtifact = (
 
 const readinessClaims = [
   {
-    id: "hosted-reference-app",
+    id: "saas-ui-golden-authorities",
     evidence: [
       "apps/web/src/routes/index.tsx",
-      "apps/web/src/saas-ui/business-shell.tsx",
-      "tests/e2e/hosted-reference-app.spec.ts",
-      "tests/e2e/hosted-reference-app.visual.spec.ts",
+      "apps/web/src/features/common/layouts/app-layout.tsx",
+      "tests/e2e/saas-ui-golden.spec.ts",
+      "tests/e2e/saas-ui-golden.visual.spec.ts",
     ],
     detail:
       "Hosted app has a concrete reference surface plus browser and visual smoke coverage.",
@@ -576,38 +620,38 @@ const completionRequirements = [
       "The repo contains a clear, useful sample app that demonstrates Brain, workflow, capability, agent, integration, and safety surfaces.",
     evidence: [
       "apps/web/src/routes/index.tsx",
-      "apps/web/src/saas-ui/business-shell.tsx",
+      "apps/web/src/features/common/layouts/app-layout.tsx",
       "apps/web/src/sample/templateData.ts",
       "apps/web/src/sample/templateData.test.ts",
       "examples/generic-ai-ops/seed/workspace.json",
       "examples/generic-ai-ops/seed/brain-pages.md",
       "examples/generic-ai-ops/seed/workflows.json",
-      "tests/e2e/hosted-reference-app.spec.ts",
-      "tests/e2e/hosted-reference-app.visual.spec.ts",
+      "tests/e2e/saas-ui-golden.spec.ts",
+      "tests/e2e/saas-ui-golden.visual.spec.ts",
     ],
     verification: [
       "pnpm --dir apps/web test src/sample/templateData.test.ts",
-      "pnpm smoke:hosted:browser",
-      "pnpm smoke:hosted:visual",
+      "pnpm smoke:golden:browser",
+      "pnpm smoke:golden:visual",
     ],
     detail:
       "Reference app data, seed fixtures, and browser/visual tests cover the investor-visible sample app.",
   },
   {
-    id: "hosted-reference",
+    id: "saas-ui-golden",
     requirement:
       "The sample app is hosted or can be immediately hosted from the static build.",
     evidence: [
       "docs/template/hosting.md",
-      "tests/e2e/hosted-reference-app.spec.ts",
-      "tests/e2e/hosted-reference-app.visual.spec.ts",
+      "tests/e2e/saas-ui-golden.spec.ts",
+      "tests/e2e/saas-ui-golden.visual.spec.ts",
     ],
     verification: [
       "pnpm build",
       "pnpm smoke:web-static",
-      "pnpm smoke:hosted",
-      "pnpm smoke:hosted:browser",
-      "pnpm smoke:hosted:visual",
+      "pnpm smoke:golden:browser",
+      "pnpm smoke:golden:a11y",
+      "pnpm smoke:golden:visual",
     ],
     detail:
       "Cloudflare Pages URL and static/hosted smoke paths are documented and testable.",
@@ -700,7 +744,9 @@ const completionRequirements = [
     requirement:
       "Core services, provider adapters, CI/CD gates, security posture, and coding rules are documented and enforced.",
     evidence: [
-      ".buildkite/pipeline.yml",
+      ".woodpecker/firewall.yml",
+      ".woodpecker/epoch.yml",
+      ".woodpecker/deploy.yml",
       "packages/integrations/src/index.ts",
       "packages/integrations/src/index.test.ts",
       "docs/template/security.md",
@@ -750,9 +796,9 @@ export const reviewerCommands = [
   "pnpm check:secret-canaries",
   "pnpm build",
   "pnpm smoke:web-static",
-  "pnpm smoke:hosted",
-  "pnpm smoke:hosted:browser",
-  "pnpm smoke:hosted:visual",
+  "pnpm smoke:golden:browser",
+  "pnpm smoke:golden:a11y",
+  "pnpm smoke:golden:visual",
 ] as const;
 
 const currentCommit = (repoRoot: string): string => {

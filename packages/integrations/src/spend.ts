@@ -1,6 +1,6 @@
 import * as Schema from "effect/Schema";
 
-export class SpendCapExceededError extends Schema.TaggedError<SpendCapExceededError>()(
+export class SpendCapExceededError extends Schema.TaggedErrorClass<SpendCapExceededError>()(
   "SpendCapExceededError",
   {
     workspaceSlug: Schema.String,
@@ -48,7 +48,7 @@ export const calculateLlmSpend = (input: LlmSpendInput): LlmSpendEstimate => {
     (input.completionTokens / 1_000_000) * input.outputCentsPerMillionTokens;
   const estimatedCents = Math.max(
     input.minimumCents,
-    Math.ceil(inputCents + outputCents),
+    Math.round((inputCents + outputCents) * 1_000_000) / 1_000_000,
   );
 
   return {

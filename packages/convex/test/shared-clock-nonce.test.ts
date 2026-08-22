@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vitest";
 import * as Effect from "effect/Effect";
-import * as TestClock from "effect/TestClock";
-import * as TestContext from "effect/TestContext";
+import * as TestClock from "effect/testing/TestClock";
 
 import {
   currentDate,
@@ -25,7 +24,7 @@ describe("shared clock and nonce seams", () => {
       expect(now).toBe(1782864000000);
       expect(date).toEqual(new Date("2026-07-01T00:00:00.000Z"));
       expect(iso).toBe("2026-07-01T00:00:00.000Z");
-    }).pipe(Effect.provide(TestContext.TestContext), Effect.runPromise);
+    }).pipe(Effect.provide(TestClock.layer()), Effect.runPromise);
   });
 
   it("supports injected nonce sequences", () => {

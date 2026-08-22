@@ -1,4 +1,4 @@
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 
 import {
   InvitationExpired,
@@ -44,8 +44,8 @@ export type InvitationRef = {
 
 const fail = <E extends AccessLifecycleError>(
   error: E,
-): PlannerResult<never, E> => Either.left(error);
-const succeed = <A>(value: A): PlannerResult<A, never> => Either.right(value);
+): PlannerResult<never, E> => Result.fail(error);
+const succeed = <A>(value: A): PlannerResult<A, never> => Result.succeed(value);
 
 export const buildWorkspaceInvitation = (input: {
   readonly workspaceId: string;
@@ -62,11 +62,11 @@ export const buildWorkspaceInvitation = (input: {
   ValidationFailed
 > => {
   const email = requireNormalizedEmail(input.inviteeEmail, "email");
-  if (Either.isLeft(email)) return fail(email.left);
+  if (Result.isFailure(email)) return fail(email.failure);
   const invitation = {
     workspaceId: input.workspaceId,
     organizationId: input.organizationId,
-    email: email.right,
+    email: email.success,
     role: input.role,
     status: "pending" as const,
     tokenHash: input.tokenHash,
@@ -117,16 +117,16 @@ export const acceptInvitation = (input: {
     input.invitation,
     input.verifiedEmail,
   );
-  if (Either.isLeft(invitation)) return fail(invitation.left);
-  const pending = requireInvitationPending(invitation.right);
-  if (Either.isLeft(pending)) return fail(pending.left);
-  if (invitation.right.expiresAt <= input.now) {
-    return fail(new InvitationExpired({ invitationId: invitation.right.id }));
+  if (Result.isFailure(invitation)) return fail(invitation.failure);
+  const pending = requireInvitationPending(invitation.success);
+  if (Result.isFailure(pending)) return fail(pending.failure);
+  if (invitation.success.expiresAt <= input.now) {
+    return fail(new InvitationExpired({ invitationId: invitation.success.id }));
   }
 
   return succeed({
     invitationPatch: {
-      id: invitation.right.id,
+      id: invitation.success.id,
       value: {
         status: "accepted",
         acceptedAt: input.now,
@@ -136,9 +136,9 @@ export const acceptInvitation = (input: {
     membershipInsert:
       input.existingLiveMembership === null
         ? {
-            workspaceId: invitation.right.workspaceId,
+            workspaceId: invitation.success.workspaceId,
             userId: input.userId,
-            role: invitation.right.role,
+            role: invitation.success.role,
             status: "active",
             acceptedAt: input.now,
             revokedAt: null,
@@ -148,10 +148,10 @@ export const acceptInvitation = (input: {
     events: [
       {
         action: "invitation.accepted",
-        workspaceId: invitation.right.workspaceId,
+        workspaceId: invitation.success.workspaceId,
         actorUserId: input.userId,
         subjectKind: "invitation",
-        subjectId: invitation.right.id,
+        subjectId: invitation.success.id,
         metadata: { acceptedByUserId: input.userId },
       },
     ],
@@ -177,14 +177,14 @@ export const declineInvitation = (input: {
     input.invitation,
     input.verifiedEmail,
   );
-  if (Either.isLeft(invitation)) return fail(invitation.left);
-  if (invitation.right.status !== "pending") {
+  if (Result.isFailure(invitation)) return fail(invitation.failure);
+  if (invitation.success.status !== "pending") {
     return succeed({ invitationPatch: null, events: [] });
   }
-  const actorEmail = invitation.right.email;
+  const actorEmail = invitation.success.email;
   return succeed({
     invitationPatch: {
-      id: invitation.right.id,
+      id: invitation.success.id,
       value: {
         status: "declined",
         declinedAt: input.now,
@@ -194,10 +194,10 @@ export const declineInvitation = (input: {
     events: [
       {
         action: "invitation.declined",
-        workspaceId: invitation.right.workspaceId,
+        workspaceId: invitation.success.workspaceId,
         actorEmail,
         subjectKind: "invitation",
-        subjectId: invitation.right.id,
+        subjectId: invitation.success.id,
         metadata: { reason: "declined" },
       },
     ],

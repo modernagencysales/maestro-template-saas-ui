@@ -1,0 +1,190 @@
+labels:
+  platform: linux/amd64
+  role: maestro-ci
+
+clone:
+  git:
+    image: woodpeckerci/plugin-git:2.9.2@sha256:ebde4a4d07e0e24b630082484d192890dd4f6d442d90bf5466f0763860f83652
+    settings:
+      depth: 500
+      partial: false
+      tags: true
+
+when:
+  - event: deployment
+    evaluate:
+      'CI_PIPELINE_DEPLOY_TARGET == "staging" || CI_PIPELINE_DEPLOY_TARGET ==
+      "production"'
+
+steps:
+  - name: trusted-ci-policy
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+    environment:
+      TRUSTED_CI_SELF_PROTECTION_COMMIT:
+        from_secret: trusted_ci_self_protection_commit
+      TRUSTED_DEPLOY_ROOT_SHA256:
+        from_secret: trusted_deploy_root_sha256
+    commands:
+      - |
+        bash -euo pipefail <<'SCRIPT'
+        set -euo pipefail
+        if [[ ! "$TRUSTED_CI_SELF_PROTECTION_COMMIT" =~ ^[0-9a-f]{40}([0-9a-f]{24})?$ ]]; then
+          echo "TRUSTED_CI_SELF_PROTECTION_COMMIT must be an exact immutable commit SHA." >&2
+          exit 1
+        fi
+        git cat-file -e "$TRUSTED_CI_SELF_PROTECTION_COMMIT^{commit}"
+        [[ "$(git rev-parse "$TRUSTED_CI_SELF_PROTECTION_COMMIT^{commit}")" == "$TRUSTED_CI_SELF_PROTECTION_COMMIT" ]]
+        TRUSTED_SELF_PROTECTION_DIR="$(mktemp -d)"
+        trap 'rm -rf "$TRUSTED_SELF_PROTECTION_DIR"' EXIT
+        TRUSTED_SETUP_PATH="$TRUSTED_SELF_PROTECTION_DIR/setup.sh"
+        TRUSTED_VERIFIER_PATH="$TRUSTED_SELF_PROTECTION_DIR/check-deploy-authority.mts"
+        TRUSTED_SELF_PROTECTION_PATH="$TRUSTED_SELF_PROTECTION_DIR/ci-self-protection.sh"
+        git show "$TRUSTED_CI_SELF_PROTECTION_COMMIT:tooling/ci/setup.sh" > "$TRUSTED_SETUP_PATH"
+        git show "$TRUSTED_CI_SELF_PROTECTION_COMMIT:tooling/quality/check-deploy-authority.mts" > "$TRUSTED_VERIFIER_PATH"
+        git show "$TRUSTED_CI_SELF_PROTECTION_COMMIT:tooling/ci/ci-self-protection.sh" > "$TRUSTED_SELF_PROTECTION_PATH"
+        export npm_config_ignore_scripts=true
+        source "$TRUSTED_SETUP_PATH"
+        [[ "$(node --version)" == "v22.23.2" ]]
+        node --experimental-strip-types "$TRUSTED_VERIFIER_PATH"
+        TEMPLATE_CI_SETUP=skip bash "$TRUSTED_SELF_PROTECTION_PATH"
+        unset npm_config_ignore_scripts
+        SCRIPT
+    failure: cancel
+
+  - name: staging-authority-preflight
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+    environment:
+      PROMOTION_AUTHORITY_ENDPOINT:
+        from_secret: promotion_authority_endpoint
+      TEMPLATE_STAGING_CONVEX_DEPLOYMENT:
+        from_secret: template_staging_convex_deployment
+      TEMPLATE_STAGING_CONVEX_URL:
+        from_secret: template_staging_convex_url
+      TEMPLATE_STAGING_HOSTED_URL:
+        from_secret: template_staging_hosted_url
+      TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT:
+        from_secret: template_production_convex_deployment
+      TEMPLATE_PRODUCTION_CONVEX_URL:
+        from_secret: template_production_convex_url
+    commands:
+      - |
+        bash -euo pipefail <<'SCRIPT'
+        source tooling/ci/setup.sh
+        node scripts/_project-config.mjs assert-isolated-convex
+        pnpm exec tsx tooling/release/src/deploy/authorityCli.ts staging "$CI_COMMIT_SHA" template-staging "$(node scripts/_project-config.mjs get staging convexUrl)"
+        SCRIPT
+    depends_on:
+      - trusted-ci-policy
+    when:
+      - event: deployment
+        evaluate: 'CI_PIPELINE_DEPLOY_TARGET == "staging"'
+    failure: cancel
+
+  - name: staging-deploy
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+    environment:
+      PROMOTION_AUTHORITY_ENDPOINT:
+        from_secret: promotion_authority_endpoint
+      PROMOTION_TARGET_ID: template-staging
+      TRUSTED_ROLLBACK_SEED_COMMIT:
+        from_secret: trusted_rollback_seed_commit
+      ROLLBACK_RECEIPT_BUILD_ID:
+        from_secret: rollback_receipt_build_id
+      TEMPLATE_STAGING_CONVEX_DEPLOYMENT:
+        from_secret: template_staging_convex_deployment
+      TEMPLATE_STAGING_CONVEX_URL:
+        from_secret: template_staging_convex_url
+      TEMPLATE_STAGING_HOSTED_URL:
+        from_secret: template_staging_hosted_url
+      TEMPLATE_STAGING_CONVEX_DEPLOY_KEY:
+        from_secret: template_staging_convex_deploy_key
+      TEMPLATE_STAGING_CLOUDFLARE_API_TOKEN:
+        from_secret: template_staging_cloudflare_api_token
+      TEMPLATE_STAGING_CLOUDFLARE_ACCOUNT_ID:
+        from_secret: template_staging_cloudflare_account_id
+      PREVIOUS_CONVEX_COMMIT_SHA:
+        from_secret: staging_previous_convex_commit_sha
+      PREVIOUS_CONVEX_DEPLOYMENT:
+        from_secret: staging_previous_convex_deployment
+      PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION:
+        from_secret: staging_previous_cloudflare_deployment_version
+    commands:
+      - tooling/ci/staging-deploy.sh
+    depends_on:
+      - staging-authority-preflight
+    when:
+      - event: deployment
+        evaluate: 'CI_PIPELINE_DEPLOY_TARGET == "staging"'
+    failure: cancel
+
+  - name: production-authority-preflight
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+    environment:
+      PROMOTION_AUTHORITY_ENDPOINT:
+        from_secret: promotion_authority_endpoint
+      TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT:
+        from_secret: template_production_convex_deployment
+      TEMPLATE_PRODUCTION_CONVEX_URL:
+        from_secret: template_production_convex_url
+      TEMPLATE_PRODUCTION_HOSTED_URL:
+        from_secret: template_production_hosted_url
+      TEMPLATE_STAGING_CONVEX_DEPLOYMENT:
+        from_secret: template_staging_convex_deployment
+      TEMPLATE_STAGING_CONVEX_URL:
+        from_secret: template_staging_convex_url
+    commands:
+      - |
+        bash -euo pipefail <<'SCRIPT'
+        source tooling/ci/setup.sh
+        node scripts/_project-config.mjs assert-isolated-convex
+        pnpm exec tsx tooling/release/src/deploy/authorityCli.ts production "$CI_COMMIT_SHA" template-production "$(node scripts/_project-config.mjs get production convexUrl)"
+        SCRIPT
+    depends_on:
+      - trusted-ci-policy
+    when:
+      - event: deployment
+        evaluate: 'CI_PIPELINE_DEPLOY_TARGET == "production"'
+    failure: cancel
+
+  - name: production-promote
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+    environment:
+      PROMOTION_AUTHORITY_ENDPOINT:
+        from_secret: promotion_authority_endpoint
+      PROMOTION_TARGET_ID: template-production
+      TRUSTED_ROLLBACK_SEED_COMMIT:
+        from_secret: trusted_rollback_seed_commit
+      ROLLBACK_RECEIPT_BUILD_ID:
+        from_secret: rollback_receipt_build_id
+      STAGED_SHA:
+        from_secret: staged_sha
+      TEMPLATE_PRODUCTION_CONVEX_DEPLOYMENT:
+        from_secret: template_production_convex_deployment
+      TEMPLATE_PRODUCTION_CONVEX_URL:
+        from_secret: template_production_convex_url
+      TEMPLATE_PRODUCTION_HOSTED_URL:
+        from_secret: template_production_hosted_url
+      TEMPLATE_PRODUCTION_CONVEX_DEPLOY_KEY:
+        from_secret: template_production_convex_deploy_key
+      TEMPLATE_PRODUCTION_CLOUDFLARE_API_TOKEN:
+        from_secret: template_production_cloudflare_api_token
+      TEMPLATE_PRODUCTION_CLOUDFLARE_ACCOUNT_ID:
+        from_secret: template_production_cloudflare_account_id
+      PREVIOUS_CONVEX_COMMIT_SHA:
+        from_secret: production_previous_convex_commit_sha
+      PREVIOUS_CONVEX_DEPLOYMENT:
+        from_secret: production_previous_convex_deployment
+      PREVIOUS_CLOUDFLARE_DEPLOYMENT_VERSION:
+        from_secret: production_previous_cloudflare_deployment_version
+      ROLLBACK_CLOUDFLARE_DEPLOYMENT_VERSION:
+        from_secret: rollback_cloudflare_deployment_version
+      ROLLBACK_RECEIPT_PATH:
+        from_secret: rollback_receipt_path
+    commands:
+      - tooling/ci/production-promote.sh
+    depends_on:
+      - production-authority-preflight
+    when:
+      - event: deployment
+        evaluate: 'CI_PIPELINE_DEPLOY_TARGET == "production"'
+    failure: cancel

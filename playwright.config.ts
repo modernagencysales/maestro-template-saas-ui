@@ -1,10 +1,11 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const baseURL =
-  process.env.TEMPLATE_HOSTED_URL ?? "https://maestro-template.pages.dev";
+const baseURL = process.env.TEMPLATE_HOSTED_URL ?? "http://127.0.0.1:4173";
 
 export default defineConfig({
+  reporter: "list",
   testDir: "./tests/e2e",
+  outputDir: "./artifacts/playwright",
   snapshotPathTemplate:
     "{testDir}/{testFilePath}-snapshots/{arg}-{projectName}{ext}",
   timeout: 30_000,
@@ -14,6 +15,12 @@ export default defineConfig({
   use: {
     baseURL,
     trace: "retain-on-failure",
+  },
+  webServer: {
+    command: "pnpm --dir apps/web dev --host 127.0.0.1 --port 4173",
+    url: baseURL,
+    reuseExistingServer: true,
+    timeout: 120_000,
   },
   projects: [
     {

@@ -4,11 +4,9 @@
   "references": [
     { "path": "./apps/web" },
     { "path": "./apps/cli" },
-    { "path": "./apps/voice-relay" },
     { "path": "./packages/convex" },
     { "path": "./packages/editor-core" },
     { "path": "./packages/editor-react" },
-    { "path": "./packages/ui" },
     { "path": "./packages/workflow-ui" },
     { "path": "./packages/template-core" },
     { "path": "./packages/integrations" },
@@ -17,10 +15,10 @@
     { "path": "./packages/observability" },
     { "path": "./packages/search" },
     { "path": "./tooling/workflow" },
+    { "path": "./tooling/agent-pack" },
     { "path": "./tooling/quality" },
     { "path": "./tooling/generators" },
     { "path": "./tooling/evals" },
-    { "path": "./tooling/release" },
-    { "path": "./tooling/pr-backlog" }
+    { "path": "./tooling/release" }
   ]
 }

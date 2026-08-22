@@ -27,13 +27,11 @@ export type SerializableContractManifest = {
 };
 
 export type ContractSpecManifest = SerializableContractManifest & {
-  readonly argsSchema: Schema.Schema.Any;
-  readonly returnsSchema: Schema.Schema.Any;
+  readonly argsSchema: Schema.Top;
+  readonly returnsSchema: Schema.Top;
 };
 
-export type ContractSchemaRegistry = Readonly<
-  Record<string, Schema.Schema.Any>
->;
+export type ContractSchemaRegistry = Readonly<Record<string, Schema.Top>>;
 
 export type ManifestBoundFunction<Spec> = {
   readonly spec: Spec;
@@ -109,12 +107,12 @@ export function publicErrorForKind(kind: CapabilityKind) {
   return kind === "query" ? WorkspaceReadErrors : WorkspaceWriteErrors;
 }
 
-type SchemaThunk<T extends Schema.Schema.AnyNoContext> = () => T;
+type SchemaThunk<T extends Schema.Codec<unknown, unknown>> = () => T;
 
 interface FunctionSpecInput<
   Name extends string,
-  Args extends Schema.Schema.AnyNoContext,
-  Returns extends Schema.Schema.AnyNoContext,
+  Args extends Schema.Codec<unknown, unknown>,
+  Returns extends Schema.Codec<unknown, unknown>,
 > {
   readonly name: Name;
   readonly args: SchemaThunk<Args>;
@@ -123,8 +121,8 @@ interface FunctionSpecInput<
 
 export const publicQuery = <
   const Name extends string,
-  Args extends Schema.Schema.AnyNoContext,
-  Returns extends Schema.Schema.AnyNoContext,
+  Args extends Schema.Codec<unknown, unknown>,
+  Returns extends Schema.Codec<unknown, unknown>,
 >(
   input: FunctionSpecInput<Name, Args, Returns>,
 ) =>
@@ -135,8 +133,8 @@ export const publicQuery = <
 
 export const publicMutation = <
   const Name extends string,
-  Args extends Schema.Schema.AnyNoContext,
-  Returns extends Schema.Schema.AnyNoContext,
+  Args extends Schema.Codec<unknown, unknown>,
+  Returns extends Schema.Codec<unknown, unknown>,
 >(
   input: FunctionSpecInput<Name, Args, Returns>,
 ) =>
@@ -147,8 +145,8 @@ export const publicMutation = <
 
 export const internalMutationStep = <
   const Name extends string,
-  Args extends Schema.Schema.AnyNoContext,
-  Returns extends Schema.Schema.AnyNoContext,
+  Args extends Schema.Codec<unknown, unknown>,
+  Returns extends Schema.Codec<unknown, unknown>,
 >(
   input: FunctionSpecInput<Name, Args, Returns>,
 ) =>

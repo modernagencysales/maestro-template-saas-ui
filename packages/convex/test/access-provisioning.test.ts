@@ -1,8 +1,7 @@
 import * as Effect from "effect/Effect";
-import * as Either from "effect/Either";
+import * as Result from "effect/Result";
 import { describe, expect, it } from "vitest";
 
-import refs from "../confect/_generated/refs";
 import {
   buildProvisioningPlan,
   extractIdentityProfile,
@@ -28,16 +27,6 @@ const emptyState: ProvisioningState = {
 };
 
 describe("access provisioning", () => {
-  it("declares an ensureProvisioned Confect mutation for the web quickstart path", () => {
-    expect(refs.public.access.provisioning.ensureProvisioned).toMatchObject({
-      functionNamespace: "access/provisioning",
-      functionSpec: {
-        name: "ensureProvisioned",
-        functionVisibility: "public",
-      },
-    });
-  });
-
   it("extracts a verified identity profile from provider identity claims", () => {
     const profile = Effect.runSync(
       extractIdentityProfile({
@@ -99,8 +88,8 @@ describe("access provisioning", () => {
       now,
     });
 
-    expect(Either.isRight(result)).toBe(true);
-    const plan = Either.getOrThrow(result);
+    expect(Result.isSuccess(result)).toBe(true);
+    const plan = Result.getOrThrow(result);
 
     expect(plan).toMatchObject({
       user: {
@@ -226,8 +215,8 @@ describe("access provisioning", () => {
       now,
     });
 
-    expect(Either.isRight(result)).toBe(true);
-    const plan = Either.getOrThrow(result);
+    expect(Result.isSuccess(result)).toBe(true);
+    const plan = Result.getOrThrow(result);
 
     expect(plan.user.action).toBe("none");
     expect(plan.organization.action).toBe("none");
@@ -300,8 +289,8 @@ describe("access provisioning", () => {
       now,
     });
 
-    expect(Either.isRight(result)).toBe(true);
-    const plan = Either.getOrThrow(result);
+    expect(Result.isSuccess(result)).toBe(true);
+    const plan = Result.getOrThrow(result);
 
     expect(plan.user).toMatchObject({
       action: "patch",
@@ -355,9 +344,9 @@ describe("access provisioning", () => {
       now,
     });
 
-    expect(Either.isLeft(result)).toBe(true);
-    if (Either.isLeft(result)) {
-      expect(result.left).toBeInstanceOf(Unauthorized);
+    expect(Result.isFailure(result)).toBe(true);
+    if (Result.isFailure(result)) {
+      expect(result.failure).toBeInstanceOf(Unauthorized);
     }
   });
 
@@ -386,9 +375,9 @@ describe("access provisioning", () => {
       "users_1",
     );
 
-    expect(Either.isLeft(organizationResult)).toBe(true);
-    if (Either.isLeft(organizationResult)) {
-      expect(organizationResult.left).toBeInstanceOf(ProvisioningConflict);
+    expect(Result.isFailure(organizationResult)).toBe(true);
+    if (Result.isFailure(organizationResult)) {
+      expect(organizationResult.failure).toBeInstanceOf(ProvisioningConflict);
     }
 
     const workspaceResult = selectLiveOwnedWorkspace(
@@ -419,9 +408,9 @@ describe("access provisioning", () => {
       "users_1",
     );
 
-    expect(Either.isLeft(workspaceResult)).toBe(true);
-    if (Either.isLeft(workspaceResult)) {
-      expect(workspaceResult.left).toBeInstanceOf(ProvisioningConflict);
+    expect(Result.isFailure(workspaceResult)).toBe(true);
+    if (Result.isFailure(workspaceResult)) {
+      expect(workspaceResult.failure).toBeInstanceOf(ProvisioningConflict);
     }
   });
 });

@@ -1,0 +1,155 @@
+{
+  "feature": "phase-1-wp-1.6-lifecycle-closure",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp1.6-reconcile-cp5",
+      "intention": "project tenant-safe lifecycle controls into generated workflow contracts",
+      "layers": ["workflows", "contracts", "generators"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "workspace-guard",
+        "schema-runtime-validator-export",
+        "bare-error-not-typed",
+        "policy-data-hardcoded",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/generators/src/index.ts",
+          "tooling/generators/src/index.test.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A generated control bypasses tenant reauthorization",
+          "A start response omits the canonical product run ID",
+          "A public projection exposes component payloads"
+        ],
+        "policyDataOwnership": "packages/convex/confect/workflows/lifecycle.spec.ts",
+        "promptVersioningImpact": "Workflow version and lifecycle generation remain explicit.",
+        "evalOrGateCoverage": [
+          "pnpm --dir tooling/generators test",
+          "pnpm template:workflow-output-smoke",
+          "pnpm check:confect-contracts"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "pattern-instance",
+          "target": "WP-1.6 generated lifecycle contract",
+          "generatorCommand": "pnpm template:add-workflow",
+          "generatedTarget": "workflow start, status, cancel, restart, list, listByName, listSteps, and cleanup contracts",
+          "followUpGates": [
+            "pnpm --dir tooling/generators test",
+            "pnpm template:workflow-output-smoke"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "Generated controls reuse the accepted authenticated lifecycle port and bounded product projections.",
+      "estLines": 295
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp1.6-reconcile-cp5",
+      "intention": "forward generated controls and lifecycle status through typed internal refs",
+      "layers": ["workflows", "contracts", "generators"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "workspace-guard",
+        "bare-error-not-typed",
+        "policy-data-hardcoded",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/generators/src/index.ts",
+          "packages/convex/confect/workflows/lifecycle.impl.ts",
+          "packages/convex/confect/workflows/_kit/status.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Generated code constructs a second workflow manager",
+          "Status hides honest residual uncertainty",
+          "Lifecycle mutations accept caller-derived authority"
+        ],
+        "policyDataOwnership": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+        "promptVersioningImpact": "No prompt or model policy changes.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm --dir packages/convex typecheck",
+          "pnpm check:access-audit-events"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "fixture-to-real",
+          "target": "WP-1.6 generated lifecycle implementation",
+          "fixtureContract": "accepted lifecycle Confect controls and product status projection",
+          "realBoundary": "generated FunctionImpl forwarding through internal lifecycle refs",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm --dir packages/convex typecheck",
+            "pnpm check:access-audit-events"
+          ]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "The generator reuses the single manager authority and exposes only tenant-owned lifecycle projections.",
+      "estLines": 285
+    },
+    {
+      "id": 3,
+      "branch": "codex/wp1.6-reconcile-cp5",
+      "intention": "document honest lifecycle, retention, restart, and completion guarantees",
+      "layers": ["workflows", "docs"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "workspace-guard",
+        "policy-data-hardcoded",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "docs/template/how-to-add-workflow.md",
+          "docs/template/workflow-authoring-guide.md"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Cancellation is described as atomic rollback",
+          "Product cleanup is described as full component deletion",
+          "Restart omits generation-scoped effect evidence"
+        ],
+        "policyDataOwnership": "docs/template/convex-workflow-compatibility.md",
+        "promptVersioningImpact": "Documentation preserves immutable workflow version and generation terminology.",
+        "evalOrGateCoverage": [
+          "pnpm check:workflow-semantics",
+          "pnpm stack:check",
+          "git diff --check"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "pattern-instance",
+          "target": "WP-1.6 lifecycle authoring guidance",
+          "generatorCommand": "pnpm template:add-workflow",
+          "generatedTarget": "workflow lifecycle documentation",
+          "followUpGates": ["pnpm check:workflow-semantics", "pnpm stack:check"]
+        }
+      ],
+      "taskRefs": ["WP-1.6"],
+      "rationale": "Authoring guidance distinguishes exposed product cleanup from unverifiable hidden component residuals.",
+      "estLines": 190
+    }
+  ],
+  "allTaskRefs": ["WP-1.6"],
+  "deferredClauses": []
+}

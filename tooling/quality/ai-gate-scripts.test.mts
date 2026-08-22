@@ -41,21 +41,17 @@ async function run(
 
 describe("AI and PR gate scripts", () => {
   it(
-    "AI Buildkite wrappers fail closed without provider auth",
+    "AI CI wrappers fail closed without provider auth",
     { timeout: SHELL_TEST_TIMEOUT },
     async () => {
       const noProviderEnv = {
         OPENROUTER_API_KEY: "",
         OPENAI_API_KEY: "",
       };
-      const taste = await run(
-        "bash",
-        [".buildkite/scripts/taste.sh"],
-        noProviderEnv,
-      );
+      const taste = await run("bash", ["tooling/ci/taste.sh"], noProviderEnv);
       const contract = await run(
         "bash",
-        [".buildkite/scripts/contract-review.sh"],
+        ["tooling/ci/contract-review.sh"],
         noProviderEnv,
       );
 
@@ -71,16 +67,16 @@ describe("AI and PR gate scripts", () => {
   );
 
   it(
-    "AI Buildkite wrappers allow explicit fake mode only",
+    "AI CI wrappers allow explicit fake mode only",
     { timeout: SHELL_TEST_TIMEOUT },
     async () => {
       const taste = await run("bash", [
-        ".buildkite/scripts/taste.sh",
+        "tooling/ci/taste.sh",
         "--mode",
         "fake",
       ]);
       const contract = await run("bash", [
-        ".buildkite/scripts/contract-review.sh",
+        "tooling/ci/contract-review.sh",
         "--mode",
         "fake",
       ]);
@@ -100,7 +96,7 @@ describe("AI and PR gate scripts", () => {
         "pnpm",
         ["exec", "tsx", "tooling/quality/check-pr-health.mts"],
         {
-          BUILDKITE: "true",
+          CI: "true",
           GITHUB_TOKEN: "",
         },
       );
@@ -108,7 +104,7 @@ describe("AI and PR gate scripts", () => {
         "pnpm",
         ["exec", "tsx", "tooling/quality/check-unresolved-review-threads.mts"],
         {
-          BUILDKITE: "true",
+          CI: "true",
           GITHUB_TOKEN: "",
         },
       );

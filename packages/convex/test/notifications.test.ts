@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 
@@ -160,16 +161,12 @@ describe("notification Confect contracts", () => {
     expect(JSON.stringify(notifications)).toContain("recordInternal");
     expect(JSON.stringify(notifications)).toContain("markRead");
     expect(JSON.stringify(notifications)).toContain("updatePreference");
-    expect(notificationsImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(notificationsImpl)).toBe(true);
   });
 
   it("rejects padded notification idempotency keys before insert", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(
         seedTenancy(1_782_924_800_000),
         SeededTenancy,
@@ -203,9 +200,7 @@ describe("notification Confect contracts", () => {
   it("persists notification records, read receipts, and preferences by workspace recipient", async () => {
     const now = 1_782_924_800_000;
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       const seeded = yield* confect.run(seedTenancy(now), SeededTenancy);
       const notification = yield* confect.mutation(
         refs.internal.ops.notifications.recordInternal,

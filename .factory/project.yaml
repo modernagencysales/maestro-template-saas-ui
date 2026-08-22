@@ -1,0 +1,28 @@
+schema_version: 1
+quality:
+  required: []
+commands:
+  broad:
+    - id: verify
+      argv: [pnpm, verify]
+      executor: maestro-worker
+      affected: ["**"]
+    - id: acceptance-cucumber
+      argv: [pnpm, acceptance:cucumber]
+      executor: maestro-worker
+      affected: ["**"]
+ci:
+  # Repository policy names deterministic verify as the sole merge authority; firewall/AI remains visible and advisory.
+  required_contexts: [ci/woodpecker/pr/verify]
+contract_review:
+  affected:
+    [
+      ".factory/**",
+      ".woodpecker/**",
+      "tooling/quality/**",
+      "tooling/ci/**",
+      "package.json",
+      "pnpm-lock.yaml",
+    ]
+deployment:
+  proof_required: false

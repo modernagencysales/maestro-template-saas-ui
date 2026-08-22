@@ -1,18 +1,51 @@
-# Maestro Template
+# Maestro SaaS App Factory
 
-Maestro Template is a private internal framework for building custom AI brain,
-workflow, and context-engineering apps. It extracts the reusable Maestro
-architecture into a generic product factory: workspace tenancy, Confect/Effect
-contracts, workflows, capabilities, agents, Brain sources, headless surfaces,
-provider adapters, CI gates, and a reviewer-safe reference app.
+Maestro is an opinionated TypeScript app factory for building workspace-safe
+SaaS and AI products. It gives you a polished Saas UI shell, Convex persistence,
+typed Confect/Effect contracts, fake-safe local development, and a CLI that
+guides both people and coding agents through reviewed changes.
 
-This is not a public starter kit. It is an internal accelerator for custom AI
-implementation work and technical diligence.
+The factory produces a separate customer app. You build in that generated app;
+you do not turn this repository into the product or copy files from `main`.
 
-## Quickstart
+> Release status: `0.2.0-alpha.2` is intended for hands-on testing. Use it for
+> prototypes and feedback, not production data. Please open a GitHub issue with
+> the command you ran, the concise CLI output, and the generated receipt when a
+> step fails.
+
+## App idea funnel
+
+The public reference surface starts with a nontechnical founder workflow:
+
+1. “Tell me if your app idea is good.”
+2. Answer eight plain-language questions.
+3. Receive a useful, unblurred Buildability Report and constructive roast.
+4. Optionally buy the Complete Build Pack to know exactly how to build it.
+5. Take the portable specification to a developer, agency, coding agent, or—
+   when the fit is honest—apply the purchase as equal Maestro credit.
+
+Free evaluation and paid generation are intentionally separate systems. The free
+agent uses a bounded low-cost model without browsing or research. The paid
+pipeline uses stronger, checkpointed stages and can resume a failed stage
+without another purchase. A checkout return never unlocks paid work; only a
+verified, idempotent Dodo webhook creates an entitlement.
+
+Product language, implementation contract, operating procedures, and launch
+evidence live in:
+
+- [Funnel design](./docs/superpowers/specs/2026-07-31-app-idea-evaluator-funnel-design.md)
+- [Approved language bank](./docs/design-intake/2026-07-31-app-idea-evaluator-language-bank.md)
+- [Operations runbook](./docs/template/app-idea-funnel-operations.md)
+- [Launch checklist](./docs/template/app-idea-funnel-launch-checklist.md)
+
+## Build a small app
+
+Requirements: Git and Node 22. The install-free bootstrap check selects the
+repository's pinned pnpm through Corepack or an npx fallback.
 
 ```bash
-pnpm install
+node scripts/bootstrap-preflight.mjs
+npx --yes pnpm@10.12.1 install --frozen-lockfile
 pnpm review:readiness
 pnpm review:completion
 pnpm check:format
@@ -22,6 +55,12 @@ pnpm test
 pnpm build
 ```
 
+The first command uses only Node's standard library, so it works before
+workspace packages are installed. It rejects an ambient pnpm mismatch and prints
+the exact pinned install command. If Corepack cannot activate the pinned version
+because its signing keys are stale, use the displayed `npx` fallback and keep
+the same `npx --yes pnpm@10.12.1` prefix on later pnpm commands.
+
 `review:readiness` and `review:completion` are presence/evidence audits. They
 check required files and listed evidence paths; run `pnpm verify` for behavioral
 proof.
@@ -29,126 +68,174 @@ proof.
 Run the hostable reference app:
 
 ```bash
-pnpm --dir apps/web dev -- --port 5174
+corepack enable
+corepack pnpm@10.12.1 install --frozen-lockfile
 ```
 
-Open `http://127.0.0.1:5174/`.
+If Corepack is unavailable or rejects its signing metadata, use the pinned
+fallback printed by the same check:
 
-Hosted reference app:
+```bash
+npx --yes pnpm@10.12.1 install --frozen-lockfile
+```
+
+Bootstrap also rejects the wrong Node major and prints repository-local
+`git config user.name` and `git config user.email` repairs before the first
+required commit.
+
+Then preview the generated app. No target files are written:
+
+```bash
+
+pnpm maestro -- create ../launch-tracker \
+  --name "Launch Tracker" \
+  --outcome "Track launch tasks and blockers" \
+  --demo-only
+
+# Write the exact reviewed plan.
+pnpm maestro -- create ../launch-tracker \
+  --name "Launch Tracker" \
+  --outcome "Track launch tasks and blockers" \
+  --demo-only \
+  --write
+```
+
+Create prints the remaining copy/paste commands: initialize Git, install the
+frozen dependency graph, make the baseline commit, run preflight, and start in
+fake mode. It does not silently install, commit, authenticate, or launch a
+service for you.
+
+After following those commands:
+
+```bash
+cd ../launch-tracker
+pnpm maestro -- recipes list
+pnpm template:systems -- --query workspace
+pnpm maestro -- start --mode fake
+```
+
+Open the URL printed after `/health` becomes ready. The default generated
+starter is a neutral, workspace-safe chassis with a draft `@wip` first-outcome
+contract. It does not create a product table, record-management system, or route
+for you; choose the first useful noun and add its reviewed product slice before
+promoting that outcome.
+
+For scripts and JSON consumers, use the repository-owned launcher so package
+manager banners never share stdout with the result:
+
+```bash
+node maestro-template.mjs describe
+node maestro-template.mjs preflight --mode fake --json
+```
+
+The detailed walkthrough is in
+[Template Quickstart](./docs/template/quickstart.md).
+
+## Email with Postmark
+
+Email stays provider-neutral in application code and uses Postmark as the live
+adapter. Transactional templates use the `outbound` stream. Marketing uses the
+separate `broadcast` stream and only includes explicitly opted-in,
+non-suppressed subscribers.
+
+After adding the server-only variables from `.env.example`, configure the five
+template aliases and authenticated webhooks:
+
+```bash
+pnpm email:setup
+```
+
+The generated headless catalog exposes `ops.email.previewBroadcast` and
+`ops.email.dispatchBroadcast`. Dispatch requires both a stable idempotency key
+and the exact `confirmation: "SEND"` input. Signed unsubscribe links and
+Postmark events are handled at `/email/unsubscribe` and
+`/webhooks/email/postmark`.
+
+## How Maestro works
+
+Maestro uses one repeatable loop:
 
 ```text
-https://maestro-template.pages.dev
+orient -> preview -> review -> write -> verify -> commit -> run
 ```
 
-For a technical diligence path, start with
-[docs/template/investor-reviewer-packet.md](./docs/template/investor-reviewer-packet.md).
+1. `maestro preflight` checks the host, repository, release authority, and
+   fake/local/live posture.
+2. `maestro recipes` shows supported outcomes; `template:systems` finds the
+   canonical owner so a change does not create a duplicate subsystem.
+3. `maestro add` or a `template:*` generator previews exact files and gates.
+4. Writes require explicit approval and unchanged fingerprints. Multi-file
+   recipes use a recoverable transaction and retain a receipt.
+5. Focused gates prove the affected contract before the app is started.
+6. Review and commit the verified change; start requires a clean target.
 
-The hosted app is a working full-stack deployment: the Workflows page streams
-live data from a deployed Convex backend, and every push to `main` runs the full
-Buildkite gate pipeline (deterministic gates, LLM review gates, staging deploy,
-gated production promote). Other providers (WorkOS, PostHog, Dodo, MailerSend,
-storage, LLM) default to fake/local adapters and are switched on per client
-fork.
+For a product entity, first use the system catalog to identify the reviewed
+owner for that domain, then preview the matching recipe. The default chassis
+does not supply a `record-management` owner; `records-example` is an internal
+optional reference composition rather than a create CLI option.
 
-## Design decisions
+```bash
+pnpm maestro -- recipes show crud-business-entity
+pnpm template:systems -- --query "your-domain-noun"
+```
 
-Fresh reviewers tend to flag the same four things. Each one is a decision, not
-an accident:
+The preview prints the exact confirmation command with its plan and preflight
+fingerprints. Run that returned command unchanged to apply the transaction. See
+[Executable Outcome Recipes](./docs/template/executable-recipes.md).
 
-- **Auth is a seam, not a feature.** The template ships fake-safe identity
-  wiring (WorkOS-shaped) and a server-derived tenancy spine, but no live auth
-  flow. Client forks choose their own provider; the template's job is to make
-  that a contained swap instead of a rewrite.
-- **Some backend capabilities are contract fixtures.** Domains that manage live
-  data (`access`, `auth`, `brain`, `demo`) are database-backed. Domains that
-  demonstrate contract shape (`ops/*`, `agents`, `capabilities`, `jobs`) return
-  deterministic fixtures behind real typed specs. The spec, typed errors, and
-  tests are the deliverable; a fork replaces fixture bodies with persistence.
-  See AGENTS.md for the exact map.
-- **The live surface is deliberately thin.** One seeded workspace and one live
-  query prove the full path (static app → deployed backend → typed contract →
-  UI). Everything else stays inert until a client fork gives it real data. A
-  template that pretends to be a product ages badly.
-- **`repos/` vendors Effect and Confect sources on purpose.** AI coding agents
-  produce measurably better changes with framework source in-tree. It is
-  reference material, excluded from builds, lint, and scanning.
-
-How this repo was built — and why the commit history looks the way it does — is
-documented in
-[docs/template/delivery-story.md](./docs/template/delivery-story.md). The fast
-receipt path is
-[docs/template/delivery-receipts.md](./docs/template/delivery-receipts.md).
-
-## Architecture
+## Architecture contract
 
 ```text
 web routes -> screens -> features -> blocks -> Saas UI/shared primitives
 client hooks -> @confect/react refs -> Confect specs -> Convex functions
 agents -> workflows -> capabilities -> domain/checks -> schema
-API/CLI/MCP -> headless registry -> same capabilities/workflows as web
+API/CLI/MCP -> headless registry -> the same capabilities/workflows as web
 storage/notifications/observability -> Effect services -> provider adapters
-admin/support/privacy -> audited capabilities -> narrow operator surfaces
 ```
 
-## Reference App Routes
+The starter is opinionated without being a dead-end. Keep the shared shell and
+customize through feature adapters, blocks, design tokens, generated routes,
+canonical systems, and typed contracts. Fake providers remain the default until
+a fork explicitly configures and verifies a live adapter.
 
-The reference app converges on these default surfaces:
+## Guidance for people and agents
 
-- Home
-- Brain
-- Workflows
-- Capabilities
-- Agents
-- Runs
-- Documents
-- Source Intake
-- Integrations
-- API
-- Onboarding
-- Data Map
-- Notifications
-- Settings
-- Billing
-- Analytics
-- Health
-- Admin/Support
-
-The default first screen is a plain Saas UI business dashboard. It demonstrates
-the intended frontend path with a live `demo.showcase.overview` Confect query,
-and `/data-lifecycle` demonstrates the fake-safe Confect query/mutation pattern
-that client forks should copy first.
+- [AGENTS.md](./AGENTS.md) is the operational contract for coding agents.
+- [Template Quickstart](./docs/template/quickstart.md) is the tester path.
+- [Repository Map](./docs/template/repo-map.md) shows where each kind of change
+  belongs.
+- [App Factory Guide](./docs/template/app-factory-guide.md) explains the method.
+- [Reviewer Guide](./docs/template/reviewer-guide.md) defines the human review
+  checkpoints.
+- [Delivery Receipts](./docs/template/delivery-receipts.md) explains the
+  evidence generated for applied changes.
+- [Customer Target Contract](./docs/template/customer-target-contract.md)
+  explains release and write safety.
+- [System Catalog](./docs/template/system-catalog.md) and
+  [Product Topology](./docs/template/product-topology.md) define ownership.
+- [Start Modes](./docs/template/start-modes.md) explains fake, local, and dev.
+- [Saas UI frontend authority](./docs/template/saas-ui-frontend-authority.md)
+  defines the single upstream-derived UI path.
+- [Saas UI upstream update](./docs/template/saas-ui-upstream-update.md) and
+  [golden review](./docs/template/saas-ui-golden-review.md) define refresh and
+  owner approval evidence.
 
 ## Verification
 
-Fast local verification:
+During development, run the focused gates printed by the generator. Before a
+handoff, run:
 
 ```bash
-pnpm check:format && pnpm lint && pnpm typecheck && pnpm test && pnpm build
+pnpm check:format
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
+pnpm check:system-catalog
+pnpm check:system-topology
+pnpm check:data-resources
 ```
 
-Investor completion audit:
-
-```bash
-pnpm review:completion
-```
-
-Full verification after safety gates land:
-
-```bash
-pnpm verify
-```
-
-## Navigation
-
-- Agent instructions: [AGENTS.md](./AGENTS.md)
-- Repo map: [docs/template/repo-map.md](./docs/template/repo-map.md)
-- Reviewer guide:
-  [docs/template/reviewer-guide.md](./docs/template/reviewer-guide.md)
-- Investor reviewer packet:
-  [docs/template/investor-reviewer-packet.md](./docs/template/investor-reviewer-packet.md)
-- Extraction policy:
-  [docs/template/extraction-redaction-guide.md](./docs/template/extraction-redaction-guide.md)
-- Confect/Effect guide:
-  [docs/template/confect-effect-guide.md](./docs/template/confect-effect-guide.md)
-- Golden path business slice:
-  [docs/template/golden-path-business-slice.md](./docs/template/golden-path-business-slice.md)
+`pnpm verify` is the exhaustive repository gate and can take considerably
+longer. A green presence audit is not behavioral proof; use the command output
+and generated receipts as the evidence.

@@ -7,6 +7,7 @@ export type EmailPayload = {
   readonly html: string;
   readonly idempotencyKey: string;
   readonly templateData: Readonly<Record<string, unknown>>;
+  readonly templateAlias?: string;
 };
 
 export type EmailDelivery = {
@@ -27,15 +28,30 @@ export class EmailValidationError extends Error {
   }
 }
 
+export class EmailProviderError extends Error {
+  readonly _tag = "EmailProviderError";
+  readonly provider = "email";
+
+  constructor(
+    message: string,
+    readonly status?: number,
+  ) {
+    super(message);
+    this.name = "EmailProviderError";
+  }
+}
+
 export type EmailFailure = {
   readonly ok: false;
-  readonly error: EmailValidationError;
+  readonly error: EmailValidationError | EmailProviderError;
 };
 
 export type EmailResult = EmailDelivery | EmailFailure;
 
 const idempotencyKeyPattern = /^[A-Za-z0-9._~-]+$/;
 const maxIdempotencyKeyLength = 128;
+
+export type EmailTransport = (payload: EmailPayload) => Promise<void>;
 
 const validateEmailIdempotencyKey = (
   idempotencyKey: string,
@@ -264,7 +280,8 @@ export const redactEmailPayload = (
       key === "to" ||
       key === "recipient" ||
       key === "apiKey" ||
-      key === "templateData"
+      key === "templateData" ||
+      key === "html"
         ? "[redacted]"
         : value;
   }
@@ -277,6 +294,7 @@ const deliveryForMode = (mode: EmailMode): EmailDelivery["delivery"] =>
 
 export const createEmailService = (options: {
   readonly mode: EmailMode;
+  readonly transport?: EmailTransport;
   readonly sink?: (
     payload: Readonly<Record<string, unknown>>,
   ) => void | Promise<void>;
@@ -293,12 +311,23 @@ export const createEmailService = (options: {
       };
     }
 
-    await options.sink?.(
-      redactEmailPayload({
-        ...payload,
-        apiKey: "provider-owned",
-      }),
-    );
+    try {
+      await options.transport?.(payload);
+      await options.sink?.(
+        redactEmailPayload({
+          ...payload,
+          apiKey: "provider-owned",
+        }),
+      );
+    } catch (error) {
+      return {
+        ok: false,
+        error:
+          error instanceof EmailProviderError
+            ? error
+            : new EmailProviderError("Email delivery failed."),
+      };
+    }
 
     return {
       ok: true,
@@ -307,6 +336,46 @@ export const createEmailService = (options: {
     };
   },
 });
+
+export type FunnelLifecycleEmailIntent = {
+  readonly kind: "build-pack-ready" | "verify-report-email";
+  readonly to: string;
+  readonly reportId: string;
+  readonly destinationUrl: string;
+};
+
+export const createFunnelLifecycleEmailService = (options: {
+  readonly mode: EmailMode;
+  readonly from: string;
+  readonly transport?: EmailTransport;
+  readonly sink?: (
+    payload: Readonly<Record<string, unknown>>,
+  ) => void | Promise<void>;
+}) => {
+  const email = createEmailService(options);
+
+  return {
+    send: async (intent: FunnelLifecycleEmailIntent): Promise<EmailResult> => {
+      const verification = intent.kind === "verify-report-email";
+      return await email.send({
+        to: intent.to,
+        from: options.from,
+        subject: verification
+          ? "Verify your email to save your app idea"
+          : "Your Complete Build Pack is ready",
+        html: verification
+          ? `<p>Verify your email to save your report. <a href="${intent.destinationUrl}">Verify email</a>.</p>`
+          : `<p>Your Complete Build Pack is ready. <a href="${intent.destinationUrl}">Open your Build Pack</a>.</p>`,
+        idempotencyKey: `idea-funnel.${intent.kind}.${actionDigestKeyPart(intent.reportId)}`,
+        templateAlias: intent.kind,
+        templateData: {
+          reportId: intent.reportId,
+          destinationUrl: intent.destinationUrl,
+        },
+      });
+    },
+  };
+};
 
 const actionDigestKeyPart = (value: string): string =>
   value.replaceAll(/[^A-Za-z0-9._~-]/g, "-");
@@ -371,6 +440,7 @@ export const createActionDigestService = (options: {
         subject: `Action digest: ${payload.jobsQueued} queued, ${payload.approvalsWaiting} waiting, ${payload.actionsPublished} published`,
         html: `<p>Your audited action queue has ${payload.jobsQueued} queued jobs, ${payload.approvalsWaiting} approvals waiting, and ${payload.actionsPublished} published action.</p>`,
         idempotencyKey,
+        templateAlias: "notification-digest",
         templateData: {
           workspaceId: payload.workspaceId,
           recipientId: payload.recipientId,

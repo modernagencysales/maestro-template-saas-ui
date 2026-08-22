@@ -26,7 +26,17 @@ const allowedProviderBoundaryPrefixes = [
 ] as const;
 
 const allowedProviderBoundaryFiles = new Set([
+  "apps/web/src/lib/auth/route-auth.ts",
+  "apps/web/src/lib/auth/workos-auth-catch-all.ts",
+  "apps/web/src/lib/auth/workos-auth-entry.ts",
+  "apps/web/src/lib/auth/workos-auth-loader.ts",
+  "apps/web/src/lib/auth/workos-auth.ts",
+  "apps/web/src/lib/auth/workos-cookie-session-storage.ts",
+  "apps/web/src/lib/auth/workos-logout.ts",
   "apps/web/src/routes/__root.tsx",
+  "apps/web/src/routes/api/auth/callback.tsx",
+  "apps/web/src/routes/api/auth/sign-in.tsx",
+  "apps/web/src/routes/api/auth/sign-up.tsx",
   "apps/web/src/start.ts",
   "packages/convex/convex/convex.config.ts",
   "packages/convex/confect/observability/posthog.ts",
@@ -90,7 +100,12 @@ async function listFiles(repoRoot: string, dir: string): Promise<string[]> {
   for (const entry of entries) {
     const path = `${dir}/${entry.name}`;
     if (entry.isDirectory()) {
-      if (entry.name === "node_modules" || entry.name === "dist") continue;
+      if (
+        entry.name === "node_modules" ||
+        entry.name === "dist" ||
+        entry.name === ".output"
+      )
+        continue;
       files.push(...(await listFiles(repoRoot, path)));
     } else if (entry.isFile()) {
       files.push(path);

@@ -2,9 +2,9 @@
  * workflow-handler-determinism — orchestration has one door, and the workflow
  * door has a hard constraint: the handler must be REPLAY-DETERMINISTIC.
  * @convex-dev/workflow re-executes the handler on every resume, replaying
- * journaled step results; any ambient time, randomness, IO, db read, or env
- * access inside the handler produces a DIFFERENT value on replay and corrupts
- * the journal. The external/non-deterministic work belongs in a STEP (a
+ * journaled step results. The pinned component normalizes core `Date` and
+ * seeds `Math.random`; ambient IO, database, scheduler, environment, crypto,
+ * and locale/timezone-sensitive formatting remain forbidden. External work belongs in a STEP (a
  * capability invoked via `step.*`) whose result is journaled and passed back in.
  *
  * SCOPE — files under packages/convex/confect/workflows/** (NOT tests). Durable
@@ -14,9 +14,8 @@
  *
  * WHAT IT FLAGS — inside the function passed to `defineWorkflow(…).handler(<fn>)`
  * (the callee is a member `.handler` whose object is a `defineWorkflow(…)` call):
- *   - `Date.now` (member or call), `new Date(…)` — ambient time;
- *   - `Math.random` — ambient randomness;
  *   - `crypto.randomUUID` (member or call) — ambient randomness;
+ *   - `Intl.*` and `Date#toLocale*` — locale/timezone-dependent formatting;
  *   - `fetch(…)` (bare or member) — IO;
  *   - `ctx.db` (any `.db` member access) — a db read/write;
  *   - `ctx.scheduler` (any `.scheduler` member access) — a scheduler hop
@@ -37,23 +36,24 @@
  * NOTE — unlike the upstream rule, `.spec.` files are NOT exempt here: in this
  * repo `*.spec.ts` files are confect function specs (production code), not tests.
  *
- * Allowlist-as-code: NONE. A workflow handler that needs time/random/IO calls a
- * step. No per-project knob.
+ * Core `Date` and seeded `Math.random` are deliberately allowed because the
+ * pinned upstream runtime patches them. There is no per-project allowlist.
  */
 
-const WORKFLOWS_RE = /(?:^|\/)packages\/convex\/confect\/workflows\//;
+const WORKFLOWS_RE =
+  /(?:^|\/)packages\/convex\/(?:confect\/(?:workflows|workflowRunners)|convex\/workflowRunners)\//;
 
 export default {
   meta: {
     type: "problem",
     docs: {
       description:
-        "Workflow handlers are replay-deterministic — no ambient time/random/IO/db/env; do that work in a step",
+        "Workflow handlers use normalized Date/random and forbid ambient IO/db/env/crypto/locale effects",
     },
     schema: [],
     messages: {
       nondeterministic:
-        "Workflow handlers must be replay-deterministic — no ambient time/random/IO/db; do that work in a step (capability) and pass the result in.",
+        "Workflow handlers must be replay-deterministic — use normalized Date/seeded random only; move IO/db/env/crypto/locale-sensitive work to a capability step.",
     },
   },
   create(context) {
@@ -115,12 +115,17 @@ function handlerFnOf(node) {
 function isDefineWorkflowCall(node) {
   if (node.type !== "CallExpression") return false;
   const callee = node.callee;
-  if (callee.type === "Identifier") return callee.name === "defineWorkflow";
+  if (callee.type === "Identifier")
+    return (
+      callee.name === "defineWorkflow" ||
+      callee.name === "defineMaestroWorkflow"
+    );
   return (
     callee.type === "MemberExpression" &&
     !callee.computed &&
     callee.property.type === "Identifier" &&
-    callee.property.name === "defineWorkflow"
+    (callee.property.name === "defineWorkflow" ||
+      callee.property.name === "defineMaestroWorkflow")
   );
 }
 
@@ -146,10 +151,9 @@ function scanForBanned(root, report) {
 
 /**
  * The replay-breaking shapes:
- *   - `Date.now` / `Math.random` / `crypto.randomUUID` — a non-computed member
- *     access `<obj>.<method>` matching the (object,property) pair (covers both
- *     the bare reference and the call, since the MemberExpression is the callee);
- *   - `new Date(…)` — a NewExpression on `Date`;
+ *   - `crypto.randomUUID` — ambient randomness;
+ *   - `new Intl.*` and `Intl.*` — locale/timezone-dependent behavior;
+ *   - `.toLocaleString`, `.toLocaleDateString`, `.toLocaleTimeString`;
  *   - `fetch(…)` — a CallExpression to a bare `fetch`;
  *   - `process.env` — a non-computed `.env` member on a `process` identifier;
  *   - any `.db` / `.scheduler` / `.fetch` member access (db read / scheduler hop
@@ -157,7 +161,7 @@ function scanForBanned(root, report) {
  */
 function isBannedToken(node) {
   if (node.type === "NewExpression") {
-    return node.callee.type === "Identifier" && node.callee.name === "Date";
+    return isIntlMember(node.callee);
   }
   if (
     node.type === "CallExpression" &&
@@ -169,6 +173,13 @@ function isBannedToken(node) {
   if (node.type !== "MemberExpression" || node.computed) return false;
   if (node.property.type !== "Identifier") return false;
   const prop = node.property.name;
+  if (
+    prop === "toLocaleString" ||
+    prop === "toLocaleDateString" ||
+    prop === "toLocaleTimeString"
+  ) {
+    return true;
+  }
   // `.db` / `.scheduler` on any receiver — a db touch or scheduler hop.
   if (BANNED_MEMBERS.has(prop)) return true;
   // `process.env` — env access.
@@ -179,17 +190,25 @@ function isBannedToken(node) {
   ) {
     return true;
   }
-  // `Date.now` / `Math.random` / `crypto.randomUUID` — ambient time/random.
-  return isAmbientMember(node.object, prop);
+  if (isIntlMember(node)) {
+    return !(
+      node.parent?.type === "NewExpression" && node.parent.callee === node
+    );
+  }
+  return (
+    node.object.type === "Identifier" &&
+    node.object.name === "crypto" &&
+    prop === "randomUUID"
+  );
 }
 
-/** True if `<object>.<prop>` is one of the ambient time/random sources. */
-function isAmbientMember(object, prop) {
-  if (object.type !== "Identifier") return false;
+/** True for a non-computed member rooted directly at the global `Intl`. */
+function isIntlMember(node) {
   return (
-    (object.name === "Date" && prop === "now") ||
-    (object.name === "Math" && prop === "random") ||
-    (object.name === "crypto" && prop === "randomUUID")
+    node.type === "MemberExpression" &&
+    !node.computed &&
+    node.object.type === "Identifier" &&
+    node.object.name === "Intl"
   );
 }
 

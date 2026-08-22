@@ -1,0 +1,29 @@
+{
+  "valid": [
+    {
+      "name": "declared-none",
+      "kind": "none",
+      "reason": "No policy decisions."
+    },
+    {
+      "name": "pinned",
+      "kind": "pinned",
+      "policyVersionId": "policy-v2",
+      "policyHash": "sha256:stable"
+    },
+    {
+      "name": "mid-run-change",
+      "expectedHash": "sha256:stable",
+      "latestHash": "sha256:changed"
+    },
+    {
+      "name": "restart",
+      "expectedPolicyVersionId": "policy-v2",
+      "restartPolicyVersionId": "policy-v2"
+    }
+  ],
+  "invalid": [
+    { "name": "undeclared-empty", "snapshot": {} },
+    { "name": "latest-policy-read", "source": "readLatestActivePolicy()" }
+  ]
+}

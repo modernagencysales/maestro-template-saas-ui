@@ -1,7 +1,7 @@
 import * as Schema from "effect/Schema";
 import type { ProviderMode } from "./index";
 
-export class WorkosConfigError extends Schema.TaggedError<WorkosConfigError>()(
+export class WorkosConfigError extends Schema.TaggedErrorClass<WorkosConfigError>()(
   "WorkosConfigError",
   {
     missingEnv: Schema.Array(Schema.String),
@@ -40,7 +40,6 @@ export type WorkosConvexAuthConfig = {
       readonly type: "customJwt";
       readonly issuer: string;
       readonly jwks: string;
-      readonly applicationID: string;
     },
   ];
 };
@@ -130,16 +129,13 @@ export const classifyWorkosSignatureFailure = (input: {
 };
 
 export const deriveWorkosConvexAuthConfig = (input: {
-  readonly issuer: string;
-  readonly jwksUrl: string;
   readonly applicationId: string;
 }): WorkosConvexAuthConfig => ({
   providers: [
     {
       type: "customJwt",
-      issuer: input.issuer,
-      jwks: input.jwksUrl,
-      applicationID: input.applicationId,
+      issuer: `https://api.workos.com/user_management/${input.applicationId}`,
+      jwks: `https://api.workos.com/sso/jwks/${input.applicationId}`,
     },
   ],
 });

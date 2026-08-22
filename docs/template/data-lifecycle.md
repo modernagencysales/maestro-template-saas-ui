@@ -12,20 +12,34 @@ Authoritative implementation:
 - `packages/convex/confect/ops/dataLifecycle.spec.ts`
 - `packages/convex/confect/ops/dataLifecycle.impl.ts`
 - `packages/convex/confect/tables/dsarRequests.ts`
-- `apps/web/src/routes/_workspace.data-lifecycle.tsx`
+- `apps/web/src/routes/_app/$workspace/_dashboard/data-lifecycle.tsx`
 - `apps/web/src/features/data-lifecycle/data-lifecycle-surface.tsx`
 - `packages/convex/test/data-lifecycle.test.ts`
 - `packages/convex/test/data-lifecycle-ops.test.ts`
 
-Every schema addition that stores workspace-owned data must declare:
+The machine-readable source of truth is
+[`data-resources.json`](./data-resources.json). It classifies every durable
+table, while `packages/convex/confect/ops/dataResources.generated.ts` projects
+workspace-managed entries into the runtime DSAR and retention planner.
+
+Every schema addition must declare:
 
 - owner module
 - export posture
 - delete posture
 - retention rule
+- tenant scope and sensitivity/PII classification
+- canonical write authority and migration decision
 
-These fields must be documented before a resource is promoted from
-generated/client-specific code into the template core.
+Use `pnpm template:add-table` so the table, system owner, resource contract, and
+migration decision are created together. Then run `pnpm data-resources:generate`
+and `pnpm check:data-resources` before promotion.
+
+Every hand-authored table must also have exactly one owner in
+`docs/template/system-catalog.json`. `pnpm check:system-catalog` compares that
+catalog to `packages/convex/confect/tables/*.ts`, so a new table cannot land as
+an unowned parallel subsystem. Extend an existing system by default; a new
+system requires a reviewed introduction decision.
 
 ## DSAR Request Planning
 
@@ -67,19 +81,24 @@ redaction, or legal-hold-aware retention execution.
 The planner covers these workspace-owned resources:
 
 - `workspaces`
+- `accessAuditEvents`
 - `workspaceMembers`
 - `brainPages`
 - `workflowRuns`
+- `workflowArtifacts`
 - `workflowStageRuns`
 - `workflowRunEvents`
 - `workflowRunEvidenceSnapshots`
 - `workflowRunContextManifests`
+- `workflowRunLinks`
 - `usageEvents`
+- `billingPlans`
 - `creditLedger`
 - `entitlements`
 - `webhookEvents`
 - `dsarRequests`
 - `featureFlagPolicies`
+- `policies`
 - `notificationRecords`
 - `notificationPreferences`
 - `apiKeys`
@@ -100,6 +119,58 @@ The planner covers these workspace-owned resources:
 - `actionDigests`
 - `versionedEntries`
 - `versionFreshness`
+
+## Deployment Authority Resources
+
+Deployment authority is global environment release-control state. The six
+resources below are deliberately `workspaceLifecycle: excluded`; they must not
+be projected into a workspace export, deletion, or retention plan merely because
+their census derives from Workflow Runtime evidence.
+
+- `deployAuthorityIssuers`: append-only global trust transitions. Authenticated
+  operators activate, rotate, or retire issuers by adding a provenance-bound
+  transition; prior keys remain available to explain authority history. A new
+  transition is refused before the bounded history ceiling would be crossed.
+- `deployAuthorityAuditEvents`: append-only hashed operator provisioning and
+  issuer lifecycle evidence. A total-order timestamp-and-event cursor preserves
+  equal-timestamp rows across export pages. It contains no raw operator token or
+  signing key.
+- `deployApprovals`: append-only signed approval evidence. `expiresAt` ends its
+  authorization eligibility; it does not imply immediate physical deletion.
+- `deployCensusSnapshots`: append-only complete workflow-binding evidence.
+  `expiresAt` ends its authorization eligibility; it does not imply immediate
+  physical deletion.
+- `deployVerdicts`: append-only signed verdict evidence. `expiresAt` ends its
+  authorization eligibility; it does not imply immediate physical deletion.
+- `deployActionConsumptions`: append-only one-time action receipts retained to
+  prove replay prevention and deployment history.
+
+The signed evidence, operator audit, issuer transition, and consumption rows are
+retained indefinitely because the template ships no destructive cleanup
+authority. Expiry ends authorization eligibility but does not delete data. A
+client that enables cleanup must first define an explicit audit window, preserve
+issuer/signature verification over retained history, and promote the job through
+the normal migration and authority gates. The authenticated operator functions
+provision issuers, approvals, census snapshots, and verdicts; rotate or retire
+issuers; expose bounded status and hashed audit export; and fail closed on
+duplicate or mixed-origin records. Runtime readiness still requires explicit
+authority mode, an authority-runtime signing key, a trusted operator JWT claim,
+and exactly one current active issuer.
+
+### Append-only mutation boundary
+
+`pnpm check:append-only-tables` parses every TypeScript and TSX source under the
+canonical `packages/convex/confect` and `packages/convex/convex` roots. It does
+not infer a target table from nearby queries. Instead, it conservatively rejects
+raw Convex database `delete`, `patch`, and `replace` calls reached through
+`ctx.db`, property or element access, destructured or assigned methods, aliases,
+locally called helpers, helper returns, and dynamic computed access. A bare
+local identifier named `db` is not treated as Convex provenance. Inserts and
+literal table-bound `writer.table(...)` operations are allowed. The only
+raw-write exceptions are exact path-and-`patch` entries for the two
+component-local databases; the gate verifies the component path and real
+generated-server import. Comments, unrelated table queries, and unrelated `Id`
+evidence cannot satisfy an exception.
 
 ## Export Posture
 
@@ -179,8 +250,45 @@ The implemented retention hooks are:
 - Versioned entries: append-only; retain for the audit window.
 - Version freshness: retain until workspace delete.
 - API keys: hash or redact on export.
+- Access audit events: retain for the audit window and redact identity context
+  on export.
+- Workflow run links: retain for the audit window with their parent-child run
+  provenance.
+- Workflow artifacts: immutable and content-addressed; retain through the
+  longest owning-run restart, dedupe, child, evidence, and explicit reference
+  window, then delete only after product cleanup completes.
+- Billing plans: retain until workspace deletion as tenant billing
+  configuration.
+- Scoped policies: retain until workspace deletion as tenant configuration.
 - Workflow runs: retain for the audit window.
 - Credit ledger: retain for reconciliation.
 
 Future client forks may add resources, but they must update this planner, DSAR
 plans, retention job expectations, and tests in the same change.
+
+## Anonymous App-Idea Funnel Resources
+
+The public funnel is not workspace-owned, so it uses its opaque session token as
+the ownership boundary. The following resources are additive to the workspace
+DSAR planner and have their own report-owner lifecycle operations:
+
+| Resource                   | Owner module                | Export posture                                    | Delete posture                                       | Retention rule                                               |
+| -------------------------- | --------------------------- | ------------------------------------------------- | ---------------------------------------------------- | ------------------------------------------------------------ |
+| `evaluationSessions`       | evaluator capability        | redacted JSON; never export the access-token hash | delete after its reports and answers                 | retain while an anonymous report remains accessible          |
+| `evaluationAnswers`        | evaluator capability        | private JSON to the verified report owner only    | delete with the session                              | retain while the source report can be revised or regenerated |
+| `evaluationReports`        | evaluator capability        | JSON and Markdown                                 | owner-token delete                                   | retain until owner deletion or configured inactivity expiry  |
+| `evaluationReportVersions` | evaluator capability        | JSON and Markdown                                 | delete with the report                               | append-only while the report exists                          |
+| `evaluationShares`         | report lifecycle capability | public snapshot JSON only                         | revoke immediately; delete with report               | active until revoked or report deletion                      |
+| `checkoutSessions`         | commerce capability         | redacted JSON                                     | retain for reconciliation                            | configured billing audit window                              |
+| `purchases`                | commerce capability         | redacted JSON                                     | never hard-delete financial history                  | statutory billing and reconciliation window                  |
+| `buildPackEntitlements`    | commerce capability         | JSON                                              | revoke on refund/dispute; retain record              | billing audit window                                         |
+| `maestroCredits`           | commerce capability         | JSON ledger entry                                 | append-only; reverse rather than delete              | billing audit window                                         |
+| `buildPacks`               | Build Pack workflow         | Markdown, print HTML, and JSON                    | owner-token delete when financial retention permits  | while entitlement or support recovery remains active         |
+| `buildPackStages`          | Build Pack workflow         | redacted JSON with citations and receipts         | retain completed provenance with the pack            | workflow audit window                                        |
+| `buildPackExports`         | Build Pack workflow         | JSON metadata                                     | delete with the pack                                 | while the canonical pack exists                              |
+| `supportIncidents`         | funnel operations           | redacted JSON                                     | redact founder contact data, retain resolution audit | support audit window                                         |
+
+Public share reads hash the presented token and return only the immutable
+`publicSnapshotJson`. They never join to `evaluationAnswers`, session identity,
+access-token hashes, checkout data, or paid artifacts. Checkout return URLs are
+display-only state and do not create purchases or entitlements.

@@ -1,0 +1,156 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maestro.local/schemas/maestro-customer-release-manifest.schema.json",
+  "title": "Maestro customer release manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "$schema",
+    "schemaVersion",
+    "materializationStatus",
+    "release",
+    "compatibility",
+    "paths",
+    "expectedHashes",
+    "extensionSeams"
+  ],
+  "properties": {
+    "$schema": {
+      "const": "../../schemas/maestro-customer-release-manifest.schema.json"
+    },
+    "schemaVersion": { "const": 1 },
+    "materializationStatus": {
+      "enum": ["fixture-only", "materializable"]
+    },
+    "fixtureReason": { "type": "string", "minLength": 1 },
+    "release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "tag", "sourceCommit", "sourceChecksum"],
+      "properties": {
+        "version": {
+          "type": "string",
+          "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+        },
+        "tag": {
+          "type": "string",
+          "pattern": "^maestro-template-v[0-9]+\\.[0-9]+\\.[0-9]+(?:-[0-9A-Za-z.-]+)?$"
+        },
+        "sourceCommit": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+        "sourceChecksum": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cli", "agentPack"],
+      "properties": {
+        "cli": { "type": "string", "minLength": 1 },
+        "agentPack": { "type": "string", "minLength": 1 }
+      }
+    },
+    "paths": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "match", "ownership", "action", "upgrade"],
+        "properties": {
+          "path": { "$ref": "#/$defs/path" },
+          "match": { "enum": ["exact", "subtree"] },
+          "ownership": {
+            "enum": [
+              "template-owned",
+              "customer-extension",
+              "generated",
+              "local-only",
+              "factory-only"
+            ]
+          },
+          "action": { "enum": ["copy", "generate", "omit"] },
+          "upgrade": { "enum": ["replace", "preserve", "regenerate", "remove"] }
+        },
+        "oneOf": [
+          {
+            "properties": {
+              "ownership": { "const": "template-owned" },
+              "action": { "const": "copy" },
+              "upgrade": { "const": "replace" }
+            }
+          },
+          {
+            "properties": {
+              "ownership": { "const": "customer-extension" },
+              "action": { "const": "copy" },
+              "upgrade": { "const": "preserve" }
+            }
+          },
+          {
+            "properties": {
+              "ownership": { "const": "generated" },
+              "action": { "const": "generate" },
+              "upgrade": { "const": "regenerate" }
+            }
+          },
+          {
+            "properties": {
+              "ownership": { "const": "local-only" },
+              "action": { "const": "omit" },
+              "upgrade": { "const": "preserve" }
+            }
+          },
+          {
+            "properties": {
+              "ownership": { "const": "factory-only" },
+              "action": { "const": "omit" },
+              "upgrade": { "const": "remove" }
+            }
+          }
+        ]
+      }
+    },
+    "expectedHashes": {
+      "type": "object",
+      "propertyNames": { "$ref": "#/$defs/path" },
+      "additionalProperties": { "$ref": "#/$defs/sha256" }
+    },
+    "extensionSeams": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "description"],
+        "properties": {
+          "path": { "$ref": "#/$defs/path" },
+          "description": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["materializationStatus"],
+        "properties": {
+          "materializationStatus": { "const": "fixture-only" }
+        }
+      },
+      "then": {
+        "required": ["fixtureReason"],
+        "properties": {
+          "fixtureReason": { "type": "string", "minLength": 1 }
+        }
+      },
+      "else": { "not": { "required": ["fixtureReason"] } }
+    }
+  ],
+  "$defs": {
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*(?:^|/)\\.\\.(?:/|$))[^\\\\]+$"
+    },
+    "sha256": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+  }
+}

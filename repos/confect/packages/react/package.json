@@ -1,26 +1,27 @@
 {
   "name": "@confect/react",
   "description": "Client-side bindings for React apps",
-  "version": "9.1.4",
+  "version": "10.0.0-next.9",
   "author": "RJ Dellecese",
   "bugs": {
     "url": "https://github.com/rjdellecese/confect/issues"
   },
   "devDependencies": {
-    "@effect/vitest": "0.29.0",
+    "@effect/vitest": "4.0.0-beta.102",
     "@testing-library/react": "16.3.2",
-    "@types/node": "25.3.3",
-    "@types/react": "19.2.14",
+    "@types/node": "26.1.1",
+    "@types/react": "19.2.17",
     "@types/react-dom": "19.2.3",
-    "convex": "1.40.0",
-    "effect": "3.21.2",
-    "happy-dom": "15.11.7",
-    "react": "19.2.4",
-    "react-dom": "19.2.4",
-    "tsdown": "0.20.3",
-    "typescript": "5.9.3",
-    "vite": "7.3.1",
-    "vitest": "3.2.4"
+    "convex": "1.42.3",
+    "effect": "4.0.0-beta.102",
+    "happy-dom": "20.11.0",
+    "react": "19.2.7",
+    "react-dom": "19.2.7",
+    "tsdown": "0.22.12",
+    "typescript": "6.0.3",
+    "unrun": "0.3.1",
+    "vite": "8.1.5",
+    "vitest": "4.1.10"
   },
   "engines": {
     "node": ">=22"
@@ -56,7 +57,7 @@
   "peerDependencies": {
     "@confect/core": "workspace:^",
     "convex": "^1.32.0",
-    "effect": "^3.21.2",
+    "effect": "^4.0.0-beta.102",
     "react": "^18.0.0 || ^19.0.0"
   },
   "repository": {

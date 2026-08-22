@@ -1,36 +1,18 @@
-# Git hooks — shifted-left quality gates. Pre-commit auto-formats; pre-push
-# runs deterministic gates AND injects the AI gate rubrics so agents
-# self-review against the exact criteria CI's taste + contract judges use.
-#
-# Agents don't care about wait time — catching issues here saves a CI
-# round-trip. Humans who want a fast push can skip the heavy checks:
-#   LEFTHOOK_EXCLUDE=deterministic git push
+# Fast local hygiene. Full deterministic admission runs once on the immutable
+# delivery-batch head in Woodpecker.
 
 pre-commit:
   commands:
     format:
       glob: "*.{ts,tsx,mts,mjs,cjs,json,md,css,yml,yaml}"
+      exclude: "^repos/"
       run: pnpm prettier --write {staged_files}
       stage_fixed: true
-
-pre-push:
-  commands:
-    debt:
-      run: pnpm check:debt
-    typecheck:
-      tags: deterministic
-      run: pnpm typecheck
-    lint:
-      tags: deterministic
-      run: pnpm lint
-    deps:
-      tags: deterministic
-      run: pnpm check:deps
-    knip:
-      tags: deterministic
-      run: pnpm check:knip
-    gates:
-      tags: deterministic
-      run: pnpm check:gates
-    rubric:
-      run: bash scripts/pre-push-rubric.sh
+    lint-staged:
+      glob: "*.{ts,tsx,mts,mjs,cjs}"
+      exclude: "^repos/"
+      run: ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}
+    qlty-staged:
+      glob: "*.{ts,tsx,mts,mjs,cjs,py,rs,go}"
+      exclude: "^repos/"
+      run: pnpm check:qlty -- --staged

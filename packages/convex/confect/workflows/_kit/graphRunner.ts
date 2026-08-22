@@ -1,6 +1,17 @@
 import type { FunctionReference } from "convex/server";
+import type {
+  MaestroWorkflowEventId as ComponentEventId,
+  MaestroWorkflowId as ComponentWorkflowId,
+} from "./defineMaestroWorkflow";
+import type { Validator } from "convex/values";
 
-import { type DurableWorkflowGraph, type WorkflowNode } from "../graph";
+import {
+  type DurableWorkflowGraph,
+  type DurableWorkflowGraphV2,
+  type WorkflowNode,
+  validateWorkflowGraphV2,
+} from "../graph";
+import { makePublicError } from "../../shared/errors";
 import {
   readStartNode,
   runGraphExecution,
@@ -8,12 +19,30 @@ import {
 } from "./graphRunnerExecution";
 import { preflightCapabilityRegistry } from "./graphRunnerNodes";
 import { type ObservedWorkflowStageRefs } from "./observedStage";
+import {
+  runCompiledDurableGraphWorkflowV2,
+  type RunDurableGraphV2CompilerInput,
+} from "./graphRunnerV2";
+import { validateWorkflowV2SubworkflowTopology } from "./subworkflows";
+import { PINNED_INLINE_CONVEX_VERSION } from "./inlineTransactions";
+
+export type {
+  WorkflowEffectAdmission,
+  WorkflowV2ActionCapabilityEntry,
+  WorkflowV2CapabilityEntry,
+  WorkflowV2CapabilityEnvelope,
+  WorkflowSettledFailure,
+  WorkflowSettledFailureRoute,
+} from "./graphRunnerV2";
 
 export type DurableGraphStepKind = "query" | "mutation" | "action";
 
 export type DurableGraphStepRef<
   Kind extends DurableGraphStepKind = DurableGraphStepKind,
 > = FunctionReference<Kind, "internal">;
+
+export type { DurableGraphWorkflowRef } from "./subworkflows";
+export type { ProductWorkflowEventId } from "./events";
 
 export type DurableGraphCapabilityEnvelope = {
   readonly inputs: unknown;
@@ -50,6 +79,8 @@ export type RunDurableGraphInput = {
 };
 
 export type RunDurableGraphStep = {
+  /** Exact component workflow identity supplied by Workflow 0.4.4. */
+  readonly workflowId?: ComponentWorkflowId;
   readonly runQuery: (
     ref: DurableGraphStepRef<"query">,
     args: Record<string, unknown>,
@@ -65,13 +96,26 @@ export type RunDurableGraphStep = {
     args: Record<string, unknown>,
     options?: Record<string, unknown>,
   ) => Promise<unknown>;
+  readonly runWorkflow?: <
+    Args extends import("./subworkflows").AnyChildWorkflowArgs,
+    Result,
+  >(
+    ref: import("./subworkflows").DurableGraphWorkflowRef<Args, Result>,
+    args: Args,
+    options?: { readonly name?: string },
+  ) => Promise<unknown>;
   readonly sleep: (
     delayMs: number,
     options?: { readonly name?: string },
   ) => Promise<void>;
-  readonly awaitEvent: <Result = unknown>(event: {
-    readonly name: string;
-  }) => Promise<Result>;
+  readonly awaitEvent: <Result = unknown, Name extends string = string>(
+    event: (
+      | { readonly name: Name; readonly id?: ComponentEventId<Name> }
+      | { readonly name?: Name; readonly id: ComponentEventId<Name> }
+    ) & {
+      readonly validator?: Validator<Result, "required", string>;
+    },
+  ) => Promise<Result>;
 };
 
 export const runDurableGraphWorkflow = async (
@@ -82,4 +126,118 @@ export const runDurableGraphWorkflow = async (
   const startNode = readStartNode(input.graph);
   preflightCapabilityRegistry(input.graph, input.capabilityRegistry);
   return runGraphExecution(step, input, startNode);
+};
+
+export type RunDurableGraphV2Input<
+  Result extends Record<string, unknown> = Readonly<Record<string, unknown>>,
+> = {
+  readonly graph: DurableWorkflowGraphV2;
+  readonly inputs: unknown;
+  readonly principal: unknown;
+  readonly policySnapshot: unknown;
+  readonly projectOutput: (input: {
+    readonly context: Readonly<Record<string, unknown>>;
+  }) => Result;
+} & Partial<
+  Omit<
+    RunDurableGraphV2CompilerInput<Result>,
+    "graph" | "inputs" | "principal" | "policySnapshot" | "projectOutput"
+  >
+>;
+
+/** Compiles the validated V2 graph into the pinned Workflow step primitives. */
+export const runDurableGraphWorkflowV2 = async <
+  Result extends Record<string, unknown>,
+>(
+  step: RunDurableGraphStep,
+  input: RunDurableGraphV2Input<Result>,
+): Promise<Result> => {
+  const findings = validateWorkflowGraphV2(input.graph);
+  if (findings.length > 0) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 failed validation.",
+      { findings: JSON.stringify(findings) },
+    );
+  }
+  const executable = input.graph.nodes.filter(
+    (node) => node.kind !== "source" && node.kind !== "output",
+  );
+  const subworkflowNodes = executable.filter(
+    (node) => node.kind === "subworkflow",
+  );
+  const eventNodes = executable.filter((node) => node.kind === "event");
+  const capabilityNodes = executable.filter(
+    (node) => node.kind === "capability",
+  );
+  if (
+    capabilityNodes.length > 0 &&
+    (!input.capabilityRegistry || !input.effectIdentity || !input.admitEffect)
+  ) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 contains a node whose compiler is not enabled yet.",
+      { nodeIds: capabilityNodes.map(({ id }) => id).join(",") },
+    );
+  }
+  if (eventNodes.length > 0 && !input.effectIdentity) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 event allocation requires workflow ownership identity.",
+      { nodeIds: eventNodes.map(({ id }) => id).join(",") },
+    );
+  }
+  if (executable.length === 0) return input.projectOutput({ context: {} });
+  if (subworkflowNodes.length > 0 && !input.workflowRegistry) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 contains a subworkflow without a generated registry.",
+      { nodeIds: subworkflowNodes.map(({ id }) => id).join(",") },
+    );
+  }
+  if (
+    subworkflowNodes.length > 0 &&
+    (!input.subworkflowPolicy || !input.effectIdentity)
+  ) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 subworkflow ownership and topology policy are required.",
+    );
+  }
+  if (
+    subworkflowNodes.length > 0 &&
+    input.workflowRegistry &&
+    input.subworkflowPolicy
+  ) {
+    validateWorkflowV2SubworkflowTopology(
+      input.graph,
+      input.workflowRegistry,
+      input.subworkflowPolicy,
+    );
+  }
+  if (eventNodes.length > 0 && !input.eventRegistry) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 contains an event without a generated registry.",
+      { nodeIds: eventNodes.map(({ id }) => id).join(",") },
+    );
+  }
+  const capabilityRegistry = input.capabilityRegistry ?? {};
+  const effectIdentity = input.effectIdentity;
+  const admitEffect =
+    input.admitEffect ??
+    (async () => ({ kind: "deny", reason: "not used" }) as const);
+  if (!effectIdentity) {
+    throw makePublicError(
+      "VALIDATION_FAILED",
+      "Workflow graph V2 executable compiler inputs are incomplete.",
+    );
+  }
+  return runCompiledDurableGraphWorkflowV2(step, {
+    ...input,
+    convexVersion: input.convexVersion ?? PINNED_INLINE_CONVEX_VERSION,
+    capabilityRegistry,
+    effectIdentity,
+    admitEffect,
+  });
 };

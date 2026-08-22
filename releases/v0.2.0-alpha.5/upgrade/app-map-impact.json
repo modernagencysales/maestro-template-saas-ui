@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "reviewed-upgrade-impact-coverage",
+  "baseRevision": "3b42202bd362899c03126ed8e919b2ddae83b3b6",
+  "subjectRevision": "bf8198730f21f32a40222367c2c476e001214722",
+  "structuralPaths": [],
+  "ownershipCoveredPaths": [
+    "AGENTS.md",
+    "apps/cli/src/factory/candidateComposition.test.ts",
+    "docs/template/frontend-architecture.md",
+    "docs/template/saas-ui-screen-catalog.json",
+    "docs/template/saas-ui-vendor-receipt.json",
+    "lefthook.yml",
+    "tooling/generators/src/blueprints/saasFrontendFoundation.ts",
+    "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts",
+    "tooling/saas-ui/screen-catalog.mts",
+    "tooling/saas-ui/screen-catalog.test.ts"
+  ],
+  "impact": {
+    "schemaVersion": 1,
+    "baseRevision": "3b42202bd362899c03126ed8e919b2ddae83b3b6",
+    "subjectRevision": "bf8198730f21f32a40222367c2c476e001214722",
+    "complete": true,
+    "risk": "low",
+    "changedPaths": [],
+    "nodes": { "direct": [], "generated": [], "transitive": [] },
+    "affected": {
+      "systems": [],
+      "durableData": [],
+      "workflowVersions": [],
+      "providers": [],
+      "publicContracts": [],
+      "routes": [],
+      "headlessSurfaces": [],
+      "semanticRuleIds": [],
+      "adrs": []
+    },
+    "unknownPaths": [],
+    "focusedGates": ["pnpm check:app-map"]
+  }
+}

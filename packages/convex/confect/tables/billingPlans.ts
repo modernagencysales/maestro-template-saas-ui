@@ -6,13 +6,13 @@ export default Table.make(() =>
     workspaceId: Schema.String,
     providerCustomerId: Schema.optional(Schema.String),
     planSlug: Schema.String,
-    status: Schema.Literal(
+    status: Schema.Literals([
       "fake",
       "trialing",
       "active",
       "past_due",
       "cancelled",
-    ),
+    ]),
     seatLimit: Schema.Number,
     monthlyCredits: Schema.Number,
     createdAt: Schema.Number,

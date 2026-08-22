@@ -8,12 +8,12 @@ import {
   WorkspaceNotFound,
 } from "../errors";
 
-const NonEmptyString = S.String.pipe(S.minLength(1));
-const NonNegativeNumber = S.Number.pipe(S.greaterThanOrEqualTo(0));
-const Provider = S.Literal("openrouter", "dodo", "mailersend", "storage");
-const EntitlementSource = S.Literal("fake", "dodo", "manual");
-const EntitlementStatus = S.Literal("active", "paused", "revoked");
-const WebhookStatus = S.Literal("processed", "duplicate", "failed");
+const NonEmptyString = S.String.pipe(S.check(S.isMinLength(1)));
+const NonNegativeNumber = S.Number.pipe(S.check(S.isGreaterThanOrEqualTo(0)));
+const Provider = S.Literals(["openrouter", "dodo", "email", "storage"]);
+const EntitlementSource = S.Literals(["fake", "dodo", "manual"]);
+const EntitlementStatus = S.Literals(["active", "paused", "revoked"]);
+const WebhookStatus = S.Literals(["processed", "duplicate", "failed"]);
 
 export const RecordUsageArgs = S.Struct({
   workspaceId: Id("workspaces"),
@@ -92,14 +92,14 @@ export const SeatCheckReturn = S.Struct({
 });
 
 export namespace BillingError {
-  export class DuplicateWebhook extends S.TaggedError<DuplicateWebhook>()(
+  export class DuplicateWebhook extends S.TaggedErrorClass<DuplicateWebhook>()(
     "DuplicateWebhook",
     {
       dedupeKey: S.String,
     },
   ) {}
 
-  export class InsufficientCredits extends S.TaggedError<InsufficientCredits>()(
+  export class InsufficientCredits extends S.TaggedErrorClass<InsufficientCredits>()(
     "InsufficientCredits",
     {
       availableCredits: S.Number,
@@ -107,7 +107,7 @@ export namespace BillingError {
     },
   ) {}
 
-  export class SeatLimitExceeded extends S.TaggedError<SeatLimitExceeded>()(
+  export class SeatLimitExceeded extends S.TaggedErrorClass<SeatLimitExceeded>()(
     "SeatLimitExceeded",
     {
       currentSeats: S.Number,
@@ -116,7 +116,7 @@ export namespace BillingError {
     },
   ) {}
 
-  export class ValidationFailed extends S.TaggedError<ValidationFailed>()(
+  export class ValidationFailed extends S.TaggedErrorClass<ValidationFailed>()(
     "ValidationFailed",
     {
       field: S.String,
@@ -124,7 +124,7 @@ export namespace BillingError {
     },
   ) {}
 
-  export const Schema = S.Union(
+  export const Schema = S.Union([
     DuplicateWebhook,
     InsufficientCredits,
     MemberNotInWorkspace,
@@ -132,7 +132,7 @@ export namespace BillingError {
     Unauthorized,
     ValidationFailed,
     WorkspaceNotFound,
-  );
+  ]);
 }
 
 const recordUsage = FunctionSpec.publicMutation({

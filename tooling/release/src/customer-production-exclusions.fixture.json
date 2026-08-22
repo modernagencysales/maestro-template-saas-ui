@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "releaseManifest": "releases/v0.2.0-alpha.1/manifest.json",
+  "blueprintManifest": "releases/v0.2.0-alpha.1/blueprints/saas-application.json",
+  "forbiddenPublicPathFragments": [
+    "apps/web/src/routes/readiness",
+    "apps/web/src/routes/_workspace.readiness",
+    "apps/web/src/features/readiness",
+    "apps/web/src/screens/readiness",
+    "apps/web/src/api/readiness"
+  ],
+  "forbiddenRouteTokens": [
+    "/readiness",
+    "/__maestro/readiness",
+    "BuildReadiness"
+  ],
+  "forbiddenCustomerPaths": [
+    "tooling/agent-pack/src/pluginContract.ts",
+    "tooling/agent-pack/src/mcp",
+    "tooling/agent-pack/src/convexPlugin.test.ts",
+    "apps/cli/src/factory/composition.ts",
+    "apps/cli/src/factory/composition.test.ts",
+    "apps/cli/src/factory/mcp.ts",
+    "apps/cli/src/factory/mcp.test.ts",
+    "apps/cli/src/factory/mcpConfigure.ts",
+    "apps/cli/src/factory/mcpConfigure.test.ts",
+    "apps/cli/src/factory/mcpIntegration.test.ts",
+    "apps/cli/src/factory/createRootIntegration.test.ts",
+    "apps/cli/src/index.test.ts",
+    "apps/cli/src/direct-run.test.ts",
+    "apps/cli/src/factory/createComposition.ts",
+    "apps/cli/src/factory/create.test.ts",
+    "apps/cli/src/factory/preflight.test.ts",
+    "apps/cli/src/factory/router.test.ts",
+    "apps/cli/src/factory/scaffold.test.ts",
+    "apps/cli/src/factory/start.test.ts",
+    "apps/cli/src/factory/verify.test.ts",
+    "tooling/generators/src/index.ts",
+    "tooling/generators/src/index.test.ts",
+    "tooling/generators/src/direct-run.test.ts",
+    "tooling/generators/src/blueprints/saasApplication.test.ts",
+    "tooling/generators/src/blueprints/saasApplication.ts",
+    "tooling/generators/src/workflow-output-smoke.ts",
+    "tooling/generators/src/workflow-semantic-coverage.ts"
+  ],
+  "forbiddenCustomerBarrelExports": ["./pluginContract.js", "./mcp/"],
+  "localOnlyOwner": "tooling/agent-pack/src/readiness"
+}

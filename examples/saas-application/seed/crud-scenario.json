@@ -1,0 +1,14 @@
+{
+  "workspaceId": "workspace_my_app",
+  "initial": {
+    "records": []
+  },
+  "create": {
+    "title": "First record",
+    "detail": "Created in fake mode without provider setup."
+  },
+  "read": {
+    "by": "created-id",
+    "expectedTitle": "First record"
+  }
+}

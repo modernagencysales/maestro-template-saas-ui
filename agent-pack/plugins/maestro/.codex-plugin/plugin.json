@@ -1,0 +1,21 @@
+{
+  "name": "maestro",
+  "version": "0.1.0",
+  "description": "Maestro workflow guidance with the repository-local Maestro MCP declaration.",
+  "author": {
+    "name": "Maestro"
+  },
+  "skills": "./skills/",
+  "mcpServers": "./.codex-plugin/mcp.json",
+  "interface": {
+    "displayName": "Maestro",
+    "shortDescription": "Build and verify apps through Maestro workflows.",
+    "longDescription": "Route template application work through Maestro's canonical systems, generators, typed contracts, safety policies, and focused verification gates.",
+    "developerName": "Maestro",
+    "category": "Developer Tools",
+    "capabilities": ["Interactive"],
+    "defaultPrompt": [
+      "Route this change through the smallest supported Maestro workflow."
+    ]
+  }
+}

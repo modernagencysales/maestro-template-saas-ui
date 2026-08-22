@@ -1,0 +1,13 @@
+---
+description: When adding or updating database schemas
+globs: packages/db/src/**/*.ts
+---
+
+# Db rules
+
+- Use Drizzle as ORM with Postgresql
+- NEVER use Prisma
+- Use utilities like `pgTable`, `id`, `workspaceId`, `userId` and `timestamps` in [utils.ts](mdc:packages/db/src/utils.ts) above other functions
+- Use `table-name.sql.ts` for schema file names
+- Schemas live in `packages/db/src/[table]/[table].sql.ts`
+- When adding a new schema's, make sure to add them to the root schema in [db.ts](mdc:packages/db/src/db.ts)

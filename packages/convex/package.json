@@ -11,43 +11,47 @@
     },
     "./refs": {
       "types": "./src/refs.ts",
-      "default": "./dist/src/refs.js"
+      "default": "./src/refs.ts"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist --declaration",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests",
+    "test": "vitest run --passWithNoTests --maxWorkers=1 --no-file-parallelism --exclude test/workflow-conformance.test.ts",
+    "test:workflow-conformance": "vitest run test/workflow-conformance.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism",
     "test:contract": "vitest run test/*contract*.test.ts test/**/contract*.test.ts",
     "confect:codegen": "confect codegen",
     "confect:dev": "confect dev",
-    "convex:dev": "convex dev",
+    "convex:dev": "pnpm --dir ../.. convex:dev",
     "dev:backend": "concurrently -n confect,convex \"pnpm confect:dev\" \"pnpm convex:dev\"",
-    "check:convex": "confect codegen && git diff --exit-code confect/_generated convex/_generated"
+    "check:convex": "tsx ../../tooling/quality/check-convex-generation.mts"
   },
   "dependencies": {
     "@blocknote/core": "0.51.4",
-    "@confect/cli": "9.1.5",
-    "@confect/core": "9.1.5",
-    "@confect/server": "9.1.5",
-    "@confect/test": "9.1.5",
+    "@confect/cli": "10.0.0-next.9",
+    "@confect/core": "10.0.0-next.9",
+    "@confect/server": "10.0.0-next.9",
+    "@confect/test": "10.0.0-next.9",
     "@convex-dev/prosemirror-sync": "0.2.5",
     "@maestro-template/observability": "workspace:*",
+    "@maestro-template/app-idea-evaluator": "workspace:*",
+    "@maestro-template/integrations": "workspace:*",
+    "@maestro-template/notifications": "workspace:*",
     "@maestro-template/template-core": "workspace:*",
     "@maestro-template/workflow-tooling": "workspace:*",
-    "@tiptap/core": "3.27.1",
-    "@tiptap/pm": "3.27.1",
-    "@convex-dev/migrations": "^0.3.5",
-    "@convex-dev/workflow": "^0.4.4",
-    "@convex-dev/workpool": "^0.4.7",
+    "@tiptap/core": "3.30.0",
+    "@tiptap/pm": "3.30.0",
+    "@convex-dev/migrations": "0.3.5",
+    "@convex-dev/workflow": "0.4.4",
+    "@convex-dev/workpool": "0.4.7",
     "@posthog/convex": "2.0.32",
-    "@effect/cluster": "0.58.0",
-    "@effect/platform": "0.96.2",
-    "@effect/platform-node": "0.106.0",
-    "@effect/vitest": "0.29.0",
+    "@effect/platform-node": "4.0.0-beta.102",
+    "@effect/vitest": "4.0.0-beta.102",
     "convex": "1.42.1",
     "convex-test": "0.0.54",
-    "effect": "3.21.4"
+    "dodopayments": "^2.44.0",
+    "effect": "4.0.0-beta.102",
+    "ioredis": "5.11.1"
   },
   "devDependencies": {
     "concurrently": "^10.0.3"

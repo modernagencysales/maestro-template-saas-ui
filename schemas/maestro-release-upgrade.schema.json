@@ -1,0 +1,139 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://maestro.local/schemas/maestro-release-upgrade.schema.json",
+  "title": "Maestro reviewed release upgrade manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schemaVersion", "transition", "operations", "requirements"],
+  "properties": {
+    "schemaVersion": { "const": 1 },
+    "transition": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "fromVersion", "toVersion", "immediatePriorVersion"],
+      "properties": {
+        "id": { "$ref": "#/$defs/text" },
+        "fromVersion": { "$ref": "#/$defs/text" },
+        "toVersion": { "$ref": "#/$defs/text" },
+        "immediatePriorVersion": { "$ref": "#/$defs/text" }
+      }
+    },
+    "operations": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/operation" }
+    },
+    "requirements": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "kind", "detail"],
+        "properties": {
+          "id": { "$ref": "#/$defs/text" },
+          "kind": {
+            "enum": [
+              "manual-review",
+              "data-migration",
+              "provider-change",
+              "environment-change"
+            ]
+          },
+          "detail": { "$ref": "#/$defs/text" }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "text": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^\\S(?:.*\\S)?$"
+    },
+    "path": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^(?!/)(?!.*\\\\)(?!.*(?:^|/)\\.{1,2}(?:/|$))(?!.*//)(?!.*[\\u0000-\\u001f\\u007f-\\u009f])[^/]+(?:/[^/]+)*$"
+    },
+    "sha256": {
+      "type": "string",
+      "pattern": "^sha256:[0-9a-f]{64}$"
+    },
+    "operationBase": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "kind", "path", "ownership"],
+      "properties": {
+        "id": { "$ref": "#/$defs/text" },
+        "kind": { "enum": ["add", "modify", "move", "delete", "regenerate"] },
+        "path": { "$ref": "#/$defs/path" },
+        "fromPath": { "$ref": "#/$defs/path" },
+        "ownership": { "enum": ["template-owned", "generated"] },
+        "beforeHash": { "$ref": "#/$defs/sha256" },
+        "afterHash": { "$ref": "#/$defs/sha256" }
+      }
+    },
+    "operation": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/operationBase",
+          "type": "object",
+          "required": ["afterHash"],
+          "properties": {
+            "kind": { "const": "add" },
+            "ownership": { "const": "template-owned" }
+          },
+          "not": {
+            "anyOf": [
+              { "type": "object", "required": ["fromPath"] },
+              { "type": "object", "required": ["beforeHash"] }
+            ]
+          }
+        },
+        {
+          "$ref": "#/$defs/operationBase",
+          "type": "object",
+          "required": ["beforeHash", "afterHash"],
+          "properties": {
+            "kind": { "const": "modify" },
+            "ownership": { "const": "template-owned" }
+          },
+          "not": { "type": "object", "required": ["fromPath"] }
+        },
+        {
+          "$ref": "#/$defs/operationBase",
+          "type": "object",
+          "required": ["fromPath", "beforeHash", "afterHash"],
+          "properties": {
+            "kind": { "const": "move" },
+            "ownership": { "const": "template-owned" }
+          }
+        },
+        {
+          "$ref": "#/$defs/operationBase",
+          "type": "object",
+          "required": ["beforeHash"],
+          "properties": {
+            "kind": { "const": "delete" },
+            "ownership": { "const": "template-owned" }
+          },
+          "not": {
+            "anyOf": [
+              { "type": "object", "required": ["fromPath"] },
+              { "type": "object", "required": ["afterHash"] }
+            ]
+          }
+        },
+        {
+          "$ref": "#/$defs/operationBase",
+          "type": "object",
+          "required": ["beforeHash", "afterHash"],
+          "properties": {
+            "kind": { "const": "regenerate" },
+            "ownership": { "const": "generated" }
+          },
+          "not": { "type": "object", "required": ["fromPath"] }
+        }
+      ]
+    }
+  }
+}

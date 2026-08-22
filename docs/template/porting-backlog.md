@@ -20,6 +20,69 @@ status text as backlog context, not readiness evidence. A `no` or `partial`
 entry here means "not yet part of the generic reusable kit," not necessarily
 "the current starter is incomplete."
 
+## Maestro Agent Pack Productization Gaps
+
+These stable references are governed by the canonical
+[productization plan](../superpowers/plans/2026-07-24-maestro-agent-pack-productization-plan.md).
+
+### AP-001 Agent-pack canonical product contract
+
+Promote the approved prior-art specification into this canonical repository.
+
+### AP-002 Convex workflow semantic compatibility
+
+Make the pinned Workflow and Workpool semantics executable and reject every
+accepted-but-unmapped graph option.
+
+### AP-003 Immutable workflow releases
+
+Bind active and restartable runs to immutable graph, runner, capability, and
+runtime source versions.
+
+### AP-004 Official Convex agent context
+
+Install pinned official Convex AI context through supported host-native paths.
+
+### AP-005 Claude and Codex distribution
+
+Prove the same small skill and CLI contract in both first-class hosts.
+
+### AP-006 Safe factory CLI and MCP
+
+Keep deterministic behavior in one CLI and MCP as a thin transport.
+
+### AP-007 First-run visible app
+
+Make `create -> start -> add -> check` produce visible fake-safe progress.
+
+### AP-008 Generic application blueprint
+
+Generate a personalized tenant-safe CRUD application without workflow setup.
+
+### AP-009 Outcome recipe library
+
+Route product-language outcomes through the minimum-necessary-primitive ladder.
+
+### AP-010 Architecture map and decision lifecycle
+
+Generate deterministic provenance, impact, and consequential ADR governance.
+
+### AP-011 Existing-app adoption
+
+Preserve source prior art and stop unsafe or ambiguous target mutations.
+
+### AP-012 Release migrations and rollback proof
+
+Upgrade one prior tag through collision-aware, exact-hash operations.
+
+### AP-013 Privacy-safe product feedback
+
+Collect bounded, consented product evidence without customer content leakage.
+
+### AP-014 Agent-pack release
+
+Publish only after host, semantic, target, upgrade, and promotion evidence pass.
+
 ## How to read this
 
 - **Priority** — HIGH / MED / LOW for a diligence-grade, genuinely-useful shell.
@@ -584,9 +647,9 @@ Convex component wiring (M).
 102.  **qlty (duplication + scan)** — MED — partial. `.qlty/qlty.toml` +
       `install-qlty.sh`. Template `check-qlty.mts` really spawns `qlty check`
       but has no config, so it no-ops.
-103.  **lefthook git hooks** — MED — no. `lefthook.yml` (pre-commit prettier;
-      pre-push debt/typecheck/lint/deps/knip/gates) + `lefthook` devDep. Shifts
-      deterministic gates left.
+103.  **lefthook git hooks** — MED — done. `lefthook.yml` runs staged Prettier,
+      ESLint, and advisory Qlty at pre-commit. Broad deterministic admission
+      runs once on the frozen delivery-batch head in Woodpecker.
 104.  **check-config-drift (live resolved config)** — HIGH — fake-stub.
       `tooling/quality/check-config-drift.mts` + `config-drift-pins.mts`.
       Asserts live eslint `--print-config` still matches pinned thresholds (not
@@ -653,32 +716,32 @@ Convex component wiring (M).
 
 ## L. Frontend / app shell
 
-119. **TanStack Start + Router bootstrap** — HIGH — no.
-     `apps/web/src/{router.tsx,start.ts,routes/__root.tsx,routeTree.gen.ts}`.
-     SSR router, root document, request middleware, file-based route tree.
-     Template has no routing.
-120. **Convex + @convex-dev/react-query data layer** — HIGH — no.
+119. **TanStack Start + Router bootstrap** — HIGH — shipped.
+     `apps/web/src/{router.tsx,start.ts,routes/__root.tsx,routeTree.gen.ts}` and
+     the literal Starter `_app` route tree are the only current route authority.
+120. **Convex + @convex-dev/react-query data layer** — HIGH — shipped.
      `apps/web/src/router.tsx` (`ConvexQueryClient` + `QueryClient`),
-     `routes/__root.tsx` (`ConvexProviderWithAuth`). The client↔Convex wiring
-     injected into router context. Template instantiates no client.
-121. **WorkOS AuthKit auth flow (web)** — HIGH — no.
-     `apps/web/src/adapters/workos-*.ts`, `adapters/route-auth.ts`,
-     `providers/auth.tsx` (`AuthGate`), routes `sign-in|sign-up|callback`.
-     Server middleware, cookie session, protected-route loader, client auth
-     gate.
-122. **App shell composition (sidebar/topbar/search)** — HIGH — partial.
-     `apps/web/src/saas-ui/business-shell.tsx` now owns the starter business
-     shell. Remaining work is to deepen the shell with real command search,
-     route registry state, and authenticated workspace context.
-123. **Theme scope + dark mode** — HIGH — no. Replace the old evaluated Notion
-     palette idea with a Saas UI/Chakra color mode policy that is portal-safe
-     and verified against TanStack Start SSR.
-124. **Reusable layout/block library** — HIGH — partial.
-     `packages/ui/src/blocks/*` and Saas UI primitives are the approved
-     direction. Remaining work is to promote repeated business-shell patterns
-     into reusable blocks without reintroducing route-local UI systems.
-125. **Empty / loading / skeleton states** — MED — no.
-     `apps/web/src/components/blocks/{empty-state,skeleton-grid,skeleton-stack, surface-skeleton,progress-bar}.tsx`.
+     `routes/__root.tsx` (`ConvexProviderWithAuth`). The client↔Convex wiring is
+     injected into router context and projected into generated targets.
+121. **WorkOS AuthKit auth flow (web)** — HIGH — shipped.
+     `apps/web/src/lib/auth/`, `apps/web/src/start.ts`, and the `api/auth/*`
+     routes own the server session, callback, protected-route, and Convex token
+     seams behind the purchased Starter presentation.
+122. **App shell composition (sidebar/topbar/search)** — HIGH — shipped. The
+     pinned Starter files under `apps/web/src/features/common/` are the single
+     shell authority. Do not restore `business-shell.tsx` or a custom navigation
+     tree.
+123. **Theme scope + dark mode** — HIGH — shipped.
+     `apps/web/src/theme/preset.ts` and its pinned semantic-token closure retain
+     the Starter light/dark system.
+124. **Reusable layout/block library** — HIGH — shipped. The byte-preserved
+     Starter `@workspace/ui` package remains under `packages/ui`, and the
+     complete registry-derived Pro block closure lives under
+     `apps/web/src/components/`. Do not replace either upstream authority with
+     local wrappers or a second package.
+125. **Empty / loading / skeleton states** — MED — shipped through the pinned
+     Starter archetype and route-state files recorded in
+     `docs/template/saas-ui-starter-files.json`.
 126. **Route-level error boundary** — MED — no.
      `apps/web/src/features/maestro-workspace/workspace-view-boundary.tsx`.
      Class boundary with `getDerivedStateFromError` + accessible fallback.
@@ -695,27 +758,26 @@ Convex component wiring (M).
      `@blocknote/react` synced via `@convex-dev/prosemirror-sync/blocknote`.
      _(The full human+agent tracked-proposal surface built on this is Section N,
      items 139–175.)_
-130. **Saas UI design-system canon + boundary guards** — MED — no. Add
-     AST/source tests that forbid route-local one-off layout systems and require
-     Saas UI/shared primitives for business-app surfaces.
-131. **Design-system / component gallery screen** — MED — no. Add a live gallery
-     for the Saas UI/shared primitive set once enough reusable blocks exist to
-     justify it.
-132. **Saas UI settings surface** — MED — partial.
-     `apps/web/src/saas-ui/business-shell.tsx` includes a plain settings route.
-     Remaining work is to extract reusable settings sections and wire durable
-     settings mutations.
-133. **Navigation / sidebar route registry** — MED — partial (static).
-     `apps/web/src/navigation/*`, `components/shell/workspace-sidebar-icons.ts`.
-     Declarative nav model (ids/labels/icons/app-modes). Template nav is a
-     frozen 8-item array.
+130. **Saas UI design-system canon + boundary guards** — MED — shipped. The
+     pinned Starter/Pro receipts, ESLint rules, foundation check, artifact
+     safety check, and empty deviation ledger enforce one frontend authority.
+131. **Design-system / component gallery screen** — MED — shipped as the direct
+     `/$workspace/showcase` Pro surface; it imports installed blocks without a
+     second gallery abstraction.
+132. **Saas UI settings surface** — MED — shipped. The literal Starter settings
+     route tree and components remain authoritative; durable behavior enters
+     only through backend adapters.
+133. **Navigation / sidebar route registry** — MED — shipped.
+     `apps/web/src/features/common/components/app-sidebar.tsx` is the pinned
+     Starter navigation authority, extended only with direct Pro surface links.
 134. **Client + server env/config adapters** — MED — no.
      `apps/web/src/adapters/{env,server-env,react-resizable-panels.ssr, route-head}.ts`.
      Validated `VITE_*`/server env accessors + SSR shims.
 135. **Voice relay WebSocket server** — MED — stub. `apps/voice-relay/src/*`
      (`server.ts`, `relaySession.ts`, `relayBridge.ts`, `wsAdapter.ts`,
      `transcriptionAvailability.ts`). Real self-contained voice seam. Template's
-     `apps/voice-relay` is a single placeholder.
+     empty placeholder was removed; this remains a future selectable pattern,
+     not a current implementation.
 136. **Browser voice / live-call capture** — MED — no.
      `apps/web/src/features/talk/{browser-talk-recorder,browser-content-call-*, live-transcript-panel,live-content-call-cockpit}.*`.
      Mic capture + live transcript cockpit that pairs with the relay server.

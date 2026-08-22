@@ -9,7 +9,7 @@ import { InvalidJoin } from "./graphValidationErrorInvalidJoin";
 import { InvalidRetryConfig } from "./graphValidationErrorInvalidRetryConfig";
 import { MissingStartNode } from "./graphValidationErrorMissingStartNode";
 
-const Schema = S.Union(
+const Schema = S.Union([
   MissingStartNode,
   DuplicateNodeId,
   DuplicateEdgeId,
@@ -18,7 +18,7 @@ const Schema = S.Union(
   InvalidDelayConfig,
   InvalidJoin,
   InvalidConditionExpression,
-);
+]);
 
 export const WorkflowGraphValidationError = {
   MissingStartNode,

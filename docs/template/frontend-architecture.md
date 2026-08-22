@@ -31,16 +31,15 @@ Rules:
 
 TanStack Start is the committed runtime direction for the template.
 
-Required router/provider shape:
+The checked-in router/provider authority is:
 
-- `ConvexQueryClient` from `@convex-dev/react-query`.
-- `QueryClient` from `@tanstack/react-query`.
-- generated `routeTree`.
-- `setupRouterSsrQueryIntegration`.
-- `defaultPreload: "intent"`.
-- `scrollRestoration: true`.
-- root provider tree containing WorkOS/AuthKit, Convex auth bridge, PostHog,
-  workspace provider, `HeadContent`, `Outlet`, and `Scripts`.
+- `apps/web/src/provider.tsx` for provider composition.
+- `apps/web/src/routes/__root.tsx` for the root document.
+- `apps/web/src/routes/_app.tsx` and its nested `$workspace/_dashboard` tree for
+  authenticated application routes.
+- generated `routeTree` at `apps/web/src/routeTree.gen.ts`.
+- `defaultPreload: "intent"` and `setupRouterSsrQueryIntegration` from the
+  pinned Starter router.
 
 Deployment decision:
 
@@ -53,15 +52,8 @@ Deployment decision:
 
 ## Provider Tree
 
-The intended provider tree is:
-
-```text
-AuthKitProvider
-  ConvexProviderWithAuth
-    PostHogWebProvider
-      WorkspaceProvider
-        route outlet / app shell
-```
+`apps/web/src/provider.tsx` is the provider authority. Extend its existing
+composition instead of introducing a parallel root provider.
 
 Provider rules:
 
@@ -80,9 +72,45 @@ The web shell should use Saas UI primitives where possible:
 - `SuiProvider` with the Saas UI Pro default system for the web app provider.
 - Saas UI layout, card, page, table, badge, button, input, and stack primitives
   for business-app surfaces.
-- Local `packages/ui` primitives for reusable template package components that
-  must stay independent of app-specific routes.
+- Installed Saas UI Pro components under `apps/web/src/components`; reuse the
+  manifest compositions and registry paths before adding a local seam.
 - lucide icons for commands and navigation affordances.
+
+### Screen-first selection
+
+Do not begin a new screen by arranging primitives. Start with the generated
+catalogue at `docs/template/saas-ui-screen-catalog.json`, which indexes the
+complete pinned Pro demo, every Pro story file, every TanStack Starter route,
+and every Starter story file. The exact read-only sources live under
+`repos/saas-ui-pro` and `repos/tanstack-start-starter-kit-pro` in the factory.
+Generated targets retain the catalogue and its repository URLs/pins while
+omitting the large read-only snapshots.
+
+Selection order is mandatory:
+
+1. A complete `saas-ui-pro/apps/demo` screen.
+2. An assembled Pro Storybook block or template, including Writer, Kanban,
+   DataGrid, filters, split layouts, sidebar layouts, and stacked navigation.
+3. A complete TanStack Starter screen.
+4. Loose primitives only when no assembled source applies.
+
+Copy the chosen composition mechanically and record its catalogue `id` in the
+implementation plan or pull request. Route syntax, authentication, backend
+queries, and mutations may change through thin adapters. JSX structure, spacing,
+component choice, responsive behavior, and interaction composition do not change
+during the transplant. The vendored applications are reference authorities, not
+runtime dependencies or an alternate application shell.
+
+Useful commands:
+
+```bash
+pnpm saas-ui:catalog
+pnpm check:saas-ui-screen-catalog
+jq '.demoRoutes[] | {name, route, source, composition}' \
+  docs/template/saas-ui-screen-catalog.json
+jq '.stories[] | select(.title | test("Writer|Kanban|Sidebar|DataGrid"; "i"))' \
+  docs/template/saas-ui-screen-catalog.json
+```
 
 CSS rules:
 
@@ -93,9 +121,10 @@ CSS rules:
 
 Block rules:
 
-- `packages/ui/src/blocks/*` contains reusable layout/state blocks.
-- `packages/ui/src/shell/*` contains reusable shell primitives.
-- Feature code composes blocks; it should not invent route-local layout systems.
+- `apps/web/src/components` contains the installed Pro registry components;
+  reusable primitives live in `packages/ui` as `@workspace/ui`.
+- Feature code composes manifest compositions and installed Pro blocks; it
+  should not invent route-local layout systems.
 
 Saas UI package note: the app pins Saas UI, Saas UI Pro, Chakra, and Emotion as
 an aligned set. Do not loosen those pins independently; update them together
@@ -103,9 +132,8 @@ after a focused compatibility check against TanStack Start, React, and Confect.
 
 ## Platform Primitives
 
-Reusable frontend platform primitives live in `packages/ui/src/platform/*`. They
-are shared by client forks that need a serious B2B app shell before custom
-business logic is fully built.
+Reusable frontend platform primitives live in the installed Saas UI Pro paths
+under `apps/web/src/components` and the manifest compositions.
 
 - Command palette: route/action commands only. It must not import Convex,
   Confect refs, provider SDKs, or backend adapters.
@@ -121,9 +149,10 @@ business logic is fully built.
 
 ## Visualization Primitives
 
-Reusable B2B visualization components live in `packages/ui/src/visualize/*`.
-They consume plain view models and are intentionally generic enough for GTM,
-Brain, workflow, billing, operations, and support surfaces.
+Reusable B2B visualization components live in the installed Pro registry paths
+under `apps/web/src/components`. They consume plain view models and are
+intentionally generic enough for GTM, Brain, workflow, billing, operations, and
+support surfaces.
 
 - Data grid, Kanban, calendar, funnel, metric tiles, health board, lineage, and
   diff views render loading, empty, ready, and error states.

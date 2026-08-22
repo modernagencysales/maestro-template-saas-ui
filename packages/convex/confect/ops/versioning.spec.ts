@@ -1,16 +1,16 @@
 import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as S from "effect/Schema";
 
-const NonEmptyString = S.String.pipe(S.minLength(1));
-const Causation = S.Literal(
+const NonEmptyString = S.String.pipe(S.check(S.isMinLength(1)));
+const Causation = S.Literals([
   "human-edit",
   "agent-edit",
   "import",
   "migration",
   "reconcile",
   "restore",
-);
-const FreshnessStatus = S.Literal("fresh", "review-due", "stale");
+]);
+const FreshnessStatus = S.Literals(["fresh", "review-due", "stale"]);
 
 export const AppendVersionArgs = S.Struct({
   workspaceId: NonEmptyString,
@@ -86,14 +86,14 @@ export const VersionFreshnessReturn = S.Struct({
 });
 
 export namespace VersioningError {
-  export class InvalidCausation extends S.TaggedError<InvalidCausation>()(
+  export class InvalidCausation extends S.TaggedErrorClass<InvalidCausation>()(
     "InvalidCausation",
     {
       causation: S.String,
     },
   ) {}
 
-  export class VersionNotFound extends S.TaggedError<VersionNotFound>()(
+  export class VersionNotFound extends S.TaggedErrorClass<VersionNotFound>()(
     "VersionNotFound",
     {
       entityKey: S.String,
@@ -101,7 +101,7 @@ export namespace VersioningError {
     },
   ) {}
 
-  export class ValidationFailed extends S.TaggedError<ValidationFailed>()(
+  export class ValidationFailed extends S.TaggedErrorClass<ValidationFailed>()(
     "ValidationFailed",
     {
       field: S.String,
@@ -109,11 +109,11 @@ export namespace VersioningError {
     },
   ) {}
 
-  export const Schema = S.Union(
+  export const Schema = S.Union([
     InvalidCausation,
     VersionNotFound,
     ValidationFailed,
-  );
+  ]);
 }
 
 const append = FunctionSpec.publicMutation({

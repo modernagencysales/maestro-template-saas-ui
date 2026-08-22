@@ -11,6 +11,8 @@ packages/*/dist/
 tooling/*/dist/
 test-results/
 playwright-report/
+artifacts/saas-ui-golden/*
+!artifacts/saas-ui-golden/.gitkeep
 
 # Wrangler local dev state
 .wrangler/
@@ -24,3 +26,9 @@ playwright-report/
 .qlty/plugin_cachedir
 .qlty/results
 .qlty/cache
+
+# Receipt-owned repository-local MCP configuration state
+.maestro/mcp/
+.maestro/verification-receipt.json
+tooling/agent-pack/evals/runs/*/
+tooling/agent-pack/evals/runs/*.json

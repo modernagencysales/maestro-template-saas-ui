@@ -18,8 +18,14 @@ const scannedRoots = ["apps", "packages"] as const;
 
 const allowedEnvBoundaryFiles = new Set([
   "apps/cli/src/index.ts",
+  "apps/web/src/components/default-error-page.tsx",
   "apps/web/src/env.ts",
+  "apps/web/src/features/common/util/get-base-url.ts",
+  "apps/web/vite.config.ts",
+  "packages/convex/convex/auth.config.ts",
+  "packages/convex/confect/email/env.ts",
   "packages/convex/confect/shared/env.ts",
+  "packages/i18n/src/provider.tsx",
 ]);
 
 const sourceExtensions = [".ts", ".tsx", ".mts", ".cts", ".js", ".jsx"];
@@ -63,7 +69,12 @@ async function listFiles(repoRoot: string, dir: string): Promise<string[]> {
   for (const entry of entries) {
     const path = `${dir}/${entry.name}`;
     if (entry.isDirectory()) {
-      if (entry.name === "node_modules" || entry.name === "dist") continue;
+      if (
+        entry.name === "node_modules" ||
+        entry.name === "dist" ||
+        entry.name === ".output"
+      )
+        continue;
       files.push(...(await listFiles(repoRoot, path)));
     } else if (entry.isFile()) {
       files.push(path);

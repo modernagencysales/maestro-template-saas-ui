@@ -5,7 +5,7 @@ export default Table.make(() =>
   Schema.Struct({
     workspaceId: Schema.String,
     entityKey: Schema.String,
-    status: Schema.Literal("fresh", "review-due", "stale"),
+    status: Schema.Literals(["fresh", "review-due", "stale"]),
     reason: Schema.String,
     checkedAt: Schema.Number,
     nextReviewAt: Schema.optional(Schema.Number),

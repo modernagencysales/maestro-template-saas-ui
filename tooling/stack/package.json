@@ -1,8 +1,0 @@
-{
-  "name": "@maestro-template/stack-tooling",
-  "private": true,
-  "type": "module",
-  "scripts": {
-    "test": "vitest run --passWithNoTests"
-  }
-}

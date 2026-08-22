@@ -1,0 +1,91 @@
+{
+  "$schema": "https://maestro.local/schemas/maestro-adoption-work-package.schema.json",
+  "schemaVersion": 1,
+  "id": "adopt-destructive-delete",
+  "mode": "separate-target",
+  "sourceReadOnly": true,
+  "roots": {
+    "source": "/workspace/legacy-crm",
+    "target": "/workspace/maestro-crm",
+    "sourceWorktree": "/workspace/legacy-crm",
+    "targetWorktree": "/workspace/maestro-crm"
+  },
+  "worktrees": {
+    "source": {
+      "exists": true,
+      "clean": true,
+      "revision": "1111111111111111111111111111111111111111"
+    },
+    "target": {
+      "exists": true,
+      "clean": true,
+      "revision": "2222222222222222222222222222222222222222"
+    }
+  },
+  "authority": {
+    "fingerprint": "sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "template": {
+      "tag": "maestro-template-v1",
+      "commit": "3333333333333333333333333333333333333333",
+      "archiveChecksum": "sha256:1111111111111111111111111111111111111111111111111111111111111111",
+      "manifestChecksum": "sha256:2222222222222222222222222222222222222222222222222222222222222222"
+    }
+  },
+  "baseline": {
+    "sourceEvidence": ["evidence/source-tests.json"],
+    "targetEvidence": ["evidence/target-preflight.json"]
+  },
+  "editableBoundaries": ["apps/web/src/features/crm"],
+  "mappings": {
+    "identity": [
+      {
+        "source": "legacyUserId",
+        "target": "userId",
+        "rule": "verified lookup"
+      }
+    ],
+    "tenant": [
+      {
+        "source": "accountId",
+        "target": "workspaceId",
+        "rule": "approved mapping"
+      }
+    ],
+    "data": [
+      {
+        "source": "customers",
+        "target": "crmRecords",
+        "rule": "validated import"
+      }
+    ]
+  },
+  "compatibility": {
+    "template": "0.2.0-alpha.1",
+    "agentPack": "0.2.0-alpha.1",
+    "requirements": ["Node 22"]
+  },
+  "decisions": [
+    {
+      "path": "src/legacy-data",
+      "disposition": "delete",
+      "rationale": "Remove prior storage."
+    }
+  ],
+  "cutover": {
+    "strategy": "immediate",
+    "steps": ["Delete prior storage"],
+    "readinessEvidence": ["evidence/preview.json"]
+  },
+  "deletion": { "timing": "during-adoption", "paths": ["src/legacy-data"] },
+  "approval": {
+    "status": "pending",
+    "approverClass": "application-owner",
+    "evidence": null
+  },
+  "rollback": {
+    "strategy": "Restore from an unverified backup.",
+    "evidence": "evidence/unverified-backup.json",
+    "restoresSource": false
+  },
+  "inPlace": { "justification": null }
+}

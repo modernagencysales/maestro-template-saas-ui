@@ -31,6 +31,19 @@ export declare const api: {
       confectWithRawDateNow: FunctionReference<"query", "public", {}, number>;
       confectWithSpan: FunctionReference<"query", "public", {}, number>;
     };
+    scheduling: {
+      manyOpsMutation: FunctionReference<"mutation", "public", {}, number>;
+      manyOpsQuery: FunctionReference<"query", "public", {}, number>;
+    };
+    storage: {
+      generateUploadUrl: FunctionReference<"mutation", "public", {}, string>;
+      getUrl: FunctionReference<
+        "query",
+        "public",
+        { storageId: Id<"_storage"> },
+        string
+      >;
+    };
   };
 };
 

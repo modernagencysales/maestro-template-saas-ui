@@ -24,6 +24,10 @@ below for behavioral proof. `host-test-slot` is optional internal host tooling
 that serializes expensive tests; on a fresh external clone, use the command
 after it directly, such as `pnpm test` or `pnpm verify`.
 
+Structured Maestro verification output follows the versioned contract and
+examples in [verification-receipts.md](./verification-receipts.md); raw gate
+commands remain authoritative.
+
 Start the reference app:
 
 ```bash
@@ -50,7 +54,8 @@ pnpm --dir apps/web dev -- --port 5184
 
 Open the reference app and inspect:
 
-- reusable app shell and navigation from `packages/ui`;
+- reusable app shell and navigation from the manifest compositions and installed
+  Saas UI Pro paths;
 - React Flow workflow primitive from `packages/workflow-ui`;
 - Brain/source/context/trust receipt model;
 - capabilities, agents, and workflow composition model;
@@ -188,15 +193,9 @@ If `host-test-slot` is unavailable, run `pnpm verify` directly.
 ```bash
 pnpm build
 pnpm smoke:web-static
-pnpm smoke:hosted
-pnpm smoke:hosted:browser
-pnpm smoke:hosted:a11y
-pnpm smoke:hosted:visual
+pnpm smoke:starter-route-parity
 ```
 
-The smoke verifies the static web output under `apps/web/dist`, which can be
-served by Vercel, Cloudflare Pages, Netlify, or another static host. The visual
-smoke adds desktop and mobile screenshot-diff coverage for the investor-visible
-first viewport and the workflow/trust receipt section. The a11y smoke runs
-Playwright navigation checks plus axe WCAG 2 A/AA scans against key hosted
-reference routes.
+The golden smokes verify the pinned reference and freshly generated target
+through the shared upstream shell. Browser and visual runs cover desktop/mobile
+interactions and paired captures; the a11y run adds axe WCAG 2 A/AA scans.

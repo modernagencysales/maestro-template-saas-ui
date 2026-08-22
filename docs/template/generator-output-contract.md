@@ -25,6 +25,8 @@ For backend or headless behavior, emit or update:
 - data-map metadata.
 - env manifest entries when a provider or secret name is introduced.
 - migration notes for durable table or index changes.
+- canonical system ID and `reuse`/`extend` ownership decision in generated
+  provenance.
 - reviewer commands.
 
 `template:add-capability` emits flat Confect files under
@@ -57,9 +59,17 @@ For user-facing behavior, also emit or update:
 - route or navigation metadata.
 - screenshots or visual smoke notes when the rendered surface changes.
 
+`template:add-feature` is the production golden path. It emits the Confect
+capability plus contract → presenter/fixtures/tests → feature → screen → thin
+route, with auth, workspace tenancy, audit, observability, rollout, entitlement,
+and lifecycle posture in the same slice. It refuses to overwrite existing
+targets.
+
 ## Promotion Rules
 
 - Runtime-authored capabilities and workflows are data until promoted.
+- Experiment and private-package code is never a runtime dependency. Promotion
+  re-scaffolds through `template:add-*`; production code never imports it.
 - Promotion to generated Confect source is the compile-time safety path.
 - Capability generators emit flat Confect files:
   `packages/convex/confect/capabilities/<name>.spec.ts`,
@@ -74,6 +84,9 @@ For user-facing behavior, also emit or update:
   declare
   `error: () => Schema.Union(Unauthorized, ValidationFailed, Forbidden)`.
 - Generated source must never import from `repos/*`.
+- Backend/client-domain generators accept an existing canonical `--system` ID
+  and require `--disposition reuse|extend`; creating a new owner requires a
+  reviewed catalog decision before generation.
 - Generated client-specific logic stays under generated modules or
   `private-packages/<name>/` until reviewed.
 - Provider SDKs stay behind Effect services and adapters.
@@ -85,11 +98,27 @@ For user-facing behavior, also emit or update:
 
 ## Minimum Review Commands
 
+Consequential generation uses the reviewed scaffold boundary. Run
+`node maestro-template.mjs scaffold --generator <id> --args '<json>'` first. The
+preview labels its privacy posture as `review-required` and exposes secret names
+only. Review its generated paths and bytes, provenance, collisions, semantic
+rules, follow-up work, codegen, and focused gates. Then rerun the same command
+with `--write`; the generator recomputes that plan from the current filesystem
+and refuses drift before changing files.
+
+Direct `template:*` commands remain available for narrow interactive work, but
+their preview points to the reviewed scaffold equivalent for consequential
+writes.
+
 - `pnpm confect:codegen`
 - `pnpm confect:manifest`
 - `pnpm check:generators`
 - `pnpm check:confect-contracts`
 - `pnpm check:workflow-graph-boundary`
 - `pnpm check:schema-migration-notes` when durable data changes
+- `pnpm check:system-catalog`
+- `pnpm check:system-topology`
+- `pnpm check:data-resources`
+- `pnpm check:promotion-boundary`
 - `pnpm check:secret-canaries`
 - focused package tests for the generated slice

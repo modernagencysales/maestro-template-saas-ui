@@ -1,0 +1,41 @@
+{
+  "generator": "add-workflow",
+  "commandFamily": "template:add-workflow",
+  "name": "publicationFixture",
+  "ownership": {
+    "system": "workflow-runtime",
+    "disposition": "extend"
+  },
+  "generatedPaths": [
+    "packages/convex/confect/workflowContracts/publicationFixture.spec.ts",
+    "packages/convex/confect/workflowContracts/publicationFixture.impl.ts",
+    "packages/convex/confect/workflows/publicationFixture/v1.graph.ts",
+    "packages/convex/confect/workflows/publicationFixture/v1.registry.ts",
+    "packages/convex/confect/workflows/publicationFixture.predeploy.ts",
+    "packages/convex/confect/workflowRunners/publicationFixture/v1.ts",
+    "packages/convex/confect/workflowRunners/publicationFixture/v1.spec.ts",
+    "packages/convex/confect/workflowRunners/publicationFixture/v1.impl.ts",
+    "packages/convex/test/publicationFixture.workflow.test.ts",
+    "docs/template/generated/workflows/publicationFixture.semantics.json",
+    "docs/template/generated/workflows/publicationFixture.md"
+  ],
+  "publication": {
+    "lifecycle": "published",
+    "isolatedFixture": true,
+    "workflowVersion": 1,
+    "capabilities": [
+      {
+        "logicalKey": "publicationEcho",
+        "version": 1,
+        "authorityArtifactChecksum": "cbf40b770a388006338a792b861a90bc49634769693656146fe14093f0453312",
+        "releaseChecksum": "e16f3fc4cb2b8bdfde7ce85c585b76b625394b5d24d3cb5fb242a92f52307e97"
+      }
+    ],
+    "manifestPath": "docs/template/generated/workflow-publications.json",
+    "manifestChecksum": "c3956d287cefc921ab589b4a5b5052775fb2f2467da4c899fb1a1b8bbbb90700",
+    "authorityChecksum": "49cf7ea81cea8c5f43ab5eae2a1901252515792f53b0a723842eabf0f7ffbc44",
+    "authorityArtifactChecksum": "2695efc8dad75d7654121a7d17f6c419f865b83ed7072f7f7f9ef09edaebd897",
+    "sourceClosureChecksum": "aa03094f4f6877490b3169e0d08cba27406928f70493c1d7606d86da54fd7939",
+    "releaseChecksum": "becd9e4ab3053d4bee260ca31874d120e08bd988d3318a7c48a0c7d81763876f"
+  }
+}

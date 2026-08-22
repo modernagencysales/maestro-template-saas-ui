@@ -1,0 +1,67 @@
+{
+  "feature": "phase-1-wp-1.4-native-subworkflows",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-b-workflow",
+      "intention": "compile pinned native child workflows through generated immutable registry bindings and honest lifecycle semantics",
+      "layers": ["workflows", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/_kit/graphRunner.ts",
+          "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+          "packages/convex/confect/workflows/graphValidation.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "A child registry key resolves a mutable or mismatched version",
+          "Mapped child args override principal identity or exceed component limits",
+          "Workflow 0.4.4 silently drops scheduled-child options",
+          "Cancellation or asynchronous cleanup is described as rollback or immediate deletion"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "The exact child version, stable runWorkflow step name, principal posture, and lifecycle declaration are immutable workflow-version inputs.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance workflow-graph-v2",
+          "pnpm --dir packages/convex typecheck",
+          "pnpm check:workflow-semantics",
+          "pnpm check:workflow-graph-boundary",
+          "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.4-stack-1.json"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.4 native subworkflow registry and executor",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance workflow-graph-v2",
+            "pnpm --dir packages/convex typecheck",
+            "pnpm check:workflow-semantics",
+            "pnpm check:workflow-graph-boundary",
+            "pnpm stack:check docs/superpowers/plans/manifests/phase-1-wp-1.4-stack-1.json"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Promote the generated subworkflow registry and typed executor now; defer events, ownership-link persistence, and generator central wiring to their ordered WP-1.4 slices."
+        }
+      ],
+      "taskRefs": ["WP-1.4"],
+      "rationale": "An unscheduled child can safely execute only after its generated key, exact version, args budget, principal narrowing, result validator, and component lifecycle posture are fixed.",
+      "estLines": 300
+    }
+  ],
+  "allTaskRefs": ["WP-1.4"]
+}

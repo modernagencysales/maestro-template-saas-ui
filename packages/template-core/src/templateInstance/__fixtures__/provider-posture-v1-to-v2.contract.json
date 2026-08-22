@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "before": {
+    "providerMode": "live",
+    "providerIds": ["email", "llm"]
+  },
+  "after": {
+    "schemaVersion": 1,
+    "providers": {
+      "email": {
+        "environments": {
+          "fake": { "state": "fake", "evidence": [] },
+          "local": { "state": "seam", "evidence": [] },
+          "dev": { "state": "configured", "evidence": [] },
+          "preview": { "state": "unavailable", "evidence": [] },
+          "staging": { "state": "unavailable", "evidence": [] },
+          "production": { "state": "unavailable", "evidence": [] }
+        }
+      },
+      "llm": {
+        "environments": {
+          "fake": { "state": "fake", "evidence": [] },
+          "local": { "state": "seam", "evidence": [] },
+          "dev": { "state": "configured", "evidence": [] },
+          "preview": { "state": "unavailable", "evidence": [] },
+          "staging": { "state": "unavailable", "evidence": [] },
+          "production": { "state": "unavailable", "evidence": [] }
+        }
+      }
+    }
+  }
+}

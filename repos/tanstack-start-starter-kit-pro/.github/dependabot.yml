@@ -1,0 +1,11 @@
+version: 2
+registries:
+  npm-npmjs:
+    type: npm-registry
+    url: https://npm.saas-ui.dev
+    token: ${{secrets.SAAS_UI_TOKEN}}
+updates:
+  - package-ecosystem: 'yarn'
+    directory: '/'
+    schedule:
+      interval: 'weekly'

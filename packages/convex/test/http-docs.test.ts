@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import templateHttp from "../confect/http";
+import { createEmailUnsubscribeToken } from "../confect/email/unsubscribeToken";
 import { buildGeneratedMcpTools } from "../confect/manifest/mcp";
 import {
   type HeadlessHttpCtx,
@@ -35,9 +36,10 @@ describe("template HTTP docs routes", () => {
       .sort(byPathThenMethod);
 
     expect(routes).toEqual(
-      templateHttpRoutes
-        .map(({ path, method }) => ({ path, method }))
-        .sort(byPathThenMethod),
+      [
+        ...templateHttpRoutes.map(({ path, method }) => ({ path, method })),
+        { path: "/deploy-authority/consume", method: "POST" },
+      ].sort(byPathThenMethod),
     );
   });
 
@@ -61,6 +63,158 @@ describe("template HTTP docs routes", () => {
         },
       ]),
     );
+  });
+
+  it("forwards the untouched Dodo body and signature headers to the webhook action", async () => {
+    const calls: unknown[] = [];
+    const rawBody =
+      '{"type":"payment.succeeded","data":{"payment_id":"pay_1"}}';
+    const response = await handleTemplateHttpRequest(
+      {
+        ...noopCtx,
+        runAction: async (ref, input) => {
+          calls.push({ ref, input });
+          return { eventId: "evt_1", status: "processed" };
+        },
+      },
+      new Request("https://template.local/webhooks/dodo", {
+        method: "POST",
+        headers: {
+          "content-type": "application/json",
+          "webhook-id": "evt_1",
+          "webhook-signature": "v1,signature",
+          "webhook-timestamp": "1700000000",
+        },
+        body: rawBody,
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(calls).toEqual([
+      expect.objectContaining({
+        input: {
+          rawBody,
+          webhookId: "evt_1",
+          signature: "v1,signature",
+          signatureTimestamp: "1700000000",
+        },
+      }),
+    ]);
+  });
+
+  it("authenticates and normalizes Postmark webhooks before mutation", async () => {
+    const previousUsername = process.env.POSTMARK_WEBHOOK_USERNAME;
+    const previousPassword = process.env.POSTMARK_WEBHOOK_PASSWORD;
+    process.env.POSTMARK_WEBHOOK_USERNAME = "postmark";
+    process.env.POSTMARK_WEBHOOK_PASSWORD = "webhook-secret";
+    try {
+      const calls: unknown[] = [];
+      const ctx: HeadlessHttpCtx = {
+        ...noopCtx,
+        runMutation: async (ref, input) => {
+          calls.push({ ref, input });
+          return { status: "processed", suppressed: true };
+        },
+      };
+      const unauthorized = await handleTemplateHttpRequest(
+        ctx,
+        new Request("https://template.local/webhooks/email/postmark", {
+          method: "POST",
+          body: JSON.stringify({ RecordType: "Bounce" }),
+        }),
+      );
+      expect(unauthorized.status).toBe(401);
+      expect(calls).toHaveLength(0);
+
+      const response = await handleTemplateHttpRequest(
+        ctx,
+        new Request("https://template.local/webhooks/email/postmark", {
+          method: "POST",
+          headers: {
+            authorization: `Basic ${btoa("postmark:webhook-secret")}`,
+            "content-type": "application/json",
+          },
+          body: JSON.stringify({
+            RecordType: "Bounce",
+            Type: "HardBounce",
+            Email: "Person@Example.com",
+            MessageID: "message-1",
+            BouncedAt: "2026-08-02T12:00:00Z",
+            Description: "raw provider detail must not be forwarded",
+          }),
+        }),
+      );
+      expect(response.status).toBe(200);
+      expect(calls).toEqual([
+        expect.objectContaining({
+          input: {
+            fingerprint: expect.any(String),
+            kind: "hard_bounce",
+            recipient: "person@example.com",
+            providerMessageId: "message-1",
+          },
+        }),
+      ]);
+      expect(JSON.stringify(calls)).not.toContain("raw provider detail");
+    } finally {
+      if (previousUsername === undefined)
+        delete process.env.POSTMARK_WEBHOOK_USERNAME;
+      else process.env.POSTMARK_WEBHOOK_USERNAME = previousUsername;
+      if (previousPassword === undefined)
+        delete process.env.POSTMARK_WEBHOOK_PASSWORD;
+      else process.env.POSTMARK_WEBHOOK_PASSWORD = previousPassword;
+    }
+  });
+
+  it("shows a signed unsubscribe confirmation and mutates only on POST", async () => {
+    const previousSecret = process.env.EMAIL_UNSUBSCRIBE_SECRET;
+    process.env.EMAIL_UNSUBSCRIBE_SECRET = "test-fixture";
+    try {
+      const token = await createEmailUnsubscribeToken({
+        subscriberId: "emailSubscribers_123",
+        secret: process.env.EMAIL_UNSUBSCRIBE_SECRET,
+      });
+      const calls: unknown[] = [];
+      const ctx: HeadlessHttpCtx = {
+        ...noopCtx,
+        runMutation: async (ref, input) => {
+          calls.push({ ref, input });
+          return { status: "unsubscribed" };
+        },
+      };
+      const confirmation = await handleTemplateHttpRequest(
+        ctx,
+        new Request(
+          `https://template.local/email/unsubscribe?token=${encodeURIComponent(token)}`,
+        ),
+      );
+      expect(confirmation.status).toBe(200);
+      expect(await confirmation.text()).toContain("Stop marketing emails?");
+      expect(confirmation.headers.get("content-security-policy")).toContain(
+        "form-action 'self'",
+      );
+      expect(calls).toHaveLength(0);
+
+      const applied = await handleTemplateHttpRequest(
+        ctx,
+        new Request("https://template.local/email/unsubscribe", {
+          method: "POST",
+          headers: { "content-type": "application/x-www-form-urlencoded" },
+          body: new URLSearchParams({ token }),
+        }),
+      );
+      expect(applied.status).toBe(200);
+      expect(await applied.text()).toContain("You are unsubscribed.");
+      expect(calls).toEqual([
+        expect.objectContaining({
+          input: { subscriberId: "emailSubscribers_123" },
+        }),
+      ]);
+    } finally {
+      if (previousSecret === undefined)
+        delete process.env.EMAIL_UNSUBSCRIBE_SECRET;
+      else process.env.EMAIL_UNSUBSCRIBE_SECRET = previousSecret;
+    }
   });
 
   it("serves generated OpenAPI JSON", async () => {
@@ -218,6 +372,128 @@ describe("template HTTP docs routes", () => {
         idempotencyKey: "brain-page-example-001",
       },
     ]);
+  });
+
+  it("requires a bearer API key for records operations", async () => {
+    const response = await handleTemplateHttpRequest(
+      noopCtx,
+      new Request("https://template.local/api/records.list", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ workspaceSlug: "template-demo", input: {} }),
+      }),
+    );
+
+    expect(response.status).toBe(401);
+    expect(await readJson(response)).toEqual({
+      ok: false,
+      error: {
+        _tag: "Unauthorized",
+        code: "API_KEY_MISSING",
+        message: "Missing bearer API key.",
+      },
+    });
+  });
+
+  it("resolves a records actor before dispatching the operation", async () => {
+    const calls: Array<{ readonly input: Record<string, unknown> }> = [];
+    const response = await handleTemplateHttpRequest(
+      {
+        ...noopCtx,
+        runQuery: async (_ref, input) => {
+          calls.push({ input });
+          return "keyHash" in input
+            ? {
+                ok: true,
+                keyId: "api_key_contracts",
+                workspaceId: "workspace_contracts",
+                userId: "user_contracts",
+              }
+            : [
+                {
+                  _id: "record_contracts",
+                  workspaceId: "workspace_contracts",
+                  title: "Launch checklist",
+                  detail: "Created from the app",
+                  createdAt: 1,
+                  updatedAt: 1,
+                },
+              ];
+        },
+      },
+      new Request("https://template.local/api/records.list", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer mtk_live_contracts",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({
+          workspaceSlug: "template-demo",
+          input: {},
+          idempotencyKey: "contracts-list-1",
+        }),
+      }),
+    );
+
+    expect(response.status).toBe(200);
+    expect(await readJson(response)).toMatchObject({
+      ok: true,
+      operationId: "records.list",
+      result: [{ title: "Launch checklist" }],
+    });
+    expect(calls).toEqual([
+      {
+        input: {
+          keyHash: expect.any(String),
+          workspaceSlug: "template-demo",
+          requiredScope: "workspace:read",
+          nowMs: expect.any(Number),
+        },
+      },
+      {
+        input: {
+          workspaceId: "workspace_contracts",
+          userId: "user_contracts",
+        },
+      },
+    ]);
+    expect(JSON.stringify(calls)).not.toContain("mtk_live_contracts");
+  });
+
+  it("rejects a key bound to another workspace before records dispatch", async () => {
+    let queryCount = 0;
+    const response = await handleTemplateHttpRequest(
+      {
+        ...noopCtx,
+        runQuery: async () => {
+          queryCount += 1;
+          return {
+            ok: false,
+            code: "API_KEY_WORKSPACE_MISMATCH",
+            message: "API key is bound to a different workspace.",
+          };
+        },
+      },
+      new Request("https://template.local/api/records.list", {
+        method: "POST",
+        headers: {
+          authorization: "Bearer mtk_live_contracts",
+          "content-type": "application/json",
+        },
+        body: JSON.stringify({ workspaceSlug: "another-workspace", input: {} }),
+      }),
+    );
+
+    expect(response.status).toBe(403);
+    expect(queryCount).toBe(1);
+    expect(await readJson(response)).toEqual({
+      ok: false,
+      error: {
+        _tag: "Forbidden",
+        code: "API_KEY_WORKSPACE_MISMATCH",
+        message: "API key is bound to a different workspace.",
+      },
+    });
   });
 
   it("executes the documented OpenAPI request envelope", async () => {

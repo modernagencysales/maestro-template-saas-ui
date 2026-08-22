@@ -1,4 +1,6 @@
 import * as Effect from "effect/Effect";
+import * as Exit from "effect/Exit";
+import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import {
   buildProviderAdapters,
@@ -14,12 +16,38 @@ import {
 } from "./index";
 
 describe("provider adapter descriptors", () => {
+  it("decodes persisted provider errors with Effect 4 schema exits", () => {
+    const decode = Schema.decodeUnknownExit(ProviderConfigError);
+    const valid = decode({
+      _tag: "ProviderConfigError",
+      provider: "dodo",
+      missingEnv: ["DODO_WEBHOOK_SECRET"],
+      invalidEnv: [],
+    });
+    const invalid = decode({
+      _tag: "ProviderConfigError",
+      provider: "dodo",
+      missingEnv: "DODO_WEBHOOK_SECRET",
+      invalidEnv: [],
+    });
+
+    expect(Exit.isSuccess(valid)).toBe(true);
+    if (Exit.isSuccess(valid)) {
+      expect(valid.value).toMatchObject({
+        _tag: "ProviderConfigError",
+        provider: "dodo",
+        missingEnv: ["DODO_WEBHOOK_SECRET"],
+      });
+    }
+    expect(Exit.isFailure(invalid)).toBe(true);
+  });
+
   it("declares every required default provider family", () => {
     expect(providerDescriptors.map((provider) => provider.id)).toEqual([
       "workos",
       "posthog",
       "dodo",
-      "mailersend",
+      "email",
       "openrouter",
       "storage",
       "search",
@@ -102,19 +130,24 @@ describe("provider adapter descriptors", () => {
   });
 
   it("constructs live adapters only after required env names are present", () => {
-    expect(createProviderAdapter("mailersend", "live", {})).toMatchObject({
+    expect(createProviderAdapter("email", "live", {})).toMatchObject({
       _tag: "ProviderConfigError",
-      provider: "mailersend",
-      missingEnv: ["MAILERSEND_API_KEY", "MAILERSEND_FROM_EMAIL"],
+      provider: "email",
+      missingEnv: [
+        "POSTMARK_SERVER_TOKEN",
+        "EMAIL_TRANSACTIONAL_FROM",
+        "EMAIL_MARKETING_FROM",
+      ],
     });
 
-    const adapter = createProviderAdapter("mailersend", "live", {
-      MAILERSEND_API_KEY: "secret",
-      MAILERSEND_FROM_EMAIL: "hello@example.test",
+    const adapter = createProviderAdapter("email", "live", {
+      POSTMARK_SERVER_TOKEN: "secret",
+      EMAIL_TRANSACTIONAL_FROM: "hello@example.test",
+      EMAIL_MARKETING_FROM: "updates@example.test",
     });
 
     expect(adapter).toMatchObject({
-      provider: "mailersend",
+      provider: "email",
       mode: "live",
     });
     expect(JSON.stringify(adapter)).not.toContain("secret");
@@ -122,15 +155,16 @@ describe("provider adapter descriptors", () => {
 
   it("refuses live adapters with whitespace-contaminated env values", () => {
     expect(
-      createProviderAdapter("mailersend", "live", {
-        MAILERSEND_API_KEY: " mailer-secret ",
-        MAILERSEND_FROM_EMAIL: "hello@example.test",
+      createProviderAdapter("email", "live", {
+        POSTMARK_SERVER_TOKEN: " postmark-secret ",
+        EMAIL_TRANSACTIONAL_FROM: "hello@example.test",
+        EMAIL_MARKETING_FROM: "updates@example.test",
       }),
     ).toMatchObject({
       _tag: "ProviderConfigError",
-      provider: "mailersend",
+      provider: "email",
       missingEnv: [],
-      invalidEnv: ["MAILERSEND_API_KEY"],
+      invalidEnv: ["POSTMARK_SERVER_TOKEN"],
     });
   });
 
@@ -176,7 +210,7 @@ describe("provider adapter descriptors", () => {
     }
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         adapter.call({
           operation: "billing.createCheckout",
           workspaceSlug: "acme-demo",
@@ -186,8 +220,8 @@ describe("provider adapter descriptors", () => {
     );
 
     expect(result).toMatchObject({
-      _tag: "Left",
-      left: {
+      _tag: "Failure",
+      failure: {
         _tag: "ProviderCallError",
         provider: "dodo",
         publicMessage:
@@ -205,7 +239,7 @@ describe("provider adapter descriptors", () => {
     }
 
     const result = await Effect.runPromise(
-      Effect.either(
+      Effect.result(
         adapter.call({
           operation: "billing.createCheckout",
           workspaceSlug: "acme-demo",
@@ -216,8 +250,8 @@ describe("provider adapter descriptors", () => {
     );
 
     expect(result).toMatchObject({
-      _tag: "Left",
-      left: {
+      _tag: "Failure",
+      failure: {
         _tag: "ProviderCallError",
         provider: "dodo",
         publicMessage:

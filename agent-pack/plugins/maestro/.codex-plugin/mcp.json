@@ -1,0 +1,9 @@
+{
+  "mcpServers": {
+    "maestro": {
+      "type": "stdio",
+      "command": "pnpm",
+      "args": ["--silent", "maestro", "--", "mcp"]
+    }
+  }
+}

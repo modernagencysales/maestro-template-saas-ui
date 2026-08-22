@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "transition": {
+    "id": "template-0.1-to-0.2",
+    "fromVersion": "0.1.0-alpha.1",
+    "toVersion": "0.2.0-alpha.1",
+    "immediatePriorVersion": "0.1.0-alpha.1"
+  },
+  "releaseManifests": {
+    "from": {
+      "path": "releases/v0.1.0-alpha.1/manifest.json",
+      "sha256": "sha256:0b55fd0895ecbcf6743860551ed52f165b4252c17ea94ad1687163a8ce6c6b93"
+    },
+    "to": {
+      "path": "releases/v0.2.0-alpha.1/manifest.json"
+    }
+  },
+  "handoff": {
+    "migrationId": "backfill-workflow-graph-v2",
+    "fixture": {
+      "path": "tooling/release/__fixtures__/migration/clean.json",
+      "sha256": "sha256:3fb88ae7345884b8e8b74e67b04910770183b5150412cc86bd25f950fe56b9b6"
+    }
+  },
+  "receiptAuthority": {
+    "available": false,
+    "requiredProof": "ed25519-release-bound-receipt-v1",
+    "durableReplayConsumptionRequired": true
+  },
+  "steps": [
+    "expand",
+    "backward-compatible-code",
+    "preview",
+    "migrate",
+    "compatibility-window",
+    "contract"
+  ],
+  "rollback": {
+    "preUpgradeCommitRequired": true,
+    "codeDisposition": "reviewed-git-restore",
+    "dataDisposition": "separate-migration-receipt"
+  }
+}

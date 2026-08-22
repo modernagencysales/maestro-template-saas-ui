@@ -1,5 +1,6 @@
 import { TestConfect } from "@confect/test";
 import * as Effect from "effect/Effect";
+import * as Layer from "effect/Layer";
 import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import refs from "../confect/_generated/refs";
@@ -163,16 +164,12 @@ describe("versioning Confect contracts", () => {
   });
 
   it("exports a finalized fake/local Confect implementation", () => {
-    expect(versioningImpl).toMatchObject({
-      _op_layer: "Fold",
-    });
+    expect(Layer.isLayer(versioningImpl)).toBe(true);
   });
 
   it("rejects padded append idempotency keys before creating append-only history", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.versioning.append, {
           workspaceId: "workspace_123",
@@ -200,9 +197,7 @@ describe("versioning Confect contracts", () => {
 
   it("rejects padded restore idempotency keys before creating append-only history", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.versioning.restore, {
           workspaceId: "workspace_123",
@@ -230,9 +225,7 @@ describe("versioning Confect contracts", () => {
 
   it("rejects padded reconcile idempotency keys before creating append-only history", async () => {
     const program = Effect.gen(function* () {
-      const confect = yield* Effect.serviceOptional(
-        TestConfect.TestConfect<typeof databaseSchema>(),
-      );
+      const confect = yield* TestConfect.TestConfect<typeof databaseSchema>();
       return yield* confect
         .mutation(refs.public.ops.versioning.reconcile, {
           workspaceId: "workspace_123",

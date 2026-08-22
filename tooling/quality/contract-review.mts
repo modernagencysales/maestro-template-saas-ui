@@ -46,7 +46,7 @@ function supportsOpenAITemperature(model: string): boolean {
 const PRODUCT_SOURCE = /^(packages|apps)\/.*\.(ts|tsx)$/;
 const PRODUCT_TEST = /^(packages|apps)\/.*(\.(test|spec)\.|\/__tests__\/)/;
 const META_GATE =
-  /^(\.github\/workflows\/|\.buildkite\/|tooling\/(quality|generators|workflow)\/|dependency-cruiser\.config\.cjs|eslint\.config\.mjs|Justfile$|package\.json$)/;
+  /^(\.github\/workflows\/|\.woodpecker\/|tooling\/(ci|quality|generators|workflow)\/|dependency-cruiser\.config\.cjs|eslint\.config\.mjs|package\.json$)/;
 const CONTRACT_DOC = /^(AGENTS\.md|CLAUDE\.md|docs\/)/;
 const TEST_OR_GENERATED = /\.(test|spec)\.|\/__tests__\/|\/_generated\//;
 
@@ -593,8 +593,8 @@ function currentBranchName(source: string): string | null {
   return safeFetchBranchName(branch) ? branch : null;
 }
 
-function buildkiteBranchName(): string | null {
-  const branch = process.env.BUILDKITE_BRANCH;
+function ciBranchName(): string | null {
+  const branch = process.env.CI_COMMIT_BRANCH;
   if (branch === undefined || branch === "") return null;
   return safeFetchBranchName(branch) ? branch : null;
 }
@@ -614,7 +614,7 @@ function comparableHistoryFetchSpecs(
 ): readonly string[] {
   const branches = [
     originBranchName(baseRef),
-    buildkiteBranchName(),
+    ciBranchName(),
     currentBranchName(source),
   ].filter((branch): branch is string => branch !== null);
   return [...new Set(branches)].map(
@@ -762,7 +762,11 @@ export function prioritizeReviewFiles(
     ) {
       return 0;
     }
-    if (file.startsWith("meta-gate: .buildkite/")) return 1;
+    if (
+      file.startsWith("meta-gate: .woodpecker/") ||
+      file.startsWith("meta-gate: tooling/ci/")
+    )
+      return 1;
     if (file.startsWith("product: ")) return 2;
     if (file.startsWith("test: ")) return 3;
     if (file.startsWith("meta-gate: ")) return 4;
@@ -778,9 +782,11 @@ function readOptional(path: string): string {
 
 function gateConfig(): string {
   const files = [
-    ".buildkite/pipeline.yml",
-    ".buildkite/scripts/taste.sh",
-    ".buildkite/scripts/contract-review.sh",
+    ".woodpecker/firewall.yml",
+    ".woodpecker/epoch.yml",
+    ".woodpecker/deploy.yml",
+    "tooling/ci/taste.sh",
+    "tooling/ci/contract-review.sh",
     "dependency-cruiser.config.cjs",
     "eslint.config.mjs",
   ];

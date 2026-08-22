@@ -10,13 +10,13 @@ export const WorkflowRunLinkRow = Schema.Struct({
   relationKind: Schema.String,
   relationId: Schema.String,
   idempotencyKey: Schema.String,
-  status: Schema.Literal(
+  status: Schema.Literals([
     "starting",
     "running",
     "succeeded",
     "failed",
     "canceled",
-  ),
+  ]),
   childResultJson: Schema.NullOr(Schema.String),
   createdAt: Schema.Number,
   updatedAt: Schema.Number,

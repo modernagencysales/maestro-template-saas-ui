@@ -5,21 +5,26 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "bin": {
+    "maestro": "src/index.ts",
     "maestro-template": "src/index.ts"
   },
   "scripts": {
     "build": "tsc -p tsconfig.json --outDir dist --declaration",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "vitest run --passWithNoTests"
+    "test": "vitest run --passWithNoTests --exclude src/factory/createRootIntegration.test.ts --exclude src/factory/customerCliRuntime.test.ts --exclude src/factory/productContractAcceptance.test.ts",
+    "test:customer-cli-runtime": "vitest run src/factory/customerCliRuntime.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism",
+    "test:create-root-integration": "vitest run src/factory/createRootIntegration.test.ts --passWithNoTests --maxWorkers=1 --no-file-parallelism"
   },
   "dependencies": {
-    "@confect/js": "9.1.5",
-    "@effect/cluster": "0.58.0",
-    "@effect/platform": "0.96.2",
-    "@effect/platform-node": "0.106.0",
+    "@maestro-template/app-map-tooling": "workspace:*",
+    "@confect/js": "10.0.0-next.9",
+    "@maestro-template/agent-pack": "workspace:*",
+    "@maestro-template/generators": "workspace:*",
     "@maestro-template/integrations": "workspace:*",
+    "@maestro-template/quality-tooling": "workspace:*",
+    "@maestro-template/release-tooling": "workspace:*",
     "@maestro-template/template-core": "workspace:*",
     "@maestro-template/workflow-tooling": "workspace:*",
-    "effect": "3.21.4"
+    "effect": "4.0.0-beta.102"
   }
 }

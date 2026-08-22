@@ -1,0 +1,12 @@
+services:
+  database:
+    image: 'postgres:18'
+    ports:
+      - '5432:5432'
+    env_file:
+      - database.env
+    volumes:
+      - postgres-data:/var/lib/postgresql
+
+volumes:
+  postgres-data:

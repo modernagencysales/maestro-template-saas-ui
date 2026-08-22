@@ -1,0 +1,43 @@
+labels:
+  platform: linux/amd64
+  role: factory-ci
+  class: firewall
+
+timeout: 15
+
+clone:
+  git:
+    image: woodpeckerci/plugin-git:2.9.2@sha256:ebde4a4d07e0e24b630082484d192890dd4f6d442d90bf5466f0763860f83652
+    settings:
+      depth: 500
+      partial: false
+      tags: true
+      fetch-target-branch: true
+      target-branch: main
+
+when:
+  - event: pull_request
+    evaluate: 'CI_COMMIT_PULL_REQUEST_DRAFT == "false"'
+  - event: pull_request_metadata
+    evaluate:
+      'CI_PIPELINE_EVENT_REASON == "ready_for_review" &&
+      CI_COMMIT_PULL_REQUEST_DRAFT == "false"'
+
+steps:
+  - name: trusted-ci-policy
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+    commands:
+      - git config --global --add safe.directory "$CI_WORKSPACE"
+      - tooling/ci/ci-self-protection.sh
+    failure: cancel
+
+  - name: firewall
+    image: node:22.23.2-bookworm@sha256:0557ac14e0d45d02ed563067b82856ca5e7aa3437fa28d98d4350ea9c3d9494a
+    environment:
+      CI: "true"
+      NODE_OPTIONS: "--max-old-space-size=6144"
+    commands:
+      - tooling/ci/firewall.sh
+    depends_on:
+      - trusted-ci-policy
+    failure: cancel

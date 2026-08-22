@@ -1,17 +1,34 @@
 {
-  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
-    "composite": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "lib": ["DOM", "ES2023"],
+    "allowSyntheticDefaultImports": true,
+    "allowImportingTsExtensions": true,
+    "esModuleInterop": true,
+    "strict": true,
     "jsx": "react-jsx",
-    "rootDir": ".",
-    "outDir": "dist"
+    "allowJs": true,
+    "checkJs": true,
+    "noEmit": true,
+    "types": ["vite/client"],
+    "isolatedModules": true,
+    "noUncheckedIndexedAccess": true,
+    "incremental": true,
+    "verbatimModuleSyntax": false,
+    "paths": {
+      "@/*": ["./src/*"],
+      "#config/*": ["./src/config/*"],
+      "#components/*": ["./src/components/*"],
+      "#hooks/*": ["./src/hooks/*"],
+      "#features/*": ["./src/features/*"],
+      "#lib/*": ["./src/lib/*"],
+      "#utils/*": ["./src/utils/*"],
+      "#theme/*": ["./src/theme/*"],
+    "@maestro-template/convex/refs": ["../../packages/convex/src/refs.ts"]
+    }
   },
-  "include": [
-    "src/**/*.ts",
-    "src/**/*.tsx",
-    "src/**/*.mts",
-    "test/**/*.ts",
-    "test/**/*.tsx",
-    "test/**/*.mts"
-  ]
+  "include": ["src"],
+  "exclude": ["**/node_modules", "dist", ".output"]
 }

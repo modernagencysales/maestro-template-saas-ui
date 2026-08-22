@@ -20,16 +20,22 @@ import {
   manifest as dataLifecycleManifest,
   schemaRegistry as dataLifecycleSchemaRegistry,
 } from "../../../packages/convex/confect/ops/dataLifecycle.spec";
+import {
+  manifest as emailManifest,
+  schemaRegistry as emailSchemaRegistry,
+} from "../../../packages/convex/confect/ops/email.spec";
 
 const functions = [
   ...brainPagesManifest,
   ...sourceGroundedBriefManifest,
   ...dataLifecycleManifest,
+  ...emailManifest,
 ];
 const schemaRegistry = mergeContractSchemaRegistries(
   brainPagesSchemaRegistry,
   sourceGroundedBriefSchemaRegistry,
   dataLifecycleSchemaRegistry,
+  emailSchemaRegistry,
 );
 
 const duplicateIds = duplicateOperationIds(functions);
@@ -67,6 +73,7 @@ const generatedRefModules: Readonly<Record<string, string>> = {
   "capabilities.sourceGroundedBrief":
     "packages/convex/convex/capabilities/sourceGroundedBrief.ts",
   "ops.dataLifecycle": "packages/convex/convex/ops/dataLifecycle.ts",
+  "ops.email": "packages/convex/convex/ops/email.ts",
 };
 
 const escapeRegExp = (input: string): string =>

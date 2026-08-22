@@ -1,0 +1,82 @@
+{
+  "feature": "phase-4-wp-4.0-customer-create-leaves",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/wp4-create",
+      "intention": "project the accepted customer release materializer through a strict preview-first Agent Pack create command and CLI leaf adapter",
+      "layers": ["domain", "adapters"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast"
+      ],
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 customer-facing create command leaves",
+          "followUpGates": [
+            "pnpm --dir tooling/agent-pack test create",
+            "pnpm --dir apps/cli test create"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Compose the immutable tagged-release ownership manifest and staged materializer behind one strict create service, then request root-owned package and CLI registrations."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-3-create-leaves"],
+      "rationale": "Customers need a preview-first create contract that cannot copy a dirty checkout or perform unapproved follow-up actions.",
+      "estLines": 300
+    },
+    {
+      "id": 2,
+      "branch": "codex/wp4-create",
+      "intention": "document the immutable customer target contract and the shortest safe create handoff",
+      "layers": ["docs"],
+      "contractRiskIds": ["existing-module-repair-checklist"],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "docs/template/quickstart.md",
+          "docs/template/template-release-process.md"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Documentation implies preview writes files",
+          "A fixture-only manifest is described as releasable",
+          "Install, Git initialization, authentication, or production selection appears implicit"
+        ],
+        "policyDataOwnership": "docs/template/customer-target-contract.md",
+        "promptVersioningImpact": "None; this slice documents the accepted WP-4.0 contract.",
+        "evalOrGateCoverage": [
+          "pnpm stack:check docs/superpowers/plans/manifests/phase-4-wp-4.0-stack-3.json",
+          "pnpm check:generated-files",
+          "pnpm check:secret-canaries"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-4.0 customer target and release handoff documentation",
+          "followUpGates": [
+            "pnpm check:generated-files",
+            "pnpm check:secret-canaries"
+          ],
+          "templateBacklogRef": "AP-007 first-run visible app",
+          "templateResolutionPath": "Publish one concise contract for preview, explicit writes, immutable release binding, personalization, and separately approved follow-up actions."
+        }
+      ],
+      "taskRefs": ["WP-4.0-stack-3-customer-docs"],
+      "rationale": "Novices need one bounded create contract without provider, workflow, deployment, or architecture questions.",
+      "estLines": 120
+    }
+  ],
+  "allTaskRefs": [
+    "WP-4.0-stack-3-create-leaves",
+    "WP-4.0-stack-3-customer-docs"
+  ]
+}

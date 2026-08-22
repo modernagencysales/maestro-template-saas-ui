@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "defaultPosture": "outbound-network-denied",
+  "externalOperations": [
+    {
+      "id": "convex-mcp-inspect",
+      "userInitiated": true,
+      "purpose": "Inspect a selected personal Convex dev deployment."
+    },
+    {
+      "id": "configured-provider-operation",
+      "userInitiated": true,
+      "purpose": "Send one requested operation to the selected provider."
+    },
+    {
+      "id": "official-context-freshness",
+      "userInitiated": true,
+      "purpose": "Refresh pinned official framework context."
+    }
+  ]
+}

@@ -71,10 +71,12 @@ const makeReviewerRepo = (): string => {
     "docs/template/integrations.md",
     "docs/template/workflow-authoring-guide.md",
     "docs/rule-coverage.md",
-    ".buildkite/pipeline.yml",
+    ".woodpecker/firewall.yml",
+    ".woodpecker/epoch.yml",
+    ".woodpecker/deploy.yml",
     "apps/cli/src/index.ts",
     "apps/web/src/routes/index.tsx",
-    "apps/web/src/saas-ui/business-shell.tsx",
+    "apps/web/src/features/common/layouts/app-layout.tsx",
     "apps/web/src/sample/templateData.ts",
     "apps/web/src/sample/templateData.test.ts",
     "examples/generic-ai-ops/seed/workspace.json",
@@ -96,8 +98,8 @@ const makeReviewerRepo = (): string => {
     "tooling/generators/src/index.test.ts",
     "tooling/release/src/index.ts",
     "tooling/release/src/index.test.ts",
-    "tests/e2e/hosted-reference-app.spec.ts",
-    "tests/e2e/hosted-reference-app.visual.spec.ts",
+    "tests/e2e/saas-ui-golden.spec.ts",
+    "tests/e2e/saas-ui-golden.visual.spec.ts",
   ];
 
   for (const file of files) {
@@ -263,8 +265,8 @@ describe("release tooling", () => {
           "pnpm check:format",
           "pnpm check:confect-contracts",
           "pnpm check:confect-compat",
-          "pnpm smoke:hosted:browser",
-          "pnpm smoke:hosted:visual",
+          "pnpm smoke:golden:browser",
+          "pnpm smoke:golden:visual",
         ]),
       });
     } finally {
@@ -317,8 +319,8 @@ describe("release tooling", () => {
             id: "clear-sample-app",
             status: "pass",
             verification: expect.arrayContaining([
-              "pnpm smoke:hosted:browser",
-              "pnpm smoke:hosted:visual",
+              "pnpm smoke:golden:browser",
+              "pnpm smoke:golden:visual",
             ]),
           }),
           expect.objectContaining({
@@ -523,6 +525,88 @@ describe("release tooling", () => {
           },
         },
       });
+    } finally {
+      rmSync(repoRoot, { recursive: true, force: true });
+    }
+  });
+
+  it("fails deploy doctor closed for unsafe or target-coupled authority endpoints", () => {
+    const repoRoot = makeReviewerRepo();
+    writeEnvManifest(repoRoot, [
+      {
+        name: "PROMOTION_AUTHORITY_ENDPOINT",
+        group: "woodpecker",
+        requiredFor: ["deploy"],
+      },
+      {
+        name: "TRUSTED_DEPLOY_ROOT_SHA256",
+        group: "woodpecker",
+        requiredFor: ["deploy"],
+      },
+    ]);
+    writeFileSync(
+      join(repoRoot, "project.config.json"),
+      JSON.stringify({
+        project: { name: "maestro-template" },
+        environments: {
+          staging: {
+            name: "staging",
+            domain: "staging.example.test",
+            cloudflarePagesProject: "maestro-template-staging",
+            cloudflareBranch: "staging",
+            convexDeployName: "maestro-template-staging",
+            convexUrl: "https://target-staging.convex.cloud",
+            requiredEnvGroups: ["woodpecker"],
+            requiredSecrets: [],
+          },
+          production: {
+            name: "production",
+            domain: "app.example.test",
+            cloudflarePagesProject: "maestro-template",
+            cloudflareBranch: "main",
+            convexDeployName: "maestro-template-production",
+            convexUrl: "https://target-production.convex.cloud",
+            requiredEnvGroups: ["woodpecker"],
+            requiredSecrets: [],
+          },
+        },
+      }),
+    );
+
+    try {
+      const trustedRoot = `sha256:${"a".repeat(64)}`;
+      expect(
+        buildDeployDoctorReport({
+          repoRoot,
+          environment: "staging",
+          env: {
+            PROMOTION_AUTHORITY_ENDPOINT: "https://authority.example.test/",
+            TRUSTED_DEPLOY_ROOT_SHA256: trustedRoot,
+          },
+        }),
+      ).toMatchObject({ ok: true, invalidEnvNames: [] });
+      for (const endpoint of [
+        "http://authority.example.test",
+        "https://user:pass@authority.example.test",
+        "https://authority.example.test/control-plane",
+        "https://authority.example.test?target=staging",
+        "https://authority.example.test#fragment",
+        "https://target-staging.convex.cloud",
+      ]) {
+        const report = buildDeployDoctorReport({
+          repoRoot,
+          environment: "staging",
+          env: {
+            PROMOTION_AUTHORITY_ENDPOINT: endpoint,
+            TRUSTED_DEPLOY_ROOT_SHA256: trustedRoot,
+          },
+        });
+        expect(report).toMatchObject({
+          ok: false,
+          invalidEnvNames: ["PROMOTION_AUTHORITY_ENDPOINT"],
+        });
+        expect(JSON.stringify(report)).not.toContain(endpoint);
+      }
     } finally {
       rmSync(repoRoot, { recursive: true, force: true });
     }

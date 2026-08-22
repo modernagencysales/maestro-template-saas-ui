@@ -57,7 +57,7 @@ const quotedEnvNames = (source: string): readonly string[] =>
     .filter((name) => name.includes("_"));
 
 const providerRequiredEnvNames = (): readonly string[] => {
-  const source = readText("packages/integrations/src/index.ts");
+  const source = readText("packages/integrations/src/providerRegistry.ts");
   const names = new Set<string>();
 
   for (const match of source.matchAll(/requiredEnv:\s*\[([\s\S]*?)\]/g)) {
@@ -91,15 +91,6 @@ const convexConfigEnvNames = (): readonly string[] => {
   )
     .filter((name): name is string => Boolean(name))
     .sort();
-};
-
-const setupSurfaceEnvNames = (): readonly string[] => {
-  const source = readText("apps/web/src/features/setup/setup-surface.ts");
-  const section = source.match(
-    /export const requiredLiveProviderEnv = \[([\s\S]*?)\] as const;/s,
-  )?.[1];
-
-  return quotedEnvNames(section ?? "").sort();
 };
 
 const envExampleValues = (): ReadonlyMap<string, string> =>
@@ -152,12 +143,11 @@ describe("environment manifest", () => {
     }
   });
 
-  it("covers provider descriptors, Convex component env, setup UI, and deploy config", () => {
+  it("covers provider descriptors, Convex component env, and deploy config", () => {
     const requiredNames = new Set([
       ...providerRequiredEnvNames(),
       ...projectConfigRequiredSecretNames(),
       ...convexConfigEnvNames(),
-      ...setupSurfaceEnvNames(),
     ]);
 
     for (const name of requiredNames) {
@@ -172,18 +162,16 @@ describe("environment manifest", () => {
 
     expect(source).toContain("docs/template/env-manifest.json");
     expect(source).toContain("requiredEnvNamesForProvider");
-    expect(source).toContain('email: "mailersend"');
+    expect(source).toContain('email: "email"');
     expect(source).toContain('llm: "openrouter"');
     expect(source).not.toContain("requiredSecretNamesByProvider");
   });
 
-  it("keeps PostHog and storage env names consistent across surfaces", () => {
-    const setupEnv = setupSurfaceEnvNames();
+  it("keeps PostHog and storage provider env names canonical", () => {
     const providerEnv = providerRequiredEnvNames();
 
-    expect(setupEnv).toContain("POSTHOG_PROJECT_TOKEN");
-    expect(setupEnv).not.toContain("POSTHOG_API_KEY");
-    expect(providerEnv).toEqual(expect.arrayContaining(setupEnv));
+    expect(providerEnv).toContain("POSTHOG_PROJECT_TOKEN");
+    expect(providerEnv).not.toContain("POSTHOG_API_KEY");
     expect(providerEnv).toContain("STORAGE_PUBLIC_BASE_URL");
     expect(providerEnv).toContain("STORAGE_ACCESS_KEY_ID");
     expect(providerEnv).toContain("STORAGE_SECRET_ACCESS_KEY");
@@ -213,5 +201,71 @@ describe("environment manifest", () => {
 
     expect(docs).toContain("env-manifest.json");
     expect(docs).toContain("machine-readable");
+  });
+
+  it("keeps deploy authority trust public and signing authority runtime-only", () => {
+    const endpoint = entries.find(
+      (entry) => entry.name === "PROMOTION_AUTHORITY_ENDPOINT",
+    );
+    const trustedRoot = entries.find(
+      (entry) => entry.name === "TRUSTED_DEPLOY_ROOT_SHA256",
+    );
+    const authorityMode = entries.find(
+      (entry) => entry.name === "PROMOTION_AUTHORITY_MODE",
+    );
+    const authorityPrivateKey = entries.find(
+      (entry) =>
+        entry.name === "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+    );
+    expect(endpoint).toMatchObject({
+      group: "woodpecker",
+      services: expect.arrayContaining(["ci", "deploy"]),
+      visibility: "server-config",
+      requiredFor: expect.arrayContaining(["deploy"]),
+      fakeExampleAllowed: false,
+    });
+    expect(trustedRoot).toMatchObject({
+      group: "woodpecker",
+      services: expect.arrayContaining(["ci", "deploy"]),
+      visibility: "server-config",
+      requiredFor: expect.arrayContaining(["deploy"]),
+      fakeExampleAllowed: false,
+    });
+    expect(authorityMode).toMatchObject({
+      group: "deployment-authority",
+      services: expect.arrayContaining(["convex", "authority-runtime"]),
+      visibility: "server-config",
+      requiredFor: ["authority"],
+      fakeExampleAllowed: false,
+    });
+    expect(authorityPrivateKey).toMatchObject({
+      group: "deployment-authority",
+      services: expect.arrayContaining(["convex", "authority-runtime"]),
+      visibility: "server-secret",
+      requiredFor: ["authority"],
+      fakeExampleAllowed: false,
+    });
+
+    const convexConfig = readText("packages/convex/convex/convex.config.ts");
+    expect(convexConfig).toContain(
+      'PROMOTION_AUTHORITY_MODE: v.optional(v.literal("authority"))',
+    );
+    expect(convexConfig).toContain(
+      "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL: v.optional(v.string())",
+    );
+
+    const runbook = readText("docs/template/operations-runbook.md");
+    const manifestDocs = readText("docs/template/env-manifest.md");
+    for (const docs of [runbook, manifestDocs]) {
+      expect(docs).toContain("PROMOTION_AUTHORITY_MODE");
+      expect(docs).toContain("PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL");
+      expect(docs).toContain("authority");
+    }
+
+    const pipeline = readText(".woodpecker/deploy.yml");
+    expect(pipeline).not.toContain(
+      "PROMOTION_AUTHORITY_PRIVATE_KEY_PKCS8_BASE64URL",
+    );
+    expect(pipeline).not.toContain("PROMOTION_AUTHORITY_MODE");
   });
 });

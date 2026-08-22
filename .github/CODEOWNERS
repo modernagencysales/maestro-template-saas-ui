@@ -1,16 +1,39 @@
-# Default owner.
-* @kimprobably
-
-# Gate files — changing a gate requires explicit owner review.
-/eslint.config.mjs             @kimprobably
-/dependency-cruiser.config.cjs @kimprobably
-/tsconfig.base.json            @kimprobably
-/tsconfig.type-coverage.json   @kimprobably
-/turbo.json                    @kimprobably
-/coverage-baseline.json        @kimprobably
-/stryker.conf.mjs              @kimprobably
-/.gitleaks.toml                @kimprobably
-/.buildkite/                   @kimprobably
-/tooling/quality/              @kimprobably
-/Justfile                      @kimprobably
-/AGENTS.md                     @kimprobably
+# Protected CI requires a current-head approval from a write-enabled owner
+# other than the PR author for trust paths and ordinary product roots.
+/.github/CODEOWNERS          @timkeeeeeen
+/.woodpecker/                @timkeeeeeen
+/tooling/acceptance/         @timkeeeeeen
+/tooling/ci/                 @timkeeeeeen
+/tooling/confect-manifest/   @timkeeeeeen
+/tooling/agent-pack/         @timkeeeeeen
+/packages/template-core/     @timkeeeeeen
+/apps/web/                   @timkeeeeeen
+/apps/cli/                   @timkeeeeeen
+/packages/convex/            @timkeeeeeen
+/examples/saas-application/  @timkeeeeeen
+/package.json                @timkeeeeeen
+/pnpm-lock.yaml              @timkeeeeeen
+/template-instance.json      @timkeeeeeen
+/.github/                     @timkeeeeeen
+/eslint.config.mjs             @timkeeeeeen
+/dependency-cruiser.config.cjs @timkeeeeeen
+/tsconfig.base.json            @timkeeeeeen
+/tsconfig.type-coverage.json   @timkeeeeeen
+/turbo.json                    @timkeeeeeen
+/coverage-baseline.json        @timkeeeeeen
+/stryker.conf.mjs              @timkeeeeeen
+/.gitleaks.toml                @timkeeeeeen
+/.buildkite/                   @timkeeeeeen
+/tooling/quality/              @timkeeeeeen
+/tooling/generators/           @timkeeeeeen
+/AGENTS.md                     @timkeeeeeen
+/docs/template/system-catalog* @timkeeeeeen
+/docs/template/product-topology* @timkeeeeeen
+/docs/template/data-resources.json @timkeeeeeen
+/docs/template/promotion-boundary.md @timkeeeeeen
+/packages/convex/confect/tables/ @timkeeeeeen
+/packages/convex/convex/schema.ts @timkeeeeeen
+/packages/convex/confect/ops/dataResources.generated.ts @timkeeeeeen
+/packages/convex/confect/access/ @timkeeeeeen
+/docs/template/security*       @timkeeeeeen
+/tooling/release/              @timkeeeeeen

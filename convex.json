@@ -1,0 +1,9 @@
+{
+  "$schema": "https://raw.githubusercontent.com/get-convex/convex-backend/main/npm-packages/convex/schemas/convex.schema.json",
+  "functions": "packages/convex/convex",
+  "aiFiles": {
+    "skills": {
+      "agents": ["claude-code", "codex"]
+    }
+  }
+}

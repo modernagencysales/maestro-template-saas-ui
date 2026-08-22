@@ -1,0 +1,228 @@
+{
+  "feature": "phase-1-wp-1.1-durable-graph-v2",
+  "slices": [
+    {
+      "id": 1,
+      "branch": "codex/ap-b-workflow",
+      "intention": "characterize legacy graphs and add the explicit V1 to V2 decoder and migrator",
+      "layers": ["schema", "checks"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/graphNodeSchema.ts",
+          "packages/convex/confect/workflows/graphSchema.ts",
+          "packages/convex/confect/workflows/graphValidation.ts",
+          "packages/convex/test/workflow-graph.test.ts"
+        ],
+        "repairStrategy": "compatibility-wrap",
+        "compatibilityRisks": [
+          "Legacy retry fields change behavior during decode",
+          "Invalid per-kind options survive migration",
+          "V2 graphs are silently downgraded"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "None; this slice introduces the runtime compatibility boundary only.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-graph",
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm check:workflow-semantics"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.1 V1 decoder and V2 graph migration boundary",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-graph",
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm check:workflow-semantics"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Promote the versioned discriminated graph schema and retain V1 only behind an explicit decoder/migrator."
+        }
+      ],
+      "taskRefs": ["WP-1.1"],
+      "rationale": "Migration behavior must be pinned before the application-facing authoring API changes.",
+      "estLines": 260
+    },
+    {
+      "id": 2,
+      "branch": "codex/ap-b-workflow",
+      "intention": "add typed V2 workflow constructors with principal and policy posture foundations",
+      "layers": ["schema", "checks", "domain", "workflows"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "packages/convex/confect/workflows/graphValidation.ts",
+          "packages/convex/confect/workflows/_kit/graphRunner.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Invalid option combinations remain constructible",
+          "Caller-controlled identity reaches durable runners",
+          "Restricted semantic rules are generated as supported"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Generated workflows must declare a versioned policy posture instead of an empty placeholder.",
+        "evalOrGateCoverage": [
+          "pnpm --dir packages/convex test workflow-conformance",
+          "pnpm check:workflow-semantics",
+          "pnpm check:workflow-graph-boundary"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.1 typed builder and defineMaestroWorkflow boundary",
+          "followUpGates": [
+            "pnpm --dir packages/convex test workflow-conformance",
+            "pnpm check:workflow-semantics",
+            "pnpm check:workflow-graph-boundary"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Expose only discriminated constructors and one validated wrapper around the raw component definition."
+        }
+      ],
+      "taskRefs": ["WP-1.1"],
+      "rationale": "The type-safe application boundary depends on the migration contract but precedes generated projection.",
+      "estLines": 290
+    },
+    {
+      "id": 3,
+      "branch": "codex/ap-b-workflow",
+      "intention": "make Confect own the single generated plain workflow runner source path",
+      "layers": ["checks", "workflows"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/generators/src/workflow-output-smoke.ts",
+          "packages/convex/confect/_generated/spec.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Confect synchronization deletes workflow runners",
+          "Two generators claim the same runner",
+          "Generated runner refs drift from registered functions"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "None; generation ownership changes without changing application behavior.",
+        "evalOrGateCoverage": [
+          "pnpm confect:codegen",
+          "pnpm confect:manifest",
+          "pnpm template:workflow-output-smoke"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.1 Confect-owned plain runner registration and source projection",
+          "followUpGates": [
+            "pnpm confect:codegen",
+            "pnpm confect:manifest",
+            "pnpm template:workflow-output-smoke"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Register the component-required plain Convex runner through the Confect spec and implementation source tree."
+        }
+      ],
+      "taskRefs": ["WP-1.1"],
+      "rationale": "Runner ownership must be stable before changing workflow generator output.",
+      "estLines": 240
+    },
+    {
+      "id": 4,
+      "branch": "codex/ap-b-workflow",
+      "intention": "project the V2 contract through workflow generation with concrete validators and return types",
+      "layers": ["checks", "workflows"],
+      "contractRiskIds": [
+        "ambient-time-inline",
+        "bare-error-not-typed",
+        "schema-runtime-validator-export",
+        "policy-data-hardcoded",
+        "duplicated-closed-union",
+        "workspace-guard",
+        "invalid-test-fixture-or-cast",
+        "branching-logic-needs-boundary-tests",
+        "unjustified-cap-or-threshold",
+        "prompt-model-policy-boundary",
+        "type-escape-or-cast",
+        "existing-module-repair-checklist"
+      ],
+      "existingModuleRepairChecklist": {
+        "existingTargetModules": [
+          "tooling/generators/src/index.ts",
+          "tooling/generators/src/index.test.ts",
+          "tooling/generators/src/workflow-output-smoke.ts"
+        ],
+        "repairStrategy": "extend",
+        "compatibilityRisks": [
+          "Generated runners retain v.any return validators",
+          "Generated policy posture remains untyped",
+          "Full workflow to Confect to Convex generation loses the runner"
+        ],
+        "policyDataOwnership": "packages/template-core/src/workflow-semantics/contract.ts",
+        "promptVersioningImpact": "Workflow scaffolds require explicit versioned policy posture and validated public/internal projections.",
+        "evalOrGateCoverage": [
+          "pnpm --dir tooling/generators test workflow",
+          "pnpm template:workflow-output-smoke",
+          "pnpm check:workflow-semantics",
+          "pnpm check:workflow-graph-boundary"
+        ]
+      },
+      "workPackages": [
+        {
+          "kind": "template-gap",
+          "target": "WP-1.1 V2 workflow generator projection",
+          "followUpGates": [
+            "pnpm --dir tooling/generators test workflow",
+            "pnpm template:workflow-output-smoke",
+            "pnpm check:workflow-semantics",
+            "pnpm check:workflow-graph-boundary"
+          ],
+          "templateBacklogRef": "AP-002 Convex workflow semantic compatibility",
+          "templateResolutionPath": "Generate V2 graphs and Confect-owned runners with concrete argument and result validators and explicit handler return types."
+        }
+      ],
+      "taskRefs": ["WP-1.1"],
+      "rationale": "Generator projection closes WP-1.1 after runtime and codegen ownership are established.",
+      "estLines": 290
+    }
+  ],
+  "allTaskRefs": ["WP-1.1"]
+}

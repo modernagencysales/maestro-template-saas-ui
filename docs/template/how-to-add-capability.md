@@ -3,22 +3,26 @@
 Dry-run a generated capability:
 
 ```bash
-pnpm template:add-capability -- --name summarizeSource
+pnpm template:systems -- --query sources
+pnpm template:add-capability -- --name summarizeSource --system knowledge-brain --disposition extend
 ```
 
 Write the generated files:
 
 ```bash
-pnpm template:add-capability -- --name summarizeSource --description "Summarizes an approved source set." --exposure headless --write
+pnpm template:add-capability -- --name summarizeSource --system knowledge-brain --disposition extend --description "Summarizes an approved source set." --exposure headless --write
 ```
 
 Promote reviewed files into production-target Confect paths:
 
 ```bash
-pnpm template:promote-capability -- --name summarizeSource --description "Summarizes an approved source set." --write
+pnpm template:promote-capability -- --name summarizeSource --system knowledge-brain --disposition extend --description "Summarizes an approved source set." --write
 ```
 
 ## Files Created
+
+The canonical system ID is validated before files are emitted and recorded in
+headless metadata, generated docs, and generator provenance.
 
 - Confect-oriented capability files under
   `packages/convex/confect/capabilities/<name>.spec.ts`,

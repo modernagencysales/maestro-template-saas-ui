@@ -3,5 +3,5 @@ export function hasMode(name: string, argv = process.argv): boolean {
 }
 
 export function isCi(env = process.env): boolean {
-  return env.CI === "true" || env.BUILDKITE === "true";
+  return env.CI === "true";
 }

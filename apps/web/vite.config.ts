@@ -1,52 +1,36 @@
-import react from "@vitejs/plugin-react";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
-import { fileURLToPath } from "node:url";
+import react from "@vitejs/plugin-react";
+import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
+import { fileURLToPath, URL } from "node:url";
 
-export default defineConfig({
-  build: {
-    sourcemap: false,
-  },
-  plugins: [
-    tanstackStart({
-      spa: { enabled: true },
-      router: {
-        routesDirectory: "./routes",
-        generatedRouteTree: "./routeTree.gen.ts",
-      },
-    }),
-    react(),
-  ],
+export default defineConfig(({ mode }) => ({
+  build: { sourcemap: false },
+  esbuild: { drop: ["console"] },
   resolve: {
+    tsconfigPaths: true,
     alias: {
-      "@maestro-template/template-core/generated/confectManifest":
-        fileURLToPath(
-          new URL(
-            "../../packages/template-core/src/generated/confectManifest.ts",
-            import.meta.url,
-          ),
-        ),
-      "@maestro-template/ui": fileURLToPath(
-        new URL("../../packages/ui/src/index.tsx", import.meta.url),
-      ),
       "@maestro-template/convex/refs": fileURLToPath(
         new URL("../../packages/convex/src/refs.ts", import.meta.url),
       ),
-      "@maestro-template/template-core": fileURLToPath(
-        new URL("../../packages/template-core/src/index.ts", import.meta.url),
-      ),
-      "@maestro-template/notifications": fileURLToPath(
-        new URL("../../packages/notifications/src/index.ts", import.meta.url),
-      ),
-      "@maestro-template/workflow-ui/workflowCanvasState": fileURLToPath(
-        new URL(
-          "../../packages/workflow-ui/src/workflowCanvasState.ts",
-          import.meta.url,
-        ),
-      ),
-      "@maestro-template/workflow-ui": fileURLToPath(
-        new URL("../../packages/workflow-ui/src/index.tsx", import.meta.url),
-      ),
     },
   },
-});
+  plugins: [
+    tanstackStart({
+      router: {
+        enableRouteGeneration:
+          mode !== "test" &&
+          process.env.MAESTRO_DISABLE_ROUTE_GENERATION !== "1",
+      },
+      spa: {
+        enabled: true,
+      },
+    }),
+    react(),
+    nitro(),
+  ],
+  server: {
+    port: 3000,
+    allowedHosts: process.env.NODE_ENV === "development" ? true : undefined,
+  },
+}));

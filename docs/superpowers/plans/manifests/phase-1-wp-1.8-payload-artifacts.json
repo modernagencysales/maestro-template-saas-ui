@@ -1,0 +1,68 @@
+{
+  "workPackage": "WP-1.8",
+  "classification": "pattern-instance",
+  "system": "workflow-runtime",
+  "disposition": "extend",
+  "base": "48ee24473560ea8209698f505fb560becb9ffbce",
+  "slices": [
+    {
+      "name": "payload-budget-authority",
+      "commit": "54a90e8",
+      "owns": [
+        "confect/workflows/_kit/payloadBudget.ts",
+        "test/workflow-payload-budget.test.ts",
+        "docs/template/convex-compatibility.json"
+      ],
+      "acceptance": [
+        "Convex-size measurement",
+        "pinned upstream ceilings",
+        "smaller Maestro reservations",
+        "typed redacted diagnostics"
+      ]
+    },
+    {
+      "name": "tenant-safe-artifact-resource",
+      "commit": "612a0df",
+      "owns": [
+        "confect/tables/workflowArtifacts.ts",
+        "confect/workflows/_kit/workflowArtifacts.ts",
+        "confect/workflows/artifacts.spec.ts",
+        "confect/workflows/artifacts.impl.ts"
+      ],
+      "acceptance": [
+        "immutable content address",
+        "tenant/run/version/generation ownership",
+        "sensitivity and measured size",
+        "retention/reference-safe deletion",
+        "tenant-safe retrieval"
+      ]
+    },
+    {
+      "name": "generated-runtime-boundaries",
+      "commit": "packet-head",
+      "owns": [
+        "confect/workflows/_kit/workflowCapabilityBoundary.ts",
+        "confect/workflows/_kit/graphRunnerExecution.ts",
+        "confect/workflows/_kit/graphRunnerNodes.ts",
+        "confect/workflows/_kit/graphRunnerV2.ts",
+        "confect/workflows/_kit/observedStagePayload.ts",
+        "confect/workflows/eventInstances.impl.ts",
+        "tooling/generators/src/index.ts"
+      ],
+      "acceptance": [
+        "pre-dispatch and post-await enforcement",
+        "artifact references across durable boundaries",
+        "redacted provider and event failures",
+        "receipt-only stage persistence",
+        "bounded completion and product projections",
+        "generated artifact and capability boundary refs"
+      ]
+    }
+  ],
+  "excluded": [
+    "WP-1.9 observability",
+    "root gate registry wiring",
+    "package scripts",
+    "publication changes"
+  ]
+}

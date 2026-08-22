@@ -9,7 +9,8 @@ export default Table.make(() =>
     eventType: Schema.String,
     signatureTimestamp: Schema.String,
     dedupeKey: Schema.String,
-    status: Schema.Literal("processed", "duplicate", "failed"),
+    status: Schema.Literals(["processed", "duplicate", "failed"]),
+    attributionPending: Schema.optional(Schema.Boolean),
     createdAt: Schema.Number,
   }),
 )

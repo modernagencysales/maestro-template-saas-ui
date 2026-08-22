@@ -4,11 +4,11 @@ import * as Schema from "effect/Schema";
 export default Table.make(() =>
   Schema.Struct({
     policyKey: Schema.String,
-    kind: Schema.Literal("spend.limits", "agent.config", "prompt.override"),
-    scope: Schema.Literal("system", "workspace"),
+    kind: Schema.Literals(["spend.limits", "agent.config", "prompt.override"]),
+    scope: Schema.Literals(["system", "workspace"]),
     workspaceId: Schema.optional(Schema.String),
     version: Schema.Number,
-    status: Schema.Literal("draft", "active", "retired"),
+    status: Schema.Literals(["draft", "active", "retired"]),
     dataJson: Schema.String,
     evalRequired: Schema.Boolean,
     activatedByUserId: Schema.optional(Schema.String),

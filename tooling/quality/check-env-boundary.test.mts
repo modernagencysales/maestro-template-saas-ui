@@ -86,8 +86,26 @@ describe("check:env-boundary", () => {
       "apps/web/src/env.ts": `
         export const env = import.meta.env;
       `,
+      "apps/web/vite.config.ts": `
+        export const contractsApiKey = process.env.MAESTRO_API_KEY;
+      `,
+      "apps/web/src/components/default-error-page.tsx": `
+        export const isDev = import.meta.env.DEV;
+      `,
+      "apps/web/src/features/common/util/get-base-url.ts": `
+        export const baseUrl = process.env.BASE_URL;
+      `,
+      "packages/convex/convex/auth.config.ts": `
+        export const applicationId = process.env.WORKOS_CLIENT_ID;
+      `,
       "packages/convex/confect/shared/env.ts": `
         export const runtimeMode = process.env.TEMPLATE_RUNTIME_MODE;
+      `,
+      "packages/convex/confect/email/env.ts": `
+        export const webhookUsername = process.env.POSTMARK_WEBHOOK_USERNAME;
+      `,
+      "packages/i18n/src/provider.tsx": `
+        export const isDev = process.env.NODE_ENV === "development";
       `,
     });
 
@@ -98,6 +116,16 @@ describe("check:env-boundary", () => {
     const result = await evaluateFixture({
       "packages/integrations/src/env.test.ts": `
         process.env.TEST_VALUE = "fixture";
+      `,
+    });
+
+    expect(result).toEqual({ ok: true, findings: [] });
+  });
+
+  it("ignores generated build output", async () => {
+    const result = await evaluateFixture({
+      "apps/web/.output/public/assets/index.js": `
+        export const value = Deno.env.get("GENERATED_ONLY");
       `,
     });
 

@@ -172,13 +172,13 @@ const exactlyOneOrDie = <A>(
 
 const usagePayloadMismatch = (
   existingUsage: {
-    readonly provider: "openrouter" | "dodo" | "mailersend" | "storage";
+    readonly provider: "openrouter" | "dodo" | "email" | "storage";
     readonly units: number;
     readonly costCredits: number;
     readonly entitlementKey: string;
   },
   input: {
-    readonly provider: "openrouter" | "dodo" | "mailersend" | "storage";
+    readonly provider: "openrouter" | "dodo" | "email" | "storage";
     readonly units: number;
     readonly costCredits: number;
     readonly entitlementKey: string;
@@ -199,7 +199,7 @@ const usageReturn = (
     readonly _id: string;
     readonly workspaceId: string;
     readonly idempotencyKey: string;
-    readonly provider: "openrouter" | "dodo" | "mailersend" | "storage";
+    readonly provider: "openrouter" | "dodo" | "email" | "storage";
     readonly units: number;
     readonly costCredits: number;
     readonly entitlementKey: string;

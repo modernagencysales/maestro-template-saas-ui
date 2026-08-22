@@ -7,20 +7,20 @@ import {
   WorkspaceNotFound,
 } from "../../errors";
 
-export const WorkspaceReadErrors = Schema.Union(
+export const WorkspaceReadErrors = Schema.Union([
   Unauthorized,
   Forbidden,
   MemberNotInWorkspace,
   WorkspaceNotFound,
-);
+]);
 
-export const WorkspaceWriteErrors = Schema.Union(
+export const WorkspaceWriteErrors = Schema.Union([
   Unauthorized,
   Forbidden,
   MemberNotInWorkspace,
   WorkspaceNotFound,
   ValidationFailed,
-);
+]);
 
 export const workspaceErrorTags = [
   "Unauthorized",

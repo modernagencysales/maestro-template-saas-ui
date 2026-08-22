@@ -1,15 +1,247 @@
-import { describe, expect, it } from "vitest";
-import { decodeCliRuntimeConfig, runCli } from "./index";
+import { describe, expect, it, vi } from "vitest";
+import { readFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { runReviewedGenerator } from "@maestro-template/generators";
+import {
+  decodeCliRuntimeConfig,
+  runCli,
+  runCliAsync,
+  runRemoteCapability,
+} from "./index";
+
+const repoRoot = fileURLToPath(new URL("../../../", import.meta.url));
 
 describe("maestro-template CLI", () => {
+  it("accepts the canonical pnpm argument separator", () => {
+    const result = runCli(["--", "describe"]);
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ valid: true });
+  });
+
+  it("prints the repository modes and supported customer loop", async () => {
+    const help = runCli(["help"]).stdout;
+    expect(help).toContain("factory checkout: contains releases/");
+    expect(help).toContain("generated app: contains template-instance.json");
+    expect(help).toContain(
+      "preflight -> inspect -> preview -> write -> verify -> run",
+    );
+    expect(help).toContain("maestro recipes list|show <recipe-id>");
+    expect(help).toContain("maestro add <outcome-or-recipe>");
+    expect(help).toContain("maestro support-bundle");
+    expect(help).not.toContain("plan-check");
+    expect(help).toContain("maestro mcp\n");
+    expect(help).toContain("maestro mcp configure --host <claude-code|codex>");
+    await expect(runCliAsync(["scaffold", "--help"])).resolves.toMatchObject({
+      exitCode: 0,
+      stdout: expect.stringContaining(
+        "maestro scaffold --generator <id> --args <json-object>",
+      ),
+    });
+  });
+
+  it.each([
+    ["workflow", "maestro-template workflow run"],
+    ["operations", "maestro-template operations list"],
+    ["api", "maestro-template api catalog"],
+  ])("prints zero-exit help for %s", (command, usage) => {
+    for (const flag of ["--help", "-h"]) {
+      expect(runCli([command, flag])).toMatchObject({
+        exitCode: 0,
+        stdout: expect.stringContaining(usage),
+        stderr: "",
+      });
+    }
+  });
+
+  it("keeps CLI scaffold preview bytes identical to the direct generator", async () => {
+    const args = {
+      name: "cliParity",
+      system: "knowledge-brain",
+      disposition: "extend",
+      exposure: "headless",
+    };
+    const direct = runReviewedGenerator({
+      generatorId: "add-capability",
+      args,
+      write: false,
+      cwd: repoRoot,
+    });
+    if (!direct.ok) throw new Error(direct.message);
+    const cli = await runCliAsync(
+      [
+        "scaffold",
+        "--generator",
+        "add-capability",
+        "--args",
+        JSON.stringify(args),
+        "--json",
+      ],
+      undefined,
+      repoRoot,
+    );
+    expect(cli.exitCode).toBe(0);
+    expect(JSON.parse(cli.stdout).data.output.files).toEqual(
+      direct.output.files,
+    );
+  });
+
+  it("preserves legacy commands through the async factory-first entrypoint", async () => {
+    const result = await runCliAsync(["describe"]);
+    expect(result.exitCode).toBe(0);
+    expect(JSON.parse(result.stdout)).toMatchObject({ valid: true });
+  });
+
+  it("runs capability requests through the configured app API", async () => {
+    let observedUrl = "";
+    let observedInit: RequestInit | undefined;
+    const result = await runRemoteCapability(
+      [
+        "capability",
+        "run",
+        "records.list",
+        "--workspace",
+        "template-demo",
+        "--input",
+        "{}",
+        "--idempotency-key",
+        "contracts-list-1",
+      ],
+      {
+        MAESTRO_API_BASE_URL: "http://127.0.0.1:3211",
+        MAESTRO_API_KEY: "mtk_live_contracts",
+      },
+      async (input, init) => {
+        observedUrl = String(input);
+        observedInit = init;
+        return new Response(
+          JSON.stringify({
+            ok: true,
+            operationId: "records.list",
+            result: [],
+          }),
+          { status: 200, headers: { "content-type": "application/json" } },
+        );
+      },
+    );
+
+    expect(result).toEqual({
+      exitCode: 0,
+      stdout:
+        '{\n  "ok": true,\n  "operationId": "records.list",\n  "result": []\n}\n',
+      stderr: "",
+    });
+    expect(observedUrl).toBe("http://127.0.0.1:3211/api/records.list");
+    expect(observedInit).toMatchObject({
+      method: "POST",
+      headers: {
+        authorization: "Bearer mtk_live_contracts",
+        "content-type": "application/json",
+      },
+    });
+    expect(JSON.parse(String(observedInit?.body))).toEqual({
+      workspaceSlug: "template-demo",
+      input: {},
+      idempotencyKey: "contracts-list-1",
+    });
+  });
+
+  it("accepts HTTPS capability endpoints", async () => {
+    let observedUrl = "";
+    const result = await runRemoteCapability(
+      [
+        "capability",
+        "run",
+        "records.list",
+        "--workspace",
+        "template-demo",
+        "--input",
+        "{}",
+        "--idempotency-key",
+        "contracts-list-https",
+      ],
+      {
+        MAESTRO_API_BASE_URL: "https://api.example.test/base",
+        MAESTRO_API_KEY: "contracts-test-key",
+      },
+      async (input) => {
+        observedUrl = String(input);
+        return new Response(JSON.stringify({ ok: true }), { status: 200 });
+      },
+    );
+
+    expect(result?.exitCode).toBe(0);
+    expect(observedUrl).toBe("https://api.example.test/base/api/records.list");
+  });
+
+  it.each(["http://api.example.test", "http://127.example.test"])(
+    "rejects non-loopback HTTP before forwarding the API key: %s",
+    async (baseUrl) => {
+      const request = vi.fn();
+      const result = await runRemoteCapability(
+        [
+          "capability",
+          "run",
+          "records.list",
+          "--workspace",
+          "template-demo",
+          "--input",
+          "{}",
+          "--idempotency-key",
+          "contracts-list-unsafe",
+        ],
+        {
+          MAESTRO_API_BASE_URL: baseUrl,
+          MAESTRO_API_KEY: "contracts-test-key",
+        },
+        request,
+      );
+
+      expect(result).toMatchObject({
+        exitCode: 1,
+        stderr: expect.stringContaining("HTTPS or loopback HTTP"),
+      });
+      expect(request).not.toHaveBeenCalled();
+    },
+  );
+
+  it("does not expose a Vite API proxy that can attach the CLI API key", async () => {
+    type ViteConfig = { server?: { proxy?: unknown } };
+    const config = await vi.importActual<{
+      default:
+        | ViteConfig
+        | ((env: {
+            command: "serve";
+            mode: string;
+            isSsrBuild: boolean;
+            isPreview: boolean;
+          }) => ViteConfig | Promise<ViteConfig>);
+    }>("../../web/vite.config");
+    const resolvedConfig = await (typeof config.default === "function"
+      ? config.default({
+          command: "serve",
+          mode: "test",
+          isSsrBuild: false,
+          isPreview: false,
+        })
+      : config.default);
+
+    expect(resolvedConfig.server).not.toHaveProperty("proxy");
+  });
+
+  it("lets TanStack discover generated product routes during builds", () => {
+    expect(
+      readFileSync(`${repoRoot}/apps/web/vite.config.ts`, "utf8"),
+    ).not.toContain("enableRouteGeneration: false");
+  });
+
   it("describes the shared workflow template", () => {
     const result = runCli(["describe"]);
 
     expect(result.exitCode).toBe(0);
     expect(JSON.parse(result.stdout)).toMatchObject({
       valid: true,
-      capabilityCount: 6,
-      headlessOperationCount: 12,
+      capabilityCount: 8,
+      headlessOperationCount: 20,
     });
   });
 
@@ -18,13 +250,19 @@ describe("maestro-template CLI", () => {
     const operations = JSON.parse(list.stdout);
     const get = runCli(["operations", "get", "api:brain.pages.createMarkdown"]);
 
-    expect(operations).toHaveLength(12);
+    expect(operations).toHaveLength(20);
     expect(
       operations.map((operation: { id: string }) => operation.id),
     ).toContain("api:brain.pages.createMarkdown");
     expect(
       operations.map((operation: { id: string }) => operation.id),
     ).toContain("web:ops.dataLifecycle.createDsarRequest");
+    expect(
+      operations.map((operation: { id: string }) => operation.id),
+    ).toContain("cli:ops.email.previewBroadcast");
+    expect(
+      operations.map((operation: { id: string }) => operation.id),
+    ).toContain("mcp:ops.email.dispatchBroadcast");
     expect(
       operations.map((operation: { id: string }) => operation.id),
     ).not.toContain("api:ops.dataLifecycle.createDsarRequest");
@@ -98,6 +336,16 @@ describe("maestro-template CLI", () => {
     );
     expect(JSON.parse(runCli(["mcp", "tools"]).stdout)).toContainEqual(
       expect.objectContaining({
+        name: "template.ops.email.dispatchBroadcast",
+        inputSchema: expect.objectContaining({
+          properties: expect.objectContaining({
+            confirmation: { type: "string", enum: ["SEND"] },
+          }),
+        }),
+      }),
+    );
+    expect(JSON.parse(runCli(["mcp", "tools"]).stdout)).toContainEqual(
+      expect.objectContaining({
         name: "template.workflow.run",
         inputSchema: expect.objectContaining({
           type: "object",
@@ -107,6 +355,9 @@ describe("maestro-template CLI", () => {
     );
     expect(JSON.parse(runCli(["mcp", "tools"]).stdout)).not.toContainEqual(
       expect.objectContaining({ name: "template.resolveSourceSet" }),
+    );
+    expect(JSON.parse(runCli(["mcp", "tools"]).stdout)).not.toContainEqual(
+      expect.objectContaining({ name: expect.stringContaining("scaffold") }),
     );
   });
 

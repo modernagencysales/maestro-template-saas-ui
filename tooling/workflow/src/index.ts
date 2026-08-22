@@ -24,11 +24,18 @@ const hasSurface = (
 
 export const generatedCliOperationRefs: Readonly<Record<string, string>> = {
   "brain.pages.createMarkdown": "brain.pages.createMarkdown",
+  "ops.email.previewBroadcast": "ops.email.previewBroadcast",
+  "ops.email.dispatchBroadcast": "ops.email.dispatchBroadcast",
 };
 
 export const generatedMcpOperationRefs: Readonly<Record<string, string>> = {
   "brain.pages.createMarkdown": "template.brain.pages.createMarkdown",
+  "ops.email.previewBroadcast": "template.ops.email.previewBroadcast",
+  "ops.email.dispatchBroadcast": "template.ops.email.dispatchBroadcast",
 };
+
+export const mcpToolNameFor = (operationId: string): string =>
+  generatedMcpOperationRefs[operationId] ?? `template.${operationId}`;
 
 export type HeadlessOperation = {
   readonly id: string;
@@ -367,9 +374,7 @@ export const buildGeneratedMcpTools = (
   return confectManifest.functions
     .filter((entry) => hasSurface(entry, "mcp"))
     .map((entry) => ({
-      name:
-        generatedMcpOperationRefs[entry.operationId] ??
-        `template.${entry.operationId}`,
+      name: mcpToolNameFor(entry.operationId),
       description: `Invoke ${entry.operationId} through the generated Confect contract manifest.`,
       inputSchema: mcpInputSchemaFor(entry.argsSchemaName),
       typedErrors: entry.typedErrors,
@@ -441,7 +446,7 @@ export const callMcpTool = (
   const operation = confectManifest.functions.find(
     (candidate) =>
       hasSurface(candidate, "mcp") &&
-      generatedMcpOperationRefs[candidate.operationId] === toolName,
+      mcpToolNameFor(candidate.operationId) === toolName,
   );
 
   if (!operation) {

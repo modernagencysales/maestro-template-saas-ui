@@ -26,10 +26,8 @@ Use fake providers until a task explicitly asks for live provider setup.
 
 ## PR Workflow
 
-Use small commits that match the implementation plan tasks. If Graphite is
-enabled in the client fork, stack changes by milestone and keep each stack
-reviewable. If Graphite is not enabled, use normal GitHub PRs and preserve the
-same task-sized commit boundaries.
+Use small commits that match the implementation plan tasks. Publish ordinary
+GitHub branches and PRs while preserving task-sized commit boundaries.
 
 ## Reading CI Failures
 
@@ -41,7 +39,7 @@ same task-sized commit boundaries.
    assuming the provider implementation is wrong.
 4. Check AI gate verdicts last. AI gates explain risks; deterministic failures
    are usually the first fix.
-5. For exact AI gate commands and Buildkite artifact retrieval, use
+5. For exact AI gate commands and Woodpecker log retrieval, use
    [operations-runbook.md](./operations-runbook.md#ci-and-ai-gate-verdicts).
 
 ## Rule Review

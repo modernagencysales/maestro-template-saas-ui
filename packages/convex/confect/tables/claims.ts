@@ -7,7 +7,7 @@ export default Table.make(() =>
     claimId: Schema.String,
     conceptIds: Schema.Array(Schema.String),
     body: Schema.String,
-    status: Schema.Literal("supported", "disputed", "unsupported-draft"),
+    status: Schema.Literals(["supported", "disputed", "unsupported-draft"]),
     citationIds: Schema.Array(Schema.String),
     createdAt: Schema.Number,
     updatedAt: Schema.Number,

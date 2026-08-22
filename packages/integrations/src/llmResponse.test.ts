@@ -1,5 +1,8 @@
+import * as Exit from "effect/Exit";
+import * as Schema from "effect/Schema";
 import { describe, expect, it } from "vitest";
 import {
+  LlmFinishReason,
   LlmReceiptValidationError,
   makeLlmCompletion,
   validateOptionalLlmIdempotencyKey,
@@ -13,6 +16,25 @@ const usage = {
 };
 
 describe("LLM completion receipts", () => {
+  it("decodes every persisted LLM finish reason and rejects unknown values", () => {
+    const decode = Schema.decodeUnknownExit(LlmFinishReason);
+
+    for (const finishReason of [
+      "stop",
+      "length",
+      "tool_call",
+      "content_filter",
+    ]) {
+      const decoded = decode(finishReason);
+      expect(Exit.isSuccess(decoded)).toBe(true);
+      if (Exit.isSuccess(decoded)) {
+        expect(decoded.value).toBe(finishReason);
+      }
+    }
+
+    expect(Exit.isFailure(decode("unknown"))).toBe(true);
+  });
+
   it("preserves valid idempotency keys in fake-safe receipts", () => {
     expect(
       makeLlmCompletion({
