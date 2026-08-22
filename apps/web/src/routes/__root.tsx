@@ -20,7 +20,10 @@ import { Provider } from "../provider.tsx";
 import { loadInitialAuthForConvex } from "#lib/auth/workos-auth-loader";
 import { useAuthFromAuthKit } from "#lib/auth/workos-auth";
 import type { CompatibilityApi } from "#lib/trpc/react";
-import { isFixtureAuthRuntime } from "#lib/auth/route-auth";
+import {
+  fixtureClientAuth,
+  isFixtureAuthRuntime,
+} from "#lib/auth/route-auth";
 
 export const Route = createRootRouteWithContext<{
   queryClient: QueryClient;
@@ -30,7 +33,7 @@ export const Route = createRootRouteWithContext<{
 }>()({
   beforeLoad: async ({ context }) => ({
     auth: isFixtureAuthRuntime()
-      ? { user: { id: "fixture-runtime" } }
+      ? fixtureClientAuth()
       : await loadInitialAuthForConvex(context.convexClient),
   }),
   loader: ({ context }) => ({ auth: context.auth }),

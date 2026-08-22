@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
+  fixtureClientAuth,
   safeReturnPath,
   loadRouteAuth,
   requireAuthenticatedRoute,
@@ -87,4 +88,7 @@ describe("protected route auth", () => {
       }),
     ).toThrow("config failure");
   });
+});
+it("does not invent a WorkOS session for fixture providers", () => {
+  expect(fixtureClientAuth()).toEqual({ user: null });
 });

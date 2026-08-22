@@ -783,14 +783,14 @@
       "source": "apps/web/src/router.tsx",
       "destination": "apps/web/src/router.tsx",
       "sourceSha256": "766662f448c564c65a9fce2ac3de05141e4bb2afa2e2ae0d7259deacc8c42785",
-      "sha256": "f66c4b32415cc0a5be3e0291a3b84fccbba45476a3ff0a144c101442d0b11db6",
+      "sha256": "d34a925a4e543da8fb2b7ba30678b069fb79ca1ed44b69c01a1805107209eba3",
       "adapted": true
     },
     {
       "source": "apps/web/src/routes/__root.tsx",
       "destination": "apps/web/src/routes/__root.tsx",
       "sourceSha256": "875a4f123b593820dc5d561bd714ab09fd2407c0054f2008dcb4dbabded6c701",
-      "sha256": "149781ae8509014c93b348345756f7a3a45b10f5293ea7d86b0507375754c2d4",
+      "sha256": "1fc4cbf4d14ec996ca708b843fa8bcacacc179f50aa582749697c5a91b7b94c8",
       "adapted": true
     },
     {

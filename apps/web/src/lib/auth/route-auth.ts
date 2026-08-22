@@ -9,6 +9,10 @@ export { isFixtureAuthRuntime, isIsolatedContractsRuntime, safeReturnPath };
 
 type RouteAuth = { readonly user: unknown; readonly accessToken?: string };
 
+export const fixtureClientAuth = () => ({
+  user: null,
+});
+
 export function loadRouteAuth(
   getAuth: () => RouteAuth = () => getAuthKitContext().auth() as RouteAuth,
 ): RouteAuth {
