@@ -26,6 +26,60 @@ const createRecordRef = getFunctionReference(
   templateConfectRefs.public.records.create,
 );
 
+type LocalRecord = Readonly<{
+  _id: unknown;
+  workspaceId: unknown;
+  title: string;
+  detail: string;
+  createdAt: number;
+  updatedAt: number;
+}>;
+
+const errorMessage = (error: unknown, fallback: string): string =>
+  error instanceof Error ? error.message : fallback;
+
+const listState = (records: readonly SaaSRecord[]): RecordsState =>
+  records.length === 0 ? { status: "empty" } : { status: "list", records };
+
+const toSaaSRecord = (record: LocalRecord): SaaSRecord => ({
+  id: String(record._id),
+  workspaceId: String(record.workspaceId),
+  title: record.title,
+  detail: record.detail,
+  createdAt: record.createdAt,
+  updatedAt: record.updatedAt,
+});
+
+const localRecordsState = ({
+  creating,
+  data,
+  failure,
+  queryError,
+  queryFailed,
+  selected,
+}: Readonly<{
+  creating: boolean;
+  data: readonly LocalRecord[] | undefined;
+  failure: string | null;
+  queryError: unknown;
+  queryFailed: boolean;
+  selected: SaaSRecord | null;
+}>): RecordsState => {
+  let state: RecordsState = { status: "loading" };
+  if (failure !== null) state = { status: "error", message: failure };
+  else if (creating) state = { status: "create" };
+  else if (selected !== null) state = { status: "detail", record: selected };
+  else if (queryFailed) {
+    state = {
+      status: "error",
+      message: errorMessage(queryError, "Records unavailable."),
+    };
+  } else if (data !== undefined) {
+    state = listState(data.map(toSaaSRecord));
+  }
+  return state;
+};
+
 export function RecordsSurface({
   fakeAdapter = sharedFakeAdapter,
 }: {
@@ -50,17 +104,12 @@ function FakeRecordsSurface({ adapter }: { readonly adapter: RecordAdapter }) {
     void adapter.list(workspaceId).then(
       (loaded) => {
         setRecords(loaded);
-        setState(
-          loaded.length === 0
-            ? { status: "empty" }
-            : { status: "list", records: loaded },
-        );
+        setState(listState(loaded));
       },
       (error: unknown) =>
         setState({
           status: "error",
-          message:
-            error instanceof Error ? error.message : "Records unavailable.",
+          message: errorMessage(error, "Records unavailable."),
         }),
     );
   }, [adapter, workspaceId]);
@@ -77,8 +126,7 @@ function FakeRecordsSurface({ adapter }: { readonly adapter: RecordAdapter }) {
     } catch (error) {
       setState({
         status: "error",
-        message:
-          error instanceof Error ? error.message : "Record creation failed.",
+        message: errorMessage(error, "Record creation failed."),
       });
     }
   };
@@ -88,13 +136,7 @@ function FakeRecordsSurface({ adapter }: { readonly adapter: RecordAdapter }) {
       onCreate={create}
       onOpen={(record) => setState({ status: "detail", record })}
       onShowCreate={() => setState({ status: "create" })}
-      onShowList={() =>
-        setState(
-          records.length === 0
-            ? { status: "empty" }
-            : { status: "list", records },
-        )
-      }
+      onShowList={() => setState(listState(records))}
       state={state}
     />
   );
@@ -113,50 +155,25 @@ function LocalRecordsSurface() {
   const [selected, setSelected] = useState<SaaSRecord | null>(null);
   const [creating, setCreating] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
-  const state = useMemo<RecordsState>(() => {
-    if (failure !== null) return { status: "error", message: failure };
-    if (creating) return { status: "create" };
-    if (selected !== null) return { status: "detail", record: selected };
-    if (listState.isError) {
-      return {
-        status: "error",
-        message:
-          listState.error instanceof Error
-            ? listState.error.message
-            : "Records unavailable.",
-      };
-    }
-    if (listState.data !== undefined) {
-      const records = listState.data as readonly {
-        readonly _id: unknown;
-        readonly workspaceId: unknown;
-        readonly title: string;
-        readonly detail: string;
-        readonly createdAt: number;
-        readonly updatedAt: number;
-      }[];
-      if (records.length === 0) return { status: "empty" };
-      return {
-        status: "list",
-        records: records.map((record): SaaSRecord => ({
-          id: String(record._id),
-          workspaceId: String(record.workspaceId),
-          title: record.title,
-          detail: record.detail,
-          createdAt: record.createdAt,
-          updatedAt: record.updatedAt,
-        })),
-      };
-    }
-    return { status: "loading" };
-  }, [
-    creating,
-    failure,
-    listState.data,
-    listState.error,
-    listState.isError,
-    selected,
-  ]);
+  const state = useMemo<RecordsState>(
+    () =>
+      localRecordsState({
+        creating,
+        data: listState.data as readonly LocalRecord[] | undefined,
+        failure,
+        queryError: listState.error,
+        queryFailed: listState.isError,
+        selected,
+      }),
+    [
+      creating,
+      failure,
+      listState.data,
+      listState.error,
+      listState.isError,
+      selected,
+    ],
+  );
 
   const create = async (title: string, detail: string) => {
     if (workspaceId === undefined) return;
@@ -164,9 +181,7 @@ function LocalRecordsSurface() {
       await createRecord({ workspaceId, title, detail });
       setCreating(false);
     } catch (error) {
-      setFailure(
-        error instanceof Error ? error.message : "Record creation failed.",
-      );
+      setFailure(errorMessage(error, "Record creation failed."));
     }
   };
 
