@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
-  "subjectRevision": "c72b87f1b957d1cf118f046f5eb2e000b58208bd",
+  "subjectRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
     "apps/cli/src/factory/candidateComposition.test.ts",
@@ -14,7 +14,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
-    "subjectRevision": "c72b87f1b957d1cf118f046f5eb2e000b58208bd",
+    "subjectRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
     "complete": true,
     "risk": "low",
     "changedPaths": [],
