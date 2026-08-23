@@ -5,14 +5,14 @@ import { cloneElement, isValidElement } from "react";
 
 import {
   type HTMLChakraProps,
+  type RecipeVariantProps,
   chakra,
   useRecipe,
 } from "@chakra-ui/react/styled-system";
 import type { RecipeProps } from "@saas-ui/chakra-preset";
-import {
-  type IconBadgeVariantProps,
-  iconBadgeRecipe,
-} from "@saas-ui/chakra-preset/recipes/icon-badge";
+import { iconBadgeRecipe } from "@saas-ui/chakra-preset/recipes/icon-badge";
+
+type IconBadgeVariantProps = RecipeVariantProps<typeof iconBadgeRecipe>;
 
 const cx = (...classNames: Array<string | undefined>) =>
   classNames.filter(Boolean).join(" ");

@@ -1,4 +1,6 @@
 import { execFileSync } from "node:child_process";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
 
 import { isDirectRun } from "./src/direct-run.mts";
 
@@ -15,6 +17,22 @@ const testedVersions = {
   "@tiptap/core": "3.30.1",
   "@tiptap/pm": "3.30.1",
 } as const;
+
+const generatedPresetTypeImport =
+  /import(?:\s+type)?\s*\{[^}]*\b(?:type\s+)?\w+VariantProps\b[^}]*\}\s*from\s*["']@saas-ui\/chakra-preset\/(?:slot-)?recipes\//u;
+
+export const findGeneratedPresetTypeImports = (
+  files: Readonly<Record<string, string>>,
+): readonly string[] =>
+  Object.entries(files)
+    .flatMap(([path, source]) =>
+      generatedPresetTypeImport.test(source)
+        ? [
+            `${path} imports an unpublished generated VariantProps type from @saas-ui/chakra-preset`,
+          ]
+        : [],
+    )
+    .sort();
 
 export const collectResolvedVersions = (
   roots: readonly DependencyTree[],
@@ -72,10 +90,25 @@ const installedDependencyTree = (root: string): readonly DependencyTree[] => {
   return JSON.parse(output) as readonly DependencyTree[];
 };
 
+const frontendSources = (root: string): Readonly<Record<string, string>> => {
+  const paths = execFileSync(
+    "git",
+    ["ls-files", "apps/web/src", "packages/ui/src"],
+    { cwd: root, encoding: "utf8", stdio: ["ignore", "pipe", "inherit"] },
+  )
+    .split("\n")
+    .filter((path) => /\.[cm]?tsx?$/u.test(path));
+  return Object.fromEntries(
+    paths.map((path) => [path, readFileSync(resolve(root, path), "utf8")]),
+  );
+};
+
 export const checkFrontendDependencyContract = (
   root = process.cwd(),
-): readonly string[] =>
-  assertFrontendDependencyContract(installedDependencyTree(root));
+): readonly string[] => [
+  ...assertFrontendDependencyContract(installedDependencyTree(root)),
+  ...findGeneratedPresetTypeImports(frontendSources(root)),
+];
 
 if (isDirectRun(import.meta.url)) {
   const errors = checkFrontendDependencyContract();

@@ -7,12 +7,20 @@ import {
   type PresenceBaseProps,
   splitPresenceProps,
 } from "@ark-ui/react/presence";
-import { HTMLChakraProps, chakra } from "@chakra-ui/react";
+import {
+  HTMLChakraProps,
+  type RecipeVariantProps,
+  chakra,
+} from "@chakra-ui/react";
 import type { SlotRecipeProps } from "@saas-ui/chakra-preset";
-import type { LoadingOverlayVariantProps } from "@saas-ui/chakra-preset/slot-recipes/loading-overlay";
+import { loadingOverlaySlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/loading-overlay";
 
 import { Spinner } from "../spinner/index";
 import { withContext, withProvider } from "./loading-overlay.context";
+
+type LoadingOverlayVariantProps = RecipeVariantProps<
+  typeof loadingOverlaySlotRecipe
+>;
 
 interface LoadingOverlayProps
   extends

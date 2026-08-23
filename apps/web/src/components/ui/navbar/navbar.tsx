@@ -3,11 +3,16 @@
 import * as React from "react";
 
 import { useLink } from "@/components/lib/use-link/use-link";
-import type { HTMLChakraProps } from "@chakra-ui/react";
-import { chakra } from "@chakra-ui/react";
-import type { NavbarVariantProps } from "@saas-ui/chakra-preset/slot-recipes/navbar";
+import {
+  type HTMLChakraProps,
+  type RecipeVariantProps,
+  chakra,
+} from "@chakra-ui/react";
+import { navbarSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/navbar";
 
 import { withContext, withProvider } from "./navbar.context";
+
+type NavbarVariantProps = RecipeVariantProps<typeof navbarSlotRecipe>;
 
 interface NavbarBehaviorProps {
   parentRef?: React.RefObject<HTMLElement | null>;

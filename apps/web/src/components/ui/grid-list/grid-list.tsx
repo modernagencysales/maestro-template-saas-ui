@@ -2,11 +2,18 @@
 
 import * as React from "react";
 
-import { type HTMLChakraProps, chakra, mergeRefs } from "@chakra-ui/react";
+import {
+  type HTMLChakraProps,
+  type RecipeVariantProps,
+  chakra,
+  mergeRefs,
+} from "@chakra-ui/react";
 import type { SlotRecipeProps } from "@saas-ui/chakra-preset";
-import type { GridListVariantProps } from "@saas-ui/chakra-preset/slot-recipes/grid-list";
+import { gridListSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/grid-list";
 
 import { withContext, withProvider } from "./grid-list.context";
+
+type GridListVariantProps = RecipeVariantProps<typeof gridListSlotRecipe>;
 
 interface GridListContextValue {
   id: string;

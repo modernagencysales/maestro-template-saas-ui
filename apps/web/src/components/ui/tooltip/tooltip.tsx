@@ -4,7 +4,10 @@ import { forwardRef } from "react";
 
 import { Portal } from "@chakra-ui/react/portal";
 import { Tooltip as ChakraTooltip } from "@chakra-ui/react/tooltip";
-import type { TooltipVariantProps } from "@saas-ui/chakra-preset/slot-recipes/tooltip";
+import type { RecipeVariantProps } from "@chakra-ui/react";
+import { tooltipSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/tooltip";
+
+type TooltipVariantProps = RecipeVariantProps<typeof tooltipSlotRecipe>;
 
 type ChakraTooltipRootPropsWithoutPresetVariants = Omit<
   ChakraTooltip.RootProps,

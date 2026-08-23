@@ -6,11 +6,12 @@ import {
   AvatarPropsProvider,
   HTMLChakraProps,
   type ImageProps,
+  type RecipeVariantProps,
   type SlotRecipeProps,
   chakra,
   mergeProps,
 } from "@chakra-ui/react";
-import type { PersonaVariantProps } from "@saas-ui/chakra-preset/slot-recipes/persona";
+import { personaSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/persona";
 
 import { Avatar, type AvatarProps } from "../avatar/avatar";
 import {
@@ -21,6 +22,8 @@ import {
   withContext,
 } from "./persona.context";
 import type { PersonaPresence } from "./presence";
+
+type PersonaVariantProps = RecipeVariantProps<typeof personaSlotRecipe>;
 
 const cx = (...classNames: Array<string | undefined>) =>
   classNames.filter(Boolean).join(" ");

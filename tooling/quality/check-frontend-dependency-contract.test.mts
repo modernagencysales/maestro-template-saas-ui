@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   assertFrontendDependencyContract,
   collectResolvedVersions,
+  findGeneratedPresetTypeImports,
   type DependencyTree,
 } from "./check-frontend-dependency-contract.mts";
 
@@ -13,6 +14,19 @@ const tree = (
 ): DependencyTree => ({ name, version, dependencies });
 
 describe("frontend dependency contract", () => {
+  it("rejects registry wrappers that import unpublished generated recipe types", () => {
+    expect(
+      findGeneratedPresetTypeImports({
+        "valid.tsx": `import { appShellSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/app-shell";`,
+        "invalid.tsx": `import { type AppShellVariantProps, appShellSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/app-shell";`,
+        "also-invalid.tsx": `import type { PageVariantProps } from "@saas-ui/chakra-preset/slot-recipes/page";`,
+      }),
+    ).toEqual([
+      "also-invalid.tsx imports an unpublished generated VariantProps type from @saas-ui/chakra-preset",
+      "invalid.tsx imports an unpublished generated VariantProps type from @saas-ui/chakra-preset",
+    ]);
+  });
+
   it("collects every resolved version in the recursive dependency graph", () => {
     const graph = [
       tree("web", "1.0.0", {
