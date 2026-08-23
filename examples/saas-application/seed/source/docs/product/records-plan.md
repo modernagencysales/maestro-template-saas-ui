@@ -20,6 +20,23 @@ workPackages:
       followUpGates:
         - Four tagged Playwright examples are discovered natively.
         - Task 5 runs the examples against a generated customer.
+      frontend:
+        screenCatalogId: starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx
+        sourceReceipt: docs/template/saas-ui-starter-files.json
+        shellId: app-shell
+        allowedAdaptations:
+          - route-binding
+          - data-adapter
+          - mutation-adapter
+          - product-label-icon
+          - compatibility-seam
+        requiredVisualStates:
+          - loading
+          - empty
+          - error
+          - populated
+          - selected
+          - mutation
 proofs:
   - behavior: BHV-REC-001
     behaviorRevision: 1
