@@ -1245,8 +1245,8 @@
       "source": "packages/ui/package.json",
       "destination": "packages/ui/package.json",
       "sourceSha256": "84253fa63cbb92a01f255a2c7077e9379bbde42af7f85724b3f9f59afa34ecf8",
-      "sha256": "84253fa63cbb92a01f255a2c7077e9379bbde42af7f85724b3f9f59afa34ecf8",
-      "adapted": false
+      "sha256": "0db5d4964f7f832f9bece34acb697618fdb35acf484d9764ef3f9c4d2e1ac2da",
+      "adapted": true
     },
     {
       "source": "packages/ui/src/app-loader/app-loader.stories.tsx",
