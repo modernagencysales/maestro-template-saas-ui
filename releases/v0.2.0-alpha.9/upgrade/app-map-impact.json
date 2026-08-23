@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
-  "subjectRevision": "8d270d33596956baa735637d0357846ec6dba3e2",
+  "subjectRevision": "d4bd886ea9efbc0e5f331305d8dbce179a02032f",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
     "tooling/generators/src/blueprints/saasFrontendFoundation.test.ts",
@@ -13,7 +13,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
-    "subjectRevision": "8d270d33596956baa735637d0357846ec6dba3e2",
+    "subjectRevision": "d4bd886ea9efbc0e5f331305d8dbce179a02032f",
     "complete": true,
     "risk": "low",
     "changedPaths": [],
