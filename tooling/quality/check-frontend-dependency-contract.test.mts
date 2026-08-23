@@ -4,6 +4,7 @@ import {
   assertFrontendDependencyContract,
   collectResolvedVersions,
   findGeneratedPresetTypeImports,
+  missingButtonRecipeVariants,
   type DependencyTree,
 } from "./check-frontend-dependency-contract.mts";
 
@@ -14,6 +15,19 @@ const tree = (
 ): DependencyTree => ({ name, version, dependencies });
 
 describe("frontend dependency contract", () => {
+  it("requires Chakra's generated Button type to include the pinned theme variants", () => {
+    expect(
+      missingButtonRecipeVariants(
+        `export interface ButtonVariant { variant?: "solid" | "surface" | undefined }`,
+      ),
+    ).toEqual(["glass", "primary", "secondary", "tertiary"]);
+    expect(
+      missingButtonRecipeVariants(
+        `export interface ButtonVariant { variant?: "solid" | "glass" | "primary" | "secondary" | "tertiary" | undefined }`,
+      ),
+    ).toEqual([]);
+  });
+
   it("rejects registry wrappers that import unpublished generated recipe types", () => {
     expect(
       findGeneratedPresetTypeImports({

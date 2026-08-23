@@ -18,6 +18,18 @@ const testedVersions = {
   "@tiptap/pm": "3.30.1",
 } as const;
 
+const themeButtonVariants = [
+  "glass",
+  "primary",
+  "secondary",
+  "tertiary",
+] as const;
+
+export const missingButtonRecipeVariants = (
+  source: string,
+): readonly string[] =>
+  themeButtonVariants.filter((variant) => !source.includes(`"${variant}"`));
+
 const generatedPresetTypeImport =
   /import(?:\s+type)?\s*\{[^}]*\b(?:type\s+)?\w+VariantProps\b[^}]*\}\s*from\s*["']@saas-ui\/chakra-preset\/(?:slot-)?recipes\//u;
 
@@ -105,10 +117,25 @@ const frontendSources = (root: string): Readonly<Record<string, string>> => {
 
 export const checkFrontendDependencyContract = (
   root = process.cwd(),
-): readonly string[] => [
-  ...assertFrontendDependencyContract(installedDependencyTree(root)),
-  ...findGeneratedPresetTypeImports(frontendSources(root)),
-];
+): readonly string[] => {
+  const buttonTypes = readFileSync(
+    resolve(
+      root,
+      "apps/web/node_modules/@chakra-ui/react/dist/types/styled-system/generated/recipes.gen.d.ts",
+    ),
+    "utf8",
+  );
+  const missingVariants = missingButtonRecipeVariants(buttonTypes);
+  return [
+    ...assertFrontendDependencyContract(installedDependencyTree(root)),
+    ...findGeneratedPresetTypeImports(frontendSources(root)),
+    ...(missingVariants.length > 0
+      ? [
+          `Chakra Button recipe types are missing theme variants: ${missingVariants.join(", ")}`,
+        ]
+      : []),
+  ];
+};
 
 if (isDirectRun(import.meta.url)) {
   const errors = checkFrontendDependencyContract();

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
-  "pnpmLockSha256": "aa6ab24d1ff24057364b62e635c59f3798cbae002dec9f9efea2620b20d00057",
+  "pnpmLockSha256": "276567c664e38f4c5cf11bd4bf395c43b104e9439595fa15e6fa399eed36032a",
   "typescriptVersion": "5.9.3",
-  "diagnosticCount": 106,
-  "diagnosticsSha256": "09f69a75ec2fce671006591f2d88305b48c25296f03eb884d88a52a895812338"
+  "diagnosticCount": 92,
+  "diagnosticsSha256": "bcb6639223df507710b20a08bda29be341903a5acc5c73cc1d06064a08dbc051"
 }

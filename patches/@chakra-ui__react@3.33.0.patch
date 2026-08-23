@@ -1,0 +1,13 @@
+diff --git a/dist/types/styled-system/generated/recipes.gen.d.ts b/dist/types/styled-system/generated/recipes.gen.d.ts
+index b8e7654..f9a8d21 100644
+--- a/dist/types/styled-system/generated/recipes.gen.d.ts
++++ b/dist/types/styled-system/generated/recipes.gen.d.ts
+@@ -24,7 +24,7 @@ export interface ButtonVariant {
+   /** @default "md" */
+   size?: "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | undefined
+   /** @default "solid" */
+-  variant?: "solid" | "subtle" | "surface" | "outline" | "ghost" | "plain" | undefined
++  variant?: "solid" | "subtle" | "surface" | "outline" | "ghost" | "plain" | "glass" | "primary" | "secondary" | "tertiary" | undefined
+ }
+
+ export type ButtonVariantProps = {
