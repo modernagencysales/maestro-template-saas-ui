@@ -2,9 +2,13 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
-  "subjectRevision": "d4bd886ea9efbc0e5f331305d8dbce179a02032f",
+  "subjectRevision": "a7988397b74eb56a2ad8ec0cffb19b98107f303a",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
+    "tooling/acceptance/template-product-contract-admission.mts",
+    "tooling/acceptance/template-product-contract-admission.test.mts",
+    "tooling/eslint-plugin-template/rules/__tests__/rules.test.mjs",
+    "tooling/eslint-plugin-template/rules/acceptance-boundary.mjs",
     "tooling/generators/src/blueprints/saasFrontendFoundation.test.ts",
     "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts",
     "tooling/quality/src/gate.mts",
@@ -13,7 +17,7 @@
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
-    "subjectRevision": "d4bd886ea9efbc0e5f331305d8dbce179a02032f",
+    "subjectRevision": "a7988397b74eb56a2ad8ec0cffb19b98107f303a",
     "complete": true,
     "risk": "low",
     "changedPaths": [],

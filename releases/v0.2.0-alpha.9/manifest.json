@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.9",
     "tag": "maestro-template-v0.2.0-alpha.9",
-    "sourceCommit": "d4bd886ea9efbc0e5f331305d8dbce179a02032f",
-    "sourceChecksum": "sha256:b053ce6bc37fbc1740bd3ebd7fd2bbc58d72e9879d6fec82b6c8f858a0bbdbab"
+    "sourceCommit": "a7988397b74eb56a2ad8ec0cffb19b98107f303a",
+    "sourceChecksum": "sha256:f785af3db774ae6f3ec3763e68684a064ec9774dd83d34b659b194c33e8aaef7"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -21,6 +21,38 @@
       "immediatePriorVersion": "0.2.0-alpha.8"
     },
     "operations": [
+      {
+        "id": "upgrade-modify-tooling-acceptance-template-product-contract-admission-mts",
+        "kind": "modify",
+        "path": "tooling/acceptance/template-product-contract-admission.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:5f25af4c63a086f3f943c649964e2fc6fc85e81960a5dffda390817d88f83a10",
+        "afterHash": "sha256:497395cc366977242f02b6470ade8ac268b35a18437169bdbb8b03b0607576a1"
+      },
+      {
+        "id": "upgrade-modify-tooling-acceptance-template-product-contract-admission-test-mts",
+        "kind": "modify",
+        "path": "tooling/acceptance/template-product-contract-admission.test.mts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:c26f3aae535e3a77145f77d74884785b00f720257f28b9ca6192ab117721d7a4",
+        "afterHash": "sha256:b142162fe9c242ad20ee0c5fa45188267363aa76d1e332ca0a40956320018bf3"
+      },
+      {
+        "id": "upgrade-modify-tooling-eslint-plugin-template-rules-tests-rules-test-mjs",
+        "kind": "modify",
+        "path": "tooling/eslint-plugin-template/rules/__tests__/rules.test.mjs",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:7759a41d19a6d046e36b069ab551dbde410b96f7950c2b1ea997c1c5928b5f9f",
+        "afterHash": "sha256:1e8807d8a275a5de90d0e2ab65f6dcfd3448b313942a94ad2802ee40e83c1b6b"
+      },
+      {
+        "id": "upgrade-modify-tooling-eslint-plugin-template-rules-acceptance-boundary-mjs",
+        "kind": "modify",
+        "path": "tooling/eslint-plugin-template/rules/acceptance-boundary.mjs",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:6fe495434c22364d89e5bd7d6879e414c2490db2f110e87dc402f4c6d68763e5",
+        "afterHash": "sha256:4822b9279a0805a60cea60f071f9db040a33bda5a5c2fde3a7721284868545ef"
+      },
       {
         "id": "upgrade-modify-tooling-generators-src-blueprints-saasFrontendFoundation-test-ts",
         "kind": "modify",
@@ -60,7 +92,7 @@
   "additionalPaths": [],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:9a3bba5c0026218b1a36b1a6ca0fd60b5db8a0341591a1163810c2ae0a5f4412"
+    "sha256": "sha256:9e89f5f765bb2652ffa225422640a75f807c682b256f92a43308b6f2544623e0"
   },
   "migrationHandoff": {
     "required": false,
@@ -72,10 +104,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.9/upgrade/app-map-input.json",
-    "sha256": "sha256:ff2e4510af3dbe712408c59a9de7501e39d20bc78fc4559c1900ff1db9f499f1",
+    "sha256": "sha256:cc3cf4bc704fce62071c24ac7cd1e1083e7a6eaf99994bbcb1fd416d860ac238",
     "projection": {
       "path": "releases/v0.2.0-alpha.9/upgrade/app-map-impact.json",
-      "sha256": "sha256:1a2d4a4cd2bdb8a7adaf4060cdba1614bf1054e82f9c77c3efc3c3773bf91293"
+      "sha256": "sha256:c5643191d2230d6220c7493bc7d12aedd2fc12df69c9570b28dc5e42b7e60049"
     }
   }
 }
