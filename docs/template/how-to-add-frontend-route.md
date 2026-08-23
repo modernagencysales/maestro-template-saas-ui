@@ -4,8 +4,13 @@ Search before scaffolding, then use the golden vertical-slice generator:
 
 ```bash
 pnpm template:systems -- --query "<responsibility>"
-pnpm template:add-feature -- --name accountSignals --system <canonical-id> --disposition reuse|extend --description "Present grounded account signals" --write
+pnpm template:add-feature -- --name accountSignals --system <canonical-id> --disposition reuse|extend --screen-catalog-id '<exact-id-from-catalog>' --description "Present grounded account signals" --write
 ```
+
+Choose the ID from `docs/template/saas-ui-screen-catalog.json` before running
+the generator. The selection is pinned to its upstream entry file, complete
+local import closure, source receipt, and the full `app-shell`. Missing or
+unknown IDs fail closed.
 
 If the responsibility or interaction is still uncertain, start with
 `template:prototype` under `experiments/` and promote by running
@@ -21,9 +26,10 @@ If the responsibility or interaction is still uncertain, start with
 - A frontend presenter/view model with loading, empty, ready, edit, skipped,
   typed-error, transport-error, and success states.
 - Fake-safe fixtures and presenter behavior tests.
-- A Saas UI feature component.
-- A screen that composes the feature.
-- A thin TanStack route that composes only the screen.
+- A mechanically transplanted Starter route composition with only its route
+  binding changed for the new TanStack file route.
+- Frontend provenance naming the exact catalog ID, closure hash, source and
+  destination hashes, allowed adapter categories, shell, and visual states.
 - Generated docs and topology-compatible ownership provenance.
 
 The generator refuses to overwrite any existing target. An overlap is a signal
@@ -33,8 +39,9 @@ to reuse/extend the existing slice or choose a deliberately reviewed name.
 
 1. Specialize the capability args/returns and pure domain seam. Keep every
    declared typed error reachable.
-2. Run `pnpm confect:codegen` and use the generated ref from a thin frontend
-   adapter. Do not import Convex internals into the feature.
+2. Run `pnpm confect:codegen` and connect the generated ref through the selected
+   composition's thin data/mutation adapters. Do not rewrite its JSX or import
+   Convex internals into the screen.
 3. Replace synthetic fixtures only through that adapter; retain fixtures for
    deterministic tests and Storybook-style state review.
 4. Add navigation after the flag, entitlement, auth, and audit posture is

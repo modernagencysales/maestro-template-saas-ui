@@ -26,6 +26,7 @@ import {
 } from "@maestro-template/template-core/templateInstance";
 import { gtmImplementationBlueprint } from "./blueprints/gtmImplementation";
 import { buildCrudFeatureFiles } from "./feature-crud";
+import { selectStarterScreen } from "./screen-selection";
 
 export { buildWorkflowFiles } from "./workflow-files";
 
@@ -160,6 +161,8 @@ export type FeatureGeneratorOptions = {
   readonly system: string;
   readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
+  readonly screenCatalogId: string;
+  readonly catalogRoot?: string;
   readonly write?: boolean;
 };
 
@@ -939,7 +942,14 @@ ${description}
 
 export const buildFeatureFiles = (
   options: FeatureGeneratorOptions,
-): FeatureGeneratorResult => buildCrudFeatureFiles(options);
+): FeatureGeneratorResult =>
+  buildCrudFeatureFiles({
+    ...options,
+    frontend: selectStarterScreen(
+      options.catalogRoot ?? defaultRepoRoot,
+      options.screenCatalogId,
+    ),
+  });
 
 const tenantOwnerField = (
   tenantScope: DataTenantScope,

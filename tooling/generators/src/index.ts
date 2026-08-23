@@ -44,6 +44,7 @@ export { buildWorkflowFiles } from "./workflow-files";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";
 import { isGeneratorDirectRun } from "./direct-run";
 import { buildCrudFeatureFiles } from "./feature-crud";
+import { selectStarterScreen } from "./screen-selection";
 import { executePrivatePackagePlan } from "./private-package";
 export {
   buildPrivatePackagePlan,
@@ -268,6 +269,8 @@ export type FeatureGeneratorOptions = {
   readonly system: string;
   readonly disposition: SystemGeneratorDisposition;
   readonly description?: string;
+  readonly screenCatalogId: string;
+  readonly catalogRoot?: string;
   readonly write?: boolean;
 };
 
@@ -1675,7 +1678,14 @@ ${description}
 
 export const buildFeatureFiles = (
   options: FeatureGeneratorOptions,
-): FeatureGeneratorResult => buildCrudFeatureFiles(options);
+): FeatureGeneratorResult =>
+  buildCrudFeatureFiles({
+    ...options,
+    frontend: selectStarterScreen(
+      options.catalogRoot ?? defaultRepoRoot,
+      options.screenCatalogId,
+    ),
+  });
 
 const tenantOwnerField = (
   tenantScope: DataTenantScope,
@@ -2739,7 +2749,7 @@ export const buildPrototypeFiles = (
   const name = camelCase(options.name);
   const pascalName = pascalCase(options.name);
   const basePath = `experiments/${options.system}/${name}`;
-  const promotionCommand = `pnpm template:add-feature -- --name ${name} --system ${options.system} --disposition ${options.disposition} --write`;
+  const promotionCommand = `pnpm template:add-feature -- --name ${name} --system ${options.system} --disposition ${options.disposition} --screen-catalog-id <exact-catalog-id> --write`;
   const files: readonly GeneratedFile[] = [
     {
       path: `${basePath}/experiment.json`,
@@ -2823,6 +2833,7 @@ const valueFlags = new Set([
   "--to",
   "--version",
   "--fixture",
+  "--screen-catalog-id",
 ]);
 const booleanFlags = new Set([
   "--append-only",
@@ -2863,6 +2874,7 @@ const parseArgs = (
   readonly to: string | undefined;
   readonly version: string | undefined;
   readonly fixture: string | undefined;
+  readonly screenCatalogId: string | undefined;
   readonly mode: ProviderMode;
   readonly exposure: "web" | "workflow" | "headless";
   readonly description: string | undefined;
@@ -2904,6 +2916,7 @@ const parseArgs = (
   const toIndex = argv.indexOf("--to");
   const versionIndex = argv.indexOf("--version");
   const fixtureIndex = argv.indexOf("--fixture");
+  const screenCatalogIdIndex = argv.indexOf("--screen-catalog-id");
   const mode = modeIndex >= 0 ? argv[modeIndex + 1] : undefined;
   const blueprint =
     blueprintIndex >= 0 ? argv[blueprintIndex + 1] : defaultBlueprintId;
@@ -2995,6 +3008,8 @@ const parseArgs = (
     to: toIndex >= 0 ? argv[toIndex + 1] : undefined,
     version: versionIndex >= 0 ? argv[versionIndex + 1] : undefined,
     fixture: fixtureIndex >= 0 ? argv[fixtureIndex + 1] : undefined,
+    screenCatalogId:
+      screenCatalogIdIndex >= 0 ? argv[screenCatalogIdIndex + 1] : undefined,
     mode: (mode ?? "fake") as ProviderMode,
     exposure: exposure as "web" | "workflow" | "headless",
     description: descriptionIndex >= 0 ? argv[descriptionIndex + 1] : undefined,
@@ -3090,7 +3105,7 @@ export const runGeneratorCli = (
             "template:systems [--query <exact-id-alias-responsibility-or-table>]",
             "template:prototype --name <name> --system <canonical-id> --disposition reuse|extend --hypothesis <text> [--write]",
             "template:add-client-domain --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
-            "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+            "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend --screen-catalog-id <exact-id> [--description <text>] [--write]",
             "template:add-capability --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--exposure web|workflow|headless] [--write]",
             "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
             "template:add-workflow --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
@@ -3353,8 +3368,18 @@ export const runGeneratorCli = (
           stderr: "Missing required --name for add-feature\n",
         };
       }
+      if (!args.screenCatalogId) {
+        return {
+          exitCode: 1,
+          stdout: "",
+          stderr:
+            "Missing required --screen-catalog-id for add-feature. Select an exact assembled screen from docs/template/saas-ui-screen-catalog.json.\n",
+        };
+      }
       const result = buildFeatureFiles({
         name: args.name,
+        screenCatalogId: args.screenCatalogId,
+        catalogRoot,
         ...requireOwnership(),
         ...(args.description ? { description: args.description } : {}),
       });
@@ -3731,7 +3756,13 @@ export const REVIEWED_GENERATOR_DESCRIPTORS = [
     generatorId: "add-client-domain",
     recipe: "docs/template/app-factory-guide.md",
     command: "pnpm template:add-client-domain",
-    argumentNames: ["name", "system", "disposition", "description"],
+    argumentNames: [
+      "name",
+      "system",
+      "disposition",
+      "screenCatalogId",
+      "description",
+    ],
     codegen: backendCodegen,
     focusedGates: backendGates,
   },

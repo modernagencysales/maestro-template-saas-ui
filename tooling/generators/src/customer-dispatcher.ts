@@ -92,7 +92,7 @@ type CustomerCommand = (typeof customerCommands)[number];
 
 const customerCommandHelp = {
   "add-feature":
-    "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+    "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend --screen-catalog-id <exact-id> [--description <text>] [--write]",
   "add-table":
     "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
   "add-capability":
@@ -248,7 +248,16 @@ export const runCustomerGeneratorCli = (
     }
     const owner = ownership(cliArgv);
     const common = { name, ...owner, ...(description ? { description } : {}) };
-    if (command === "add-feature") return finish(buildFeatureFiles(common));
+    if (command === "add-feature") {
+      const screenCatalogId = valueAfter(cliArgv, "--screen-catalog-id");
+      if (!screenCatalogId)
+        throw new Error(
+          "Missing required --screen-catalog-id for add-feature. Select an exact assembled screen from docs/template/saas-ui-screen-catalog.json.",
+        );
+      return finish(
+        buildFeatureFiles({ ...common, screenCatalogId, catalogRoot: cwd }),
+      );
+    }
     if (command === "add-capability")
       return finish(
         buildCapabilityFiles({

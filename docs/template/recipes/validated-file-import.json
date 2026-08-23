@@ -19,6 +19,12 @@
       "answerKind": "text"
     },
     {
+      "id": "screenCatalogId",
+      "prompt": "Which exact assembled Starter screen should present import review?",
+      "why": "The review surface must reuse a pinned complete composition rather than a generated custom page.",
+      "answerKind": "text"
+    },
+    {
       "id": "allOrNothing",
       "prompt": "Must any invalid row reject the entire import?",
       "why": "This selects transaction bounds and the rollback receipt shown to the user.",
@@ -57,7 +63,7 @@
     },
     {
       "generatorId": "add-feature",
-      "command": "pnpm template:add-feature -- --name <importName> --system transforms --disposition extend",
+      "command": "pnpm template:add-feature -- --name <importName> --system transforms --disposition extend --screen-catalog-id <screenCatalogId>",
       "purpose": "Preview validation, review, failure, rollback receipt, and import result surfaces."
     }
   ],

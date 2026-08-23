@@ -60,6 +60,8 @@ import {
 
 const testDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = join(testDir, "../../..");
+const starterContactsScreenId =
+  "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx";
 
 describe("generator package boundary", () => {
   it("exports customer-composition helpers", () => {
@@ -2412,6 +2414,7 @@ describe("template app factory generators", () => {
       name: "accountSignals",
       system: "knowledge-brain",
       disposition: "extend",
+      screenCatalogId: starterContactsScreenId,
       description: "Present grounded account signals.",
     });
     const paths = result.files.map(({ path }) => path);
@@ -2423,9 +2426,6 @@ describe("template app factory generators", () => {
     )?.content;
     const adapter = result.files.find(({ path }) =>
       path.endsWith("/accountSignals/adapter.ts"),
-    )?.content;
-    const feature = result.files.find(({ path }) =>
-      path.endsWith("/accountSignals/account-signals-feature.tsx"),
     )?.content;
     const generated = result.files.map(({ content }) => content).join("\n");
     const route = result.files.find(({ path }) =>
@@ -2445,8 +2445,6 @@ describe("template app factory generators", () => {
         "apps/web/src/features/accountSignals/model.ts",
         "apps/web/src/features/accountSignals/adapter.ts",
         "apps/web/src/features/accountSignals/adapter.test.ts",
-        "apps/web/src/features/accountSignals/account-signals-feature.tsx",
-        "apps/web/src/screens/account-signals-screen.tsx",
         "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
         "docs/template/generated/features/accountSignals.md",
       ]),
@@ -2483,45 +2481,40 @@ describe("template app factory generators", () => {
     expect(generated).toContain(
       'FunctionImpl.make(databaseSchema, group, "remove"',
     );
-    expect(feature).toContain('aria-label="AccountSignals title"');
-    expect(feature).toContain("Delete accountSignals");
     expect(adapter).toContain(
       'import capability from "../../../../../packages/convex/confect/capabilities/accountSignals.spec"',
     );
     expect(adapter).toContain("export const accountSignalsRefs = Refs.make(");
     expect(adapter).toContain('from "@maestro-template/convex/refs"');
     expect(adapter).not.toContain('from "@confect/core"');
-    expect(feature).toContain("accountSignalsRefs.list");
-    expect(feature).not.toContain('from "@confect/core"');
-    expect(feature).not.toContain("templateConfectRefs");
-    expect(feature).toContain('from "@confect/react"');
-    expect(feature).not.toContain("convexQuery");
-    expect(feature).toContain("useCurrentWorkspace");
-    expect(feature).toContain("NativeSelect");
-    expect(feature).toContain('state.status === "typed-error"');
-    expect(feature).toContain('state.status === "success"');
-    expect(feature).toContain(
-      "feedback !== null || selected !== null ? <Button",
-    );
-    expect(feature).not.toContain(
-      "type { AccountSignals, AccountSignalsStatus }",
-    );
     expect(generated).not.toContain("Synthetic fixture");
     expect(generated).not.toContain('status: "accepted"');
     expect(generated).not.toContain("Replace fake fixtures");
-    expect(route).toContain("AccountSignalsScreen");
-    expect(route).not.toContain("Feature");
+    expect(route).toContain("ContactsListPage");
+    expect(route).toContain("#features/contacts/list/list-page");
     expect(route).toContain("createFileRoute()(");
     expect(route).not.toContain(
       'createFileRoute("/_app/$workspace/_dashboard/account-signals")',
     );
-    expect(route).toContain(
-      'from "../../../../screens/account-signals-screen"',
-    );
     expect(route).not.toContain("_workspace");
+    expect(generated).not.toContain("<Page.Root>");
+    expect(generated).not.toContain('aria-label="AccountSignals title"');
     expect(JSON.parse(provenance?.content ?? "{}")).toMatchObject({
       generator: "add-feature",
       ownership: { system: "knowledge-brain", disposition: "extend" },
+      frontend: {
+        screenCatalogId: starterContactsScreenId,
+        sourceReceipt: "docs/template/saas-ui-starter-files.json",
+        shellId: "app-shell",
+        requiredVisualStates: [
+          "loading",
+          "empty",
+          "error",
+          "populated",
+          "selected",
+          "mutation",
+        ],
+      },
       generatedPaths: expect.arrayContaining([
         "packages/convex/confect/capabilities/accountSignals.spec.ts",
         "apps/web/src/routes/_app/$workspace/_dashboard/account-signals.tsx",
@@ -2557,6 +2550,8 @@ describe("template app factory generators", () => {
           "knowledge-brain",
           "--disposition",
           "extend",
+          "--screen-catalog-id",
+          starterContactsScreenId,
           "--description",
           "Present grounded account signals.",
           "--write",
@@ -2584,6 +2579,41 @@ describe("template app factory generators", () => {
     } finally {
       rmSync(cwd, { recursive: true, force: true });
     }
+  });
+
+  it("rejects missing and unknown screen selections without a JSX fallback", () => {
+    const base = [
+      "add-feature",
+      "--name",
+      "accountSignals",
+      "--system",
+      "knowledge-brain",
+      "--disposition",
+      "extend",
+    ];
+    const missing = runGeneratorCli(base);
+    expect(missing).toMatchObject({ exitCode: 1 });
+    expect(missing.stderr).toContain("Missing required --screen-catalog-id");
+
+    const unknown = runGeneratorCli([
+      ...base,
+      "--screen-catalog-id",
+      "starter-route:not-a-real-screen.tsx",
+    ]);
+    expect(unknown).toMatchObject({ exitCode: 1 });
+    expect(unknown.stderr).toContain("Unknown or unsupported");
+
+    const generated = buildFeatureFiles({
+      name: "accountSignals",
+      system: "knowledge-brain",
+      disposition: "extend",
+      screenCatalogId: starterContactsScreenId,
+    })
+      .files.map(({ content }) => content)
+      .join("\n");
+    expect(generated).not.toContain("<Page.Root>");
+    expect(generated).not.toContain('aria-label="AccountSignals workspace"');
+    expect(generated).toContain("ContactsListPage");
   });
 
   it("materializes a generated feature that lints and typechecks", async () => {
@@ -2655,6 +2685,8 @@ describe("template app factory generators", () => {
           "knowledge-brain",
           "--disposition",
           "extend",
+          "--screen-catalog-id",
+          starterContactsScreenId,
           "--description",
           "Generated feature smoke check.",
           "--write",
@@ -2666,7 +2698,7 @@ describe("template app factory generators", () => {
         args: ["--dir", cwd, "confect:codegen"],
       });
       await runSmokeCommandAsync(cwd, {
-        label: "Lint generated feature route, screen, feature, and adapter",
+        label: "Lint generated upstream route and adapter",
         command: "pnpm",
         args: [
           "--dir",
@@ -2674,9 +2706,24 @@ describe("template app factory generators", () => {
           "exec",
           "eslint",
           "apps/web/src/routes/_app/$workspace/_dashboard/generated-feature-smoke.tsx",
-          "apps/web/src/screens/generated-feature-smoke-screen.tsx",
-          `apps/web/src/features/${name}/generated-feature-smoke-feature.tsx`,
           `apps/web/src/features/${name}/adapter.ts`,
+        ],
+      });
+      await runSmokeCommandAsync(cwd, {
+        label: "Run raw TypeScript for generated upstream route",
+        command: "pnpm",
+        args: [
+          "--dir",
+          cwd,
+          "exec",
+          "tsc",
+          "-p",
+          "apps/web/tsconfig.json",
+          "--noEmit",
+          "--incremental",
+          "false",
+          "--pretty",
+          "false",
         ],
       });
       await runSmokeCommandAsync(cwd, {
@@ -2708,6 +2755,8 @@ describe("template app factory generators", () => {
           "knowledge-brain",
           "--disposition",
           "extend",
+          "--screen-catalog-id",
+          starterContactsScreenId,
           "--write",
         ],
         cwd,

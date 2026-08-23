@@ -24,12 +24,21 @@ const seedCatalogs = (cwd: string): void => {
     "system-catalog.json",
     "data-resources.json",
     "product-topology.json",
+    "saas-ui-screen-catalog.json",
+    "saas-ui-starter-files.json",
   ]) {
     writeFileSync(
       join(cwd, "docs/template", name),
       readFileSync(join(repoRoot, "docs/template", name)),
     );
   }
+  const selectedRoute =
+    "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx";
+  mkdirSync(dirname(join(cwd, selectedRoute)), { recursive: true });
+  writeFileSync(
+    join(cwd, selectedRoute),
+    readFileSync(join(repoRoot, selectedRoute)),
+  );
 };
 
 describe("customer generator runtime", () => {
@@ -189,6 +198,8 @@ describe("customer generator runtime", () => {
         "knowledge-brain",
         "--disposition",
         "extend",
+        "--screen-catalog-id",
+        "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
       ],
       repoRoot,
     );
@@ -203,7 +214,9 @@ describe("customer generator runtime", () => {
     const generated = result.files.map(({ content }) => content).join("\n");
     expect(adapter).toContain("presentCustomerReviewState");
     expect(adapter).not.toContain("createCustomerReviewAdapter");
-    expect(generated).toContain("customerReviewRefs.list");
+    expect(generated).toContain("export const customerReviewRefs = Refs.make");
+    expect(generated).toContain("ContactsListPage");
+    expect(generated).not.toContain("<Page.Root>");
     expect(generated).not.toContain("templateConfectRefs");
     expect(generated).not.toContain("Synthetic fixture");
     expect(generated).not.toContain('status: "accepted"');
@@ -320,6 +333,8 @@ describe("customer generator runtime", () => {
           name: "customerNotes",
           system: "knowledge-brain",
           disposition: "extend",
+          screenCatalogId:
+            "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
         },
         write: false,
         cwd,

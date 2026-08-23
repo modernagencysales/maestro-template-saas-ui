@@ -59,11 +59,12 @@ For user-facing behavior, also emit or update:
 - route or navigation metadata.
 - screenshots or visual smoke notes when the rendered surface changes.
 
-`template:add-feature` is the production golden path. It emits the Confect
-capability plus contract → presenter/fixtures/tests → feature → screen → thin
-route, with auth, workspace tenancy, audit, observability, rollout, entitlement,
-and lifecycle posture in the same slice. It refuses to overwrite existing
-targets.
+`template:add-feature` is the production golden path. It requires an exact
+`--screen-catalog-id`, emits the Confect capability plus contract and presenter,
+then mechanically transplants the selected assembled Starter route. Its
+provenance binds the complete upstream import closure, source receipt, shell,
+allowed adapter categories, and six required visual states. It has no generic
+JSX page fallback and refuses to overwrite existing targets.
 
 ## Promotion Rules
 
