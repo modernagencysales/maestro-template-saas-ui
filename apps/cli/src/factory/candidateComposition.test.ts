@@ -549,7 +549,7 @@ describe("candidate customer composition", () => {
   it("keeps the zero-argument production composition on immutable alpha.7", () => {
     expect(CURRENT_PUBLIC_SOURCE).toMatchObject({
       tag: "maestro-template-v0.2.0-alpha.7",
-      sourceCommit: "5ed4da264791f8efd4bd1ea44b6af8957cb8dfdc",
+      sourceCommit: "bf9c4e294dfddddebabb477ad01508f45d9d6d16",
       manifestPath: expect.stringMatching(
         /releases\/v0\.2\.0-alpha\.7\/manifest\.json$/u,
       ),
