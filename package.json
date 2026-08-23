@@ -61,6 +61,7 @@
     "template:workflow-output-smoke": "tsx tooling/generators/src/workflow-output-smoke.ts",
     "template:upgrade": "tsx tooling/generators/src/cli.ts upgrade",
     "release:seal": "tsx tooling/release-seal.mts",
+    "customer:candidate-current": "tsx tooling/release/materialize-current-candidate.mts",
     "template:private-package:dry-run": "tsx tooling/generators/src/cli.ts private-package:dry-run",
     "template:private-package:import": "tsx tooling/generators/src/cli.ts private-package:import",
     "pattern-fit": "tsx scripts/pattern-fit.mts",

@@ -55,6 +55,21 @@ export type SaasPlanBuilder = (options: {
   readonly sourceRoot?: string;
 }) => ReturnType<typeof buildSaasApplicationTargetPlan>;
 
+export const buildNeutralSaasPlan: SaasPlanBuilder = (options) =>
+  buildSaasApplicationTargetPlan(options);
+
+export const assertCanonicalTemplateInstance = (targetRoot: string): void => {
+  const materialized = readFileSync(
+    join(targetRoot, "template-instance.json"),
+    "utf8",
+  );
+  const canonical = templateInstanceSchemaProvider.serialize(
+    templateInstanceSchemaProvider.parseText(materialized),
+  );
+  if (canonical !== materialized)
+    throw new Error("Materialized template-instance.json is not canonical.");
+};
+
 export class RecordsCustomerMaterializationError extends Error {
   readonly stdout: string;
   readonly stderr: string;
@@ -107,6 +122,7 @@ export const buildCandidateReleaseFixture = (input: {
   readonly outcome: string;
   readonly buildPlan: SaasPlanBuilder;
   readonly authority: CandidateAuthority;
+  readonly targetRoot?: string;
 }) => {
   const parent = mkdtempSync(
     join(
@@ -117,7 +133,7 @@ export const buildCandidateReleaseFixture = (input: {
     ),
   );
   const candidateRoot = join(parent, "candidate");
-  const targetRoot = join(parent, "customer");
+  const targetRoot = input.targetRoot ?? join(parent, "customer");
   const details = authorityDetails(input.authority);
   try {
     execFileSync(
@@ -378,15 +394,7 @@ export const withMaterializedRecordsCustomer = async <Value>(
     );
     if (result.exitCode !== 0)
       throw new RecordsCustomerMaterializationError(result);
-    const materialized = readFileSync(
-      join(fixture.targetRoot, "template-instance.json"),
-      "utf8",
-    );
-    const canonical = templateInstanceSchemaProvider.serialize(
-      templateInstanceSchemaProvider.parseText(materialized),
-    );
-    if (canonical !== materialized)
-      throw new Error("Records customer template instance is not canonical.");
+    assertCanonicalTemplateInstance(fixture.targetRoot);
     git(fixture.targetRoot, ["init", "-b", "main"]);
     git(fixture.targetRoot, ["add", "."]);
     git(fixture.targetRoot, [
