@@ -1274,8 +1274,8 @@ const confectIds = (
   return recordsSelected
     ? replace(
         value,
-        ' | "promptRegistry" | "transformBlocks"',
-        ' | "promptRegistry" | "records" | "transformBlocks"',
+        ' | "promptRegistry" | "providerConnections" | "transformBlocks"',
+        ' | "promptRegistry" | "providerConnections" | "records" | "transformBlocks"',
       )
     : value;
 };
