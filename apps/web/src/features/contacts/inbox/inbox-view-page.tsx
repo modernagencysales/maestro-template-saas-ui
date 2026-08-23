@@ -5,6 +5,7 @@ import { LuChevronLeft, LuClock, LuTrash } from 'react-icons/lu'
 
 import { ContactPage } from '../view/contact-page'
 import { productShell } from '#config/product-shell'
+import { BrainInboxViewPage } from './brain-inbox-view-page'
 
 /**
  * This is a simple wrapper around the ContactPage with an inbox specific toolbar
@@ -35,7 +36,9 @@ export function InboxViewPage(props: {
       </IconButton>
     </ButtonGroup>
   )
-  return (
+  return productShell.inbox === 'brain' ? (
+    <BrainInboxViewPage params={props.params} toolbarItems={toolbar} />
+  ) : (
     <ContactPage
       params={props.params}
       toolbarItems={toolbar}
