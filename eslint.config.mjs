@@ -45,6 +45,7 @@ export default [
     ignores: [
       "dist/**",
       "**/dist/**",
+      "**/.output/**",
       "coverage/**",
       "node_modules/**",
       "repos/**",

@@ -1757,7 +1757,7 @@ export const buildSaasRegistrationProjections = (
       : []),
     {
       path: "tooling/quality/install-lefthook-if-git.mjs",
-      content: `/* global process */\n\n${source("tooling/quality/install-lefthook-if-git.mjs")}`,
+      content: source("tooling/quality/install-lefthook-if-git.mjs"),
     },
     ...(
       [

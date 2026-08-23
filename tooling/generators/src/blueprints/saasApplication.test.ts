@@ -2263,7 +2263,10 @@ describe("saas application blueprint", () => {
       first.find(
         ({ path }) => path === "tooling/quality/install-lefthook-if-git.mjs",
       )?.content,
-    ).toContain("/* global process */");
+    ).not.toContain("/* global process */");
+    expect(
+      first.find(({ path }) => path === "eslint.config.mjs")?.content,
+    ).toContain('"**/.output/**"');
     expect(
       first.find(({ path }) => path === ".prettierignore")?.content,
     ).toContain(".maestro/");
