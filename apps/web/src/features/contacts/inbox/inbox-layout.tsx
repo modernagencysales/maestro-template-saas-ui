@@ -16,6 +16,7 @@ import { LuInbox } from 'react-icons/lu'
 import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace.ts'
 import { useOpenState } from '#hooks/use-open-state.ts'
 import { api } from '#lib/trpc/react.tsx'
+import { productShell } from '#config/product-shell'
 
 import { InboxList } from './inbox-list.tsx'
 
@@ -174,7 +175,7 @@ export function InboxLayout({
           loading={isLoading}
           flex={{ base: '1', lg: 'unset' }}
         >
-          <Page.Header title="Inbox" actions={toolbar} />
+          <Page.Header title={productShell.labels.inbox} actions={toolbar} />
           <Page.Body p="0">
             {!notificationCount && !open ? (
               emptyState

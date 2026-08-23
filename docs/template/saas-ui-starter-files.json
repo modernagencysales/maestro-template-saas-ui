@@ -188,7 +188,7 @@
       "source": "apps/web/src/features/common/components/app-sidebar.tsx",
       "destination": "apps/web/src/features/common/components/app-sidebar.tsx",
       "sourceSha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "sha256": "a6cf920cfd473d47c0c95f0cf6061f08ace4af60f1186aab1c88b933280f7567",
+      "sha256": "c8aca2e8e31ef7465f713d79027332e4478c3071af3cbaed2606ccd2e1a9d1e7",
       "adapted": true
     },
     {
@@ -342,7 +342,7 @@
       "source": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "sourceSha256": "bc5baf32043a6d9e67b10b79e01f7efcae44120ea12b3fd54fee9bb6e60fb56f",
-      "sha256": "a58e0a2f4dd3e6b50be3b95f009b93a1a6ef1c3524315876ad834cdb8707d77f",
+      "sha256": "528a34751979204568b1e204ee1bb70990963d7c7f4c8c0ce90210f9cb3a195d",
       "adapted": true
     },
     {
@@ -867,8 +867,8 @@
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
       "sourceSha256": "abff1198413e35d52f7ab693cce354b7e97a8fd22c7ba00d8a0fb7f1a0bf2a23",
-      "sha256": "abff1198413e35d52f7ab693cce354b7e97a8fd22c7ba00d8a0fb7f1a0bf2a23",
-      "adapted": false
+      "sha256": "313c2368ca48431f814e0e21924a4ad3898020426f3f9a989ace292e21be8d65",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/view/$id.tsx",
@@ -881,14 +881,14 @@
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/inbox.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/inbox.tsx",
       "sourceSha256": "b2d72357869d8f500624449a59ad71351181e6c45edf186cf9f7a8bedcf3221a",
-      "sha256": "b2d72357869d8f500624449a59ad71351181e6c45edf186cf9f7a8bedcf3221a",
-      "adapted": false
+      "sha256": "f6c717212e15362090b419f235c4464ccbfad98a0a2e7ff37617e64d8b0b61df",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
       "sourceSha256": "fda2f11c26ba2fb8fa93e8337ade9e2ab45bcdf0d6791ebb953b7397004f1ca6",
-      "sha256": "a4d983bc38a3e1ee6661af2982beef6790b48b2e0b35239a30669dfdad718b6a",
+      "sha256": "ab22028fdfb1cab7c9efa0765bea84a2aed4c4294306171572c75acf7a19e489",
       "adapted": true
     },
     {

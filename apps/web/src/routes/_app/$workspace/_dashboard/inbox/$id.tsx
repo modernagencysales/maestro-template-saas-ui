@@ -3,6 +3,7 @@ import { z } from 'zod'
 
 import { InboxViewPage } from '#features/contacts/inbox/inbox-view-page'
 import { InboxNotFound } from '#features/contacts/inbox/inbox.not-found'
+import { productShell } from '#config/product-shell'
 
 export const Route = createFileRoute('/_app/$workspace/_dashboard/inbox/$id')({
   validateSearch: z.object({
@@ -11,7 +12,7 @@ export const Route = createFileRoute('/_app/$workspace/_dashboard/inbox/$id')({
   head: () => ({
     meta: [
       {
-        title: 'Inbox',
+        title: productShell.labels.inbox,
       },
     ],
   }),

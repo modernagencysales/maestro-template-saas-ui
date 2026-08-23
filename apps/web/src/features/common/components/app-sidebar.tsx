@@ -35,6 +35,7 @@ import {
 import { useModals } from '@workspace/ui/modals'
 
 import { useUserSettings } from '#lib/user-settings/use-user-settings'
+import { productShell } from '#config/product-shell'
 
 import { useWorkspaceSlug } from '../hooks/use-workspace-slug'
 import { BillingStatus } from './billing-status'
@@ -90,55 +91,55 @@ export const AppSidebar: React.FC<AppSidebarProps> = (props) => {
         <Sidebar.Body>
           <Sidebar.Group>
             <AppSidebarLink
-              to="/$workspace"
+              to={productShell.navigation.dashboard.to}
               params={{
                 workspace,
               }}
               activeOptions={{
                 exact: true,
               }}
-              label="Dashboard"
+              label={productShell.navigation.dashboard.label}
               icon={<LuHouse />}
               hotkey="navigation.dashboard"
             />
             <AppSidebarLink
-              to="/$workspace/inbox"
+              to={productShell.navigation.inbox.to}
               params={{
                 workspace,
               }}
               activeOptions={{
                 exact: false,
               }}
-              label="Inbox"
+              label={productShell.navigation.inbox.label}
               badge={2}
               icon={<LuInbox />}
               hotkey="navigation.inbox"
             />
             <AppSidebarLink
-              to="/$workspace/contacts"
+              to={productShell.navigation.contacts.to}
               params={{
                 workspace,
               }}
               activeOptions={{
                 exact: false,
               }}
-              label="Contacts"
+              label={productShell.navigation.contacts.label}
               icon={<LuSquareUser />}
               hotkey="navigation.contacts"
             />
             <AppSidebarLink
-              to="/$workspace/kanban"
+              to={productShell.navigation.kanban.to}
               params={{ workspace }}
               activeOptions={{ exact: true }}
-              label="Kanban"
+              label={productShell.navigation.kanban.label}
               icon={<LuLayoutDashboard />}
               hotkey="navigation.kanban"
             />
             <AppSidebarLink
-              to="/$workspace/showcase"
+              to={productShell.navigation.showcase.to}
               params={{ workspace }}
               activeOptions={{ exact: true }}
-              label="Showcase"
+              label={productShell.navigation.showcase.label}
               icon={<LuSparkles />}
               hotkey="navigation.showcase"
             />
