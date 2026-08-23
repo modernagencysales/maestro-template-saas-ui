@@ -131,6 +131,14 @@ const validateWorkPackageBindings = (input: {
         findings.push(`retired behavior cited by active plan: ${behaviorId}`);
       }
     }
+    const hasWebBehavior = workPackage.behaviorIds.some((behaviorId) =>
+      input.behaviors.get(behaviorId)?.surfaces.includes("web-ui"),
+    );
+    if (hasWebBehavior && workPackage.work.frontend === undefined) {
+      findings.push(
+        `${workPackage.id} serves web-ui but is missing frontend screen authority`,
+      );
+    }
   }
   return findings;
 };

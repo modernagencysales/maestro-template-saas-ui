@@ -24,6 +24,22 @@ const contract: ProductContract = {
   behaviors: [behavior],
 };
 
+const frontend = {
+  screenCatalogId:
+    "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
+  sourceReceipt: "docs/template/saas-ui-starter-files.json",
+  shellId: "app-shell",
+  allowedAdaptations: ["route-binding", "data-adapter"],
+  requiredVisualStates: [
+    "loading",
+    "empty",
+    "error",
+    "populated",
+    "selected",
+    "mutation",
+  ],
+} as const;
+
 const matchingPlan: ProductPlanFrontmatter = {
   planSchemaVersion: 1,
   productContract: "product.contract.yaml",
@@ -37,6 +53,7 @@ const matchingPlan: ProductPlanFrontmatter = {
         target: "workspace",
         generatorCommand: "pnpm template:add-feature",
         followUpGates: ["workspace acceptance"],
+        frontend,
       },
     },
   ],
@@ -67,6 +84,29 @@ describe("ProductPlanFrontmatter", () => {
         plans: [staleRevisionPlan],
       }).join("\n"),
     ).toMatch(/revision/i);
+  });
+
+  it("rejects a web work package without selected screen authority", () => {
+    const withoutFrontend = {
+      ...matchingPlan,
+      workPackages: [
+        {
+          ...matchingPlan.workPackages[0],
+          work: {
+            kind: "pattern-instance" as const,
+            target: "workspace",
+            generatorCommand: "pnpm template:add-feature",
+            followUpGates: ["workspace acceptance"],
+          },
+        },
+      ],
+    } as ProductPlanFrontmatter;
+    expect(
+      validateProductPlanBindings({
+        contract,
+        plans: [withoutFrontend],
+      }).join("\n"),
+    ).toContain("missing frontend screen authority");
   });
 
   it("reports surface mismatches and retired behavior proofs", () => {
