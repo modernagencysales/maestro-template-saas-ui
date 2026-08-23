@@ -338,6 +338,11 @@ export const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
   "tooling/quality/mutation-script.test.mts",
 ] as const;
 
+export const CURRENT_CUSTOMER_CONVEX_TEST_EXCLUSIONS = [
+  "packages/convex/test/confect-codegen-component-roots.test.ts",
+  "packages/convex/test/data-lifecycle.test.ts",
+] as const;
+
 export const CURRENT_CUSTOMER_PROJECT_TSCONFIGS = [
   "apps/cli/tsconfig.json",
   "packages/convex/tsconfig.json",
@@ -684,11 +689,17 @@ const customerConvexPackage = (
 ): string => {
   const value = JSON.parse(currentSource("packages/convex/package.json")) as {
     dependencies: Record<string, string>;
+    scripts: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/app-idea-evaluator"];
   if (!selectsSaasApplicationPattern(selection, "workflow-automation")) {
     delete value.dependencies["@convex-dev/workflow"];
     delete value.dependencies["@maestro-template/workflow-tooling"];
+    value.scripts["test:customer"] = `${value.scripts.test}${exclusionArguments(
+      CURRENT_CUSTOMER_CONVEX_TEST_EXCLUSIONS,
+      "packages/convex/",
+    )}`;
+    value.scripts.test = value.scripts["test:customer"];
   }
   return `${JSON.stringify(value, null, 2)}\n`;
 };

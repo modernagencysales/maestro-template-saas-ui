@@ -38,6 +38,7 @@ import { saasFrontendFoundationPaths } from "./saasFrontendFoundation";
 import { SAAS_APPLICATION_PATTERN_GROUPS } from "./saasApplicationPatterns";
 import {
   CUSTOMER_ROOT_SCRIPTS,
+  CURRENT_CUSTOMER_CONVEX_TEST_EXCLUSIONS,
   CURRENT_EMAIL_CLOSURE,
   CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
@@ -694,6 +695,12 @@ describe("saas application blueprint", () => {
         patterns: ["records-example", "workflow-automation"],
       }).entries.map((entry) => [entry.path, entry]),
     );
+    const neutralEntries = new Map(
+      buildSaasApplicationTargetPlan({
+        name: "Neutral App",
+        patterns: [],
+      }).entries.map((entry) => [entry.path, entry]),
+    );
     const root = JSON.parse(entries.get("package.json")?.content ?? "{}") as {
       readonly scripts?: Readonly<Record<string, string>>;
     };
@@ -703,10 +710,19 @@ describe("saas application blueprint", () => {
     const quality = JSON.parse(
       entries.get("tooling/quality/package.json")?.content ?? "{}",
     ) as { readonly scripts?: Readonly<Record<string, string>> };
+    const convex = JSON.parse(
+      neutralEntries.get("packages/convex/package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
 
     expect(generators.scripts?.test).toContain("vitest run");
     expect(generators.scripts?.test).not.toContain("--exclude");
     expect(quality.scripts?.test).toBe(quality.scripts?.["test:customer"]);
+    expect(convex.scripts?.test).toBe(convex.scripts?.["test:customer"]);
+    for (const path of CURRENT_CUSTOMER_CONVEX_TEST_EXCLUSIONS) {
+      expect(convex.scripts?.test, path).toContain(
+        `--exclude ${path.replace("packages/convex/", "")}`,
+      );
+    }
     expect(root.scripts?.["check:coverage-ratchet"]).not.toContain(
       "workflow-publication-generation.test.ts",
     );
