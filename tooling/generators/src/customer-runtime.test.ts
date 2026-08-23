@@ -246,6 +246,8 @@ describe("customer generator runtime", () => {
         "connections",
         "--inbox-label",
         "Agency Brain",
+        "--inbox-screen",
+        "brain",
         "--contacts-label",
         "Clients",
         "--kanban-label",
@@ -268,6 +270,9 @@ describe("customer generator runtime", () => {
       expect(
         readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
       ).toContain("Agency Brain");
+      expect(
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
+      ).toContain('inbox: "brain"');
       expect(
         readFileSync(
           join(cwd, "docs/template/generated/provenance/configure-shell.json"),

@@ -11,4 +11,5 @@ export const productShell = {
     inbox: 'Inbox',
   },
   dashboard: 'reports' as 'reports' | 'connections',
+  inbox: 'contacts' as 'contacts' | 'brain',
 } as const

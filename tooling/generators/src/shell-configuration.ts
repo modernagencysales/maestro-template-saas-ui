@@ -2,6 +2,7 @@ export type ShellConfigurationOptions = Readonly<{
   dashboardLabel: string;
   dashboardScreen: "reports" | "connections";
   inboxLabel: string;
+  inboxScreen: "contacts" | "brain";
   contactsLabel: string;
   kanbanLabel: string;
   kanbanRoute: "/$workspace/kanban" | "/$workspace/settings/account/profile";
@@ -38,6 +39,7 @@ export const buildShellConfigurationFiles = (
     inbox: ${JSON.stringify(labels.inbox)},
   },
   dashboard: ${JSON.stringify(options.dashboardScreen)} as 'reports' | 'connections',
+  inbox: ${JSON.stringify(options.inboxScreen)} as 'contacts' | 'brain',
 } as const
 `;
   const generatedPath = "apps/web/src/config/product-shell.ts";

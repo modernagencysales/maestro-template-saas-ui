@@ -8,6 +8,7 @@ describe("product shell configuration generator", () => {
       dashboardLabel: "Connections",
       dashboardScreen: "connections",
       inboxLabel: "Agency Brain",
+      inboxScreen: "brain",
       contactsLabel: "Clients",
       kanbanLabel: "Settings",
       kanbanRoute: "/$workspace/settings/account/profile",
@@ -16,6 +17,7 @@ describe("product shell configuration generator", () => {
     });
 
     expect(result.files[0]?.content).toContain('dashboard: "connections"');
+    expect(result.files[0]?.content).toContain('inbox: "brain"');
     expect(result.files[0]?.content).toContain("Agency Brain");
     expect(result.files[1]?.content).toContain(
       "pro-story:packages/blocks/settings/integration-card/integration-card.stories.tsx",
@@ -31,6 +33,7 @@ describe("product shell configuration generator", () => {
         dashboardLabel: " ",
         dashboardScreen: "reports",
         inboxLabel: "Inbox",
+        inboxScreen: "contacts",
         contactsLabel: "Contacts",
         kanbanLabel: "Kanban",
         kanbanRoute: "/$workspace/kanban",

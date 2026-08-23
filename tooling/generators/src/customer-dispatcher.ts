@@ -121,7 +121,7 @@ const customerCommandHelp = {
   "private-package:import":
     "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write",
   "configure-shell":
-    "template:configure-shell --dashboard-label <text> --dashboard-screen reports|connections --inbox-label <text> --contacts-label <text> --kanban-label <text> --kanban-route <route> --showcase-label <text> --showcase-route <route> [--write]",
+    "template:configure-shell --dashboard-label <text> --dashboard-screen reports|connections --inbox-label <text> --inbox-screen contacts|brain --contacts-label <text> --kanban-label <text> --kanban-route <route> --showcase-label <text> --showcase-route <route> [--write]",
   doctor:
     "template:doctor [--mode fake|test|live] [--path <template-instance.json>]",
   systems:
@@ -209,10 +209,13 @@ export const runCustomerGeneratorCli = (
         return value;
       };
       const dashboardScreen = required("--dashboard-screen");
+      const inboxScreen = required("--inbox-screen");
       const kanbanRoute = required("--kanban-route");
       const showcaseRoute = required("--showcase-route");
       if (dashboardScreen !== "reports" && dashboardScreen !== "connections")
         throw new Error("--dashboard-screen must be reports or connections");
+      if (inboxScreen !== "contacts" && inboxScreen !== "brain")
+        throw new Error("--inbox-screen must be contacts or brain");
       if (
         kanbanRoute !== "/$workspace/kanban" &&
         kanbanRoute !== "/$workspace/settings/account/profile"
@@ -228,6 +231,7 @@ export const runCustomerGeneratorCli = (
           dashboardLabel: required("--dashboard-label"),
           dashboardScreen,
           inboxLabel: required("--inbox-label"),
+          inboxScreen,
           contactsLabel: required("--contacts-label"),
           kanbanLabel: required("--kanban-label"),
           kanbanRoute,
