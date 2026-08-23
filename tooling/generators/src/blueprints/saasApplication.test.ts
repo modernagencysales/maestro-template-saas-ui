@@ -2059,6 +2059,7 @@ describe("saas application blueprint", () => {
         "apps/cli/src/index.ts",
         "tooling/agent-pack/package.json",
         "apps/cli/package.json",
+        "apps/cli/tsconfig.customer.json",
         "apps/web/package.json",
         "apps/cli/src/factory/start.ts",
         "apps/cli/src/factory/customerRecipes.ts",

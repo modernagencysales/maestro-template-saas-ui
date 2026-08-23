@@ -736,12 +736,27 @@ const customerCliPackage = (
 ): string => {
   const value = JSON.parse(source("apps/cli/package.json")) as {
     dependencies: Record<string, string>;
+    scripts: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/release-tooling"];
   if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
     delete value.dependencies["@maestro-template/workflow-tooling"];
+  value.scripts.build =
+    "tsc -p tsconfig.customer.json --outDir dist --declaration";
+  value.scripts.typecheck = "tsc -p tsconfig.customer.json --noEmit";
   return `${JSON.stringify(value, null, 2)}\n`;
 };
+
+const customerCliTsconfig = (): string =>
+  `${JSON.stringify(
+    {
+      extends: "./tsconfig.json",
+      compilerOptions: { composite: false },
+      include: ["src/index.ts"],
+    },
+    null,
+    2,
+  )}\n`;
 
 const customerAgentPackPackage = (): string => {
   const value = JSON.parse(
@@ -1620,6 +1635,14 @@ export const buildSaasRegistrationProjections = (
       path: "apps/cli/package.json",
       content: customerCliPackage(options),
     },
+    ...(current
+      ? [
+          {
+            path: "apps/cli/tsconfig.customer.json",
+            content: customerCliTsconfig(),
+          },
+        ]
+      : []),
     ...(current
       ? [
           {
