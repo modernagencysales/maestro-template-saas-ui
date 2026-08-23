@@ -1,0 +1,125 @@
+{
+  "schemaVersion": 1,
+  "kind": "composed-customer-release",
+  "materializationStatus": "materializable",
+  "baseManifest": {
+    "path": "../v0.2.0-alpha.5/manifest.json",
+    "sha256": "sha256:cdaf30204436569ec23aceefcf5cd75b8e84c2ea1f8173fb5e40a927918ed6ae"
+  },
+  "release": {
+    "version": "0.2.0-alpha.6",
+    "tag": "maestro-template-v0.2.0-alpha.6",
+    "sourceCommit": "bf8198730f21f32a40222367c2c476e001214722",
+    "sourceChecksum": "sha256:e679b2ada81d1f5ce9a008afb208e1567ad70688f22686fa6badf26704c52375"
+  },
+  "upgrade": {
+    "schemaVersion": 1,
+    "transition": {
+      "id": "template-0.2-alpha.5-to-alpha.6",
+      "fromVersion": "0.2.0-alpha.5",
+      "toVersion": "0.2.0-alpha.6",
+      "immediatePriorVersion": "0.2.0-alpha.5"
+    },
+    "operations": [
+      {
+        "id": "upgrade-modify-AGENTS-md",
+        "kind": "modify",
+        "path": "AGENTS.md",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:af12954abf37ec3ea23e9983cc4233afc41008056073ea8f32049395b3f3d219",
+        "afterHash": "sha256:13eddff8d9c76ce1acf7ab9c067bba3eb47a19667e37a2f71f40c6eef04ad658"
+      },
+      {
+        "id": "upgrade-modify-apps-cli-src-factory-candidateComposition-test-ts",
+        "kind": "modify",
+        "path": "apps/cli/src/factory/candidateComposition.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:045339681365e27f5a44332961385a886b9e7e5caf48f59a79f1a29702cf77ce",
+        "afterHash": "sha256:f9d2d53824ea89ed89d6f2035ec35741bd21e52f2b5ab6f92cf14a8b1b560aaf"
+      },
+      {
+        "id": "upgrade-modify-docs-template-frontend-architecture-md",
+        "kind": "modify",
+        "path": "docs/template/frontend-architecture.md",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:99e5d8de600377c77fc0125e43e462c703cdff7166257d6879728e42b779b6ca",
+        "afterHash": "sha256:be250a11dea7879f7934c5043c387c35e3a0bb87a92ce3f6ddb274fea9a4aa2b"
+      },
+      {
+        "id": "upgrade-add-docs-template-saas-ui-screen-catalog-json",
+        "kind": "add",
+        "path": "docs/template/saas-ui-screen-catalog.json",
+        "ownership": "template-owned",
+        "afterHash": "sha256:b435787fcb5ccd302dfba679f82e6386f73e5f07b0857eeeaf2752f0e4d06c41"
+      },
+      {
+        "id": "upgrade-add-docs-template-saas-ui-vendor-receipt-json",
+        "kind": "add",
+        "path": "docs/template/saas-ui-vendor-receipt.json",
+        "ownership": "template-owned",
+        "afterHash": "sha256:d7915c1b6420f5d2ff87a8df3ca3c21c58424cadd59af6a76403d2d4e8021993"
+      },
+      {
+        "id": "upgrade-modify-lefthook-yml",
+        "kind": "modify",
+        "path": "lefthook.yml",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:2571cb84feb93940b152d5dcde4662ccc9e1addf636a0cb5810d377baad23bf5",
+        "afterHash": "sha256:6d62b234344feb15869b127530f18af49de44bb3a027dbea4ff5f59de48e9ad0"
+      },
+      {
+        "id": "upgrade-modify-tooling-generators-src-blueprints-saasFrontendFoundation-ts",
+        "kind": "modify",
+        "path": "tooling/generators/src/blueprints/saasFrontendFoundation.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:133d36c71a28e4cd256ded3ba22aa1897d99fbdc0a12e15255e2b0d725a5c4bc",
+        "afterHash": "sha256:08d402c9759c23fed26fde175e977f059238b0c3ea9111a3e64bf977cd471363"
+      },
+      {
+        "id": "upgrade-modify-tooling-generators-src-blueprints-saasFrontendGeneratedTarget-test-ts",
+        "kind": "modify",
+        "path": "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:90241cf09e395b6f98f883539e3cd89c890d6813e67eaf1a308198f3cd2ce756",
+        "afterHash": "sha256:7ad26e7acaf03e807c17187df0a4b6d5c19e11953fd7b6cae6f69940af02d4e2"
+      },
+      {
+        "id": "upgrade-add-tooling-saas-ui-screen-catalog-mts",
+        "kind": "add",
+        "path": "tooling/saas-ui/screen-catalog.mts",
+        "ownership": "template-owned",
+        "afterHash": "sha256:992379f6df35bd1902ea2180b2623ed12f7af91eb14f73bf156897ad726ee975"
+      },
+      {
+        "id": "upgrade-add-tooling-saas-ui-screen-catalog-test-ts",
+        "kind": "add",
+        "path": "tooling/saas-ui/screen-catalog.test.ts",
+        "ownership": "template-owned",
+        "afterHash": "sha256:1be764f2cad8d54c21e38b3164ef16c5d4e3ff92242c6966696ad16519abff0a"
+      }
+    ],
+    "requirements": []
+  },
+  "deriveExpectedHashesFromArchive": true,
+  "additionalPaths": [],
+  "blueprintManifest": {
+    "path": "blueprints/saas-application.json",
+    "sha256": "sha256:fa2ea0aa664252035e36321f4287b5f9b5d862263aff0d9f68d5320f9ea4eedc"
+  },
+  "migrationHandoff": {
+    "required": false,
+    "executionAvailable": false,
+    "filePhase": "backward-compatible-code",
+    "requiredBefore": "migrate",
+    "path": "releases/v0.2.0-alpha.6/migrations/manifest.json",
+    "sha256": "sha256:472f6a5a82c73dec51f990497c97b8f0663378f103d8f7ae8e13a75e0b4e031d"
+  },
+  "upgradeImpact": {
+    "path": "releases/v0.2.0-alpha.6/upgrade/app-map-input.json",
+    "sha256": "sha256:e5d84cd9ffa869af3c6dee096d8d38a5c5580524b9e3d99fca9f089f06c536f9",
+    "projection": {
+      "path": "releases/v0.2.0-alpha.6/upgrade/app-map-impact.json",
+      "sha256": "sha256:a550c2d70eee980f202d2f6784c3381e51f9ee9e38333868a9bd15aeca3dc9de"
+    }
+  }
+}
