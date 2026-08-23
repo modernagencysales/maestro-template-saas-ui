@@ -47,6 +47,40 @@ export const findGeneratedPresetTypeImports = (
     )
     .sort();
 
+const removedFrontendExports = [
+  {
+    module: "@chakra-ui/react",
+    name: "TagProps",
+    pattern:
+      /import(?:\s+type)?\s*\{[^}]*\bTagProps\b[^}]*\}\s*from\s*["']@chakra-ui\/react["']/u,
+  },
+  {
+    module: "@saas-ui/react",
+    name: "HotkeysConfig",
+    pattern:
+      /import(?:\s+type)?\s*\{[^}]*\bHotkeysConfig\b[^}]*\}\s*from\s*["']@saas-ui\/react["']/u,
+  },
+  {
+    module: "@saas-ui/react",
+    name: "LoadingSpinner",
+    pattern:
+      /import(?:\s+type)?\s*\{[^}]*\bLoadingSpinner\b[^}]*\}\s*from\s*["']@saas-ui\/react["']/u,
+  },
+] as const;
+
+export const findLegacyFrontendApiImports = (
+  files: Readonly<Record<string, string>>,
+): readonly string[] =>
+  Object.entries(files)
+    .flatMap(([path, source]) =>
+      removedFrontendExports.flatMap(({ module, name, pattern }) =>
+        pattern.test(source)
+          ? [`${path} imports removed ${name} from ${module}`]
+          : [],
+      ),
+    )
+    .sort();
+
 export const collectResolvedVersions = (
   roots: readonly DependencyTree[],
 ): ReadonlyMap<string, ReadonlySet<string>> => {
@@ -120,6 +154,7 @@ const frontendSources = (root: string): Readonly<Record<string, string>> => {
 export const checkFrontendDependencyContract = (
   root = process.cwd(),
 ): readonly string[] => {
+  const sources = frontendSources(root);
   const buttonTypes = readFileSync(
     resolve(
       root,
@@ -130,7 +165,8 @@ export const checkFrontendDependencyContract = (
   const missingVariants = missingButtonRecipeVariants(buttonTypes);
   return [
     ...assertFrontendDependencyContract(installedDependencyTree(root)),
-    ...findGeneratedPresetTypeImports(frontendSources(root)),
+    ...findGeneratedPresetTypeImports(sources),
+    ...findLegacyFrontendApiImports(sources),
     ...(missingVariants.length > 0
       ? [
           `Chakra Button recipe types are missing theme variants: ${missingVariants.join(", ")}`,

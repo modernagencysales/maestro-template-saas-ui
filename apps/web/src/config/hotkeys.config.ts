@@ -1,5 +1,5 @@
 import { platformSelect } from '@saas-ui-pro/react'
-import { HotkeysConfig } from '@saas-ui/react'
+import type { HotkeysConfig } from '@saas-ui/use-hotkeys'
 
 export const appHotkeys = {
   general: {

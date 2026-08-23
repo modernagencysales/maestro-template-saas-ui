@@ -39,6 +39,32 @@ export type Workspace = {
   readonly slug: string;
   readonly name: string;
   readonly logo?: string | null;
+  readonly tags: readonly WorkspaceTag[];
+  readonly members: readonly WorkspaceMember[];
+  readonly subscription: WorkspaceSubscription;
+};
+export type WorkspaceTag = {
+  readonly id: string;
+  readonly name: string;
+  readonly color: string | null;
+};
+export type WorkspaceSubscription = {
+  readonly accountId: string | null;
+  readonly planId: string;
+  readonly status:
+    | "active"
+    | "canceled"
+    | "past_due"
+    | "trialing"
+    | "unpaid"
+    | "incomplete"
+    | "incomplete_expired"
+    | "paused";
+  readonly startedAt: Date;
+  readonly trialEndsAt: Date | null;
+  readonly cancelAt: Date | null;
+  readonly cancelAtPeriodEnd: boolean;
+  readonly currentPeriodEnd: Date;
 };
 export type WorkspaceMember = {
   readonly id: string;
@@ -53,6 +79,12 @@ type QueryResult<TData = unknown> = {
   readonly isLoading?: boolean;
   readonly isPending?: boolean;
 };
+type StarterError = Error & {
+  readonly data?: { readonly httpStatus?: number };
+};
+type StarterQueryOptions = {
+  readonly retry?: (failureCount: number, error: StarterError) => boolean;
+};
 type ConvexQueryRef = Parameters<typeof convexQuery>[0];
 type MutationResult = {
   readonly mutate: (input?: unknown) => void;
@@ -61,14 +93,18 @@ type MutationResult = {
   readonly reset: () => void;
 };
 type StarterProcedure<TData = unknown> = {
-  readonly useQuery: (input?: Record<string, unknown>) => QueryResult<TData>;
+  readonly useQuery: (
+    input?: Record<string, unknown>,
+    options?: StarterQueryOptions,
+  ) => QueryResult<TData>;
   readonly useSuspenseQuery: (
     input?: Record<string, unknown>,
+    options?: StarterQueryOptions,
   ) => readonly [TData, QueryResult<TData>];
   readonly ensureData: (input?: Record<string, unknown>) => Promise<TData>;
   readonly getData: (input?: Record<string, unknown>) => TData | undefined;
   readonly useMutation: (options?: Record<string, unknown>) => MutationResult;
-  readonly invalidate: () => Promise<void>;
+  readonly invalidate: (input?: Record<string, unknown>) => Promise<void>;
 };
 export type CompatibilityApi = {
   readonly auth: {
@@ -76,6 +112,7 @@ export type CompatibilityApi = {
     readonly listAccounts: StarterProcedure;
   };
   readonly workspaces: {
+    readonly invalidate: (input?: Record<string, unknown>) => Promise<void>;
     readonly bySlug: StarterProcedure<Workspace | null>;
     readonly create: StarterProcedure;
     readonly slugAvailable: StarterProcedure;
@@ -189,6 +226,57 @@ const contractsUserFixture: CurrentUser = {
 };
 const runtimeWorkspaceFixtures = new Map<string, Workspace>();
 
+const defaultSubscription = (): WorkspaceSubscription => ({
+  accountId: null,
+  planId: "free",
+  status: "active",
+  startedAt: new Date(0),
+  trialEndsAt: null,
+  cancelAt: null,
+  cancelAtPeriodEnd: false,
+  currentPeriodEnd: new Date(0),
+});
+
+const hasWorkspaceIdentity = (
+  candidate: Partial<Workspace>,
+): candidate is Partial<Workspace> & Pick<Workspace, "id" | "slug" | "name"> =>
+  typeof candidate.id === "string" &&
+  typeof candidate.slug === "string" &&
+  typeof candidate.name === "string";
+
+const hasStarterWorkspaceRelations = (
+  candidate: Partial<Workspace>,
+): candidate is Workspace =>
+  Array.isArray(candidate.tags) &&
+  Array.isArray(candidate.members) &&
+  candidate.subscription !== undefined;
+
+const arrayOrEmpty = <T,>(value: readonly T[] | undefined): readonly T[] =>
+  Array.isArray(value) ? value : [];
+
+const normalizeWorkspace = (value: unknown): Workspace | null => {
+  if (value === null) return null;
+  if (typeof value !== "object") return null;
+  const candidate = value as Partial<Workspace>;
+  if (!hasWorkspaceIdentity(candidate)) return null;
+  if (hasStarterWorkspaceRelations(candidate)) return candidate;
+  return {
+    id: candidate.id,
+    slug: candidate.slug,
+    name: candidate.name,
+    logo: candidate.logo,
+    tags: arrayOrEmpty(candidate.tags),
+    members: arrayOrEmpty(candidate.members),
+    subscription: {
+      ...defaultSubscription(),
+      ...(candidate.subscription ?? {}),
+    },
+  };
+};
+
+const adaptProcedureData = <TData,>(key: string, value: unknown): TData =>
+  (key === "workspaces.bySlug" ? normalizeWorkspace(value) : value) as TData;
+
 const workspaceFixture = (
   slug: string,
   isolatedContracts: boolean,
@@ -201,6 +289,9 @@ const workspaceFixture = (
     id: `${prefix}-${slug}`,
     slug,
     name: isolatedContracts ? "Contracts workspace" : "Fixture workspace",
+    tags: [],
+    members: [],
+    subscription: defaultSubscription(),
   };
   runtimeWorkspaceFixtures.set(fixtureKey, workspace);
   return workspace;
@@ -230,19 +321,29 @@ function procedure<TData = unknown>(
   const ref = realRefs[key as keyof typeof realRefs];
   const convexRef = ref as unknown as ConvexQueryRef;
   return {
-    useQuery: (input) => {
+    useQuery: (input, options) => {
+      void options;
       const fixture = runtimeFixture(key, input);
       if (fixture !== undefined) {
-        return { data: fixture as TData, isLoading: false, isPending: false };
+        return {
+          data: adaptProcedureData<TData>(key, fixture),
+          isLoading: false,
+          isPending: false,
+        };
       }
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) {
         const data = neutralData(key);
         return { data: data as TData, isLoading: false, isPending: false };
       }
-      return useConvexQuery(convexRef, input ?? {}) as QueryResult<TData>;
+      const result = useConvexQuery(convexRef, input ?? {}) as QueryResult;
+      return {
+        ...result,
+        data: adaptProcedureData<TData>(key, result.data),
+      };
     },
-    useSuspenseQuery: (input) => {
+    useSuspenseQuery: (input, options) => {
+      void options;
       const fixture = runtimeFixture(key, input);
       if (fixture !== undefined) {
         const result = {
@@ -250,7 +351,13 @@ function procedure<TData = unknown>(
           isLoading: false,
           isPending: false,
         };
-        return [result.data, result];
+        return [
+          adaptProcedureData<TData>(key, result.data),
+          {
+            ...result,
+            data: adaptProcedureData<TData>(key, result.data),
+          },
+        ];
       }
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) {
@@ -260,23 +367,25 @@ function procedure<TData = unknown>(
           { data: data as TData, isLoading: false, isPending: false },
         ];
       }
-      const options = convexQuery(convexRef, input ?? {}) as Parameters<
+      const queryOptions = convexQuery(convexRef, input ?? {}) as Parameters<
         typeof useTanstackSuspenseQuery
       >[0];
-      const result = useTanstackSuspenseQuery(options);
-      return [result.data as TData, result as QueryResult<TData>];
+      const result = useTanstackSuspenseQuery(queryOptions);
+      const data = adaptProcedureData<TData>(key, result.data);
+      return [data, { ...result, data } as QueryResult<TData>];
     },
     ensureData: async (input) => {
       const fixture = runtimeFixture(key, input);
-      if (fixture !== undefined) return fixture as TData;
+      if (fixture !== undefined) return adaptProcedureData<TData>(key, fixture);
       if (!ref && !isNeutral(key)) neutral(key);
       if (!ref) return neutralData(key) as TData;
       if (!client)
         throw new Error(`Router Convex client is required for ${key}`);
-      return client.query(
+      const data = await client.query(
         convexRef as never,
         (input ?? {}) as never,
-      ) as Promise<TData>;
+      );
+      return adaptProcedureData<TData>(key, data);
     },
     getData: () =>
       (isNeutral(key) ? neutralData(key) : undefined) as TData | undefined,
@@ -297,6 +406,7 @@ export const createCompatibilityApi = (
       listAccounts: procedure(["auth", "listAccounts"], client),
     },
     workspaces: {
+      invalidate: async () => undefined,
       bySlug: procedure<Workspace | null>(["workspaces", "bySlug"], client),
       create: procedure(["workspaces", "create"], client),
       slugAvailable: procedure(["workspaces", "slugAvailable"], client),

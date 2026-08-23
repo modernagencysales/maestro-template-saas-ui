@@ -4,6 +4,7 @@ import {
   assertFrontendDependencyContract,
   collectResolvedVersions,
   findGeneratedPresetTypeImports,
+  findLegacyFrontendApiImports,
   missingButtonRecipeVariants,
   type DependencyTree,
 } from "./check-frontend-dependency-contract.mts";
@@ -15,6 +16,20 @@ const tree = (
 ): DependencyTree => ({ name, version, dependencies });
 
 describe("frontend dependency contract", () => {
+  it("rejects removed Saas UI and Chakra v2 exports in transplanted sources", () => {
+    expect(
+      findLegacyFrontendApiImports({
+        "hotkeys.ts": `import { HotkeysConfig } from "@saas-ui/react";`,
+        "loading.tsx": `import { LoadingOverlay, LoadingSpinner } from "@saas-ui/react";`,
+        "tag.tsx": `import { Tag, TagProps } from "@chakra-ui/react";`,
+      }),
+    ).toEqual([
+      "hotkeys.ts imports removed HotkeysConfig from @saas-ui/react",
+      "loading.tsx imports removed LoadingSpinner from @saas-ui/react",
+      "tag.tsx imports removed TagProps from @chakra-ui/react",
+    ]);
+  });
+
   it("requires Chakra's generated Button type to include the pinned theme variants", () => {
     expect(
       missingButtonRecipeVariants(

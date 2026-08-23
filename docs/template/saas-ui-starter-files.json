@@ -41,8 +41,8 @@
       "source": "apps/web/src/config/hotkeys.config.ts",
       "destination": "apps/web/src/config/hotkeys.config.ts",
       "sourceSha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",
-      "sha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",
-      "adapted": false
+      "sha256": "ea69f37582c72db6ab119d3f1bb6b5762a094c6076a54bac9a8b0a807e4cbf7b",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/auth/auth-layout.tsx",
@@ -244,8 +244,8 @@
       "source": "apps/web/src/features/common/hooks/use-current-workspace.ts",
       "destination": "apps/web/src/features/common/hooks/use-current-workspace.ts",
       "sourceSha256": "ef6810bc0cfd00068d2e63fad85670dc732751f22c8c00829530611b3ba93380",
-      "sha256": "ef6810bc0cfd00068d2e63fad85670dc732751f22c8c00829530611b3ba93380",
-      "adapted": false
+      "sha256": "d44b63991a8130a50d5498377fc7cfe39858bcf3f7643aa34f0170deb686e17c",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/hooks/use-tags.ts",
@@ -321,8 +321,8 @@
       "source": "apps/web/src/features/contacts/common/contact-tag.tsx",
       "destination": "apps/web/src/features/contacts/common/contact-tag.tsx",
       "sourceSha256": "275921811d9b0f8ca24e88ecc64fc71aa49fe649e0a22dcb24039b479107dce9",
-      "sha256": "275921811d9b0f8ca24e88ecc64fc71aa49fe649e0a22dcb24039b479107dce9",
-      "adapted": false
+      "sha256": "d9616c496f84fa7585abc994114ddb67b37c9c825132ed2d2744477175ce6ef8",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/common/contact-type.tsx",
@@ -762,8 +762,8 @@
       "source": "apps/web/src/features/workspaces/workspace.loading.tsx",
       "destination": "apps/web/src/features/workspaces/workspace.loading.tsx",
       "sourceSha256": "1a8b925166c036825152e1721685855cdbe9c9ca12b0149e8654ea3eb5e5643e",
-      "sha256": "1a8b925166c036825152e1721685855cdbe9c9ca12b0149e8654ea3eb5e5643e",
-      "adapted": false
+      "sha256": "a68c25a0b2dd6818b2f21d92659d5791698af696a83add718d6de93b214ad49a",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/workspaces/workspace.not-found.tsx",

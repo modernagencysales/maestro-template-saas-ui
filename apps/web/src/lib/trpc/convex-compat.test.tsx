@@ -41,12 +41,44 @@ describe("Convex starter query compatibility", () => {
     ).resolves.toMatchObject({
       slug: "contracts-primary",
       name: "Contracts workspace",
+      tags: [],
+      members: [],
+      subscription: {
+        accountId: null,
+        planId: "free",
+        status: "active",
+      },
     });
     await expect(compatibility.auth.me.ensureData()).resolves.toMatchObject({
       id: "contracts-runtime",
       workspaces: [],
     });
     expect(query).not.toHaveBeenCalled();
+  });
+
+  it("normalizes the narrow Convex workspace into the Starter screen contract", async () => {
+    const compatibility = createCompatibilityApi({
+      query: async () => ({
+        id: "workspace_1",
+        slug: "acme",
+        name: "Acme",
+        logo: null,
+      }),
+    } as never);
+
+    await expect(
+      compatibility.workspaces.bySlug.ensureData({ slug: "acme" }),
+    ).resolves.toMatchObject({
+      id: "workspace_1",
+      slug: "acme",
+      tags: [],
+      members: [],
+      subscription: {
+        accountId: null,
+        planId: "free",
+        status: "active",
+      },
+    });
   });
 
   it("keeps isolated shell fixture identities stable across renders", async () => {
@@ -110,6 +142,13 @@ describe("Convex starter query compatibility", () => {
     expect(neutralMutationValue("workspaceMembers.invite")).toBeNull();
     expect(neutralMutationValue("workspaceMembers.removeMember")).toBeNull();
     expect(neutralMutationValue("workspaceMembers.updateRoles")).toBeNull();
+  });
+
+  it("exposes the Starter namespace invalidation seam", async () => {
+    const compatibility = createCompatibilityApi();
+    await expect(
+      compatibility.useUtils().workspaces.invalidate(),
+    ).resolves.toBeUndefined();
   });
 
   it("returns the Starter inbox collection shape when notifications are neutral", () => {

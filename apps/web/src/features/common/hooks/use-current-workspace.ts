@@ -1,13 +1,14 @@
 'use client'
 
 import { api } from '#lib/trpc/react'
+import type { Workspace } from '#lib/trpc/react'
 
 import { useWorkspaceSlug } from './use-workspace-slug'
 
 export const useCurrentWorkspace = () => {
   const slug = useWorkspaceSlug()
 
-  return api.workspaces.bySlug.useSuspenseQuery(
+  const [workspace, query] = api.workspaces.bySlug.useSuspenseQuery(
     { slug },
     {
       retry(failureCount, error) {
@@ -15,4 +16,13 @@ export const useCurrentWorkspace = () => {
       },
     },
   )
+
+  return [requireCurrentWorkspace(workspace), query] as const
+}
+
+export const requireCurrentWorkspace = (
+  workspace: Workspace | null,
+): Workspace => {
+  if (!workspace) throw new Error('The current workspace route was not admitted')
+  return workspace
 }

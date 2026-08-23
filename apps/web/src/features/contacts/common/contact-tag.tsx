@@ -1,8 +1,8 @@
-import { Badge, Tag, TagProps, Text } from '@chakra-ui/react'
+import { Badge, Tag, Text, type TagRootProps } from '@chakra-ui/react'
 
 import { useTags } from '../../common/hooks/use-tags'
 
-export const ContactTag: React.FC<TagProps & { tag: string }> = (props) => {
+export const ContactTag: React.FC<TagRootProps & { tag: string }> = (props) => {
   const { tag, ...rest } = props
 
   const tags = useTags()
@@ -12,9 +12,9 @@ export const ContactTag: React.FC<TagProps & { tag: string }> = (props) => {
   if (!t) return null
 
   return (
-    <Tag size="sm" colorScheme="gray" h="6" {...rest}>
+    <Tag.Root size="sm" colorPalette="gray" h="6" {...rest}>
       <Badge bg={t.color ?? undefined} boxSize="2" rounded="full" me="2" />
       <Text>{t.name}</Text>
-    </Tag>
+    </Tag.Root>
   )
 }
