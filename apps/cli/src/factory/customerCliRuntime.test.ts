@@ -860,9 +860,19 @@ describe("materialized customer CLI runtime closure", () => {
       "7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
     );
     execFileSync("git", ["add", "."], { cwd: target });
-    execFileSync("git", ["commit", "--quiet", "--no-verify", "-m", "fixture"], {
-      cwd: target,
-    });
+    const initialCommit = spawnSync(
+      "git",
+      ["commit", "--quiet", "-m", "fixture"],
+      {
+        cwd: target,
+        encoding: "utf8",
+        timeout: 120_000,
+      },
+    );
+    expect(
+      initialCommit.status,
+      `${initialCommit.stdout}\n${initialCommit.stderr}`,
+    ).toBe(0);
     const hostBin = join(parent, "supported-host-bin");
     mkdirSync(hostBin);
     const corepack = join(hostBin, "corepack");

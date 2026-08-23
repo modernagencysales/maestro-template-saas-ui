@@ -23,6 +23,8 @@ describe("local hook authority", () => {
 
     expect(hook).toContain("pnpm prettier --write {staged_files}");
     expect(hook).toContain("ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}");
+    expect(hook).toContain("git rev-parse --verify HEAD");
+    expect(hook).toContain("Skipping inherited baseline lint");
     expect(hook).toContain("pnpm check:qlty -- --staged");
     expect(hook).not.toContain("pre-push-rubric.sh");
     for (const command of BROAD_HOOK_COMMANDS) {
