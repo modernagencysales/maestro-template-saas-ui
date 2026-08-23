@@ -40,7 +40,7 @@ export const ConnectionsPage = () => {
   )
   const beginConnection = useConvexMutation(beginConnectionRef)
   const revokeConnection = useConvexMutation(revokeConnectionRef)
-  const liveConnections = (durableConnections.data ?? []) as readonly DurableConnection[]
+  const liveConnections = (durableConnections?.data ?? []) as readonly DurableConnection[]
   const [statuses, setStatuses] = React.useState<
     Record<string, ConnectionStatus>
   >(() =>
