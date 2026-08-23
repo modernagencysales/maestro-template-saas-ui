@@ -1152,6 +1152,10 @@ describe("saas application blueprint", () => {
       upgrade: "regenerate",
     });
     expect(prettierIgnore).toMatchObject({ replaces: "copy" });
+    expect(prettierIgnore?.content).toContain("product.contract.schema.json");
+    expect(prettierIgnore?.content).toContain(
+      "docs/template/generated/product-contract.md",
+    );
     expect(
       plan.entries.find(
         (entry) => entry.path === "tooling/confect-manifest/tsconfig.json",
