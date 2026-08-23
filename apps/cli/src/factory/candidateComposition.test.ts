@@ -546,12 +546,12 @@ describe("candidate customer composition", () => {
     ]);
   }, 900_000);
 
-  it("keeps the zero-argument production composition on immutable alpha.5", () => {
+  it("keeps the zero-argument production composition on immutable alpha.6", () => {
     expect(CURRENT_PUBLIC_SOURCE).toMatchObject({
-      tag: "maestro-template-v0.2.0-alpha.5",
-      sourceCommit: "bf8198730f21f32a40222367c2c476e001214722",
+      tag: "maestro-template-v0.2.0-alpha.6",
+      sourceCommit: "54c3d476a645abd9d143af288a73d3bc33037673",
       manifestPath: expect.stringMatching(
-        /releases\/v0\.2\.0-alpha\.5\/manifest\.json$/u,
+        /releases\/v0\.2\.0-alpha\.6\/manifest\.json$/u,
       ),
     });
     expect(loadCustomerCreateComposition().command).toBe("create");
