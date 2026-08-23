@@ -35,7 +35,7 @@
         "path": "apps/cli/src/factory/customerCliRuntime.test.ts",
         "ownership": "template-owned",
         "beforeHash": "sha256:4d6f5df4a821dee46f00e45ae1e1960fb5f01f86ca03bc7a664f61cea876b3c9",
-        "afterHash": "sha256:d1273ce2990f47ef4c17c61fa2d9b433d83b55d5c6a1e0783b52d7f29193d134"
+        "afterHash": "sha256:0dad008183c80c046c3b7a3d8d1c7c00389467675e483722eb7369dc84b97819"
       },
       {
         "id": "upgrade-delete-tooling-workflow-package-json",
@@ -95,7 +95,7 @@
     "filePhase": "backward-compatible-code",
     "requiredBefore": "migrate",
     "path": "releases/v0.2.0-alpha.7/migrations/manifest.json",
-    "sha256": "sha256:610a2058f46f010cafcf9111615fd56ffd5db89ef95dae551460a185c634877a"
+    "sha256": "sha256:de29e17c6241b97b628420c0d8ce5dccfa97ec15f900b1735ba09fbf2cf9358b"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.7/upgrade/app-map-input.json",

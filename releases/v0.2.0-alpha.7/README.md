@@ -1,15 +1,15 @@
-# Maestro Template v0.2.0-alpha.6
+# Maestro Template v0.2.0-alpha.7
 
-Complete pinned Saas UI Starter shell for generated Maestro customer apps.
+Installable complete Saas UI Starter shell for generated Maestro customer apps.
 
 ## What changed
 
-- Ships the complete Starter route tree, shell, Clients, Brain, Connections, and
-  Settings screens through the canonical customer materialization path.
-- Preserves the purchased Starter screens wholesale and binds product behavior
-  through thin route, authentication, data, and mutation adapters.
-- Adds deterministic provenance, dependency, coverage, and branch-hygiene checks
-  for agent-driven product work.
+- Omits factory-only `tooling/workflow` files from generated customer targets so
+  a frozen install matches the neutral customer lockfile.
+- Lets explicit release authority replace inherited path classifications rather
+  than retaining conflicting duplicate classifications.
+- Adds regression coverage for both production customer creation and release
+  sealing at the repaired factory/customer boundary.
 
 ## Compatibility and environment
 
@@ -21,4 +21,4 @@ Complete pinned Saas UI Starter shell for generated Maestro customer apps.
 
 No data migration is required. See
 [migrations/README.md](./migrations/README.md). Roll back to the immutable
-`maestro-template-v0.2.0-alpha.5` tag; customer data is unchanged.
+`maestro-template-v0.2.0-alpha.6` tag; customer data is unchanged.

@@ -1,13 +1,13 @@
 {
   "schemaVersion": 1,
   "transition": {
-    "id": "template-0.2-alpha.5-to-alpha.6",
-    "fromVersion": "0.2.0-alpha.5",
-    "toVersion": "0.2.0-alpha.6",
-    "immediatePriorVersion": "0.2.0-alpha.5"
+    "id": "template-0.2-alpha.6-to-alpha.7",
+    "fromVersion": "0.2.0-alpha.6",
+    "toVersion": "0.2.0-alpha.7",
+    "immediatePriorVersion": "0.2.0-alpha.6"
   },
   "handoff": {
-    "migrationId": "no-data-migration-alpha.6"
+    "migrationId": "no-data-migration-alpha.7"
   },
   "receiptAuthority": {
     "available": false,
