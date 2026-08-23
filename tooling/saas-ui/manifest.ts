@@ -85,6 +85,12 @@ export const starterCompositions = {
     source("components/default-error-page.tsx"),
     source("components/default-loader.tsx"),
     source("components/link-button.tsx"),
+    source("components/link.tsx"),
+    source("lib/last-used-workspace.ts"),
+    source("lib/react-query.ts"),
+    source("lib/trpc/react.tsx"),
+    source("lib/trpc/utils.ts"),
+    source("lib/user-settings/use-user-settings.ts"),
     publicSource("img/onboarding/light.svg"),
     publicSource("img/onboarding/dark.svg"),
     ...[

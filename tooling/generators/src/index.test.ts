@@ -2514,6 +2514,14 @@ describe("template app factory generators", () => {
           "selected",
           "mutation",
         ],
+        destinationClosureSha256: expect.stringMatching(/^[a-f0-9]{64}$/u),
+        files: expect.arrayContaining([
+          expect.objectContaining({
+            source: "apps/web/src/features/contacts/list/list-page.tsx",
+            destination: "apps/web/src/features/contacts/list/list-page.tsx",
+            allowedPatches: expect.any(Array),
+          }),
+        ]),
       },
       generatedPaths: expect.arrayContaining([
         "packages/convex/confect/capabilities/accountSignals.spec.ts",

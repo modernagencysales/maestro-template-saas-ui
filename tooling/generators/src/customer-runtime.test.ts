@@ -32,13 +32,25 @@ const seedCatalogs = (cwd: string): void => {
       readFileSync(join(repoRoot, "docs/template", name)),
     );
   }
-  const selectedRoute =
-    "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx";
-  mkdirSync(dirname(join(cwd, selectedRoute)), { recursive: true });
-  writeFileSync(
-    join(cwd, selectedRoute),
-    readFileSync(join(repoRoot, selectedRoute)),
+  const catalog = JSON.parse(
+    readFileSync(
+      join(repoRoot, "docs/template/saas-ui-screen-catalog.json"),
+      "utf8",
+    ),
+  ) as {
+    starterRoutes: readonly {
+      id: string;
+      closure: readonly { source: string }[];
+    }[];
+  };
+  const selected = catalog.starterRoutes.find(({ id }) =>
+    id.endsWith("/_dashboard/contacts/index.tsx"),
   );
+  if (!selected) throw new Error("Starter Contacts screen fixture is missing");
+  for (const { source } of selected.closure) {
+    mkdirSync(dirname(join(cwd, source)), { recursive: true });
+    writeFileSync(join(cwd, source), readFileSync(join(repoRoot, source)));
+  }
 };
 
 describe("customer generator runtime", () => {

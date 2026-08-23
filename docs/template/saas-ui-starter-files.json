@@ -38,6 +38,13 @@
       "adapted": true
     },
     {
+      "source": "apps/web/src/components/link.tsx",
+      "destination": "apps/web/src/components/link.tsx",
+      "sourceSha256": "48580bcec63969384975fa24ff3ba6f5d250c2f26d24b8f22e5e4f4bf4b9701b",
+      "sha256": "1582db9f277f8f93653c7ffe1617baadb35ede430c2eb11fcf146048da1b19ca",
+      "adapted": true
+    },
+    {
       "source": "apps/web/src/config/hotkeys.config.ts",
       "destination": "apps/web/src/config/hotkeys.config.ts",
       "sourceSha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",
@@ -778,6 +785,41 @@
       "sourceSha256": "90511b80022cdd7036746f09dcae4697a2c93da6f847d0f743e7d63bb97b4970",
       "sha256": "90511b80022cdd7036746f09dcae4697a2c93da6f847d0f743e7d63bb97b4970",
       "adapted": false
+    },
+    {
+      "source": "apps/web/src/lib/last-used-workspace.ts",
+      "destination": "apps/web/src/lib/last-used-workspace.ts",
+      "sourceSha256": "25ef8c417f416054173f9867873f2391b1d2377136e2fb6d2aa299849dbcf2ee",
+      "sha256": "5e8b7e7c7a449c83f90a0f106c4f16274007efa4134c1bc706821711352b711c",
+      "adapted": true
+    },
+    {
+      "source": "apps/web/src/lib/react-query.ts",
+      "destination": "apps/web/src/lib/react-query.ts",
+      "sourceSha256": "300b4273c1dbde9aa486d857fe6ae0ed466af45d0fdf1ae30c32de6cfa8e0681",
+      "sha256": "46f9e74ad91d1c0309cb414e5cc98d9325bbcebf42e5cde74c6b6bf775f85135",
+      "adapted": true
+    },
+    {
+      "source": "apps/web/src/lib/trpc/react.tsx",
+      "destination": "apps/web/src/lib/trpc/react.tsx",
+      "sourceSha256": "b99def2745bcd560975d0b786745e8855d0c04c4e1f771a88151412e9447a453",
+      "sha256": "083ac13bcc0a8d9a1dddbb6b157ee2cafe6b22b8e8a0716c067238a9a637b1b6",
+      "adapted": true
+    },
+    {
+      "source": "apps/web/src/lib/trpc/utils.ts",
+      "destination": "apps/web/src/lib/trpc/utils.ts",
+      "sourceSha256": "10391e854ef9e2cf89369c0ac7159603039da092c1680949932385e637665dbf",
+      "sha256": "fd445821becfb4bbe39900a2fa0686959495b1455d90264d0ab5ed3f9b823c35",
+      "adapted": true
+    },
+    {
+      "source": "apps/web/src/lib/user-settings/use-user-settings.ts",
+      "destination": "apps/web/src/lib/user-settings/use-user-settings.ts",
+      "sourceSha256": "8f23fd4e496fae9f6a2c39fdb37ca1752d4636c8d8e09edb3228c0f4e60aef3a",
+      "sha256": "7d98172d7ecb73819b10c7f8b5716cdcae639f80ed9898ae857d8a7e4159b157",
+      "adapted": true
     },
     {
       "source": "apps/web/src/router.tsx",

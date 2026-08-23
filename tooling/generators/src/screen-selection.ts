@@ -20,6 +20,7 @@ export type SelectedScreenAuthority = Readonly<{
     "data-adapter",
     "mutation-adapter",
     "product-label-icon",
+    "compatibility-seam",
   ];
   requiredVisualStates: typeof requiredVisualStates;
   repository: "starter";
@@ -28,6 +29,15 @@ export type SelectedScreenAuthority = Readonly<{
   sourceSha256: string;
   destinationSha256: string;
   closureSha256: string;
+  destinationClosureSha256: string;
+  files: readonly Readonly<{
+    source: string;
+    destination: string;
+    sourceSha256: string;
+    destinationSha256: string;
+    adapted: boolean;
+    allowedPatches: readonly [] | readonly ["compatibility-seam"];
+  }>[];
   routeSource: string;
 }>;
 
@@ -71,6 +81,31 @@ function selectedRoute(catalog: JsonRecord, id: string): JsonRecord {
   return selected as JsonRecord;
 }
 
+type SourceClosureEntry = Readonly<{ source: string; sha256: string }>;
+
+function sourceClosure(
+  value: unknown,
+  id: string,
+): readonly SourceClosureEntry[] {
+  if (!Array.isArray(value))
+    throw new Error(`Selected screen has no import closure: ${id}`);
+  return value.map((entry) => {
+    if (
+      entry === null ||
+      typeof entry !== "object" ||
+      Array.isArray(entry) ||
+      typeof (entry as JsonRecord).source !== "string" ||
+      typeof (entry as JsonRecord).sha256 !== "string"
+    ) {
+      throw new Error(`Selected screen has an invalid import closure: ${id}`);
+    }
+    return {
+      source: (entry as JsonRecord).source as string,
+      sha256: (entry as JsonRecord).sha256 as string,
+    };
+  });
+}
+
 function selectedFields(selected: JsonRecord, id: string) {
   const { source, composition, sha256: sourceSha256, closureSha256 } = selected;
   if (
@@ -81,15 +116,56 @@ function selectedFields(selected: JsonRecord, id: string) {
   ) {
     throw new Error(`Selected screen is missing composition closure: ${id}`);
   }
-  return { source, composition, sourceSha256, closureSha256 };
+  return {
+    source,
+    composition,
+    sourceSha256,
+    closureSha256,
+    closure: sourceClosure(selected.closure, id),
+  };
 }
 
-function sourceReceipt(receipt: JsonRecord, source: string): JsonRecord {
+function receiptFiles(receipt: JsonRecord): readonly JsonRecord[] {
   if (!Array.isArray(receipt.files))
     throw new Error("Selected screen receipt has no files.");
-  return (receipt.files.find((value) =>
-    isRecordWith(value, "source", source),
-  ) ?? {}) as JsonRecord;
+  return receipt.files.filter(
+    (value): value is JsonRecord =>
+      value !== null && typeof value === "object" && !Array.isArray(value),
+  );
+}
+
+function bindDestinationClosure(
+  root: string,
+  closure: readonly SourceClosureEntry[],
+  receipt: readonly JsonRecord[],
+) {
+  return closure.map(({ source, sha256: sourceSha256 }) => {
+    const entry = receipt.find((value) => value.source === source);
+    if (
+      !entry ||
+      entry.sourceSha256 !== sourceSha256 ||
+      typeof entry.destination !== "string" ||
+      typeof entry.sha256 !== "string" ||
+      typeof entry.adapted !== "boolean"
+    ) {
+      throw new Error(`Import closure is not receipt-bound: ${source}`);
+    }
+    const content = readFileSync(resolve(root, entry.destination));
+    if (sha256(content) !== entry.sha256)
+      throw new Error(
+        `Import closure destination hash is stale: ${entry.destination}`,
+      );
+    return {
+      source,
+      destination: entry.destination,
+      sourceSha256,
+      destinationSha256: entry.sha256,
+      adapted: entry.adapted,
+      allowedPatches: entry.adapted
+        ? (["compatibility-seam"] as const)
+        : ([] as const),
+    };
+  });
 }
 
 export function selectStarterScreen(
@@ -99,14 +175,17 @@ export function selectStarterScreen(
   const catalog = readJson(
     resolve(root, "docs/template/saas-ui-screen-catalog.json"),
   );
-  const { source, composition, sourceSha256, closureSha256 } = selectedFields(
+  const selected = selectedFields(
     selectedRoute(catalog, screenCatalogId),
     screenCatalogId,
   );
+  const { source, composition, sourceSha256, closureSha256, closure } =
+    selected;
 
   const receiptPath = "docs/template/saas-ui-starter-files.json" as const;
-  const receipt = readJson(resolve(root, receiptPath));
-  const selectedReceipt = sourceReceipt(receipt, source);
+  const receipt = receiptFiles(readJson(resolve(root, receiptPath)));
+  const selectedReceipt =
+    receipt.find((entry) => entry.source === source) ?? {};
   if (
     selectedReceipt.sourceSha256 !== sourceSha256 ||
     typeof selectedReceipt.destination !== "string" ||
@@ -123,6 +202,15 @@ export function selectStarterScreen(
       `Selected screen destination hash is stale: ${selectedReceipt.destination}`,
     );
   }
+  const files = bindDestinationClosure(root, closure, receipt);
+  const destinationClosureSha256 = sha256(
+    files
+      .map(
+        ({ destination, destinationSha256 }) =>
+          `${destination}\0${destinationSha256}`,
+      )
+      .join("\n"),
+  );
 
   return {
     screenCatalogId,
@@ -133,6 +221,7 @@ export function selectStarterScreen(
       "data-adapter",
       "mutation-adapter",
       "product-label-icon",
+      "compatibility-seam",
     ],
     requiredVisualStates,
     repository: "starter",
@@ -141,6 +230,8 @@ export function selectStarterScreen(
     sourceSha256,
     destinationSha256: selectedReceipt.sha256,
     closureSha256,
+    destinationClosureSha256,
+    files,
     routeSource,
   };
 }
