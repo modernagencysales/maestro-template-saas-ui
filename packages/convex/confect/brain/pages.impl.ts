@@ -8,6 +8,7 @@ import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
 import { NotFound, ValidationFailed } from "../errors";
 import { withMutationErrorCapture } from "../observability/errorCapture";
 import pages from "./pages.spec";
+import { isAdvancingSnapshotVersion } from "./snapshotVersion";
 
 const unsafeAssumeClockProvided = <A, E, R>(
   effect: Effect.Effect<A, E, R>,
@@ -84,6 +85,13 @@ const recordSnapshotInternal = FunctionImpl.make(
         return yield* new ValidationFailed({
           field: "workspaceId",
           message: "Brain page does not belong to workspace.",
+        });
+      }
+
+      if (!isAdvancingSnapshotVersion(page.editorSnapshotVersion, version)) {
+        return yield* new ValidationFailed({
+          field: "version",
+          message: "Snapshot version must be a newer positive safe integer.",
         });
       }
 
