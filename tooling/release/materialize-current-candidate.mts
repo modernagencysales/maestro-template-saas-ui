@@ -7,6 +7,7 @@ import {
   assertCanonicalTemplateInstance,
   buildCandidateReleaseFixture,
   buildNeutralSaasPlan,
+  createCurrentTemplateInstanceConsumer,
 } from "../../apps/cli/src/factory/customerCandidateFixture";
 import { loadCustomerCreateComposition } from "../../apps/cli/src/factory/createComposition";
 
@@ -122,6 +123,7 @@ export async function materializeCurrentCandidate(
     const create = loadCustomerCreateComposition(
       fixture.source,
       buildNeutralSaasPlan,
+      createCurrentTemplateInstanceConsumer(),
     );
     const result = await create.run(
       [

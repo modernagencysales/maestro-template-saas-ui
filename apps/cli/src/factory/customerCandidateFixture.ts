@@ -70,6 +70,12 @@ export const assertCanonicalTemplateInstance = (targetRoot: string): void => {
     throw new Error("Materialized template-instance.json is not canonical.");
 };
 
+export const createCurrentTemplateInstanceConsumer = () =>
+  createReleaseTemplateInstanceConsumer(
+    templateInstanceSchemaProvider,
+    createTemplateInstanceMigration(templateInstanceSchemaProvider),
+  );
+
 export class RecordsCustomerMaterializationError extends Error {
   readonly stdout: string;
   readonly stderr: string;
@@ -373,10 +379,7 @@ export const withMaterializedRecordsCustomer = async <Value>(
     const create = loadCustomerCreateComposition(
       fixture.source,
       buildRecordsPlan,
-      createReleaseTemplateInstanceConsumer(
-        templateInstanceSchemaProvider,
-        createTemplateInstanceMigration(templateInstanceSchemaProvider),
-      ),
+      createCurrentTemplateInstanceConsumer(),
     );
     const result = await create.run(
       [
