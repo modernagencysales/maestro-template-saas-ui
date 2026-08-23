@@ -10,6 +10,7 @@ describe("product shell configuration generator", () => {
       inboxLabel: "Agency Brain",
       inboxScreen: "brain",
       contactsLabel: "Clients",
+      contactsScreen: "clients",
       kanbanLabel: "Settings",
       kanbanRoute: "/$workspace/settings/account/profile",
       showcaseLabel: "Ask Maestro",
@@ -18,6 +19,7 @@ describe("product shell configuration generator", () => {
 
     expect(result.files[0]?.content).toContain('dashboard: "connections"');
     expect(result.files[0]?.content).toContain('inbox: "brain"');
+    expect(result.files[0]?.content).toContain('contacts: "clients"');
     expect(result.files[0]?.content).toContain("Agency Brain");
     expect(result.files[1]?.content).toContain(
       "pro-story:packages/blocks/settings/integration-card/integration-card.stories.tsx",
@@ -35,6 +37,7 @@ describe("product shell configuration generator", () => {
         inboxLabel: "Inbox",
         inboxScreen: "contacts",
         contactsLabel: "Contacts",
+        contactsScreen: "contacts",
         kanbanLabel: "Kanban",
         kanbanRoute: "/$workspace/kanban",
         showcaseLabel: "Showcase",

@@ -58,6 +58,7 @@ import { ContactAvatar } from '../common/contact-avatar'
 import { ContactStatus } from '../common/contact-status'
 import { ContactTag } from '../common/contact-tag'
 import { ContactType } from '../common/contact-type'
+import { contactsListDataHooks } from '../clients-adapter'
 import { AddPersonDialog } from './add-person-dialog'
 import { ContactBoardHeader } from './contact-board-header'
 import { bulkActions } from './contact-bulk-actions'
@@ -135,9 +136,8 @@ export function ContactsListPage({
 
   const [userSettings] = useUserSettings()
 
-  const { data, isLoading } = api.contacts.listByType.useQuery({
+  const { data, isLoading } = contactsListDataHooks[productShell.contacts]({
     workspaceId: workspace.id,
-    type,
   })
 
   const updateContactMutation = api.contacts.update.useMutation()

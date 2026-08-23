@@ -23,10 +23,10 @@ import { Breadcrumbs } from '#components/breadcrumbs'
 import { productShell } from '#config/product-shell'
 import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace'
 import { useOpenState } from '#hooks/use-open-state.ts'
-import { api } from '#lib/trpc/react'
 
 import { ActivitiesPanel } from './activities-panel'
 import { ContactSidebar } from './contact-sidebar'
+import { contactDetailDataHooks } from '../clients-adapter'
 
 interface ContactPageProps {
   params: {
@@ -62,10 +62,12 @@ export function ContactPage({
 }: ContactPageProps) {
   const [workspace] = useCurrentWorkspace()
 
-  const [data] = api.contacts.byId.useSuspenseQuery({
+  const { data } = contactDetailDataHooks[productShell.contacts]({
     id: params.id,
     workspaceId: workspace.id,
   })
+
+  if (!data) return null
 
   return (
     <ContactPageComposition

@@ -250,6 +250,8 @@ describe("customer generator runtime", () => {
         "brain",
         "--contacts-label",
         "Clients",
+        "--contacts-screen",
+        "clients",
         "--kanban-label",
         "Settings",
         "--kanban-route",
@@ -273,6 +275,9 @@ describe("customer generator runtime", () => {
       expect(
         readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
       ).toContain('inbox: "brain"');
+      expect(
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
+      ).toContain('contacts: "clients"');
       expect(
         readFileSync(
           join(cwd, "docs/template/generated/provenance/configure-shell.json"),

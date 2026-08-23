@@ -419,7 +419,7 @@
       "source": "apps/web/src/features/contacts/list/list-page.tsx",
       "destination": "apps/web/src/features/contacts/list/list-page.tsx",
       "sourceSha256": "9f3d5186cd1b1c06ac7b5c80d68123ff78025d7ac6f4179cef9baae69b8c0a57",
-      "sha256": "d6e3f4b2284f3e1e01daec07582c62c2ad387a4359eed5b4fab75a8ff64a6fd8",
+      "sha256": "ebe1be05f5f36387b187ff322cacc30d5f30529c72cf7b04754ad650f09aded8",
       "adapted": true
     },
     {
@@ -440,7 +440,7 @@
       "source": "apps/web/src/features/contacts/view/contact-page.tsx",
       "destination": "apps/web/src/features/contacts/view/contact-page.tsx",
       "sourceSha256": "3b257938b6133818f25b80a1d56d1f432606bdee1b8f203217338e2b895d8a18",
-      "sha256": "4d51740b79df3d729bcc8d486dbe6da016818bc94fc950b4ccdd6c1d18717df1",
+      "sha256": "223d50dedea38b43302578f3b5c7413a2d2db418e67d29786351a900cace284e",
       "adapted": true
     },
     {

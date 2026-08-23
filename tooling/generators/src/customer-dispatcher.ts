@@ -121,7 +121,7 @@ const customerCommandHelp = {
   "private-package:import":
     "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write",
   "configure-shell":
-    "template:configure-shell --dashboard-label <text> --dashboard-screen reports|connections --inbox-label <text> --inbox-screen contacts|brain --contacts-label <text> --kanban-label <text> --kanban-route <route> --showcase-label <text> --showcase-route <route> [--write]",
+    "template:configure-shell --dashboard-label <text> --dashboard-screen reports|connections --inbox-label <text> --inbox-screen contacts|brain --contacts-label <text> --contacts-screen contacts|clients --kanban-label <text> --kanban-route <route> --showcase-label <text> --showcase-route <route> [--write]",
   doctor:
     "template:doctor [--mode fake|test|live] [--path <template-instance.json>]",
   systems:
@@ -210,12 +210,15 @@ export const runCustomerGeneratorCli = (
       };
       const dashboardScreen = required("--dashboard-screen");
       const inboxScreen = required("--inbox-screen");
+      const contactsScreen = required("--contacts-screen");
       const kanbanRoute = required("--kanban-route");
       const showcaseRoute = required("--showcase-route");
       if (dashboardScreen !== "reports" && dashboardScreen !== "connections")
         throw new Error("--dashboard-screen must be reports or connections");
       if (inboxScreen !== "contacts" && inboxScreen !== "brain")
         throw new Error("--inbox-screen must be contacts or brain");
+      if (contactsScreen !== "contacts" && contactsScreen !== "clients")
+        throw new Error("--contacts-screen must be contacts or clients");
       if (
         kanbanRoute !== "/$workspace/kanban" &&
         kanbanRoute !== "/$workspace/settings/account/profile"
@@ -233,6 +236,7 @@ export const runCustomerGeneratorCli = (
           inboxLabel: required("--inbox-label"),
           inboxScreen,
           contactsLabel: required("--contacts-label"),
+          contactsScreen,
           kanbanLabel: required("--kanban-label"),
           kanbanRoute,
           showcaseLabel: required("--showcase-label"),
