@@ -93,11 +93,19 @@ describe("frontend dependency contract", () => {
       findUnmaterializedShellImports({
         "apps/web/src/components/default-loader.tsx": `import { LoadingOverlay } from "@saas-ui/react";`,
         "apps/web/src/features/common/layouts/app-layout.tsx": `import { Sidebar } from "@saas-ui/react";`,
+        "apps/web/src/features/common/components/app-sidebar.tsx": `import { Sidebar, useSidebar } from "@saas-ui/react";`,
+        "apps/web/src/features/reports/reports-page.tsx": `import { Sidebar, useSidebar } from "@saas-ui/react";`,
+        "apps/web/src/features/settings/common/settings-sidebar.tsx": `import { Sidebar } from "@saas-ui/react";`,
         "valid.tsx": `import { Sidebar } from "#components/ui/sidebar";`,
       }),
     ).toEqual([
       "apps/web/src/components/default-loader.tsx must use the materialized LoadingOverlay registry primitive",
       "apps/web/src/features/common/layouts/app-layout.tsx must use the materialized Sidebar registry primitive",
+      "apps/web/src/features/common/components/app-sidebar.tsx must use the materialized Sidebar registry primitive",
+      "apps/web/src/features/common/components/app-sidebar.tsx must use the materialized useSidebar registry primitive",
+      "apps/web/src/features/reports/reports-page.tsx must use the materialized Sidebar registry primitive",
+      "apps/web/src/features/reports/reports-page.tsx must use the materialized useSidebar registry primitive",
+      "apps/web/src/features/settings/common/settings-sidebar.tsx must use the materialized Sidebar registry primitive",
     ]);
   });
 

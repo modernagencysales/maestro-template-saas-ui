@@ -691,7 +691,8 @@
       "source": "registry:sidebar/ui/sidebar/sidebar.tsx",
       "destination": "apps/web/src/components/ui/sidebar/sidebar.tsx",
       "sourceSha256": "ca4c2a62ae5d7a74f3309b49dd2b83b90b144d128e338e9d3945b346cffc7ecd",
-      "sha256": "cbcaf861bca52061048ce5050c390434cb75ca2f9558ece28c3bbd9db4dd3b28"
+      "sha256": "938b086f2823c0239315b7f2a244d3c4d0c7f3009cf0a0e57eafea927ec86033",
+      "adapted": true
     },
     {
       "source": "registry:spinner/ui/spinner/index.ts",

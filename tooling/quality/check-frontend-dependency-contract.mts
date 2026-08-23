@@ -116,6 +116,26 @@ const materializedShellPrimitives = [
     path: "apps/web/src/features/common/layouts/app-layout.tsx",
     name: "Sidebar",
   },
+  {
+    path: "apps/web/src/features/common/components/app-sidebar.tsx",
+    name: "Sidebar",
+  },
+  {
+    path: "apps/web/src/features/common/components/app-sidebar.tsx",
+    name: "useSidebar",
+  },
+  {
+    path: "apps/web/src/features/reports/reports-page.tsx",
+    name: "Sidebar",
+  },
+  {
+    path: "apps/web/src/features/reports/reports-page.tsx",
+    name: "useSidebar",
+  },
+  {
+    path: "apps/web/src/features/settings/common/settings-sidebar.tsx",
+    name: "Sidebar",
+  },
 ] as const;
 
 export const findUnmaterializedShellImports = (

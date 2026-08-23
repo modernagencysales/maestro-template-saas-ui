@@ -76,10 +76,29 @@ export async function checkDevRuntimeLongevity({
     const healthBefore = await waitForHealth(healthUrl);
     browser = await chromium.launch({ headless: true });
     const page = await browser.newPage();
-    await page.goto(`http://127.0.0.1:${webPort}/records`, {
+    const checkedRoutes = ["/records", "/acme"];
+    for (const route of checkedRoutes) {
+      await page.goto(`http://127.0.0.1:${webPort}${route}`, {
+        waitUntil: "domcontentloaded",
+        timeout: 90_000,
+      });
+      const body = await page.locator("body").innerText();
+      if (body.includes("Something went wrong!"))
+        throw new Error(
+          `web dev runtime rendered its error boundary: ${route}`,
+        );
+    }
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.goto(`http://127.0.0.1:${webPort}/acme`, {
       waitUntil: "domcontentloaded",
       timeout: 90_000,
     });
+    if (
+      (await page
+        .locator('.sui-sidebar__backdrop[data-state="closed"]:visible')
+        .count()) > 0
+    )
+      throw new Error("closed mobile sidebar backdrop remains visible");
     await browser.close();
     browser = undefined;
 
@@ -92,6 +111,8 @@ export async function checkDevRuntimeLongevity({
       healthBefore,
       healthAfter,
       cleanShutdown: exit.code === 0 || exit.signal === "SIGINT",
+      checkedRoutes,
+      checkedViewports: ["desktop", "mobile"],
       logs,
     };
   } catch (error) {

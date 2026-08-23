@@ -10,10 +10,8 @@ import {
   HStack,
   IconButton,
   Menu,
-  Sidebar,
   Spacer,
   Tooltip,
-  useSidebar,
 } from '@saas-ui/react'
 import { useHotkeysShortcut } from '@saas-ui/use-hotkeys'
 import {
@@ -36,6 +34,7 @@ import { useModals } from '@workspace/ui/modals'
 
 import { useUserSettings } from '#lib/user-settings/use-user-settings'
 import { productShell } from '#config/product-shell'
+import { Sidebar, useSidebar } from '#components/ui/sidebar'
 
 import { useWorkspaceSlug } from '../hooks/use-workspace-slug'
 import { BillingStatus } from './billing-status'

@@ -188,7 +188,7 @@
       "source": "apps/web/src/features/common/components/app-sidebar.tsx",
       "destination": "apps/web/src/features/common/components/app-sidebar.tsx",
       "sourceSha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "sha256": "c8aca2e8e31ef7465f713d79027332e4478c3071af3cbaed2606ccd2e1a9d1e7",
+      "sha256": "23aeacaf4d98b2c7bdcecef85fa7231d46ab46ad615cc5ed5baeb1d040496b9f",
       "adapted": true
     },
     {
@@ -594,8 +594,8 @@
       "source": "apps/web/src/features/reports/reports-page.tsx",
       "destination": "apps/web/src/features/reports/reports-page.tsx",
       "sourceSha256": "fe804d3873917ad8e7cc615f205a59c6bbbabac9e6ed221fca503a9569734d58",
-      "sha256": "fe804d3873917ad8e7cc615f205a59c6bbbabac9e6ed221fca503a9569734d58",
-      "adapted": false
+      "sha256": "400c462442cb41d92c8f2171649fbcc34e01062cb1dbed9283445e31ddc98773",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/search/search-page.tsx",
@@ -706,8 +706,8 @@
       "source": "apps/web/src/features/settings/common/settings-sidebar.tsx",
       "destination": "apps/web/src/features/settings/common/settings-sidebar.tsx",
       "sourceSha256": "bea225dd07d211543d8445a918f192c7bde6cdcacf42fdc9280be96315f90a84",
-      "sha256": "bea225dd07d211543d8445a918f192c7bde6cdcacf42fdc9280be96315f90a84",
-      "adapted": false
+      "sha256": "1bbe47ce071c862aeef97978406429f5c3431f3ece20322c37c1fb411f7148cc",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/settings/common/support-card.tsx",
