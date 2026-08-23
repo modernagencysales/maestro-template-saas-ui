@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 
 import {
   clientWorkspaceFixtures,
+  contactsListDataHooks,
   projectClientWorkspaceToContact,
   projectClientWorkspacesToContacts,
   starterContactsListInput,
@@ -53,5 +54,11 @@ describe('client workspaces to Starter Contacts adapter', () => {
     expect(
       starterContactsListInput({ workspaceId: 'workspace-northstar' }),
     ).toEqual({ workspaceId: 'workspace-northstar' })
+    expect(
+      contactsListDataHooks.contacts({
+        workspaceId: 'workspace-northstar',
+        type: 'lead',
+      }).data,
+    ).toEqual({ contacts: [] })
   })
 })
