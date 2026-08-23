@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildScreenCatalog,
   verifyVendoredScreenCatalog,
+  verifyShippedScreenCatalog,
 } from "./screen-catalog.mts";
 
 const root = resolve(import.meta.dirname, "../..");
@@ -71,6 +72,7 @@ describe("complete Saas UI screen catalogue", () => {
 
     expect(committed).toEqual(catalog);
     expect(await verifyVendoredScreenCatalog(root)).toEqual([]);
+    expect(await verifyShippedScreenCatalog(root)).toEqual([]);
 
     for (const entry of [...catalog.demoRoutes, ...catalog.stories]) {
       const content = await readFile(join(proRoot, entry.source), "utf8");

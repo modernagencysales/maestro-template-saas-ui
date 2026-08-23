@@ -551,17 +551,79 @@ export async function verifyVendoredScreenCatalog(
   return differences;
 }
 
+export async function verifyShippedScreenCatalog(
+  root: string,
+): Promise<readonly string[]> {
+  try {
+    const catalog = JSON.parse(
+      await readFile(
+        join(root, "docs/template/saas-ui-screen-catalog.json"),
+        "utf8",
+      ),
+    ) as Partial<ScreenCatalog>;
+    const receipt = JSON.parse(
+      await readFile(
+        join(root, "docs/template/saas-ui-vendor-receipt.json"),
+        "utf8",
+      ),
+    ) as Partial<VendorReceipt>;
+    const collections = [
+      catalog.demoRoutes,
+      catalog.demoStates,
+      catalog.stories,
+      catalog.starterRoutes,
+      catalog.starterStories,
+    ];
+    if (
+      catalog.schemaVersion !== 1 ||
+      receipt.schemaVersion !== 1 ||
+      !collections.every(Array.isArray) ||
+      !Array.isArray(receipt.entries) ||
+      !Array.isArray(receipt.sources)
+    )
+      return ["shipped Saas UI screen authority is malformed"];
+    const entries = collections.flatMap((collection) => collection ?? []);
+    if (
+      entries.some(
+        (entry) =>
+          !entry.closure.length ||
+          entry.sha256 !==
+            entry.closure.find(({ source }) => source === entry.source)
+              ?.sha256 ||
+          entry.closureSha256 !== closureHash(entry.closure),
+      )
+    )
+      return ["shipped Saas UI screen closure is invalid"];
+    return [];
+  } catch {
+    return ["shipped Saas UI screen authority is unreadable"];
+  }
+}
+
 async function main(): Promise<void> {
   const root = resolve(import.meta.dirname, "../..");
   const proRoot = join(root, "repos/saas-ui-pro");
   const starterRoot = join(root, "repos/tanstack-start-starter-kit-pro");
   if (process.argv.includes("--check")) {
-    const differences = await verifyVendoredScreenCatalog(root);
+    let vendored = true;
+    try {
+      await access(proRoot);
+      await access(starterRoot);
+    } catch {
+      vendored = false;
+    }
+    const differences = vendored
+      ? await verifyVendoredScreenCatalog(root)
+      : await verifyShippedScreenCatalog(root);
     if (differences.length > 0) {
       process.stderr.write(`${differences.join("\n")}\n`);
       process.exitCode = 1;
     } else {
-      process.stdout.write("Vendored Saas UI screen catalogue verified.\n");
+      process.stdout.write(
+        vendored
+          ? "Vendored Saas UI screen catalogue verified.\n"
+          : "Shipped Saas UI screen authority verified.\n",
+      );
     }
     return;
   }
