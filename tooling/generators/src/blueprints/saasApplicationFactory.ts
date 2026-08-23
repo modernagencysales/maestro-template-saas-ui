@@ -123,6 +123,29 @@ const bindStarterReceiptToGeneratedFiles = (
   });
 };
 
+const bindRecordsContractToFrontendRefs = (
+  files: readonly GeneratedFile[],
+  selected: boolean,
+): readonly GeneratedFile[] =>
+  selected
+    ? files.map((file) =>
+        file.path === "packages/convex/src/refs.ts"
+          ? {
+              ...file,
+              content: file.content
+                .replace(
+                  'import connections from "../confect/integrations/connections.spec";',
+                  'import connections from "../confect/integrations/connections.spec";\nimport records from "../confect/records/records.spec";',
+                )
+                .replace(
+                  'GroupSpec.makeAt("integrations").addGroupAt("connections", connections),\n  );',
+                  'GroupSpec.makeAt("integrations").addGroupAt("connections", connections),\n  )\n  .addAt("records", GroupSpec.makeAt("records").addGroupAt("records", records));',
+                ),
+            }
+          : file,
+      )
+    : files;
+
 const customerSourcePath = (path: string): string =>
   path === "packages/convex/confect/workflows/_generated/workflowRegistry.ts"
     ? `const definePublicationRegistry = <const Registry>(\n  registry: Registry,\n): Registry => registry;\n\nexport const workflowPublicationRegistry = definePublicationRegistry({\n  capabilities: [],\n  workflows: [],\n});\n`
@@ -771,26 +794,29 @@ export const buildFactorySaasApplicationFiles = (options: {
     ),
   );
   return bindStarterReceiptToGeneratedFiles(
-    projectWorkflowCommandReferences(
-      [
-        ...currentFiles,
-        ...contractFiles,
-        ...registrationFiles,
-        ...frontendFiles.filter(({ path }) => !existingPaths.has(path)),
-        ...currentCustomerSourceProjections(options).filter(
-          ({ path }) =>
-            !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
-        ),
-        ...(selectsSaasApplicationPattern(options, "records-example")
-          ? [recordsFeatureProvenance()]
-          : []),
-      ].reduce<GeneratedFile[]>((files, file) => {
-        const existing = files.findIndex(({ path }) => path === file.path);
-        if (existing >= 0) files[existing] = file;
-        else files.push(file);
-        return files;
-      }, []),
-      options,
+    bindRecordsContractToFrontendRefs(
+      projectWorkflowCommandReferences(
+        [
+          ...currentFiles,
+          ...contractFiles,
+          ...registrationFiles,
+          ...frontendFiles.filter(({ path }) => !existingPaths.has(path)),
+          ...currentCustomerSourceProjections(options).filter(
+            ({ path }) =>
+              !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
+          ),
+          ...(selectsSaasApplicationPattern(options, "records-example")
+            ? [recordsFeatureProvenance()]
+            : []),
+        ].reduce<GeneratedFile[]>((files, file) => {
+          const existing = files.findIndex(({ path }) => path === file.path);
+          if (existing >= 0) files[existing] = file;
+          else files.push(file);
+          return files;
+        }, []),
+        options,
+      ),
+      selectsSaasApplicationPattern(options, "records-example"),
     ),
   );
 };

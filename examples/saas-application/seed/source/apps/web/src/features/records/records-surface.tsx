@@ -3,7 +3,10 @@ import { Button, Card, Heading, Input, Stack, Text } from "@saas-ui/react";
 import { convexQuery } from "@convex-dev/react-query";
 import { useQuery as useConvexQuery } from "@tanstack/react-query";
 import { useMutation } from "convex/react";
-import { templateConfectRefs } from "@maestro-template/convex/refs";
+import {
+  getFunctionReference,
+  templateConfectRefs,
+} from "@maestro-template/convex/refs";
 import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
 import { useWorkspaceSlug } from "#features/common/hooks/use-workspace-slug";
 import type {
@@ -16,6 +19,12 @@ import { presentRecords, type RecordsState } from "./model.js";
 
 const sharedFakeAdapter = createFakeRecordAdapter();
 const sharedHttpAdapter = createHttpRecordAdapter();
+const listRecordsRef = getFunctionReference(
+  templateConfectRefs.public.records.list,
+);
+const createRecordRef = getFunctionReference(
+  templateConfectRefs.public.records.create,
+);
 
 export function RecordsSurface({
   fakeAdapter = sharedFakeAdapter,
@@ -96,11 +105,11 @@ function LocalRecordsSurface() {
   const workspaceId = workspace?.id;
   const listState = useConvexQuery(
     convexQuery(
-      templateConfectRefs.public.records.list,
+      listRecordsRef,
       workspaceId === undefined ? "skip" : { workspaceId },
     ),
   );
-  const createRecord = useMutation(templateConfectRefs.public.records.create);
+  const createRecord = useMutation(createRecordRef);
   const [selected, setSelected] = useState<SaaSRecord | null>(null);
   const [creating, setCreating] = useState(false);
   const [failure, setFailure] = useState<string | null>(null);
@@ -118,20 +127,25 @@ function LocalRecordsSurface() {
       };
     }
     if (listState.data !== undefined) {
+      const records = listState.data as readonly {
+        readonly _id: unknown;
+        readonly workspaceId: unknown;
+        readonly title: string;
+        readonly detail: string;
+        readonly createdAt: number;
+        readonly updatedAt: number;
+      }[];
+      if (records.length === 0) return { status: "empty" };
       return {
-        status: listState.data.length === 0 ? "empty" : "list",
-        ...(listState.data.length === 0
-          ? {}
-          : {
-              records: listState.data.map((record) => ({
-                id: String(record._id),
-                workspaceId: String(record.workspaceId),
-                title: record.title,
-                detail: record.detail,
-                createdAt: record.createdAt,
-                updatedAt: record.updatedAt,
-              })),
-            }),
+        status: "list",
+        records: records.map((record): SaaSRecord => ({
+          id: String(record._id),
+          workspaceId: String(record.workspaceId),
+          title: record.title,
+          detail: record.detail,
+          createdAt: record.createdAt,
+          updatedAt: record.updatedAt,
+        })),
       };
     }
     return { status: "loading" };
