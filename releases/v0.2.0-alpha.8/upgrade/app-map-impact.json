@@ -2,13 +2,16 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
-  "subjectRevision": "66e4ba0815681054ba81ef3d636b789d15de5124",
+  "subjectRevision": "b87754d219447e7e46eda4c5e042308a827dcbd5",
   "structuralPaths": [],
-  "ownershipCoveredPaths": ["docs/template/template-release-process.md"],
+  "ownershipCoveredPaths": [
+    "apps/cli/src/factory/candidateComposition.test.ts",
+    "docs/template/template-release-process.md"
+  ],
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
-    "subjectRevision": "66e4ba0815681054ba81ef3d636b789d15de5124",
+    "subjectRevision": "b87754d219447e7e46eda4c5e042308a827dcbd5",
     "complete": true,
     "risk": "low",
     "changedPaths": [],

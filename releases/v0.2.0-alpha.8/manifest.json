@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.8",
     "tag": "maestro-template-v0.2.0-alpha.8",
-    "sourceCommit": "66e4ba0815681054ba81ef3d636b789d15de5124",
-    "sourceChecksum": "sha256:72b563c7eca4be1d77fd365fe5e3aa3d7e8391f33cc4d79a0031d964284639e4"
+    "sourceCommit": "b87754d219447e7e46eda4c5e042308a827dcbd5",
+    "sourceChecksum": "sha256:1ffda1f9482006efd757c67f57ba4c4f7b4261f3af55d8fb2be35a2bbf13df36"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -21,6 +21,14 @@
       "immediatePriorVersion": "0.2.0-alpha.7"
     },
     "operations": [
+      {
+        "id": "upgrade-modify-apps-cli-src-factory-candidateComposition-test-ts",
+        "kind": "modify",
+        "path": "apps/cli/src/factory/candidateComposition.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:8ba5bedc7fb7d19471b943f75cc35c2da4a5eccd9bfea7a7e5f01c64b503228e",
+        "afterHash": "sha256:3dfd9d1507602223e8bc8909e5976a7baf1441ab1a31850d637e4623ff0c49cf"
+      },
       {
         "id": "upgrade-modify-docs-template-template-release-process-md",
         "kind": "modify",
@@ -36,7 +44,7 @@
   "additionalPaths": [],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:005d3a7f343fe1a436dce8bfe13733e7e937103538b613c09aea4ce03e896694"
+    "sha256": "sha256:5fd273328b9fc7fd5e996596fb628a39a3185c8fa65a770be0d3ca8b30ada904"
   },
   "migrationHandoff": {
     "required": false,
@@ -48,10 +56,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.8/upgrade/app-map-input.json",
-    "sha256": "sha256:fe3f4b4d546c052613d2db9170bcc1d34aa2ce70e9682953d7d229581b717a01",
+    "sha256": "sha256:61a705a39bcf276efc23f0cb81215e03f891e86bea4b4adad4500de449bde281",
     "projection": {
       "path": "releases/v0.2.0-alpha.8/upgrade/app-map-impact.json",
-      "sha256": "sha256:ce7dfdaf002b46120b8b2ec4eed2ef21cf17e120981d4b533ad4c8643c653101"
+      "sha256": "sha256:e92e1829cb8f6a065dbaf52692e59c9f0a1d8d4d1736c11dc55f12fc57718018"
     }
   }
 }
