@@ -750,6 +750,31 @@ const targetEntryIdentity = (
 const sha256 = (value: string): string =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
+const projectTargetTypecheckBaseline = (
+  files: readonly GeneratedFile[],
+): readonly GeneratedFile[] => {
+  const lockfile = files.find(({ path }) => path === "pnpm-lock.yaml");
+  if (!lockfile) throw new Error("SaaS target plan has no pnpm-lock.yaml");
+  const lockDigest = createHash("sha256")
+    .update(lockfile.content)
+    .digest("hex");
+  return files.map((file) => {
+    if (
+      file.path !== "tooling/quality/fixtures/saas-ui-typecheck-baseline.json"
+    )
+      return file;
+    const baseline = JSON.parse(file.content) as Record<string, unknown>;
+    return {
+      ...file,
+      content: `${JSON.stringify(
+        { ...baseline, pnpmLockSha256: lockDigest },
+        null,
+        2,
+      )}\n`,
+    };
+  });
+};
+
 export function buildSaasApplicationTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan;
@@ -963,9 +988,12 @@ function buildTargetPlan(
     ["packages/convex/test/workflow-lifecycle-registration.test.ts", "copy"],
   ]);
   const customerExtensions = new Set(["CLAUDE.md"]);
-  const files = current
+  const sourceFiles = current
     ? buildFactorySaasApplicationFiles(options)
     : buildAlpha1SaasApplicationFiles(options);
+  const files = current
+    ? projectTargetTypecheckBaseline(sourceFiles)
+    : sourceFiles;
   const entries = files
     .filter(({ path }) => path !== "template-instance.json")
     .map(({ path, content }) => {
