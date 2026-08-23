@@ -46,6 +46,7 @@
     "template:prototype": "tsx tooling/generators/src/cli.ts prototype",
     "template:add-client-domain": "tsx tooling/generators/src/cli.ts add-client-domain",
     "template:add-feature": "tsx tooling/generators/src/cli.ts add-feature",
+    "template:configure-shell": "tsx tooling/generators/src/customer-cli.ts configure-shell",
     "template:add-capability": "tsx tooling/generators/src/cli.ts add-capability",
     "template:add-table": "tsx tooling/generators/src/cli.ts add-table",
     "template:add-workflow": "tsx tooling/generators/src/cli.ts add-workflow",

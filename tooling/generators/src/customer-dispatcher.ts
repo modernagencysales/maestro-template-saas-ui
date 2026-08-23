@@ -22,6 +22,7 @@ import {
   type SystemGeneratorDisposition,
 } from "./customer-runtime";
 import { executePrivatePackagePlan } from "./private-package";
+import { buildShellConfigurationFiles } from "./shell-configuration";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";
 
 export type CustomerCommandResult = {
@@ -83,6 +84,7 @@ const customerCommands = [
   "publish-workflow",
   "private-package:dry-run",
   "private-package:import",
+  "configure-shell",
   "doctor",
   "systems",
   "smoke",
@@ -118,6 +120,8 @@ const customerCommandHelp = {
     "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
   "private-package:import":
     "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write",
+  "configure-shell":
+    "template:configure-shell --dashboard-label <text> --dashboard-screen reports|connections --inbox-label <text> --contacts-label <text> --kanban-label <text> --kanban-route <route> --showcase-label <text> --showcase-route <route> [--write]",
   doctor:
     "template:doctor [--mode fake|test|live] [--path <template-instance.json>]",
   systems:
@@ -196,6 +200,41 @@ export const runCustomerGeneratorCli = (
         dataResources: readDataResourceCatalog(cwd).resources.length,
         topology: readProductTopology(cwd).resources.length,
       });
+    }
+    if (command === "configure-shell") {
+      const required = (flag: string): string => {
+        const value = valueAfter(cliArgv, flag);
+        if (!value)
+          throw new Error(`Missing required ${flag} for configure-shell`);
+        return value;
+      };
+      const dashboardScreen = required("--dashboard-screen");
+      const kanbanRoute = required("--kanban-route");
+      const showcaseRoute = required("--showcase-route");
+      if (dashboardScreen !== "reports" && dashboardScreen !== "connections")
+        throw new Error("--dashboard-screen must be reports or connections");
+      if (
+        kanbanRoute !== "/$workspace/kanban" &&
+        kanbanRoute !== "/$workspace/settings/account/profile"
+      )
+        throw new Error("Unsupported --kanban-route");
+      if (
+        showcaseRoute !== "/$workspace/showcase" &&
+        showcaseRoute !== "/$workspace/search"
+      )
+        throw new Error("Unsupported --showcase-route");
+      return finish(
+        buildShellConfigurationFiles({
+          dashboardLabel: required("--dashboard-label"),
+          dashboardScreen,
+          inboxLabel: required("--inbox-label"),
+          contactsLabel: required("--contacts-label"),
+          kanbanLabel: required("--kanban-label"),
+          kanbanRoute,
+          showcaseLabel: required("--showcase-label"),
+          showcaseRoute,
+        }),
+      );
     }
     if (
       command === "private-package:dry-run" ||

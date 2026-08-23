@@ -235,6 +235,50 @@ describe("customer generator runtime", () => {
     expect(generated).not.toContain("Replace fake fixtures");
   });
 
+  it("previews and writes the reviewed product shell configuration", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-shell-"));
+    try {
+      const argv = [
+        "configure-shell",
+        "--dashboard-label",
+        "Connections",
+        "--dashboard-screen",
+        "connections",
+        "--inbox-label",
+        "Agency Brain",
+        "--contacts-label",
+        "Clients",
+        "--kanban-label",
+        "Settings",
+        "--kanban-route",
+        "/$workspace/settings/account/profile",
+        "--showcase-label",
+        "Ask Maestro",
+        "--showcase-route",
+        "/$workspace/search",
+      ];
+      const preview = runCustomerGeneratorCli(argv, cwd);
+      expect(preview.exitCode).toBe(0);
+      expect(() =>
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts")),
+      ).toThrow();
+      expect(runCustomerGeneratorCli([...argv, "--write"], cwd).exitCode).toBe(
+        0,
+      );
+      expect(
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
+      ).toContain("Agency Brain");
+      expect(
+        readFileSync(
+          join(cwd, "docs/template/generated/provenance/configure-shell.json"),
+          "utf8",
+        ),
+      ).toContain("starter-story:packages/ui/src/editor/editor.stories.tsx");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
+  });
+
   it("previews and writes an add-table lifecycle slice", () => {
     const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-table-"));
     try {
