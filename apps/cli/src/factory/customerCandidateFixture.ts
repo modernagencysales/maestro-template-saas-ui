@@ -32,6 +32,14 @@ const git = (repository: string, args: readonly string[]): Buffer =>
     maxBuffer: 512 * 1024 * 1024,
   });
 
+const removeCandidateFixture = (path: string): void =>
+  rmSync(path, {
+    recursive: true,
+    force: true,
+    maxRetries: 10,
+    retryDelay: 100,
+  });
+
 const writeJson = (path: string, value: unknown): Buffer => {
   const bytes = Buffer.from(`${JSON.stringify(value, null, 2)}\n`);
   writeFileSync(path, bytes);
@@ -358,7 +366,7 @@ export const buildCandidateReleaseFixture = (input: {
       targetRoot,
     };
   } catch (error) {
-    rmSync(parent, { recursive: true, force: true });
+    removeCandidateFixture(parent);
     throw error;
   }
 };
@@ -418,6 +426,6 @@ export const withMaterializedRecordsCustomer = async <Value>(
       throw new Error("materialized customer checkout is dirty");
     return await operation(fixture.targetRoot);
   } finally {
-    rmSync(fixture.parent, { recursive: true, force: true });
+    removeCandidateFixture(fixture.parent);
   }
 };
