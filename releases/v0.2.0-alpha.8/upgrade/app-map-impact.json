@@ -2,16 +2,19 @@
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
   "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
-  "subjectRevision": "b87754d219447e7e46eda4c5e042308a827dcbd5",
+  "subjectRevision": "c72b87f1b957d1cf118f046f5eb2e000b58208bd",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
     "apps/cli/src/factory/candidateComposition.test.ts",
-    "docs/template/template-release-process.md"
+    "apps/cli/src/factory/customerCliRuntime.test.ts",
+    "docs/template/template-release-process.md",
+    "lefthook.yml",
+    "tooling/quality/delivery-batch-authority.test.mts"
   ],
   "impact": {
     "schemaVersion": 1,
     "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
-    "subjectRevision": "b87754d219447e7e46eda4c5e042308a827dcbd5",
+    "subjectRevision": "c72b87f1b957d1cf118f046f5eb2e000b58208bd",
     "complete": true,
     "risk": "low",
     "changedPaths": [],

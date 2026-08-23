@@ -3,7 +3,7 @@
   "id": "saas-application",
   "provenance": "@maestro-template/generators/saas-application@1",
   "projectionSource": {
-    "sourceCommit": "b87754d219447e7e46eda4c5e042308a827dcbd5",
+    "sourceCommit": "c72b87f1b957d1cf118f046f5eb2e000b58208bd",
     "assets": [
       {
         "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
@@ -3970,7 +3970,7 @@
       "ownership": "generated",
       "action": "generate",
       "upgrade": "regenerate",
-      "sha256": "sha256:6d62b234344feb15869b127530f18af49de44bb3a027dbea4ff5f59de48e9ad0",
+      "sha256": "sha256:129e672f35f3411db31de3c48dfe6c36a5afcc0bdf4f1ee85732768b35cdc2b8",
       "replaces": "copy"
     },
     {
