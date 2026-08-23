@@ -2,7 +2,17 @@ import type { IconType } from 'react-icons'
 import { FaGoogleDrive, FaSlack } from 'react-icons/fa6'
 import { SiHubspot } from 'react-icons/si'
 
-export type ConnectionStatus = 'available' | 'connected'
+export type ConnectionStatus =
+  | 'available'
+  | 'connecting'
+  | 'connected'
+  | 'error'
+
+export type DurableConnection = Readonly<{
+  provider: ConnectionCardModel['id']
+  status: 'authorizing' | 'verifying' | 'active' | 'error' | 'revoked'
+  generation: number
+}>
 
 export type ConnectionCardModel = Readonly<{
   id: 'slack' | 'google-drive' | 'hubspot'
@@ -47,3 +57,17 @@ export const transitionConnectionStatus = (
   status: ConnectionStatus,
   event: 'connect' | 'disconnect',
 ): ConnectionStatus => (event === 'connect' ? 'connected' : 'available')
+
+export const projectDurableConnectionStatus = (
+  connection: DurableConnection | undefined,
+): ConnectionStatus => {
+  if (connection?.status === 'active') return 'connected'
+  if (
+    connection?.status === 'authorizing' ||
+    connection?.status === 'verifying'
+  ) {
+    return 'connecting'
+  }
+  if (connection?.status === 'error') return 'error'
+  return 'available'
+}

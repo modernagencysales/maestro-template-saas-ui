@@ -52,6 +52,7 @@ export type OrganizationMembersDoc = Document.Document<typeof schemaDefinition, 
 export type OrganizationsDoc = Document.Document<typeof schemaDefinition, "organizations">;
 export type PoliciesDoc = Document.Document<typeof schemaDefinition, "policies">;
 export type PromptRegistryDoc = Document.Document<typeof schemaDefinition, "promptRegistry">;
+export type ProviderConnectionsDoc = Document.Document<typeof schemaDefinition, "providerConnections">;
 export type PurchasesDoc = Document.Document<typeof schemaDefinition, "purchases">;
 export type ReportOwnershipsDoc = Document.Document<typeof schemaDefinition, "reportOwnerships">;
 export type SupportIncidentsDoc = Document.Document<typeof schemaDefinition, "supportIncidents">;
@@ -127,6 +128,7 @@ export interface Docs {
   organizations: OrganizationsDoc;
   policies: PoliciesDoc;
   promptRegistry: PromptRegistryDoc;
+  providerConnections: ProviderConnectionsDoc;
   purchases: PurchasesDoc;
   reportOwnerships: ReportOwnershipsDoc;
   supportIncidents: SupportIncidentsDoc;
