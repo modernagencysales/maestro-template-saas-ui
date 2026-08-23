@@ -97,6 +97,8 @@ const FACTORY_ONLY_EXACT = new Set([
   "packages/convex/confect/capabilities/manageEvaluationReport.impl.ts",
   "packages/convex/confect/capabilities/manageEvaluationReport.spec.ts",
   "packages/convex/confect/capabilities/manageEvaluationReport.test.ts",
+  "packages/convex/confect/_generated/registeredFunctions/demo/showcase.ts",
+  "packages/convex/convex/demo/showcase.ts",
   "packages/convex/confect/workflowContracts/generateCompleteBuildPack.impl.ts",
   "packages/convex/confect/workflowContracts/generateCompleteBuildPack.spec.ts",
   "packages/convex/confect/workflows/generateCompleteBuildPack.graph.ts",

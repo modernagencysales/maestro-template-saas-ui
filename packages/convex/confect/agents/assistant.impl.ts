@@ -20,8 +20,8 @@ import {
   Unauthorized,
   WorkspaceNotFound,
 } from "../errors";
-import { loadLlmGatewayEnvConfig } from "../evaluator/providerConfig";
 import { RuntimeModeConfig } from "../shared/config";
+import { loadLlmGatewayEnvConfig } from "../shared/env";
 import assistant, { AssistantError } from "./assistant.spec";
 import { createAssistantLanguageModel } from "./assistantModel";
 
