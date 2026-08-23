@@ -418,7 +418,17 @@ describe("materialized customer CLI runtime closure", () => {
     expect(
       systems.systems.some(({ tables }) => tables.includes("records")),
     ).toBe(false);
+    expect(
+      systems.systems.some(
+        ({ id, tables }) =>
+          id === "provider-integrations" &&
+          tables.includes("providerConnections"),
+      ),
+    ).toBe(true);
     expect(resources.resources.some(({ id }) => id === "records")).toBe(false);
+    expect(
+      resources.resources.some(({ id }) => id === "providerConnections"),
+    ).toBe(true);
   }, 180_000);
 
   // eslint-disable-next-line complexity -- AP-008 tracks extracting customer install setup without losing the end-to-end import proof.
@@ -785,7 +795,7 @@ describe("materialized customer CLI runtime closure", () => {
       "turbo run test --filter='./packages/*' --filter=@maestro-template/web && pnpm test:tooling",
     );
     expect(customerPackage.scripts["test:tooling"]).toBe(
-      "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts --maxWorkers=1 --no-file-parallelism",
+      "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts --maxWorkers=1 --no-file-parallelism",
     );
     expect(customerPackage.scripts.verify).toBe(
       [
@@ -907,6 +917,8 @@ describe("materialized customer CLI runtime closure", () => {
         "--answer",
         "canonicalOwner=access-and-tenancy",
         "--answer",
+        "screenCatalogId=starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
+        "--answer",
         "tenantScope=workspace",
         "--answer",
         "sensitivity=internal",
@@ -929,7 +941,10 @@ describe("materialized customer CLI runtime closure", () => {
         env: supportedHostEnvironment,
       },
     );
-    expect(addPreview.status, addPreview.stderr).toBe(0);
+    expect(
+      addPreview.status,
+      `${addPreview.stdout}\n${addPreview.stderr}`,
+    ).toBe(0);
     expect(JSON.parse(addPreview.stdout)).toMatchObject({
       exitClass: "success",
       data: {

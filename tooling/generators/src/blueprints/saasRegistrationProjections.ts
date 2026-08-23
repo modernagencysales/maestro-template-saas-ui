@@ -534,7 +534,7 @@ const customerPackage = (
     "turbo run test --filter='./packages/*' --filter=@maestro-template/web && pnpm test:tooling";
   value.scripts["test:tooling"] = workflowSelected
     ? "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism"
-    : "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts --maxWorkers=1 --no-file-parallelism";
+    : "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts --maxWorkers=1 --no-file-parallelism";
   value.scripts["check:coverage-ratchet"] =
     `vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality${workflowSelected ? " tooling/workflow" : ""} tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts`;
   value.scripts["coverage:update-baseline"] =

@@ -417,6 +417,53 @@ describe("saas application blueprint", () => {
     ).toBe(true);
   });
 
+  it("retains current customer production ownership beyond the immutable release", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan({ name: "Current Ownership" }).entries.map(
+        ({ path, content }) => [path, content],
+      ),
+    );
+    const systems = parseSystemCatalog(
+      JSON.parse(entries.get("docs/template/system-catalog.json") ?? "{}"),
+    ).systems;
+    const dataResources = parseDataResourceCatalog(
+      JSON.parse(entries.get("docs/template/data-resources.json") ?? "{}"),
+    ).resources;
+    const topologyIds = new Set(
+      parseProductTopology(
+        JSON.parse(entries.get("docs/template/product-topology.json") ?? "{}"),
+      ).resources.map(({ id }) => id),
+    );
+
+    expect(
+      systems.some(
+        ({ id, tables }) =>
+          id === "provider-integrations" &&
+          tables.includes("providerConnections"),
+      ),
+    ).toBe(true);
+    expect(dataResources.some(({ id }) => id === "providerConnections")).toBe(
+      true,
+    );
+    for (const id of [
+      "job:workpool",
+      "integration:dodo-crypto",
+      "integration:dodo-webhook",
+      "integration:provider-adapter",
+      "integration:provider-registry",
+      "integration:admaxxer",
+      "integration:email",
+      "integration:email-setup",
+      "provider:observability",
+      "headless:api-key-contract",
+      "headless:api-key-runtime",
+      "headless:executor",
+      "headless:mcp",
+      "headless:openapi",
+    ])
+      expect(topologyIds.has(id), id).toBe(true);
+  });
+
   it("derives scripts and lockfile importers from materialized patterns", () => {
     const buildSelected = buildSaasApplicationTargetPlan as (options: {
       readonly name: string;

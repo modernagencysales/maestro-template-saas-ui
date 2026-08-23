@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -17,6 +18,15 @@ import {
 import { buildAgentFiles } from "./customer-runtime";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+const workflowAutomationSelected = existsSync(
+  join(repoRoot, "tooling/workflow/package.json"),
+);
+const mutatingGeneratorCases: ReadonlyArray<readonly [string, string]> = [
+  ["add-capability", "customerReview"],
+  ...(workflowAutomationSelected
+    ? ([["add-workflow", "customerReviewFlow"]] as const)
+    : []),
+];
 
 const seedCatalogs = (cwd: string): void => {
   mkdirSync(join(cwd, "docs/template"), { recursive: true });
@@ -168,37 +178,37 @@ describe("customer generator runtime", () => {
     }
   });
 
-  it.each([
-    ["add-capability", "customerReview"],
-    ["add-workflow", "customerReviewFlow"],
-  ])("previews and writes %s with identical bytes", (command, name) => {
-    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-runtime-"));
-    try {
-      const argv = [
-        command,
-        "--name",
-        name,
-        "--system",
-        "knowledge-brain",
-        "--disposition",
-        "extend",
-      ];
-      const preview = runCustomerGeneratorCli(argv, cwd);
-      expect(preview.exitCode).toBe(0);
-      const result = JSON.parse(preview.stdout) as {
-        files: readonly { path: string; content: string }[];
-      };
-      for (const file of result.files)
-        expect(() => readFileSync(join(cwd, file.path))).toThrow();
-      expect(runCustomerGeneratorCli([...argv, "--write"], cwd).exitCode).toBe(
-        0,
-      );
-      for (const file of result.files)
-        expect(readFileSync(join(cwd, file.path), "utf8")).toBe(file.content);
-    } finally {
-      rmSync(cwd, { recursive: true, force: true });
-    }
-  });
+  it.each(mutatingGeneratorCases)(
+    "previews and writes %s with identical bytes",
+    (command, name) => {
+      const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-runtime-"));
+      try {
+        const argv = [
+          command,
+          "--name",
+          name,
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+        ];
+        const preview = runCustomerGeneratorCli(argv, cwd);
+        expect(preview.exitCode).toBe(0);
+        const result = JSON.parse(preview.stdout) as {
+          files: readonly { path: string; content: string }[];
+        };
+        for (const file of result.files)
+          expect(() => readFileSync(join(cwd, file.path))).toThrow();
+        expect(
+          runCustomerGeneratorCli([...argv, "--write"], cwd).exitCode,
+        ).toBe(0);
+        for (const file of result.files)
+          expect(readFileSync(join(cwd, file.path), "utf8")).toBe(file.content);
+      } finally {
+        rmSync(cwd, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("emits feature fixtures that satisfy the customer lint policy", () => {
     const preview = runCustomerGeneratorCli(

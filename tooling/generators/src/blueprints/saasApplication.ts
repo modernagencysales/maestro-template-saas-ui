@@ -137,8 +137,8 @@ const governanceFiles = (
       .filter(({ kind }) => kind === "route")
       .map(({ system }) => system),
   );
-  const retainedSystemIds = new Set(
-    releasedSystems.systems
+  const retainedSystemIds = new Set([
+    ...releasedSystems.systems
       .filter(
         ({ id }) =>
           workflowSelected ||
@@ -146,7 +146,8 @@ const governanceFiles = (
           canonicalRouteSystemIds.has(id),
       )
       .map(({ id }) => id),
-  );
+    "provider-integrations",
+  ]);
   const retainedEmailTableIds = [
     "emailCampaigns",
     "emailDeliveries",
@@ -159,6 +160,7 @@ const governanceFiles = (
       .filter(({ id }) => workflowSelected || id !== "workflow-runtime")
       .flatMap(({ tables }) => tables),
     "deployAuthorityAuditEvents",
+    "providerConnections",
     ...retainedEmailTableIds,
   ]);
   const retainedDataResourceIds = new Set([
@@ -166,11 +168,28 @@ const governanceFiles = (
       .filter(({ system }) => workflowSelected || system !== "workflow-runtime")
       .map(({ id }) => id),
     "deployAuthorityAuditEvents",
+    "providerConnections",
     ...retainedEmailTableIds,
   ]);
   const retainedTopologyIds = new Set(
     releasedTopology.resources.map(({ id }) => id),
   );
+  const retainedCurrentCustomerTopologyIds = new Set([
+    "job:workpool",
+    "integration:dodo-crypto",
+    "integration:dodo-webhook",
+    "integration:provider-adapter",
+    "integration:provider-registry",
+    "integration:admaxxer",
+    "integration:email",
+    "integration:email-setup",
+    "provider:observability",
+    "headless:api-key-contract",
+    "headless:api-key-runtime",
+    "headless:executor",
+    "headless:mcp",
+    "headless:openapi",
+  ]);
   const governedSystems = parseSystemCatalog({
     ...systems,
     systems: [
@@ -245,6 +264,7 @@ const governanceFiles = (
         .filter(
           ({ id, system }) =>
             id.startsWith("route:") ||
+            retainedCurrentCustomerTopologyIds.has(id) ||
             (retainedTopologyIds.has(id) &&
               (workflowSelected || system !== "workflow-runtime") &&
               (workflowSelected || !id.startsWith("workflow:"))),
