@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "kind": "reviewed-upgrade-impact-coverage",
+  "baseRevision": "54c3d476a645abd9d143af288a73d3bc33037673",
+  "subjectRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
+  "structuralPaths": [],
+  "ownershipCoveredPaths": [
+    "apps/cli/src/factory/candidateComposition.test.ts",
+    "apps/cli/src/factory/customerCliRuntime.test.ts",
+    "tooling/workflow/package.json",
+    "tooling/workflow/src/index.test.ts",
+    "tooling/workflow/src/index.ts",
+    "tooling/workflow/src/workflow-compat.ts",
+    "tooling/workflow/tsconfig.json"
+  ],
+  "impact": {
+    "schemaVersion": 1,
+    "baseRevision": "54c3d476a645abd9d143af288a73d3bc33037673",
+    "subjectRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
+    "complete": true,
+    "risk": "low",
+    "changedPaths": [],
+    "nodes": { "direct": [], "generated": [], "transitive": [] },
+    "affected": {
+      "systems": [],
+      "durableData": [],
+      "workflowVersions": [],
+      "providers": [],
+      "publicContracts": [],
+      "routes": [],
+      "headlessSurfaces": [],
+      "semanticRuleIds": [],
+      "adrs": []
+    },
+    "unknownPaths": [],
+    "focusedGates": ["pnpm check:app-map"]
+  }
+}

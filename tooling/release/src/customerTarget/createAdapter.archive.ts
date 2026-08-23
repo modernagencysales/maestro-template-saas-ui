@@ -156,6 +156,7 @@ function resolveReleaseDefinition(
   });
 }
 
+// eslint-disable-next-line complexity -- AP-008 tracks splitting this pre-existing release resolver; authority replacement changes adjacent composition only.
 function resolveReleaseDefinitionAt(input: {
   readonly options: CustomerReleaseAdapterOptions;
   readonly manifestPath: string;
@@ -256,6 +257,9 @@ export function composedReleasePaths(
   additional: readonly CustomerReleasePath[],
   operations: readonly unknown[],
 ): readonly CustomerReleasePath[] {
+  const replacements = new Set(
+    additional.map((entry) => `${entry.match}:${entry.path}`),
+  );
   const deleted = new Set(
     operations.flatMap((operation) =>
       isRecord(operation) &&
@@ -265,7 +269,12 @@ export function composedReleasePaths(
         : [],
     ),
   );
-  return [...base, ...additional]
+  return [
+    ...base.filter(
+      (entry) => !replacements.has(`${entry.match}:${entry.path}`),
+    ),
+    ...additional,
+  ]
     .filter((entry) => entry.match !== "exact" || !deleted.has(entry.path))
     .concat(
       [...deleted].map((path) => ({
@@ -278,6 +287,7 @@ export function composedReleasePaths(
     );
 }
 
+// eslint-disable-next-line complexity -- AP-008 tracks splitting this pre-existing hash composer; authority replacement changes adjacent path composition only.
 export function composedExpectedHashes(
   baseExpectedHashes: unknown,
   paths: readonly CustomerReleasePath[],

@@ -25,6 +25,40 @@ import {
 } from "./createAdapter.testFixtures.js";
 
 describe("customer release create adapter", () => {
+  it("lets additional release authority replace an inherited path", () => {
+    expect(
+      composedReleasePaths(
+        [
+          {
+            path: "tooling/workflow",
+            match: "subtree",
+            ownership: "template-owned",
+            action: "copy",
+            upgrade: "replace",
+          },
+        ],
+        [
+          {
+            path: "tooling/workflow",
+            match: "subtree",
+            ownership: "factory-only",
+            action: "omit",
+            upgrade: "remove",
+          },
+        ],
+        [],
+      ),
+    ).toEqual([
+      {
+        path: "tooling/workflow",
+        match: "subtree",
+        ownership: "factory-only",
+        action: "omit",
+        upgrade: "remove",
+      },
+    ]);
+  });
+
   it("turns composed release deletions into exact factory omissions", () => {
     expect(
       composedReleasePaths(

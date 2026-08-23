@@ -15,13 +15,13 @@ const TRUSTED_REPOSITORY_ROOT = fileURLToPath(
   new URL("../../../../", import.meta.url),
 );
 // Immutable release trust anchors: publishing a new sealed release updates these pins.
-const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.6/manifest.json";
+const BASE_MANIFEST_PATH = "releases/v0.2.0-alpha.7/manifest.json";
 const BASE_MANIFEST_CHECKSUM =
-  "sha256:bc26a9905b21b897ac6a73e31819312bb719e716b84a2295c160460a690e8d0a";
+  "sha256:609def9ca70272268eaea2ddd0ea31c51610ef6b1be8da8771d5fca1a1477948";
 const BASE_BLUEPRINT_CHECKSUM =
-  "sha256:a3c10ae0bd0eb9cde52a3fd689e341d85c1b371fcf71fbea67b7dc6c53dce3ac";
-const BASE_TAG = "maestro-template-v0.2.0-alpha.6";
-const BASE_COMMIT = "54c3d476a645abd9d143af288a73d3bc33037673";
+  "sha256:f5cd355a3415f3ed33b28c58b7ca5dc39e5d2508b0dfbcf46d210b3bd9ee0266";
+const BASE_TAG = "maestro-template-v0.2.0-alpha.7";
+const BASE_COMMIT = "c5a371b39dde1d76070d2cc9b2b89254c7951ebb";
 
 export type CustomerCompositionSource = Readonly<{
   repositoryRoot: string;
@@ -43,13 +43,13 @@ export const CURRENT_PUBLIC_SOURCE = Object.freeze({
   sourceCommit: BASE_COMMIT,
   blueprintManifestPath: resolve(
     TRUSTED_REPOSITORY_ROOT,
-    "releases/v0.2.0-alpha.6/blueprints/saas-application.json",
+    "releases/v0.2.0-alpha.7/blueprints/saas-application.json",
   ),
   blueprintManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
   // Alpha.3 seals replacement directives in the blueprint manifest itself.
   blueprintAuthorityManifestPath: resolve(
     TRUSTED_REPOSITORY_ROOT,
-    "releases/v0.2.0-alpha.6/blueprints/saas-application.json",
+    "releases/v0.2.0-alpha.7/blueprints/saas-application.json",
   ),
   blueprintAuthorityManifestChecksum: BASE_BLUEPRINT_CHECKSUM,
 }) satisfies CustomerCompositionSource;
