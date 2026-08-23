@@ -403,6 +403,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "template:prototype",
   "template:add-client-domain",
   "template:add-feature",
+  "template:configure-shell",
   "template:add-capability",
   "template:add-table",
   "template:add-workflow",

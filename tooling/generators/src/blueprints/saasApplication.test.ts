@@ -853,6 +853,7 @@ describe("saas application blueprint", () => {
       "template:systems",
       "template:prototype",
       "template:add-feature",
+      "template:configure-shell",
       "template:private-package:dry-run",
       "template:private-package:import",
       "check:system-catalog",
