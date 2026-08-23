@@ -20,6 +20,17 @@ const FOCUSED_ONLY_TERMS = [
   "pnpm check:app-map",
 ] as const;
 
+const REQUIRED_STAGED_LINT_COMMAND =
+  "ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}";
+
+export function validateStagedLintCommand(input: string): readonly string[] {
+  return input.replace(/\s+/gu, " ").includes(REQUIRED_STAGED_LINT_COMMAND)
+    ? []
+    : [
+        "lefthook.yml must preserve the governed ESLINT_SHIFT_LEFT staged lint command",
+      ];
+}
+
 export function validateRootVerifyHostTerms(input: unknown): readonly string[] {
   const root = record(input, "package.json");
   const scripts = record(root.scripts, "package.json scripts");
@@ -72,7 +83,20 @@ export function validateRootVerifyHostTerms(input: unknown): readonly string[] {
 export async function evaluateCiCompleteness(
   repoRoot: string,
 ): Promise<StaticCheckResult> {
-  const staticResult = await evaluateStaticCheck(repoRoot, descriptor);
+  const semanticDescriptor = {
+    ...descriptor,
+    requirements: descriptor.requirements.map((requirement) =>
+      requirement.file === "lefthook.yml"
+        ? {
+            ...requirement,
+            includes: requirement.includes?.filter(
+              (term) => term !== REQUIRED_STAGED_LINT_COMMAND,
+            ),
+          }
+        : requirement,
+    ),
+  };
+  const staticResult = await evaluateStaticCheck(repoRoot, semanticDescriptor);
   let verifyFindings: readonly string[];
   try {
     verifyFindings = validateRootVerifyHostTerms(
@@ -81,7 +105,19 @@ export async function evaluateCiCompleteness(
   } catch {
     verifyFindings = ["package.json scripts.verify could not be parsed"];
   }
-  const failures = [...staticResult.failures, ...verifyFindings];
+  let stagedLintFindings: readonly string[];
+  try {
+    stagedLintFindings = validateStagedLintCommand(
+      await readFile(join(repoRoot, "lefthook.yml"), "utf8"),
+    );
+  } catch {
+    stagedLintFindings = ["lefthook.yml staged lint command could not be read"];
+  }
+  const failures = [
+    ...staticResult.failures,
+    ...verifyFindings,
+    ...stagedLintFindings,
+  ];
   return { ok: failures.length === 0, failures };
 }
 
