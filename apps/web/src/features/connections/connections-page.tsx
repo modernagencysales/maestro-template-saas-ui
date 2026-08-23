@@ -77,7 +77,7 @@ export const ConnectionsPage = () => {
   }
 
   return (
-    <SimpleGrid columns={2} gap="4">
+    <SimpleGrid columns={{ base: 1, md: 2 }} gap="4">
       {connectionFixtures.map((integration) => (
         (() => {
           const status = fixtureRuntime
