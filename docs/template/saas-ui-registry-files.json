@@ -194,7 +194,8 @@
       "source": "packages/blocks/settings/integration-card/integration-card.tsx",
       "destination": "apps/web/src/components/integration-card/integration-card.tsx",
       "sourceSha256": "6c00fbbb98bf7a58ed3d8bb83a3458e76d82e1b9f0a0846567b1afe49850777a",
-      "sha256": "7845a9ef7e637f9fbb72ed674ce1f0e02829b36d70956acbcc1f5c77723625ae"
+      "sha256": "554c143a316c58552992ce0315b141fb25d1779f919a6144def383cbe6bcf723",
+      "adapted": true
     },
     {
       "source": "packages/blocks/modals/invite-people-modal/invite-people-modal.tsx",
