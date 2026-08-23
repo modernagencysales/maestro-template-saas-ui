@@ -1,5 +1,11 @@
 import { execFileSync } from "node:child_process";
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  mkdtempSync,
+  mkdirSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
@@ -22,6 +28,10 @@ afterEach(() => {
 });
 
 describe("current source customer candidate", () => {
+  it("keeps successful customer web builds out of repository state", () => {
+    expect(readFileSync(".gitignore", "utf8")).toContain("apps/*/.output/");
+  });
+
   it("requires explicit closed arguments and an absolute target", () => {
     expect(
       parseCandidateArguments([
