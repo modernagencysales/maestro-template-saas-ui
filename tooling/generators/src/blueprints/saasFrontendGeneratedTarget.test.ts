@@ -307,6 +307,7 @@ describe("SaaS UI generated target artifact boundary", () => {
         mkdirSync(dirname(path), { recursive: true });
         writeFileSync(path, entry.content);
       }
+      await command(["run", "check:saas-ui-artifact-safety"]);
       await command(["--dir", "apps/web", "build"]);
       const routeTree = readFileSync(
         join(target, "apps/web/src/routeTree.gen.ts"),
