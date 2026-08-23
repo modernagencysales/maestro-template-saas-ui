@@ -13,6 +13,8 @@ import {
   missingMcpGeneratedRefUsage,
   missingRuntimeAdapterDispatch,
   missingTypedErrors,
+  mcpProjectionPath,
+  optionalRuntimeSource,
 } from "./check-headless-surface-contract.mts";
 
 describe("check:headless-surface-contract", () => {
@@ -125,6 +127,28 @@ describe("check:headless-surface-contract", () => {
       ]),
     ).toEqual([
       "tooling/workflow/src/workflow-compat.ts imports forbidden canned registry templateRegistry",
+    ]);
+  });
+
+  it("omits workflow-only runtime sources from neutral customer checks", () => {
+    expect(mcpProjectionPath(false)).toBe("apps/cli/src/headlessRegistry.ts");
+    expect(mcpProjectionPath(true)).toBe("tooling/workflow/src/index.ts");
+    expect(
+      optionalRuntimeSource(
+        "tooling/workflow/src/workflow-compat.ts",
+        undefined,
+      ),
+    ).toEqual([]);
+    expect(
+      optionalRuntimeSource(
+        "tooling/workflow/src/workflow-compat.ts",
+        "export const workflowCompatibility = true;",
+      ),
+    ).toEqual([
+      {
+        path: "tooling/workflow/src/workflow-compat.ts",
+        source: "export const workflowCompatibility = true;",
+      },
     ]);
   });
 
