@@ -257,6 +257,17 @@ describe("materialized customer CLI runtime closure", () => {
       "--json",
     ]);
     expect(created.exitCode, `${created.stdout}\n${created.stderr}`).toBe(0);
+    expect(existsSync(join(target, "tooling/workflow/package.json"))).toBe(
+      false,
+    );
+    await execFileAsync(
+      "pnpm",
+      ["install", "--offline", "--frozen-lockfile", "--ignore-scripts"],
+      {
+        cwd: target,
+        timeout: 120_000,
+      },
+    );
     applyCurrentSaasProjection(target);
 
     const instancePath = join(target, "template-instance.json");
@@ -278,13 +289,13 @@ describe("materialized customer CLI runtime closure", () => {
     };
     expect(instance).toMatchObject({
       release: {
-        version: "0.2.0-alpha.6",
-        tag: "maestro-template-v0.2.0-alpha.6",
+        version: "0.2.0-alpha.7",
+        tag: "maestro-template-v0.2.0-alpha.7",
         sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
         sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       ownership: {
-        manifest: "releases/v0.2.0-alpha.6/manifest.json",
+        manifest: "releases/v0.2.0-alpha.7/manifest.json",
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       customerExtension: {
