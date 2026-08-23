@@ -1,6 +1,8 @@
 'use client'
 
-import { AppShell, AppShellProps, Sidebar } from '@saas-ui/react'
+import { AppShell, AppShellProps } from '@saas-ui/react'
+
+import { Sidebar } from '#components/ui/sidebar'
 
 import { PaymentOverdueBanner } from '#features/billing/components/payment-overdue-banner'
 

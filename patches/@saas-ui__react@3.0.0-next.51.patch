@@ -1,0 +1,13 @@
+diff --git a/dist/components/menu/menu.d.ts b/dist/components/menu/menu.d.ts
+index 83541a782617a72a550ab66543fd6848aef73bb4..0738304cd9cc6bef1e5b83d8bc516f693fc77fef 100644
+--- a/dist/components/menu/menu.d.ts
++++ b/dist/components/menu/menu.d.ts
+@@ -22,7 +22,7 @@ interface MenuTriggerItemProps extends ChakraMenu.ItemProps {
+     startIcon?: React.ReactNode;
+ }
+ declare const MenuTriggerItem: import("react").ForwardRefExoticComponent<MenuTriggerItemProps & import("react").RefAttributes<HTMLDivElement>>;
+-interface MenuButtonProps extends ButtonProps, ChakraMenu.TriggerProps {
++interface MenuButtonProps extends Omit<ButtonProps, 'value'>, ChakraMenu.TriggerProps {
+ }
+ declare const MenuButton: import("react").ForwardRefExoticComponent<MenuButtonProps & import("react").RefAttributes<HTMLButtonElement>>;
+ declare const MenuRadioItemGroup: import("react").ForwardRefExoticComponent<ChakraMenu.RadioItemGroupProps & import("react").RefAttributes<HTMLDivElement>>;

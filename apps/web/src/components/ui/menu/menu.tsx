@@ -121,7 +121,8 @@ const MenuTriggerItem = forwardRef<HTMLDivElement, MenuTriggerItemProps>(
   },
 );
 
-interface MenuButtonProps extends ButtonProps, ChakraMenu.TriggerProps {}
+interface MenuButtonProps
+  extends Omit<ButtonProps, "value">, ChakraMenu.TriggerProps {}
 
 const MenuButton = forwardRef<HTMLButtonElement, MenuButtonProps>(
   function MenuButton(props, ref) {

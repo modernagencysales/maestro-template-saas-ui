@@ -1,6 +1,12 @@
 import React from 'react'
 
-import { Box, type HTMLChakraProps, Portal, createIcon } from '@chakra-ui/react'
+import {
+  Box,
+  Collapsible,
+  type HTMLChakraProps,
+  Portal,
+  createIcon,
+} from '@chakra-ui/react'
 import {
   DndContext,
   DndContextProps,
@@ -27,10 +33,15 @@ import { Sidebar } from '@saas-ui/react/sidebar'
 
 export interface SortableNavGroupProps
   extends
-    Omit<HTMLChakraProps<'div'>, 'onDragStart' | 'onDragEnd' | 'onDragOver'>,
+    Omit<
+      HTMLChakraProps<'div'>,
+      'onDragStart' | 'onDragEnd' | 'onDragOver' | 'title'
+    >,
     DndContextProps {
   items: any[]
   onSorted?: (fn: (items: any[]) => any[]) => void
+  title?: React.ReactNode
+  isCollapsible?: boolean
 }
 export const SortableNavGroup: React.FC<SortableNavGroupProps> = (props) => {
   const {
@@ -40,6 +51,8 @@ export const SortableNavGroup: React.FC<SortableNavGroupProps> = (props) => {
     onDragEnd,
     onSorted,
     items,
+    title,
+    isCollapsible,
     ...rest
   } = props
 
@@ -89,7 +102,7 @@ export const SortableNavGroup: React.FC<SortableNavGroupProps> = (props) => {
     }),
   )
 
-  return (
+  const content = (
     <DndContext
       collisionDetection={closestCenter}
       sensors={sensors}
@@ -108,7 +121,13 @@ export const SortableNavGroup: React.FC<SortableNavGroupProps> = (props) => {
       onDragCancel={() => setActiveId(null)}
     >
       <SortableContext items={items} strategy={verticalListSortingStrategy}>
-        <Sidebar.GroupContent {...rest}>{children}</Sidebar.GroupContent>
+        {isCollapsible ? (
+          <Collapsible.Content asChild>
+            <Sidebar.GroupContent {...rest}>{children}</Sidebar.GroupContent>
+          </Collapsible.Content>
+        ) : (
+          <Sidebar.GroupContent {...rest}>{children}</Sidebar.GroupContent>
+        )}
       </SortableContext>
       <Portal>
         <DragOverlay
@@ -135,6 +154,29 @@ export const SortableNavGroup: React.FC<SortableNavGroupProps> = (props) => {
         </DragOverlay>
       </Portal>
     </DndContext>
+  )
+
+  const group = (
+    <Sidebar.Group title={typeof title === 'string' ? title : undefined}>
+      {title ? (
+        <Sidebar.GroupHeader>
+          {isCollapsible ? (
+            <Collapsible.Trigger asChild>
+              <Sidebar.GroupTitle>{title}</Sidebar.GroupTitle>
+            </Collapsible.Trigger>
+          ) : (
+            <Sidebar.GroupTitle>{title}</Sidebar.GroupTitle>
+          )}
+        </Sidebar.GroupHeader>
+      ) : null}
+      {content}
+    </Sidebar.Group>
+  )
+
+  return isCollapsible ? (
+    <Collapsible.Root asChild>{group}</Collapsible.Root>
+  ) : (
+    group
   )
 }
 

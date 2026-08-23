@@ -47,7 +47,7 @@ describe("type coverage receipt boundary", () => {
       }>
     ).typeCoverageIgnorePaths(root);
 
-    expect(expected).toHaveLength(344);
+    expect(expected).toHaveLength(295);
     expect(ignorePaths).toEqual(expected);
     for (const destination of adapted) {
       if (/[.]tsx?$/u.test(destination))

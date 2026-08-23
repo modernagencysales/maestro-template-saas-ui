@@ -31,18 +31,19 @@ function passingFiles(options?: {
   );
 }
 
-const generatedCustomerMarker = `${JSON.stringify({
-  schemaVersion: 1,
-  release: {
-    version: "0.2.0-alpha.2",
-    tag: "maestro-template-v0.2.0-alpha.2",
-    sourceCommit: "0123456789abcdef",
-  },
-  blueprint: {
-    id: "saas-application",
-    provenance: "@maestro-template/generators/saas-application@1",
-  },
-})}\n`;
+const generatedCustomerMarker = (schemaVersion: 1 | 2 = 2) =>
+  `${JSON.stringify({
+    schemaVersion,
+    release: {
+      version: "0.2.0-alpha.2",
+      tag: "maestro-template-v0.2.0-alpha.2",
+      sourceCommit: "0123456789abcdef",
+    },
+    blueprint: {
+      id: "saas-application",
+      provenance: "@maestro-template/generators/saas-application@1",
+    },
+  })}\n`;
 
 describe("check:posthog-readiness", () => {
   it("passes and fails on its declared requirements", async () => {
@@ -78,7 +79,7 @@ describe("check:posthog-readiness", () => {
     await withTempRepo(
       {
         ...passingFiles({ includeFactoryFiles: false }),
-        "template-instance.json": generatedCustomerMarker,
+        "template-instance.json": generatedCustomerMarker(),
       },
       async (repo) => {
         const customerDescriptor = await descriptorForRepository(repo);
@@ -92,6 +93,23 @@ describe("check:posthog-readiness", () => {
     );
   });
 
+  it("continues to recognize legacy generated customers", async () => {
+    await withTempRepo(
+      {
+        ...passingFiles({ includeFactoryFiles: false }),
+        "template-instance.json": generatedCustomerMarker(1),
+      },
+      async (repo) => {
+        const result = await evaluateStaticCheck(
+          repo,
+          await descriptorForRepository(repo),
+        );
+
+        expect(result.ok).toBe(true);
+      },
+    );
+  });
+
   it("continues to enforce customer-shipped PostHog contracts", async () => {
     const files = passingFiles({ includeFactoryFiles: false });
     delete files["docs/template/integrations.md"];
@@ -99,7 +117,7 @@ describe("check:posthog-readiness", () => {
     await withTempRepo(
       {
         ...files,
-        "template-instance.json": generatedCustomerMarker,
+        "template-instance.json": generatedCustomerMarker(),
       },
       async (repo) => {
         const result = await evaluateStaticCheck(

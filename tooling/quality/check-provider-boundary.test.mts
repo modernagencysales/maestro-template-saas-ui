@@ -140,6 +140,9 @@ describe("check:provider-boundary", () => {
       "packages/convex/convex/convex.config.ts": `
         import posthog from "@posthog/convex/convex.config.js";
       `,
+      "packages/convex/confect/agents/assistantModel.ts": `
+        import { createOpenAICompatible } from "@ai-sdk/openai-compatible";
+      `,
       "packages/convex/confect/observability/posthog.ts": `
         import { PostHog } from "@posthog/convex";
       `,

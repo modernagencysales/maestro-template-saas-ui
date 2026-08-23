@@ -1,6 +1,9 @@
 {
-  "lines": 73.4,
-  "functions": 84.45,
-  "branches": 78.0,
-  "statements": 73.4
+  "schemaVersion": 2,
+  "provider": "@vitest/coverage-v8@4.1.11",
+  "scope": "factory-owned and adapted code excluding byte-identical Saas UI receipt files",
+  "lines": 76.1,
+  "functions": 78.02,
+  "branches": 68.72,
+  "statements": 75.25
 }

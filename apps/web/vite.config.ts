@@ -4,12 +4,21 @@ import { nitro } from "nitro/vite";
 import { defineConfig } from "vite";
 import { fileURLToPath, URL } from "node:url";
 
+import {
+  assertProductionAuthConfiguration,
+  resolveWebAuthMode,
+} from "./src/lib/auth/runtime-auth";
+
+process.env.VITE_MAESTRO_AUTH_MODE = resolveWebAuthMode(process.env);
+assertProductionAuthConfiguration(process.env);
+
 export default defineConfig(({ mode }) => ({
   build: { sourcemap: false },
   esbuild: { drop: ["console"] },
   resolve: {
     tsconfigPaths: true,
     alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
       "@maestro-template/convex/refs": fileURLToPath(
         new URL("../../packages/convex/src/refs.ts", import.meta.url),
       ),

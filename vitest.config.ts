@@ -6,15 +6,25 @@ type SaasUiReceipt = Readonly<{
   files: readonly Readonly<{ destination: string; adapted?: boolean }>[];
 }>;
 
-const immutableSaasUiRegistryFiles = (
-  JSON.parse(
-    readFileSync(
-      new URL("./docs/template/saas-ui-registry-files.json", import.meta.url),
-      "utf8",
-    ),
-  ) as SaasUiReceipt
-).files.flatMap(({ adapted, destination }) =>
-  adapted === true ? [] : [destination],
+const saasUiReceiptEntries = [
+  "./docs/template/saas-ui-registry-files.json",
+  "./docs/template/saas-ui-starter-files.json",
+].flatMap(
+  (path) =>
+    (
+      JSON.parse(
+        readFileSync(new URL(path, import.meta.url), "utf8"),
+      ) as SaasUiReceipt
+    ).files,
+);
+const adaptedSaasUiReceiptFiles = new Set(
+  saasUiReceiptEntries.flatMap(({ adapted, destination }) =>
+    adapted === true ? [destination] : [],
+  ),
+);
+const immutableSaasUiReceiptFiles = saasUiReceiptEntries.flatMap(
+  ({ destination }) =>
+    adaptedSaasUiReceiptFiles.has(destination) ? [] : [destination],
 );
 
 // Directories measured by the coverage ratchet. Everything runs under this
@@ -38,6 +48,7 @@ export const coverageRatchetDirs = [
 export default defineConfig({
   resolve: {
     alias: {
+      "@": fileURLToPath(new URL("./apps/web/src", import.meta.url)),
       "#config": fileURLToPath(
         new URL("./apps/web/src/config", import.meta.url),
       ),
@@ -86,7 +97,10 @@ export default defineConfig({
         "**/_generated/**",
         "**/__fixtures__/**",
         "apps/web/src/routeTree.gen.ts",
-        ...immutableSaasUiRegistryFiles,
+        // Byte-identical upstream files are governed by source receipts and
+        // visual/route acceptance. Adapted compositions remain in coverage
+        // alongside our adapters and product runtime.
+        ...immutableSaasUiReceiptFiles,
         "repos/**",
         "vendor/**",
       ],

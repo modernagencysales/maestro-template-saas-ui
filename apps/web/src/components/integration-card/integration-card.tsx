@@ -21,6 +21,9 @@ export type IntegrationCardProps = {
   icon: any;
   docs: string;
   isConnected?: boolean;
+  onConnect?: () => void;
+  onDisconnect?: () => void;
+  onDocs?: () => void;
 };
 
 export const IntegrationCard: React.FC<IntegrationCardProps> = (props) => {
@@ -53,13 +56,19 @@ export const IntegrationCard: React.FC<IntegrationCardProps> = (props) => {
       <Card.Footer>
         <ButtonGroup gap="2">
           {!props.isConnected ? (
-            <Button variant="glass" colorPalette="accent">
+            <Button
+              variant="glass"
+              colorPalette="accent"
+              onClick={props.onConnect}
+            >
               <Icon as={LuLink} /> Connect
             </Button>
           ) : (
-            <Button variant="outline">Disconnect</Button>
+            <Button variant="outline" onClick={props.onDisconnect}>
+              Disconnect
+            </Button>
           )}
-          <Button variant="ghost">
+          <Button variant="ghost" onClick={props.onDocs}>
             <Icon as={LuExternalLink} /> Docs
           </Button>
         </ButtonGroup>

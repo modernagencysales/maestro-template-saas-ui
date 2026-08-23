@@ -1,3 +1,5 @@
+import * as Config from "effect/Config";
+import * as Option from "effect/Option";
 import * as Schema from "effect/Schema";
 
 export {
@@ -10,6 +12,17 @@ export type { RuntimeMode, TemplateRuntimeConfigShape } from "./config";
 export type ProviderMode = "fake" | "test" | "live";
 
 export type EnvSource = Readonly<Record<string, string | undefined>>;
+
+const optionalEnvConfig = (name: string) =>
+  Config.string(name).pipe(Config.option, Config.map(Option.getOrUndefined));
+
+export const loadLlmGatewayEnvConfig = Config.all({
+  OPENROUTER_API_KEY: optionalEnvConfig("OPENROUTER_API_KEY"),
+  OPENROUTER_BASE_URL: optionalEnvConfig("OPENROUTER_BASE_URL"),
+  LLM_FREE_MODEL: optionalEnvConfig("LLM_FREE_MODEL"),
+  LLM_DAILY_SPEND_LIMIT_CENTS: optionalEnvConfig("LLM_DAILY_SPEND_LIMIT_CENTS"),
+  LLM_DISABLED: optionalEnvConfig("LLM_DISABLED"),
+});
 
 export class EnvConfigError extends Schema.TaggedErrorClass<EnvConfigError>()(
   "EnvConfigError",

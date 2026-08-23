@@ -6,6 +6,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildScreenCatalog,
   verifyVendoredScreenCatalog,
+  verifyShippedScreenCatalog,
 } from "./screen-catalog.mts";
 
 const root = resolve(import.meta.dirname, "../..");
@@ -71,21 +72,47 @@ describe("complete Saas UI screen catalogue", () => {
 
     expect(committed).toEqual(catalog);
     expect(await verifyVendoredScreenCatalog(root)).toEqual([]);
+    expect(await verifyShippedScreenCatalog(root)).toEqual([]);
 
     for (const entry of [...catalog.demoRoutes, ...catalog.stories]) {
       const content = await readFile(join(proRoot, entry.source), "utf8");
       expect(entry.sha256).toBe(sha256(content));
+      expect(entry.closure).toContainEqual({
+        source: entry.source,
+        sha256: entry.sha256,
+      });
+      expect(entry.closureSha256).toMatch(/^[a-f0-9]{64}$/u);
     }
+
+    const settings = catalog.demoRoutes.find(
+      ({ route }) => route === "/[workspace]/settings",
+    );
+    expect(settings?.composition).toBe(
+      "apps/demo/src/features/settings/pages/overview",
+    );
+    expect(settings?.closure.map(({ source }) => source)).toContain(
+      "apps/demo/src/features/settings/pages/overview.tsx",
+    );
+
+    const contacts = catalog.starterRoutes.find(
+      ({ route }) => route === "/$workspace/contacts",
+    );
+    expect(contacts?.composition).toBe(
+      "apps/web/src/features/contacts/list/list-page",
+    );
+    expect(contacts?.closure.map(({ source }) => source)).toContain(
+      "apps/web/src/features/contacts/list/list-page.tsx",
+    );
 
     const receipt = JSON.parse(await readFile(receiptPath, "utf8"));
     expect(receipt.sources).toEqual([
-      expect.objectContaining({ id: "saas-ui-pro", files: 832 }),
+      expect.objectContaining({ id: "saas-ui-pro", files: 831 }),
       expect.objectContaining({
         id: "tanstack-start-starter-kit-pro",
         files: 435,
       }),
     ]);
-    expect(receipt.entries).toHaveLength(832 + 435);
+    expect(receipt.entries).toHaveLength(831 + 435);
   });
 
   it("indexes the complete TanStack Starter route and story source", async () => {

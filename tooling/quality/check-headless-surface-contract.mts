@@ -1,3 +1,4 @@
+import { existsSync } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { join } from "node:path";
 import ts from "typescript";
@@ -336,6 +337,23 @@ export const missingGeneratedRefMapping = (
 const readRepoFile = async (repoRoot: string, path: string): Promise<string> =>
   readFile(join(repoRoot, path), "utf8");
 
+const readOptionalRepoFile = async (
+  repoRoot: string,
+  path: string,
+): Promise<string | undefined> =>
+  existsSync(join(repoRoot, path)) ? readRepoFile(repoRoot, path) : undefined;
+
+export const optionalRuntimeSource = (
+  path: string,
+  source: string | undefined,
+): readonly { readonly path: string; readonly source: string }[] =>
+  source === undefined ? [] : [{ path, source }];
+
+export const mcpProjectionPath = (workflowSelected: boolean): string =>
+  workflowSelected
+    ? "tooling/workflow/src/index.ts"
+    : "apps/cli/src/headlessRegistry.ts";
+
 export const evaluateHeadlessSurfaceContract = async (
   repoRoot: string,
 ): Promise<readonly string[]> => {
@@ -344,19 +362,22 @@ export const evaluateHeadlessSurfaceContract = async (
   const operations =
     confectManifest.functions as readonly HeadlessManifestOperation[];
 
-  const [
-    httpSource,
-    cliSource,
-    workflowSource,
-    workflowCompatSource,
-    executorSource,
-  ] = await Promise.all([
-    readRepoFile(repoRoot, "packages/convex/confect/http.ts"),
-    readRepoFile(repoRoot, "apps/cli/src/index.ts"),
-    readRepoFile(repoRoot, "tooling/workflow/src/index.ts"),
-    readRepoFile(repoRoot, "tooling/workflow/src/workflow-compat.ts"),
-    readRepoFile(repoRoot, "packages/convex/confect/manifest/executor.ts"),
-  ]);
+  const workflowIndexPath = "tooling/workflow/src/index.ts";
+  const workflowProjectionPath = mcpProjectionPath(
+    existsSync(join(repoRoot, workflowIndexPath)),
+  );
+  const [httpSource, cliSource, workflowSource, executorSource] =
+    await Promise.all([
+      readRepoFile(repoRoot, "packages/convex/confect/http.ts"),
+      readRepoFile(repoRoot, "apps/cli/src/index.ts"),
+      readRepoFile(repoRoot, workflowProjectionPath),
+      readRepoFile(repoRoot, "packages/convex/confect/manifest/executor.ts"),
+    ]);
+  const workflowCompatPath = "tooling/workflow/src/workflow-compat.ts";
+  const workflowCompatSource = await readOptionalRepoFile(
+    repoRoot,
+    workflowCompatPath,
+  );
 
   failures.push(
     ...missingTypedErrors(operations).map(
@@ -397,11 +418,8 @@ export const evaluateHeadlessSurfaceContract = async (
   const runtimeSources = [
     { path: "packages/convex/confect/http.ts", source: httpSource },
     { path: "apps/cli/src/index.ts", source: cliSource },
-    { path: "tooling/workflow/src/index.ts", source: workflowSource },
-    {
-      path: "tooling/workflow/src/workflow-compat.ts",
-      source: workflowCompatSource,
-    },
+    { path: workflowProjectionPath, source: workflowSource },
+    ...optionalRuntimeSource(workflowCompatPath, workflowCompatSource),
     {
       path: "packages/convex/confect/manifest/executor.ts",
       source: executorSource,

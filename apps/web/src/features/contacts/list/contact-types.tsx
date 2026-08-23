@@ -29,7 +29,8 @@ export const ContactTypes = () => {
     setValue(type)
   }, [type])
 
-  const setType = (id: string) => {
+  const setType = (id: string | null) => {
+    if (!id) return
     const type = getContactType(id)
 
     if (!type) return

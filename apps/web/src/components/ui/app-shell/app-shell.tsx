@@ -4,12 +4,12 @@ import { forwardRef } from "react";
 
 import {
   type HTMLChakraProps,
+  type RecipeVariantProps,
   createSlotRecipeContext,
 } from "@chakra-ui/react/styled-system";
-import {
-  type AppShellVariantProps,
-  appShellSlotRecipe,
-} from "@saas-ui/chakra-preset/slot-recipes/app-shell";
+import { appShellSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/app-shell";
+
+type AppShellVariantProps = RecipeVariantProps<typeof appShellSlotRecipe>;
 
 ////////////////////////////////////////////////////////////////////////////////////
 

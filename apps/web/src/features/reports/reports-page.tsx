@@ -13,7 +13,7 @@ import {
   Stat,
   Text,
 } from '@saas-ui/react'
-import { SegmentedControl, Sidebar, useSidebar } from '@saas-ui/react'
+import { SegmentedControl } from '@saas-ui/react'
 import { LuPanelLeftOpen } from 'react-icons/lu'
 import {
   Bar,
@@ -25,6 +25,8 @@ import {
   XAxis,
   YAxis,
 } from 'recharts'
+
+import { Sidebar, useSidebar } from '#components/ui/sidebar'
 
 export function ReportsPage() {
   const { open } = useSidebar()

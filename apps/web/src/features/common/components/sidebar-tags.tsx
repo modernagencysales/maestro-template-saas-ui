@@ -84,10 +84,10 @@ export const AppSidebarTags = () => {
             tag: tag.id,
           }}
           activeProps={{
-            isActive: true,
+            'data-active': true,
           }}
-          icon={<TagColor color={tag.color ?? undefined} />}
         >
+          <TagColor color={tag.color ?? undefined} />
           <Text>{tag.name}</Text>
         </TagLink>
       ))}

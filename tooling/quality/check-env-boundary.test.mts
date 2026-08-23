@@ -86,6 +86,9 @@ describe("check:env-boundary", () => {
       "apps/web/src/env.ts": `
         export const env = import.meta.env;
       `,
+      "apps/web/src/start.ts": `
+        export const serverEnv = process.env;
+      `,
       "apps/web/vite.config.ts": `
         export const contractsApiKey = process.env.MAESTRO_API_KEY;
       `,

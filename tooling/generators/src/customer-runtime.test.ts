@@ -1,4 +1,5 @@
 import {
+  existsSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
@@ -17,6 +18,15 @@ import {
 import { buildAgentFiles } from "./customer-runtime";
 
 const repoRoot = join(dirname(fileURLToPath(import.meta.url)), "../../..");
+const workflowAutomationSelected = existsSync(
+  join(repoRoot, "tooling/workflow/package.json"),
+);
+const mutatingGeneratorCases: ReadonlyArray<readonly [string, string]> = [
+  ["add-capability", "customerReview"],
+  ...(workflowAutomationSelected
+    ? ([["add-workflow", "customerReviewFlow"]] as const)
+    : []),
+];
 
 const seedCatalogs = (cwd: string): void => {
   mkdirSync(join(cwd, "docs/template"), { recursive: true });
@@ -24,11 +34,32 @@ const seedCatalogs = (cwd: string): void => {
     "system-catalog.json",
     "data-resources.json",
     "product-topology.json",
+    "saas-ui-screen-catalog.json",
+    "saas-ui-starter-files.json",
   ]) {
     writeFileSync(
       join(cwd, "docs/template", name),
       readFileSync(join(repoRoot, "docs/template", name)),
     );
+  }
+  const catalog = JSON.parse(
+    readFileSync(
+      join(repoRoot, "docs/template/saas-ui-screen-catalog.json"),
+      "utf8",
+    ),
+  ) as {
+    starterRoutes: readonly {
+      id: string;
+      closure: readonly { source: string }[];
+    }[];
+  };
+  const selected = catalog.starterRoutes.find(({ id }) =>
+    id.endsWith("/_dashboard/contacts/index.tsx"),
+  );
+  if (!selected) throw new Error("Starter Contacts screen fixture is missing");
+  for (const { source } of selected.closure) {
+    mkdirSync(dirname(join(cwd, source)), { recursive: true });
+    writeFileSync(join(cwd, source), readFileSync(join(repoRoot, source)));
   }
 };
 
@@ -147,37 +178,37 @@ describe("customer generator runtime", () => {
     }
   });
 
-  it.each([
-    ["add-capability", "customerReview"],
-    ["add-workflow", "customerReviewFlow"],
-  ])("previews and writes %s with identical bytes", (command, name) => {
-    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-runtime-"));
-    try {
-      const argv = [
-        command,
-        "--name",
-        name,
-        "--system",
-        "knowledge-brain",
-        "--disposition",
-        "extend",
-      ];
-      const preview = runCustomerGeneratorCli(argv, cwd);
-      expect(preview.exitCode).toBe(0);
-      const result = JSON.parse(preview.stdout) as {
-        files: readonly { path: string; content: string }[];
-      };
-      for (const file of result.files)
-        expect(() => readFileSync(join(cwd, file.path))).toThrow();
-      expect(runCustomerGeneratorCli([...argv, "--write"], cwd).exitCode).toBe(
-        0,
-      );
-      for (const file of result.files)
-        expect(readFileSync(join(cwd, file.path), "utf8")).toBe(file.content);
-    } finally {
-      rmSync(cwd, { recursive: true, force: true });
-    }
-  });
+  it.each(mutatingGeneratorCases)(
+    "previews and writes %s with identical bytes",
+    (command, name) => {
+      const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-runtime-"));
+      try {
+        const argv = [
+          command,
+          "--name",
+          name,
+          "--system",
+          "knowledge-brain",
+          "--disposition",
+          "extend",
+        ];
+        const preview = runCustomerGeneratorCli(argv, cwd);
+        expect(preview.exitCode).toBe(0);
+        const result = JSON.parse(preview.stdout) as {
+          files: readonly { path: string; content: string }[];
+        };
+        for (const file of result.files)
+          expect(() => readFileSync(join(cwd, file.path))).toThrow();
+        expect(
+          runCustomerGeneratorCli([...argv, "--write"], cwd).exitCode,
+        ).toBe(0);
+        for (const file of result.files)
+          expect(readFileSync(join(cwd, file.path), "utf8")).toBe(file.content);
+      } finally {
+        rmSync(cwd, { recursive: true, force: true });
+      }
+    },
+  );
 
   it("emits feature fixtures that satisfy the customer lint policy", () => {
     const preview = runCustomerGeneratorCli(
@@ -189,6 +220,8 @@ describe("customer generator runtime", () => {
         "knowledge-brain",
         "--disposition",
         "extend",
+        "--screen-catalog-id",
+        "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
       ],
       repoRoot,
     );
@@ -203,11 +236,72 @@ describe("customer generator runtime", () => {
     const generated = result.files.map(({ content }) => content).join("\n");
     expect(adapter).toContain("presentCustomerReviewState");
     expect(adapter).not.toContain("createCustomerReviewAdapter");
-    expect(generated).toContain("customerReviewRefs.list");
+    expect(generated).toContain("export const customerReviewRefs = Refs.make");
+    expect(generated).toContain("ContactsListPage");
+    expect(generated).not.toContain("<Page.Root>");
     expect(generated).not.toContain("templateConfectRefs");
     expect(generated).not.toContain("Synthetic fixture");
     expect(generated).not.toContain('status: "accepted"');
     expect(generated).not.toContain("Replace fake fixtures");
+  });
+
+  it("previews and writes the reviewed product shell configuration", () => {
+    const cwd = mkdtempSync(join(tmpdir(), "maestro-customer-shell-"));
+    try {
+      const argv = [
+        "configure-shell",
+        "--dashboard-label",
+        "Connections",
+        "--dashboard-screen",
+        "connections",
+        "--inbox-label",
+        "Agency Brain",
+        "--inbox-screen",
+        "brain",
+        "--contacts-label",
+        "Clients",
+        "--contacts-screen",
+        "clients",
+        "--kanban-label",
+        "Settings",
+        "--kanban-route",
+        "/$workspace/settings/account/profile",
+        "--showcase-label",
+        "Ask Maestro",
+        "--showcase-route",
+        "/$workspace/search",
+        "--search-screen",
+        "assistant",
+      ];
+      const preview = runCustomerGeneratorCli(argv, cwd);
+      expect(preview.exitCode).toBe(0);
+      expect(() =>
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts")),
+      ).toThrow();
+      expect(runCustomerGeneratorCli([...argv, "--write"], cwd).exitCode).toBe(
+        0,
+      );
+      expect(
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
+      ).toContain("Agency Brain");
+      expect(
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
+      ).toContain('inbox: "brain"');
+      expect(
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
+      ).toContain('contacts: "clients"');
+      expect(
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
+      ).toContain('search: "assistant"');
+      expect(
+        readFileSync(
+          join(cwd, "docs/template/generated/provenance/configure-shell.json"),
+          "utf8",
+        ),
+      ).toContain("starter-story:packages/ui/src/editor/editor.stories.tsx");
+    } finally {
+      rmSync(cwd, { recursive: true, force: true });
+    }
   });
 
   it("previews and writes an add-table lifecycle slice", () => {
@@ -320,6 +414,8 @@ describe("customer generator runtime", () => {
           name: "customerNotes",
           system: "knowledge-brain",
           disposition: "extend",
+          screenCatalogId:
+            "starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
         },
         write: false,
         cwd,

@@ -1,0 +1,41 @@
+diff --git a/dist/types/styled-system/generated/recipes.gen.d.ts b/dist/types/styled-system/generated/recipes.gen.d.ts
+index b8e7654..f9a8d21 100644
+--- a/dist/types/styled-system/generated/recipes.gen.d.ts
++++ b/dist/types/styled-system/generated/recipes.gen.d.ts
+@@ -4,6 +4,6 @@
+ export interface BadgeVariant {
+   /** @default "subtle" */
+-  variant?: "solid" | "subtle" | "outline" | "surface" | "plain" | undefined
++  variant?: "solid" | "subtle" | "outline" | "surface" | "plain" | "ghost" | undefined
+   /** @default "sm" */
+   size?: "xs" | "sm" | "md" | "lg" | undefined
+ }
+@@ -24,7 +24,7 @@ export interface ButtonVariant {
+   /** @default "md" */
+   size?: "2xs" | "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | undefined
+   /** @default "solid" */
+-  variant?: "solid" | "subtle" | "surface" | "outline" | "ghost" | "plain" | undefined
++  variant?: "solid" | "subtle" | "surface" | "outline" | "ghost" | "plain" | "glass" | "primary" | "secondary" | "tertiary" | undefined
+ }
+
+ export type ButtonVariantProps = {
+@@ -814,6 +814,6 @@
+ export interface MenuVariant {
+   /** @default "subtle" */
+-  variant?: "subtle" | "solid" | undefined
++  variant?: "subtle" | "solid" | "default" | "compact" | undefined
+   /** @default "md" */
+   size?: "sm" | "md" | undefined
+ }
+@@ -1278,9 +1278,9 @@ export interface TabsVariant {
+   fitted?: boolean | undefined
+   justify?: "start" | "center" | "end" | undefined
+   /** @default "md" */
+-  size?: "sm" | "md" | "lg" | undefined
++  size?: "xs" | "sm" | "md" | "lg" | undefined
+   /** @default "line" */
+-  variant?: "line" | "subtle" | "enclosed" | "outline" | "plain" | undefined
++  variant?: "line" | "subtle" | "enclosed" | "outline" | "plain" | "pills" | undefined
+ }
+
+ export type TabsVariantProps = {

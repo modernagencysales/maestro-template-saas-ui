@@ -1,23 +1,21 @@
 import { FunctionSpec, GroupSpec } from "@confect/core";
 import * as S from "effect/Schema";
+import { Id } from "../_generated/id";
 
 export const StartThreadArgs = S.Struct({
-  workspaceId: S.String.pipe(S.check(S.isMinLength(1))),
-  userId: S.String.pipe(S.check(S.isMinLength(1))),
+  workspaceId: Id("workspaces"),
   firstMessage: S.String.pipe(S.check(S.isMinLength(1))),
 });
 
 export const ContinueThreadArgs = S.Struct({
-  workspaceId: S.String.pipe(S.check(S.isMinLength(1))),
-  userId: S.String.pipe(S.check(S.isMinLength(1))),
+  workspaceId: Id("workspaces"),
   threadId: S.String.pipe(S.check(S.isMinLength(1))),
   message: S.String.pipe(S.check(S.isMinLength(1))),
   idempotencyKey: S.String.pipe(S.check(S.isMinLength(1))),
 });
 
 export const ListThreadMessagesArgs = S.Struct({
-  workspaceId: S.String.pipe(S.check(S.isMinLength(1))),
-  userId: S.String.pipe(S.check(S.isMinLength(1))),
+  workspaceId: Id("workspaces"),
   threadId: S.String.pipe(S.check(S.isMinLength(1))),
 });
 
@@ -125,14 +123,14 @@ export const verifyWorkspaceAccess = (
       };
 };
 
-const startThread = FunctionSpec.publicMutation({
+const startThread = FunctionSpec.publicAction({
   name: "startThread",
   args: () => StartThreadArgs,
   returns: () => StartThreadReturn,
   error: () => AssistantError.Schema,
 });
 
-const continueThread = FunctionSpec.publicMutation({
+const continueThread = FunctionSpec.publicAction({
   name: "continueThread",
   args: () => ContinueThreadArgs,
   returns: () => ContinueThreadReturn,
@@ -146,7 +144,15 @@ const listThreadMessages = FunctionSpec.publicQuery({
   error: () => AssistantError.Schema,
 });
 
+const resolveAccess = FunctionSpec.internalQuery({
+  name: "resolveAccess",
+  args: () => S.Struct({ workspaceId: Id("workspaces") }),
+  returns: () => S.Struct({ userId: Id("users") }),
+  error: () => AssistantError.Schema,
+});
+
 export default GroupSpec.make()
   .addFunction(startThread)
   .addFunction(continueThread)
-  .addFunction(listThreadMessages);
+  .addFunction(listThreadMessages)
+  .addFunction(resolveAccess);

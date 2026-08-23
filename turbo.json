@@ -3,8 +3,13 @@
   "tasks": {
     "build": {
       "dependsOn": ["^build"],
-      "outputs": ["dist/**"],
-      "env": ["VITE_CONVEX_URL"]
+      "outputs": ["dist/**", ".output/**"],
+      "env": [
+        "APP_PROVIDER_MODE",
+        "TEMPLATE_RUNTIME_MODE",
+        "VITE_CONVEX_URL",
+        "VITE_MAESTRO_AUTH_MODE"
+      ]
     },
     "typecheck": {
       "dependsOn": ["^typecheck"],

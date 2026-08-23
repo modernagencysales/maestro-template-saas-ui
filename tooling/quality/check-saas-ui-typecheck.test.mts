@@ -6,23 +6,30 @@ import { describe, expect, it } from "vitest";
 
 import {
   assertSaasUiTypecheckDiagnostics,
+  createSaasUiTypecheckBaseline,
   type SaasUiTypecheckBaseline,
 } from "./check-saas-ui-typecheck.mts";
 
 const hash = (value: string): string =>
   createHash("sha256").update(value).digest("hex");
 
-const baseline = (lockSha256: string): SaasUiTypecheckBaseline => ({
+const baseline = (
+  lockSha256: string,
+  diagnosticCount = 0,
+): SaasUiTypecheckBaseline => ({
   schemaVersion: 1,
   pnpmLockSha256: lockSha256,
   typescriptVersion: "5.9.3",
-  diagnosticCount: 1,
-  diagnosticsSha256: hash(
-    JSON.stringify({
-      path: "apps/web/src/components/paid.tsx",
-      code: "TS2322",
-    }),
-  ),
+  diagnosticCount,
+  diagnosticsSha256:
+    diagnosticCount === 0
+      ? hash("")
+      : hash(
+          JSON.stringify({
+            path: "apps/web/src/components/paid.tsx",
+            code: "TS2322",
+          }),
+        ),
 });
 
 const diagnostic = (
@@ -87,52 +94,45 @@ const validate = (
   });
 
 describe("Saas UI receipt-aware typecheck", () => {
-  it("accepts an exact diagnostic from a hash-verified literal receipt path", () => {
+  it("accepts raw zero diagnostics with an environment-bound baseline", () => {
+    const { root, lockSha256 } = fixture();
+    try {
+      expect(validate(root, "", baseline(lockSha256))).toEqual([]);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("rejects a receipt-verified diagnostic even when it is baselined", () => {
     const { root, lockSha256 } = fixture();
     try {
       expect(
         validate(
           root,
           diagnostic("apps/web/src/components/paid.tsx"),
-          baseline(lockSha256),
+          baseline(lockSha256, 1),
         ),
-      ).toEqual([]);
+      ).toEqual(
+        expect.arrayContaining([
+          "Saas UI raw TypeScript must report zero diagnostics",
+          "Saas UI typecheck baseline must encode zero diagnostics",
+        ]),
+      );
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
   });
 
-  it("ignores platform-specific diagnostic message rendering", () => {
+  it("rejects dependency diagnostics instead of hiding them in the baseline", () => {
     const { root, lockSha256 } = fixture();
     try {
       expect(
         validate(
           root,
-          diagnostic(
-            "apps/web/src/components/paid.tsx",
-            "Type was resolved through /linux/node_modules.",
-          ),
+          diagnostic("node_modules/platform-specific/index.d.ts"),
           baseline(lockSha256),
         ),
-      ).toEqual([]);
-    } finally {
-      rmSync(root, { recursive: true, force: true });
-    }
-  });
-
-  it("ignores platform-specific dependency and duplicate receipt diagnostics", () => {
-    const { root, lockSha256 } = fixture();
-    try {
-      expect(
-        validate(
-          root,
-          `${diagnostic("apps/web/src/components/paid.tsx")}${diagnostic(
-            "apps/web/src/components/paid.tsx",
-            "A duplicate platform diagnostic.",
-          )}${diagnostic("node_modules/platform-specific/index.d.ts")}`,
-          baseline(lockSha256),
-        ),
-      ).toEqual([]);
+      ).toContain("Saas UI raw TypeScript must report zero diagnostics");
     } finally {
       rmSync(root, { recursive: true, force: true });
     }
@@ -141,7 +141,7 @@ describe("Saas UI receipt-aware typecheck", () => {
   it("rejects a mutable diagnostic even when its identity is baselined", () => {
     const { root, lockSha256 } = fixture();
     try {
-      const value = baseline(lockSha256);
+      const value = baseline(lockSha256, 1);
       expect(
         validate(root, diagnostic("apps/web/src/lib/mutable.ts"), value),
       ).toContain(
@@ -159,7 +159,7 @@ describe("Saas UI receipt-aware typecheck", () => {
         validate(
           root,
           diagnostic("apps/web/src/components/paid.tsx"),
-          baseline(lockSha256),
+          baseline(lockSha256, 1),
         ),
       ).toContain(
         "diagnostic path is not receipt-verified: apps/web/src/components/paid.tsx",
@@ -170,18 +170,30 @@ describe("Saas UI receipt-aware typecheck", () => {
   });
 
   it("rejects diagnostic drift and lock drift", () => {
-    const { root, lockSha256 } = fixture();
+    const { root } = fixture();
     try {
-      expect(validate(root, "", baseline(lockSha256))).toContain(
-        "diagnostic count does not match the baseline",
-      );
       expect(
         validate(
           root,
           diagnostic("apps/web/src/components/paid.tsx"),
-          baseline("0".repeat(64)),
+          baseline("0".repeat(64), 1),
         ),
       ).toContain("pnpm-lock.yaml hash does not match the diagnostic baseline");
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
+  });
+
+  it("refuses to generate a nonzero release baseline", () => {
+    const { root } = fixture();
+    try {
+      expect(() =>
+        createSaasUiTypecheckBaseline(
+          root,
+          diagnostic("apps/web/src/components/paid.tsx"),
+          "5.9.3",
+        ),
+      ).toThrow(/raw TypeScript has zero diagnostics/u);
     } finally {
       rmSync(root, { recursive: true, force: true });
     }

@@ -3,7 +3,7 @@
 import * as React from "react";
 
 import type { HTMLChakraProps } from "@chakra-ui/react";
-import { Presence, chakra } from "@chakra-ui/react";
+import { chakra } from "@chakra-ui/react";
 
 import {
   ClassNamesProvider,
@@ -156,24 +156,22 @@ const SidebarBackdropPrimitive = React.forwardRef<
   const { onClick, onMouseEnter, ...rest } = props;
   const { isMobile, mode, open, setOpen } = useSidebar();
 
-  if (!isMobile && mode !== "flyout") return null;
+  if ((!isMobile && mode !== "flyout") || !open) return null;
 
   return (
-    <Presence present={open} lazyMount unmountOnExit asChild>
-      <chakra.div
-        ref={ref}
-        data-state={open ? "open" : "closed"}
-        onClick={(event) => {
-          onClick?.(event);
-          if (!event.defaultPrevented && mode !== "flyout") setOpen(false);
-        }}
-        onMouseEnter={(event) => {
-          onMouseEnter?.(event);
-          if (!event.defaultPrevented && mode === "flyout") setOpen(false);
-        }}
-        {...rest}
-      />
-    </Presence>
+    <chakra.div
+      ref={ref}
+      data-state="open"
+      onClick={(event) => {
+        onClick?.(event);
+        if (!event.defaultPrevented && mode !== "flyout") setOpen(false);
+      }}
+      onMouseEnter={(event) => {
+        onMouseEnter?.(event);
+        if (!event.defaultPrevented && mode === "flyout") setOpen(false);
+      }}
+      {...rest}
+    />
   );
 });
 

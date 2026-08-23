@@ -10,12 +10,12 @@
     {
       "id": "crud-business-entity",
       "file": "crud-business-entity.json",
-      "sha256": "sha256:76387a680329cdd74145e4de70f61b5109d3e1aae6594f3651bccf6671b90a53"
+      "sha256": "sha256:a69a2c8e3ebfb5528e785ac1829074a5cae694fa5ba9bc5163bb42de900f8cbb"
     },
     {
       "id": "validated-file-import",
       "file": "validated-file-import.json",
-      "sha256": "sha256:39b41dbd9cacad01074cc37f345cb3c18e56121fe921033b817e4b6e465c5220"
+      "sha256": "sha256:7414d6dc3742ba16d2211c3e242aafcbe2f20cc92fde643a730624dcc652d295"
     }
   ]
 }

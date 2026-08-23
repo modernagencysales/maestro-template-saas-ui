@@ -1,4 +1,5 @@
 import migrations from "@convex-dev/migrations/convex.config";
+import agent from "@convex-dev/agent/convex.config";
 import prosemirrorSync from "@convex-dev/prosemirror-sync/convex.config.js";
 import workflow from "@convex-dev/workflow/convex.config";
 import workpool from "@convex-dev/workpool/convex.config";
@@ -24,6 +25,7 @@ app.use(posthog, {
     POSTHOG_HOST: app.env.POSTHOG_HOST,
   },
 });
+app.use(agent, { name: "agent" });
 app.use(workpool, { name: "workpool" });
 app.use(workpool, { name: "workflowDeadlineWorkpool" });
 app.use(workflow, { name: "workflow" });

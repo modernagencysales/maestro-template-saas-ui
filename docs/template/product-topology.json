@@ -444,7 +444,7 @@
     {
       "id": "integration:provider-adapter",
       "kind": "provider",
-      "system": "policy-and-prompts",
+      "system": "provider-integrations",
       "path": "packages/integrations/src/providerAdapter.ts",
       "responsibility": "construct provider adapters behind the canonical registry",
       "surfaces": ["internal", "worker"],

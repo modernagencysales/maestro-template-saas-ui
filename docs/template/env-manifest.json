@@ -88,6 +88,18 @@
       "notes": "Provider posture default; fake mode must not require live credentials."
     },
     {
+      "name": "VITE_MAESTRO_AUTH_MODE",
+      "group": "app",
+      "services": ["web", "cli", "generators"],
+      "visibility": "public-config",
+      "requiredFor": ["fake", "test", "live"],
+      "fakeExampleAllowed": true,
+      "fakeExample": "fixture",
+      "owner": "Identity owner",
+      "rotation": "Review on every environment creation and promotion.",
+      "notes": "Selects fixture or WorkOS web auth. Fixture is forbidden when APP_ENV is production."
+    },
+    {
       "name": "TEMPLATE_RUNTIME_MODE",
       "group": "app",
       "services": ["convex", "cli", "tests"],

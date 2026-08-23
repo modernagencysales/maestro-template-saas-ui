@@ -153,6 +153,12 @@ describe("customer ownership inventory", () => {
       "omit",
     ],
     [
+      "packages/convex/confect/_generated/registeredFunctions/demo/showcase.ts",
+      "factory-only",
+      "omit",
+    ],
+    ["packages/convex/convex/demo/showcase.ts", "factory-only", "omit"],
+    [
       "packages/convex/confect/capabilities/evaluateAppIdea.impl.ts",
       "factory-only",
       "omit",

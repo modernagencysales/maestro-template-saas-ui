@@ -1,9 +1,9 @@
-import { LoadingOverlay, LoadingSpinner } from '@saas-ui/react'
+import { LoadingOverlay } from '#components/ui/loading-overlay'
 
 export function WorkspaceLoading() {
   return (
-    <LoadingOverlay variant="fullscreen">
-      <LoadingSpinner />
-    </LoadingOverlay>
+    <LoadingOverlay.Root variant="fullscreen">
+      <LoadingOverlay.Spinner />
+    </LoadingOverlay.Root>
   )
 }

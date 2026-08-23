@@ -1,0 +1,12 @@
+diff --git a/dist/esm/Matches.d.ts b/dist/esm/Matches.d.ts
+index 9a27fb9d3e720707a2549e12547fc7ba89c1230a..e9695fd0926c65636634759f3517580f99bdc206 100644
+--- a/dist/esm/Matches.d.ts
++++ b/dist/esm/Matches.d.ts
+@@ -54,6 +54,7 @@ export interface RouteMatch<out TRouteId, out TFullPath, out TAllParams, out TFu
+     updatedAt: number;
+     loaderData?: TLoaderData;
+     context: TAllContext;
++    __beforeLoadContext?: TAllContext;
+     search: TFullSearchSchema;
+     _strictSearch: TFullSearchSchema;
+     abortController: AbortController;

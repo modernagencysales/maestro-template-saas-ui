@@ -27,22 +27,29 @@
       "source": "apps/web/src/components/default-loader.tsx",
       "destination": "apps/web/src/components/default-loader.tsx",
       "sourceSha256": "04534f73fc800a0b806a137f247d85edd7d54acc7303c266c0a03eb8e450fb10",
-      "sha256": "04534f73fc800a0b806a137f247d85edd7d54acc7303c266c0a03eb8e450fb10",
-      "adapted": false
+      "sha256": "11c21e4106198fa815479278faf6e0c23ef5a4a7cc87f4f32dc14ec1031dc710",
+      "adapted": true
     },
     {
       "source": "apps/web/src/components/link-button.tsx",
       "destination": "apps/web/src/components/link-button.tsx",
       "sourceSha256": "ecae7fb77347b80b6e142c4442582971ba08a9baee47832e82cc12712b91e019",
-      "sha256": "ecae7fb77347b80b6e142c4442582971ba08a9baee47832e82cc12712b91e019",
-      "adapted": false
+      "sha256": "0059be086dab5f71e10f9832587cdb13fbafaec24a41790a76977452b4f150c4",
+      "adapted": true
+    },
+    {
+      "source": "apps/web/src/components/link.tsx",
+      "destination": "apps/web/src/components/link.tsx",
+      "sourceSha256": "48580bcec63969384975fa24ff3ba6f5d250c2f26d24b8f22e5e4f4bf4b9701b",
+      "sha256": "1582db9f277f8f93653c7ffe1617baadb35ede430c2eb11fcf146048da1b19ca",
+      "adapted": true
     },
     {
       "source": "apps/web/src/config/hotkeys.config.ts",
       "destination": "apps/web/src/config/hotkeys.config.ts",
       "sourceSha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",
-      "sha256": "71dea89d4b5ae63ce33bdc31b353845852fc8e0e5306a94bed4c82611245148e",
-      "adapted": false
+      "sha256": "ea69f37582c72db6ab119d3f1bb6b5762a094c6076a54bac9a8b0a807e4cbf7b",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/auth/auth-layout.tsx",
@@ -160,8 +167,8 @@
       "source": "apps/web/src/features/billing/components/pricing-table.tsx",
       "destination": "apps/web/src/features/billing/components/pricing-table.tsx",
       "sourceSha256": "acbdadd9ad51aae7458f0fa6592043bf817e26ab307dcb9c2cdb09587561cb7b",
-      "sha256": "acbdadd9ad51aae7458f0fa6592043bf817e26ab307dcb9c2cdb09587561cb7b",
-      "adapted": false
+      "sha256": "ae61785ddf0d9c93517a8ea984e318839b2754c952df7244eb35cd0ab479e055",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/billing/hooks/use-plans.ts",
@@ -181,7 +188,7 @@
       "source": "apps/web/src/features/common/components/app-sidebar.tsx",
       "destination": "apps/web/src/features/common/components/app-sidebar.tsx",
       "sourceSha256": "9864a913f4266a6412eb3a452582e554d85983f4d9242ab2995d177c2f95dd3c",
-      "sha256": "a6cf920cfd473d47c0c95f0cf6061f08ace4af60f1186aab1c88b933280f7567",
+      "sha256": "23aeacaf4d98b2c7bdcecef85fa7231d46ab46ad615cc5ed5baeb1d040496b9f",
       "adapted": true
     },
     {
@@ -209,15 +216,15 @@
       "source": "apps/web/src/features/common/components/invite-people.tsx",
       "destination": "apps/web/src/features/common/components/invite-people.tsx",
       "sourceSha256": "826aeab75f85df8f6c26b66fc6cc921a0d3a0be2e8c30d1f91ae2a10a42b8038",
-      "sha256": "826aeab75f85df8f6c26b66fc6cc921a0d3a0be2e8c30d1f91ae2a10a42b8038",
-      "adapted": false
+      "sha256": "b2e70ac1a9a12808227ae3803d31cf10c3781f192729006f51327f3507988508",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/components/sidebar-tags.tsx",
       "destination": "apps/web/src/features/common/components/sidebar-tags.tsx",
       "sourceSha256": "40db065c38d6a52c157cf497e6e106f6fa8b71eeba705e06bfd20319afe67a5e",
-      "sha256": "40db065c38d6a52c157cf497e6e106f6fa8b71eeba705e06bfd20319afe67a5e",
-      "adapted": false
+      "sha256": "070556b24b3706c641c77038ebcac6eae95ccc3ebeb0a75d62cac69958eb3657",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/components/user-menu.tsx",
@@ -244,15 +251,15 @@
       "source": "apps/web/src/features/common/hooks/use-current-workspace.ts",
       "destination": "apps/web/src/features/common/hooks/use-current-workspace.ts",
       "sourceSha256": "ef6810bc0cfd00068d2e63fad85670dc732751f22c8c00829530611b3ba93380",
-      "sha256": "ef6810bc0cfd00068d2e63fad85670dc732751f22c8c00829530611b3ba93380",
-      "adapted": false
+      "sha256": "d44b63991a8130a50d5498377fc7cfe39858bcf3f7643aa34f0170deb686e17c",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/hooks/use-tags.ts",
       "destination": "apps/web/src/features/common/hooks/use-tags.ts",
       "sourceSha256": "52c22f3f7065ffcce28f539cdb576e674d8d9e3598775025a93c40775ec7cfb6",
-      "sha256": "52c22f3f7065ffcce28f539cdb576e674d8d9e3598775025a93c40775ec7cfb6",
-      "adapted": false
+      "sha256": "df29d1258f4421c9e30a68018041f022169a85796aa1e59282a17f2c44e67e0c",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/hooks/use-workspace-slug.ts",
@@ -272,8 +279,8 @@
       "source": "apps/web/src/features/common/layouts/app-layout.tsx",
       "destination": "apps/web/src/features/common/layouts/app-layout.tsx",
       "sourceSha256": "657ecb6d987d6177a7ec0410fc87f261d1aaffc87f1c8addd112be7f5141b57c",
-      "sha256": "657ecb6d987d6177a7ec0410fc87f261d1aaffc87f1c8addd112be7f5141b57c",
-      "adapted": false
+      "sha256": "3bc1649fe786ef409ce7d4fa42893bc9cece5f0746c304e1529661d8991f4e49",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/common/layouts/dashboard-layout.tsx",
@@ -321,8 +328,8 @@
       "source": "apps/web/src/features/contacts/common/contact-tag.tsx",
       "destination": "apps/web/src/features/contacts/common/contact-tag.tsx",
       "sourceSha256": "275921811d9b0f8ca24e88ecc64fc71aa49fe649e0a22dcb24039b479107dce9",
-      "sha256": "275921811d9b0f8ca24e88ecc64fc71aa49fe649e0a22dcb24039b479107dce9",
-      "adapted": false
+      "sha256": "d9616c496f84fa7585abc994114ddb67b37c9c825132ed2d2744477175ce6ef8",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/common/contact-type.tsx",
@@ -335,8 +342,8 @@
       "source": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "destination": "apps/web/src/features/contacts/inbox/inbox-layout.tsx",
       "sourceSha256": "bc5baf32043a6d9e67b10b79e01f7efcae44120ea12b3fd54fee9bb6e60fb56f",
-      "sha256": "bc5baf32043a6d9e67b10b79e01f7efcae44120ea12b3fd54fee9bb6e60fb56f",
-      "adapted": false
+      "sha256": "2369ccd92cd347c4624e655ab1799d15767ab0400a5d7c7b67d3d9df7fe9bde7",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/inbox/inbox-list.tsx",
@@ -349,8 +356,8 @@
       "source": "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
       "destination": "apps/web/src/features/contacts/inbox/inbox-view-page.tsx",
       "sourceSha256": "813208fd9502e9c5c134f9af8503b5d64e6be4bee75843c4369500edfe311bf8",
-      "sha256": "813208fd9502e9c5c134f9af8503b5d64e6be4bee75843c4369500edfe311bf8",
-      "adapted": false
+      "sha256": "76853b945fe1a8adc347124a18af5d223ccc192266c9621d3c77c357731928af",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/inbox/inbox.not-found.tsx",
@@ -398,8 +405,8 @@
       "source": "apps/web/src/features/contacts/list/contact-types.tsx",
       "destination": "apps/web/src/features/contacts/list/contact-types.tsx",
       "sourceSha256": "f9d2e220b7978b5c70eadf3a51f4737f66d3441cea91c76893f188468dc26b93",
-      "sha256": "f9d2e220b7978b5c70eadf3a51f4737f66d3441cea91c76893f188468dc26b93",
-      "adapted": false
+      "sha256": "bc3948a46b69f462ed803006ec10e4b4f2f61371653f233a17e1ce6d48a09fd3",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/list/get-contact-type.ts",
@@ -412,50 +419,50 @@
       "source": "apps/web/src/features/contacts/list/list-page.tsx",
       "destination": "apps/web/src/features/contacts/list/list-page.tsx",
       "sourceSha256": "9f3d5186cd1b1c06ac7b5c80d68123ff78025d7ac6f4179cef9baae69b8c0a57",
-      "sha256": "9f3d5186cd1b1c06ac7b5c80d68123ff78025d7ac6f4179cef9baae69b8c0a57",
-      "adapted": false
+      "sha256": "0635c0b8a443dafa632f8cb69d1d0ace943df17dea233afdaec888394fe3e4c9",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/view/activities-panel.tsx",
       "destination": "apps/web/src/features/contacts/view/activities-panel.tsx",
       "sourceSha256": "97fc9342b991a4563a3bec2088a7cc8766c08a1b0fc22de41a663000dc67bf8b",
-      "sha256": "97fc9342b991a4563a3bec2088a7cc8766c08a1b0fc22de41a663000dc67bf8b",
-      "adapted": false
+      "sha256": "f3dc4e12b67e1b0dc8a06929772e006994830d551cb69258bc7c049d5a28fa51",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/view/activity-timeline.tsx",
       "destination": "apps/web/src/features/contacts/view/activity-timeline.tsx",
       "sourceSha256": "a12f4433e9e4e28d70b8451a3e1102019236494abd295b5cd979de485b897c00",
-      "sha256": "a12f4433e9e4e28d70b8451a3e1102019236494abd295b5cd979de485b897c00",
-      "adapted": false
+      "sha256": "24e1a42da700458fde86838152345edd01afe007fea42df625feb951aa5068cf",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/view/contact-page.tsx",
       "destination": "apps/web/src/features/contacts/view/contact-page.tsx",
       "sourceSha256": "3b257938b6133818f25b80a1d56d1f432606bdee1b8f203217338e2b895d8a18",
-      "sha256": "3b257938b6133818f25b80a1d56d1f432606bdee1b8f203217338e2b895d8a18",
-      "adapted": false
+      "sha256": "223d50dedea38b43302578f3b5c7413a2d2db418e67d29786351a900cace284e",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/view/contact-sidebar.tsx",
       "destination": "apps/web/src/features/contacts/view/contact-sidebar.tsx",
       "sourceSha256": "57759ed08ad8e910c0cfd49ff65c89f4a30c91fc3e282488e2874554ad77d9c8",
-      "sha256": "57759ed08ad8e910c0cfd49ff65c89f4a30c91fc3e282488e2874554ad77d9c8",
-      "adapted": false
+      "sha256": "5b55fcd58b5b7681243964c88a465ad105e11fc97945ded33465d8c964824774",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/view/contact-tags.tsx",
       "destination": "apps/web/src/features/contacts/view/contact-tags.tsx",
       "sourceSha256": "3117145d176c50646404a375a842abbbb192631ca746c0dbd271f5608665577b",
-      "sha256": "3117145d176c50646404a375a842abbbb192631ca746c0dbd271f5608665577b",
-      "adapted": false
+      "sha256": "4ef54265795db9d60aa5f53a1f8f0d8ceab8731b2a39c23035ef844879b1ff30",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/view/contact.error.tsx",
       "destination": "apps/web/src/features/contacts/view/contact.error.tsx",
       "sourceSha256": "e61250b5e51e3c35f59a1f91eae38779c54220f2421965f6f106ba0c36f2cd8c",
-      "sha256": "e61250b5e51e3c35f59a1f91eae38779c54220f2421965f6f106ba0c36f2cd8c",
-      "adapted": false
+      "sha256": "5f3d60fa13c6a340446f6c2423c0e9625a132c6fab6a7dbbf16a9df3d20036ea",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/contacts/view/contact.not-found.tsx",
@@ -573,8 +580,8 @@
       "source": "apps/web/src/features/reports/metrics/revenue-chart.tsx",
       "destination": "apps/web/src/features/reports/metrics/revenue-chart.tsx",
       "sourceSha256": "f78213c69e96935283310b1add6cbb9aff7ee750cab4de305d6a93eaaeaa2075",
-      "sha256": "f78213c69e96935283310b1add6cbb9aff7ee750cab4de305d6a93eaaeaa2075",
-      "adapted": false
+      "sha256": "bd706c3c02c2d1973bd7348675f6330e0ce4eabc1c6a28db046dd5e7cc1b4d52",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/reports/metrics/sales-by-country.tsx",
@@ -587,15 +594,15 @@
       "source": "apps/web/src/features/reports/reports-page.tsx",
       "destination": "apps/web/src/features/reports/reports-page.tsx",
       "sourceSha256": "fe804d3873917ad8e7cc615f205a59c6bbbabac9e6ed221fca503a9569734d58",
-      "sha256": "fe804d3873917ad8e7cc615f205a59c6bbbabac9e6ed221fca503a9569734d58",
-      "adapted": false
+      "sha256": "400c462442cb41d92c8f2171649fbcc34e01062cb1dbed9283445e31ddc98773",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/search/search-page.tsx",
       "destination": "apps/web/src/features/search/search-page.tsx",
       "sourceSha256": "9295a847ad0fed878189c40ca3ef92caabc405dccb10acb3b5922385e0de5ec2",
-      "sha256": "9295a847ad0fed878189c40ca3ef92caabc405dccb10acb3b5922385e0de5ec2",
-      "adapted": false
+      "sha256": "9a7b43b464e391795d7e8e0f314d200e5dc2b337e1c6bee470380cfb6f646436",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/settings/account/account-api-page.tsx",
@@ -699,8 +706,8 @@
       "source": "apps/web/src/features/settings/common/settings-sidebar.tsx",
       "destination": "apps/web/src/features/settings/common/settings-sidebar.tsx",
       "sourceSha256": "bea225dd07d211543d8445a918f192c7bde6cdcacf42fdc9280be96315f90a84",
-      "sha256": "bea225dd07d211543d8445a918f192c7bde6cdcacf42fdc9280be96315f90a84",
-      "adapted": false
+      "sha256": "1bbe47ce071c862aeef97978406429f5c3431f3ece20322c37c1fb411f7148cc",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/settings/common/support-card.tsx",
@@ -762,8 +769,8 @@
       "source": "apps/web/src/features/workspaces/workspace.loading.tsx",
       "destination": "apps/web/src/features/workspaces/workspace.loading.tsx",
       "sourceSha256": "1a8b925166c036825152e1721685855cdbe9c9ca12b0149e8654ea3eb5e5643e",
-      "sha256": "1a8b925166c036825152e1721685855cdbe9c9ca12b0149e8654ea3eb5e5643e",
-      "adapted": false
+      "sha256": "a68c25a0b2dd6818b2f21d92659d5791698af696a83add718d6de93b214ad49a",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/workspaces/workspace.not-found.tsx",
@@ -780,17 +787,52 @@
       "adapted": false
     },
     {
+      "source": "apps/web/src/lib/last-used-workspace.ts",
+      "destination": "apps/web/src/lib/last-used-workspace.ts",
+      "sourceSha256": "25ef8c417f416054173f9867873f2391b1d2377136e2fb6d2aa299849dbcf2ee",
+      "sha256": "5e8b7e7c7a449c83f90a0f106c4f16274007efa4134c1bc706821711352b711c",
+      "adapted": true
+    },
+    {
+      "source": "apps/web/src/lib/react-query.ts",
+      "destination": "apps/web/src/lib/react-query.ts",
+      "sourceSha256": "300b4273c1dbde9aa486d857fe6ae0ed466af45d0fdf1ae30c32de6cfa8e0681",
+      "sha256": "46f9e74ad91d1c0309cb414e5cc98d9325bbcebf42e5cde74c6b6bf775f85135",
+      "adapted": true
+    },
+    {
+      "source": "apps/web/src/lib/trpc/react.tsx",
+      "destination": "apps/web/src/lib/trpc/react.tsx",
+      "sourceSha256": "b99def2745bcd560975d0b786745e8855d0c04c4e1f771a88151412e9447a453",
+      "sha256": "083ac13bcc0a8d9a1dddbb6b157ee2cafe6b22b8e8a0716c067238a9a637b1b6",
+      "adapted": true
+    },
+    {
+      "source": "apps/web/src/lib/trpc/utils.ts",
+      "destination": "apps/web/src/lib/trpc/utils.ts",
+      "sourceSha256": "10391e854ef9e2cf89369c0ac7159603039da092c1680949932385e637665dbf",
+      "sha256": "fd445821becfb4bbe39900a2fa0686959495b1455d90264d0ab5ed3f9b823c35",
+      "adapted": true
+    },
+    {
+      "source": "apps/web/src/lib/user-settings/use-user-settings.ts",
+      "destination": "apps/web/src/lib/user-settings/use-user-settings.ts",
+      "sourceSha256": "8f23fd4e496fae9f6a2c39fdb37ca1752d4636c8d8e09edb3228c0f4e60aef3a",
+      "sha256": "7d98172d7ecb73819b10c7f8b5716cdcae639f80ed9898ae857d8a7e4159b157",
+      "adapted": true
+    },
+    {
       "source": "apps/web/src/router.tsx",
       "destination": "apps/web/src/router.tsx",
       "sourceSha256": "766662f448c564c65a9fce2ac3de05141e4bb2afa2e2ae0d7259deacc8c42785",
-      "sha256": "f66c4b32415cc0a5be3e0291a3b84fccbba45476a3ff0a144c101442d0b11db6",
+      "sha256": "d34a925a4e543da8fb2b7ba30678b069fb79ca1ed44b69c01a1805107209eba3",
       "adapted": true
     },
     {
       "source": "apps/web/src/routes/__root.tsx",
       "destination": "apps/web/src/routes/__root.tsx",
       "sourceSha256": "875a4f123b593820dc5d561bd714ab09fd2407c0054f2008dcb4dbabded6c701",
-      "sha256": "149781ae8509014c93b348345756f7a3a45b10f5293ea7d86b0507375754c2d4",
+      "sha256": "1fc4cbf4d14ec996ca708b843fa8bcacacc179f50aa582749697c5a91b7b94c8",
       "adapted": true
     },
     {
@@ -825,8 +867,8 @@
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
       "sourceSha256": "abff1198413e35d52f7ab693cce354b7e97a8fd22c7ba00d8a0fb7f1a0bf2a23",
-      "sha256": "abff1198413e35d52f7ab693cce354b7e97a8fd22c7ba00d8a0fb7f1a0bf2a23",
-      "adapted": false
+      "sha256": "313c2368ca48431f814e0e21924a4ad3898020426f3f9a989ace292e21be8d65",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/contacts/view/$id.tsx",
@@ -839,22 +881,22 @@
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/inbox.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/inbox.tsx",
       "sourceSha256": "b2d72357869d8f500624449a59ad71351181e6c45edf186cf9f7a8bedcf3221a",
-      "sha256": "b2d72357869d8f500624449a59ad71351181e6c45edf186cf9f7a8bedcf3221a",
-      "adapted": false
+      "sha256": "f6c717212e15362090b419f235c4464ccbfad98a0a2e7ff37617e64d8b0b61df",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/inbox/$id.tsx",
       "sourceSha256": "fda2f11c26ba2fb8fa93e8337ade9e2ab45bcdf0d6791ebb953b7397004f1ca6",
-      "sha256": "a4d983bc38a3e1ee6661af2982beef6790b48b2e0b35239a30669dfdad718b6a",
+      "sha256": "ab22028fdfb1cab7c9efa0765bea84a2aed4c4294306171572c75acf7a19e489",
       "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
       "sourceSha256": "ae8bdb264904b7f0d52118f85a19c0b85d7bb42a23bf3075b61aaf29bad35f34",
-      "sha256": "ae8bdb264904b7f0d52118f85a19c0b85d7bb42a23bf3075b61aaf29bad35f34",
-      "adapted": false
+      "sha256": "aa92bae3105b341b9ba739a734fe43ff282eef697d351c3732033c59d7f2bcb7",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/search.tsx",
@@ -1035,7 +1077,7 @@
       "source": "apps/web/src/routeTree.gen.ts",
       "destination": "apps/web/src/routeTree.gen.ts",
       "sourceSha256": "45d73c4b308bfb015325284e5b601a8c4edc97e07768436c4eefdedfb000c8fa",
-      "sha256": "ab6a5e23246a8e9b044d92f7182b9444463b854c4273cc15f4a5af8363269b2f",
+      "sha256": "e868e3397ca977051272a9d6927d9c2d11500f4f5d53fb912eebd6706d8a9753",
       "adapted": true
     },
     {
@@ -1245,8 +1287,8 @@
       "source": "packages/ui/package.json",
       "destination": "packages/ui/package.json",
       "sourceSha256": "84253fa63cbb92a01f255a2c7077e9379bbde42af7f85724b3f9f59afa34ecf8",
-      "sha256": "84253fa63cbb92a01f255a2c7077e9379bbde42af7f85724b3f9f59afa34ecf8",
-      "adapted": false
+      "sha256": "246a0e3e73c4810d5da3ca2f24ec3e11d5fb2d389d82aa9010898ee23e104169",
+      "adapted": true
     },
     {
       "source": "packages/ui/src/app-loader/app-loader.stories.tsx",
@@ -1336,8 +1378,8 @@
       "source": "packages/ui/src/data-board/data-board.tsx",
       "destination": "packages/ui/src/data-board/data-board.tsx",
       "sourceSha256": "2c331a9fa01cf89e82c3bb06bc3395c2f5b51d9ccc5ececb226a621899719792",
-      "sha256": "2c331a9fa01cf89e82c3bb06bc3395c2f5b51d9ccc5ececb226a621899719792",
-      "adapted": false
+      "sha256": "d535d45ce7ec7c56e16c7e38da66be6a90bf6d923a517d429ad04197e044b77b",
+      "adapted": true
     },
     {
       "source": "packages/ui/src/data-board/index.ts",
@@ -1700,8 +1742,8 @@
       "source": "packages/ui/src/segmented-control/segmented-control.tsx",
       "destination": "packages/ui/src/segmented-control/segmented-control.tsx",
       "sourceSha256": "d105b9d8788f5f69e008044264dbe4e694b1877fe567a332b6f3d8a2496e1e70",
-      "sha256": "d105b9d8788f5f69e008044264dbe4e694b1877fe567a332b6f3d8a2496e1e70",
-      "adapted": false
+      "sha256": "d98b8096fc76000c5c85a34c5c793cd5ff72889e38d62c6793d3107a0b4b4bf3",
+      "adapted": true
     },
     {
       "source": "packages/ui/src/settings-page/index.ts",
@@ -1714,8 +1756,8 @@
       "source": "packages/ui/src/settings-page/settings-page.tsx",
       "destination": "packages/ui/src/settings-page/settings-page.tsx",
       "sourceSha256": "3e77ae3bdbb33f81caddde77f7d22964d940e56bc820f0d4dedc0e6a6a187116",
-      "sha256": "3e77ae3bdbb33f81caddde77f7d22964d940e56bc820f0d4dedc0e6a6a187116",
-      "adapted": false
+      "sha256": "3194142ba1344ea3e1ef0e0d2b9edbdb64bc243dd787f3e3f9b5fd6e7f76839e",
+      "adapted": true
     },
     {
       "source": "packages/ui/src/settings-page/stories.tsx",
@@ -1742,8 +1784,8 @@
       "source": "packages/ui/src/sortable-nav-group/sortable-nav-group.tsx",
       "destination": "packages/ui/src/sortable-nav-group/sortable-nav-group.tsx",
       "sourceSha256": "2b8c6262c42dd66e0f0ba4b5d3c00b3bc5623dfb04fa5f83dcee22c613549ebd",
-      "sha256": "2b8c6262c42dd66e0f0ba4b5d3c00b3bc5623dfb04fa5f83dcee22c613549ebd",
-      "adapted": false
+      "sha256": "a76b9b2890c2c09b41be8b107251d2e141429fe460fcbcd9fdbe3a15d2453644",
+      "adapted": true
     },
     {
       "source": "packages/ui/src/status-badge/index.ts",

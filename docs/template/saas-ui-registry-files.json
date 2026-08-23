@@ -194,7 +194,8 @@
       "source": "packages/blocks/settings/integration-card/integration-card.tsx",
       "destination": "apps/web/src/components/integration-card/integration-card.tsx",
       "sourceSha256": "6c00fbbb98bf7a58ed3d8bb83a3458e76d82e1b9f0a0846567b1afe49850777a",
-      "sha256": "7845a9ef7e637f9fbb72ed674ce1f0e02829b36d70956acbcc1f5c77723625ae"
+      "sha256": "554c143a316c58552992ce0315b141fb25d1779f919a6144def383cbe6bcf723",
+      "adapted": true
     },
     {
       "source": "packages/blocks/modals/invite-people-modal/invite-people-modal.tsx",
@@ -273,13 +274,15 @@
       "source": "packages/blocks/menus/organization-menu/organization-menu.tsx",
       "destination": "apps/web/src/components/organization-menu/organization-menu.tsx",
       "sourceSha256": "50403a94205285cd9df6cb3ad03fdbea5d6e190e106220fd380b8ba5c4cab1c5",
-      "sha256": "dc3d19f27e086349016181629cf76fa903d0f92bba057835734086c79f4f37bf"
+      "sha256": "e1a930f06b7f3a7a8188334f95f20a8bc0217dc65069bdb0c4f54724a5a0094a",
+      "adapted": true
     },
     {
       "source": "packages/blocks/menus/roles-menu/roles-menu.tsx",
       "destination": "apps/web/src/components/roles-menu/roles-menu.tsx",
       "sourceSha256": "b53da677619a549518f135058962a04aad7590aae3972ee420438fd665761ba4",
-      "sha256": "faaba90f458b0e657c1391b8a43ab5cf43b133182ca7840167c864cdb04951f4"
+      "sha256": "5fbf809d8438ba98f03bd9fe105ac17569300db32584a9e6a104e8f294d145a3",
+      "adapted": true
     },
     {
       "source": "packages/blocks/modals/select-users-modal/select-users-modal.tsx",
@@ -333,7 +336,8 @@
       "source": "packages/blocks/lists/sortable-task-list/sortable-task-list.tsx",
       "destination": "apps/web/src/components/sortable-task-list/sortable-task-list.tsx",
       "sourceSha256": "72e4ed382b3c085e20a0c47f14ebbe103d4f78450b0ffa53a0f2b439f285b270",
-      "sha256": "3730165694ca3a96f70cffefe03daff01969b59e3648b954925ddc80d857f407"
+      "sha256": "442df50e3d2c70da27f71fd332fe46ef1966be325ea117a90d04e40059716605",
+      "adapted": true
     },
     {
       "source": "packages/blocks/cards/task-card-with-labels/task-card-with-labels.tsx",
@@ -351,7 +355,8 @@
       "source": "registry:app-shell/ui/app-shell/app-shell.tsx",
       "destination": "apps/web/src/components/ui/app-shell/app-shell.tsx",
       "sourceSha256": "0160b1a21ccd8b389dbc325feb4ed1a1e897aa90af10df746f82e4d8c6bcf44b",
-      "sha256": "6f0c94a57dd9efcbe91a97a8d22c30eb6f2cc978c5303c9dc44e63ca2909c516"
+      "sha256": "7f87ce294b00a00e6c781b73e341c07f12f0d38cb901361b8bc05e7e75f19a1c",
+      "adapted": true
     },
     {
       "source": "registry:app-shell/ui/app-shell/index.ts",
@@ -424,7 +429,8 @@
       "source": "registry:drawer/ui/drawer/drawer.tsx",
       "destination": "apps/web/src/components/ui/drawer/drawer.tsx",
       "sourceSha256": "dcbfbb4cd3ce81e995487fa5d23ba1b1adcc2d547a4f556b89e471db2b87370a",
-      "sha256": "5612e7639050e06f15b9ec842fe5c418450f39a7c32f723468825f85b7bd30bb"
+      "sha256": "dc3f8b7b1296c2c3bf68154a23a896586242faaecc6d58eb467847d01db5f1f3",
+      "adapted": true
     },
     {
       "source": "registry:drawer/ui/drawer/index.ts",
@@ -436,7 +442,8 @@
       "source": "registry:file-upload/ui/file-upload/file-upload.tsx",
       "destination": "apps/web/src/components/ui/file-upload/file-upload.tsx",
       "sourceSha256": "4c0e8a2f2710b002084eb177950ae9a1a629aa5de31e787912f2b528c60b1790",
-      "sha256": "30e15db24d9749cc7da4b7b73af612110d9e262f40cea4125b2414a6407e669c"
+      "sha256": "a7c89884644d6e66ea9bdf5af8bf1981a46d6d48d3e5420f915ae497663e2394",
+      "adapted": true
     },
     {
       "source": "registry:file-upload/ui/file-upload/index.ts",
@@ -454,7 +461,8 @@
       "source": "registry:grid-list/ui/grid-list/grid-list.tsx",
       "destination": "apps/web/src/components/ui/grid-list/grid-list.tsx",
       "sourceSha256": "fcb52bd9be24488c973efb3058c36261e42e02d8fc7343bd2116cca208c8c573",
-      "sha256": "e8c158928b7e209afa44098e64e39faf9d15b9f03ad97b92b202630886508ca1"
+      "sha256": "96bdf5b390c8cea15992a4a8fc7fc52f88e7153b85c7853513908b969d68c1f0",
+      "adapted": true
     },
     {
       "source": "registry:grid-list/ui/grid-list/index.ts",
@@ -466,7 +474,8 @@
       "source": "registry:icon-badge/ui/icon-badge/icon-badge.tsx",
       "destination": "apps/web/src/components/ui/icon-badge/icon-badge.tsx",
       "sourceSha256": "34eaeed78606e4ec13b6ac7af519fcf86bc661c49ee410bcb8294a0b9e94e4d2",
-      "sha256": "735989d608c86e709114dc35e121fd4b2e51d1034b928c4100eb9b20775b97c4"
+      "sha256": "2a5a44cba71b8c0740e59b642fadcad20a29803561651e5ff4cd1a5019f24930",
+      "adapted": true
     },
     {
       "source": "registry:icon-badge/ui/icon-badge/index.ts",
@@ -526,7 +535,8 @@
       "source": "registry:loading-overlay/ui/loading-overlay/loading-overlay.tsx",
       "destination": "apps/web/src/components/ui/loading-overlay/loading-overlay.tsx",
       "sourceSha256": "5d0679c5346ae2fbd12a2850d350cbdf59e48142745bb7b1045bf904f97e5f99",
-      "sha256": "c0839a809afdcc6deeabab2c41322c069a5bcad520f33405c64534f0edacf4f3"
+      "sha256": "ff9483b632e931191415c87d0e9f80b7686fb1093172d8db83313265058fa18b",
+      "adapted": true
     },
     {
       "source": "registry:menu/ui/menu/index.ts",
@@ -538,7 +548,8 @@
       "source": "registry:menu/ui/menu/menu.tsx",
       "destination": "apps/web/src/components/ui/menu/menu.tsx",
       "sourceSha256": "328701b79ed078994a34df2f0c6761b8f9bdd9f0dd5d3f04ae4772a5773f0aa1",
-      "sha256": "534bce45206c2f98005a4e1768de7d2ad2c1155d9872bbf2e37be53cb23515bf"
+      "sha256": "394f3220547d0c449bdf0b8cceac1de90f24361ab393c31601eb85bbc99b2483",
+      "adapted": true
     },
     {
       "source": "registry:navbar/ui/navbar/index.ts",
@@ -556,7 +567,8 @@
       "source": "registry:navbar/ui/navbar/navbar.tsx",
       "destination": "apps/web/src/components/ui/navbar/navbar.tsx",
       "sourceSha256": "b5f8d0888a102b1d94e7c0c8163415712f990948084a1548b9fe97ef5da3029b",
-      "sha256": "8bb35ecd5035f3f9b64277c48521ce969b9da125a310f2f2059f43deabe27695"
+      "sha256": "2492d76b99eb253e87e8c6b30aedf4471bca3f77dfb66d9beea7b7089becc7de",
+      "adapted": true
     },
     {
       "source": "registry:page/ui/page/index.ts",
@@ -574,7 +586,8 @@
       "source": "registry:page/ui/page/page.tsx",
       "destination": "apps/web/src/components/ui/page/page.tsx",
       "sourceSha256": "9f6f98a3435045c28657d0cfef5aacef667d98a84fff318e6086a08eed7d8e38",
-      "sha256": "c4c26a681102c0a651b9200c102d8c097d77ad4e30822150d760d8cd33a3fae0"
+      "sha256": "dfdebf8f1bd675b70904329d33f078f5e8b5af0ee657ea65a79e9ceb0e91f797",
+      "adapted": true
     },
     {
       "source": "registry:password-input/ui/password-input/index.ts",
@@ -610,7 +623,8 @@
       "source": "registry:persona/ui/persona/persona.tsx",
       "destination": "apps/web/src/components/ui/persona/persona.tsx",
       "sourceSha256": "1d2dc040bba9a6b38801eb679495bf791e8f353f3e6d4bb1e221b516b4402602",
-      "sha256": "fe25d5d8c08b632cf4ed8fe29758f77bb971bebbc114f6ffa4d1f6f36706c898"
+      "sha256": "20b755a7cffd1e1c3627fd228637a891a192107f8108345fdb8c7bdf80076ba0",
+      "adapted": true
     },
     {
       "source": "registry:persona/ui/persona/presence.ts",
@@ -670,13 +684,15 @@
       "source": "registry:sidebar/ui/sidebar/sidebar.context.ts",
       "destination": "apps/web/src/components/ui/sidebar/sidebar.context.ts",
       "sourceSha256": "3683481b7dae7131683cf0291c6d2233697ad97d68b30b17b67450a317a5c3b5",
-      "sha256": "5d3170ee01c0a479905a44a63c0b4b93724a6075a99dbbae288bca956807f2e6"
+      "sha256": "7e97e84ee4b5ae795626d9bead31accbf368d7c647309bab1b0dca6eeba78154",
+      "adapted": true
     },
     {
       "source": "registry:sidebar/ui/sidebar/sidebar.tsx",
       "destination": "apps/web/src/components/ui/sidebar/sidebar.tsx",
       "sourceSha256": "ca4c2a62ae5d7a74f3309b49dd2b83b90b144d128e338e9d3945b346cffc7ecd",
-      "sha256": "cbcaf861bca52061048ce5050c390434cb75ca2f9558ece28c3bbd9db4dd3b28"
+      "sha256": "938b086f2823c0239315b7f2a244d3c4d0c7f3009cf0a0e57eafea927ec86033",
+      "adapted": true
     },
     {
       "source": "registry:spinner/ui/spinner/index.ts",
@@ -748,7 +764,8 @@
       "source": "registry:tooltip/ui/tooltip/tooltip.tsx",
       "destination": "apps/web/src/components/ui/tooltip/tooltip.tsx",
       "sourceSha256": "25b9bd95a3b6b80664f1383812138cd4f020f7b1c7ac7761556c77c984fa6fa9",
-      "sha256": "2143907f888817afc46eed7d7924c0f6a17c31c8a29c39c369f87d585142cd66"
+      "sha256": "5d4bfd100ad93a5aebcb1bf1cf30d7fc217dd720ee27b984b1e2e49e9cf64557",
+      "adapted": true
     },
     {
       "source": "packages/blocks/menus/user-menu/user-menu.tsx",

@@ -34,7 +34,7 @@ async function isGeneratedCustomerRepository(
     ) as GeneratedCustomerMarker;
 
     return (
-      marker.schemaVersion === 1 &&
+      (marker.schemaVersion === 1 || marker.schemaVersion === 2) &&
       typeof marker.release?.version === "string" &&
       typeof marker.release.tag === "string" &&
       typeof marker.release.sourceCommit === "string" &&

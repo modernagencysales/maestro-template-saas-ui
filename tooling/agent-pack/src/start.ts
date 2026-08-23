@@ -300,6 +300,15 @@ function processPlan(
     mode === "local" ? `http://127.0.0.1:${convexPort}` : "",
   );
   const localBackend = isolatedConvexEnvironment("");
+  const fixtureWebEnvironment = {
+    ...isolated,
+    set: {
+      ...isolated.set,
+      APP_ENV: "fake",
+      APP_PROVIDER_MODE: "fake",
+      VITE_MAESTRO_AUTH_MODE: "fixture",
+    },
+  };
   const web: StartProcessSpec = {
     id: "web",
     command: "pnpm",
@@ -315,7 +324,7 @@ function processPlan(
       "--strictPort",
     ],
     cwd,
-    ...(mode === "dev" ? {} : { environment: isolated }),
+    ...(mode === "dev" ? {} : { environment: fixtureWebEnvironment }),
   };
   if (mode === "fake") return [web];
   if (mode === "local") {

@@ -12,6 +12,12 @@ export const LinkButton = createLink(
     props: LinkButtonProps,
     ref: React.ForwardedRef<HTMLAnchorElement>,
   ) {
-    return <Button as={Link} {...props} ref={ref} />
+    return (
+      <Button
+        as={Link}
+        {...props}
+        ref={ref as React.ForwardedRef<HTMLButtonElement>}
+      />
+    )
   }),
 )

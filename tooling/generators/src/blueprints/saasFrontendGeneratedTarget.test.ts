@@ -1,4 +1,5 @@
 import { execFile, spawn } from "node:child_process";
+import { createHash } from "node:crypto";
 import { once } from "node:events";
 import { createServer } from "node:net";
 import { dirname, join } from "node:path";
@@ -161,6 +162,31 @@ describe("SaaS UI generated target artifact boundary", () => {
       expect(path.startsWith("tooling/saas-ui/golden-"), path).toBe(false);
       expect(path.startsWith("tests/e2e/saas-ui-golden"), path).toBe(false);
     }
+  });
+
+  it("binds the generated zero-diagnostic baseline to its projected lockfile", () => {
+    const plan = buildSaasApplicationTargetPlan({ name: "Baseline closure" });
+    const lockfile = plan.entries.find(
+      ({ path }) => path === "pnpm-lock.yaml",
+    )?.content;
+    const baseline = JSON.parse(
+      plan.entries.find(
+        ({ path }) =>
+          path === "tooling/quality/fixtures/saas-ui-typecheck-baseline.json",
+      )?.content ?? "{}",
+    ) as {
+      readonly pnpmLockSha256?: string;
+      readonly diagnosticCount?: number;
+    };
+    expect(lockfile).toBeTypeOf("string");
+    expect(baseline).toEqual(
+      expect.objectContaining({
+        pnpmLockSha256: createHash("sha256")
+          .update(lockfile ?? "")
+          .digest("hex"),
+        diagnosticCount: 0,
+      }),
+    );
   });
 
   it("projects the shared Saas UI compatibility seam for pinned upstream props", () => {

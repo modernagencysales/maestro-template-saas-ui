@@ -22,6 +22,7 @@ import {
   type SystemGeneratorDisposition,
 } from "./customer-runtime";
 import { executePrivatePackagePlan } from "./private-package";
+import { buildShellConfigurationFiles } from "./shell-configuration";
 import { bumpRelease, publishRelease } from "./workflow-release-commands";
 
 export type CustomerCommandResult = {
@@ -83,6 +84,7 @@ const customerCommands = [
   "publish-workflow",
   "private-package:dry-run",
   "private-package:import",
+  "configure-shell",
   "doctor",
   "systems",
   "smoke",
@@ -92,7 +94,7 @@ type CustomerCommand = (typeof customerCommands)[number];
 
 const customerCommandHelp = {
   "add-feature":
-    "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend [--description <text>] [--write]",
+    "template:add-feature --name <name> --system <canonical-id> --disposition reuse|extend --screen-catalog-id <exact-id> [--description <text>] [--write]",
   "add-table":
     "template:add-table --name <name> --system <canonical-id> --disposition extend --tenant-scope global|organization|workspace|user --sensitivity public|internal|confidential|restricted --pii <comma-list|none> --export-mode markdown|json|redacted-json|not-applicable --delete-mode delete|redact|retain-audit|not-applicable --retention <action> [--append-only] [--description <text>] [--write]",
   "add-capability":
@@ -118,6 +120,8 @@ const customerCommandHelp = {
     "template:private-package:dry-run --fixture <path> --system <canonical-id> --disposition reuse|extend",
   "private-package:import":
     "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write",
+  "configure-shell":
+    "template:configure-shell --dashboard-label <text> --dashboard-screen reports|connections --inbox-label <text> --inbox-screen contacts|brain --contacts-label <text> --contacts-screen contacts|clients --kanban-label <text> --kanban-route <route> --showcase-label <text> --showcase-route <route> --search-screen workspace|assistant [--write]",
   doctor:
     "template:doctor [--mode fake|test|live] [--path <template-instance.json>]",
   systems:
@@ -197,6 +201,53 @@ export const runCustomerGeneratorCli = (
         topology: readProductTopology(cwd).resources.length,
       });
     }
+    if (command === "configure-shell") {
+      const required = (flag: string): string => {
+        const value = valueAfter(cliArgv, flag);
+        if (!value)
+          throw new Error(`Missing required ${flag} for configure-shell`);
+        return value;
+      };
+      const dashboardScreen = required("--dashboard-screen");
+      const inboxScreen = required("--inbox-screen");
+      const contactsScreen = required("--contacts-screen");
+      const kanbanRoute = required("--kanban-route");
+      const showcaseRoute = required("--showcase-route");
+      const searchScreen = required("--search-screen");
+      if (dashboardScreen !== "reports" && dashboardScreen !== "connections")
+        throw new Error("--dashboard-screen must be reports or connections");
+      if (inboxScreen !== "contacts" && inboxScreen !== "brain")
+        throw new Error("--inbox-screen must be contacts or brain");
+      if (contactsScreen !== "contacts" && contactsScreen !== "clients")
+        throw new Error("--contacts-screen must be contacts or clients");
+      if (
+        kanbanRoute !== "/$workspace/kanban" &&
+        kanbanRoute !== "/$workspace/settings/account/profile"
+      )
+        throw new Error("Unsupported --kanban-route");
+      if (
+        showcaseRoute !== "/$workspace/showcase" &&
+        showcaseRoute !== "/$workspace/search"
+      )
+        throw new Error("Unsupported --showcase-route");
+      if (searchScreen !== "workspace" && searchScreen !== "assistant")
+        throw new Error("--search-screen must be workspace or assistant");
+      return finish(
+        buildShellConfigurationFiles({
+          dashboardLabel: required("--dashboard-label"),
+          dashboardScreen,
+          inboxLabel: required("--inbox-label"),
+          inboxScreen,
+          contactsLabel: required("--contacts-label"),
+          contactsScreen,
+          kanbanLabel: required("--kanban-label"),
+          kanbanRoute,
+          showcaseLabel: required("--showcase-label"),
+          showcaseRoute,
+          searchScreen,
+        }),
+      );
+    }
     if (
       command === "private-package:dry-run" ||
       command === "private-package:import"
@@ -248,7 +299,16 @@ export const runCustomerGeneratorCli = (
     }
     const owner = ownership(cliArgv);
     const common = { name, ...owner, ...(description ? { description } : {}) };
-    if (command === "add-feature") return finish(buildFeatureFiles(common));
+    if (command === "add-feature") {
+      const screenCatalogId = valueAfter(cliArgv, "--screen-catalog-id");
+      if (!screenCatalogId)
+        throw new Error(
+          "Missing required --screen-catalog-id for add-feature. Select an exact assembled screen from docs/template/saas-ui-screen-catalog.json.",
+        );
+      return finish(
+        buildFeatureFiles({ ...common, screenCatalogId, catalogRoot: cwd }),
+      );
+    }
     if (command === "add-capability")
       return finish(
         buildCapabilityFiles({

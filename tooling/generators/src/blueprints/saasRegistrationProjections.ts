@@ -92,6 +92,19 @@ export const CURRENT_FACTORY_PRODUCT_TABLES = [
   "supportIncidents",
 ] as const;
 
+const CURRENT_CUSTOMER_PATCHES = [
+  "patches/@chakra-ui__react@3.33.0.patch",
+  "patches/@confect__cli@10.0.0-next.9.patch",
+  "patches/@dnd-kit__core@6.3.1.patch",
+  "patches/@dnd-kit__sortable@8.0.0.patch",
+  "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
+  "patches/@saas-ui__react@3.0.0-next.51.patch",
+  "patches/@tanstack__router-core@1.171.27.patch",
+  "patches/@zag-js__toast@1.24.2.patch",
+  "patches/@zag-js__toast@1.31.1.patch",
+  "patches/effect@4.0.0-beta.102.patch",
+] as const;
+
 const customerReadme = (
   recordsSelected: boolean,
 ): string => `# Generated Maestro App
@@ -338,6 +351,11 @@ export const CURRENT_CUSTOMER_QUALITY_TEST_EXCLUSIONS = [
   "tooling/quality/mutation-script.test.mts",
 ] as const;
 
+export const CURRENT_CUSTOMER_CONVEX_TEST_EXCLUSIONS = [
+  "packages/convex/test/confect-codegen-component-roots.test.ts",
+  "packages/convex/test/data-lifecycle.test.ts",
+] as const;
+
 export const CURRENT_CUSTOMER_PROJECT_TSCONFIGS = [
   "apps/cli/tsconfig.json",
   "packages/convex/tsconfig.json",
@@ -403,6 +421,7 @@ export const CUSTOMER_ROOT_SCRIPTS = [
   "template:prototype",
   "template:add-client-domain",
   "template:add-feature",
+  "template:configure-shell",
   "template:add-capability",
   "template:add-table",
   "template:add-workflow",
@@ -528,7 +547,7 @@ const customerPackage = (
     "turbo run test --filter='./packages/*' --filter=@maestro-template/web && pnpm test:tooling";
   value.scripts["test:tooling"] = workflowSelected
     ? "pnpm test:bootstrap && pnpm --dir tooling/workflow test && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts src/workflow-publication-generation.test.ts src/workflow-release-commands.test.ts --maxWorkers=1 --no-file-parallelism"
-    : "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts --maxWorkers=1 --no-file-parallelism";
+    : "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts --maxWorkers=1 --no-file-parallelism";
   value.scripts["check:coverage-ratchet"] =
     `vitest run --coverage --maxWorkers=1 --no-file-parallelism packages/template-core packages/integrations packages/search packages/storage packages/notifications packages/observability packages/convex tooling/quality${workflowSelected ? " tooling/workflow" : ""} tooling/generators apps/cli apps/web${current ? currentCustomerRootTestExclusions() : ""} && tsx tooling/quality/check-coverage-ratchet.mts`;
   value.scripts["coverage:update-baseline"] =
@@ -630,8 +649,40 @@ const customerGeneratorPackage = (): string => {
   value.exports = { ".": "./src/customer.ts" };
   const scripts = value.scripts as Record<string, string>;
   scripts.cli = "tsx src/customer-cli.ts";
+  scripts.build = "tsc -p tsconfig.customer.json --outDir dist --declaration";
+  scripts.typecheck = "tsc -p tsconfig.customer.json --noEmit";
   return `${JSON.stringify(value, null, 2)}\n`;
 };
+
+const customerGeneratorTsconfig = (): string =>
+  `${JSON.stringify(
+    {
+      extends: "./tsconfig.json",
+      compilerOptions: { composite: false },
+      include: ["src/customer.ts", "src/customer-cli.ts"],
+    },
+    null,
+    2,
+  )}\n`;
+
+const customerConvexCompatPackage = (): string => {
+  const value = JSON.parse(
+    currentSource("tooling/convex-compat/package.json"),
+  ) as { scripts: Record<string, string> };
+  value.scripts.typecheck = "tsc -p tsconfig.customer.json --noEmit";
+  return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerConvexCompatTsconfig = (): string =>
+  `${JSON.stringify(
+    {
+      extends: "./tsconfig.json",
+      compilerOptions: { composite: false },
+      include: ["src/matrix.ts"],
+    },
+    null,
+    2,
+  )}\n`;
 
 const customerPackageWithoutOptionalPatterns = (
   path: string,
@@ -651,11 +702,17 @@ const customerConvexPackage = (
 ): string => {
   const value = JSON.parse(currentSource("packages/convex/package.json")) as {
     dependencies: Record<string, string>;
+    scripts: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/app-idea-evaluator"];
   if (!selectsSaasApplicationPattern(selection, "workflow-automation")) {
     delete value.dependencies["@convex-dev/workflow"];
     delete value.dependencies["@maestro-template/workflow-tooling"];
+    value.scripts["test:customer"] = `${value.scripts.test}${exclusionArguments(
+      CURRENT_CUSTOMER_CONVEX_TEST_EXCLUSIONS,
+      "packages/convex/",
+    )}`;
+    value.scripts.test = value.scripts["test:customer"];
   }
   return `${JSON.stringify(value, null, 2)}\n`;
 };
@@ -676,6 +733,35 @@ const customerConvexConfig = (workflowSelected: boolean): string => {
   return value;
 };
 
+const customerConfectComponents = (workflowSelected: boolean): string => {
+  const value = currentSource(
+    "packages/convex/confect/_generated/components.ts",
+  );
+  if (workflowSelected) return value;
+  return value
+    .split("\n")
+    .filter(
+      (line) =>
+        !line.includes('"workflow"') &&
+        !line.includes('"workflowAdmission"') &&
+        !line.includes('"workflowDeadline"') &&
+        !line.includes('"workflowDeadlineWorkpool"'),
+    )
+    .join("\n");
+};
+
+const customerConvexApi = (workflowSelected: boolean): string => {
+  const value = currentSource("packages/convex/convex/_generated/api.d.ts");
+  if (workflowSelected) return value;
+  return value
+    .split("\n")
+    .filter(
+      (line) =>
+        !line.includes("demo_showcase") && !line.includes('"demo/showcase"'),
+    )
+    .join("\n");
+};
+
 const customerQualityPackage = (): string => {
   const value = JSON.parse(currentSource("tooling/quality/package.json")) as {
     scripts: Record<string, string>;
@@ -693,12 +779,27 @@ const customerCliPackage = (
 ): string => {
   const value = JSON.parse(source("apps/cli/package.json")) as {
     dependencies: Record<string, string>;
+    scripts: Record<string, string>;
   };
   delete value.dependencies["@maestro-template/release-tooling"];
   if (!selectsSaasApplicationPattern(selection, "workflow-automation"))
     delete value.dependencies["@maestro-template/workflow-tooling"];
+  value.scripts.build =
+    "tsc -p tsconfig.customer.json --outDir dist --declaration";
+  value.scripts.typecheck = "tsc -p tsconfig.customer.json --noEmit";
   return `${JSON.stringify(value, null, 2)}\n`;
 };
+
+const customerCliTsconfig = (): string =>
+  `${JSON.stringify(
+    {
+      extends: "./tsconfig.json",
+      compilerOptions: { composite: false },
+      include: ["src/index.ts"],
+    },
+    null,
+    2,
+  )}\n`;
 
 const customerAgentPackPackage = (): string => {
   const value = JSON.parse(
@@ -1133,6 +1234,21 @@ const withoutFactoryProductConfectGroups = (value: string): string => {
   return projected;
 };
 
+const WORKFLOW_CONFECT_IMPORT_FRAGMENTS = [
+  'from "../workflowContracts/',
+  'from "../workflowRunners/',
+  'from "../workflows/',
+  'from "../demo/showcase.spec"',
+  'from "../capabilities/_versions/publicationEcho/',
+] as const;
+
+const WORKFLOW_CONFECT_GROUP_FRAGMENTS = [
+  '"workflowContracts"',
+  '"workflowRunners"',
+  '>, "demo">',
+  '>, "workflows">',
+] as const;
+
 const withoutWorkflowConfectGroups = (value: string): string => {
   let projected = value
     .split("\n")
@@ -1140,16 +1256,15 @@ const withoutWorkflowConfectGroups = (value: string): string => {
       (line) =>
         !(
           line.startsWith("import ") &&
-          (line.includes('from "../workflowContracts/') ||
-            line.includes('from "../workflowRunners/') ||
-            line.includes('from "../workflows/') ||
-            line.includes('from "../capabilities/_versions/publicationEcho/'))
+          WORKFLOW_CONFECT_IMPORT_FRAGMENTS.some((fragment) =>
+            line.includes(fragment),
+          )
         ) &&
         !(
           line.startsWith("  | GroupSpec.NamedAt") &&
-          (line.includes('"workflowContracts"') ||
-            line.includes('"workflowRunners"') ||
-            line.includes('>, "workflows">'))
+          WORKFLOW_CONFECT_GROUP_FRAGMENTS.some((fragment) =>
+            line.includes(fragment),
+          )
         ),
     )
     .join("\n");
@@ -1159,6 +1274,7 @@ const withoutWorkflowConfectGroups = (value: string): string => {
   );
   for (const marker of [
     '.addGroupAt("_versions",',
+    '.addAt("demo",',
     '.addAt("workflowContracts",',
     '.addAt("workflowRunners",',
     '.addAt("workflows",',
@@ -1273,8 +1389,8 @@ const confectIds = (
   return recordsSelected
     ? replace(
         value,
-        ' | "promptRegistry" | "transformBlocks"',
-        ' | "promptRegistry" | "records" | "transformBlocks"',
+        ' | "promptRegistry" | "providerConnections" | "transformBlocks"',
+        ' | "promptRegistry" | "providerConnections" | "records" | "transformBlocks"',
       )
     : value;
 };
@@ -1565,6 +1681,14 @@ export const buildSaasRegistrationProjections = (
     ...(current
       ? [
           {
+            path: "apps/cli/tsconfig.customer.json",
+            content: customerCliTsconfig(),
+          },
+        ]
+      : []),
+    ...(current
+      ? [
+          {
             path: "apps/web/package.json",
             content: customerPackageWithoutOptionalPatterns(
               "apps/web/package.json",
@@ -1616,24 +1740,10 @@ export const buildSaasRegistrationProjections = (
       ? [{ path: "pnpm-lock.yaml", content: customerLockfile(options) }]
       : []),
     ...(current
-      ? [
-          {
-            path: "patches/@confect__cli@10.0.0-next.9.patch",
-            content: currentSource("patches/@confect__cli@10.0.0-next.9.patch"),
-          },
-          {
-            path: "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
-            content: currentSource(
-              "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
-            ),
-          },
-          {
-            path: "patches/@tanstack__start-plugin-core@1.171.18.patch",
-            content: currentSource(
-              "patches/@tanstack__start-plugin-core@1.171.18.patch",
-            ),
-          },
-        ]
+      ? CURRENT_CUSTOMER_PATCHES.map((path) => ({
+          path,
+          content: currentSource(path),
+        }))
       : []),
     {
       path: "tooling/confect-manifest/tsconfig.json",
@@ -1643,6 +1753,22 @@ export const buildSaasRegistrationProjections = (
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),
     },
+    ...(current
+      ? [
+          {
+            path: "tooling/convex-compat/package.json",
+            content: customerConvexCompatPackage(),
+          },
+          {
+            path: "tooling/convex-compat/tsconfig.customer.json",
+            content: customerConvexCompatTsconfig(),
+          },
+          {
+            path: "tooling/generators/tsconfig.customer.json",
+            content: customerGeneratorTsconfig(),
+          },
+        ]
+      : []),
     ...(current
       ? [
           {
@@ -1668,13 +1794,15 @@ export const buildSaasRegistrationProjections = (
       : []),
     {
       path: "tooling/quality/install-lefthook-if-git.mjs",
-      content: `/* global process */\n\n${source("tooling/quality/install-lefthook-if-git.mjs")}`,
+      content: source("tooling/quality/install-lefthook-if-git.mjs"),
     },
     ...(
       [
         ["customer.ts", "customer.ts"],
         ["customer-runtime.ts", "customer-runtime.ts"],
         ["customer-dispatcher.ts", "customer-dispatcher.ts"],
+        ["shell-configuration.ts", "shell-configuration.ts"],
+        ["screen-selection.ts", "screen-selection.ts"],
         ...(current
           ? ([["private-package.ts", "private-package.ts"]] as const)
           : []),
@@ -1804,9 +1932,11 @@ export const buildSaasRegistrationProjections = (
               path.endsWith("workflowSchedule.ts") ||
               path.endsWith("workflowScheduledCapability.ts")
             ? currentSource(path)
-            : path === "packages/convex/convex/convex.config.ts" && current
-              ? customerConvexConfig(workflowSelected)
-              : source(path),
+            : path === "packages/convex/convex/_generated/api.d.ts" && current
+              ? customerConvexApi(workflowSelected)
+              : path === "packages/convex/convex/convex.config.ts" && current
+                ? customerConvexConfig(workflowSelected)
+                : source(path),
     })),
     ...[
       "start.ts",
@@ -1896,6 +2026,14 @@ export const buildSaasRegistrationProjections = (
       path: "packages/convex/confect/_generated/spec.ts",
       content: confectSpec(current, recordsSelected, workflowSelected),
     },
+    ...(current
+      ? [
+          {
+            path: "packages/convex/confect/_generated/components.ts",
+            content: customerConfectComponents(workflowSelected),
+          },
+        ]
+      : []),
     {
       path: "packages/convex/confect/_generated/id.ts",
       content: confectIds(recordsSelected, workflowSelected),

@@ -232,7 +232,7 @@ const PricingTablePeriod: React.FC<PricingTablePeriodProps> = (props) => {
         }))}
         onValueChange={(details) => {
           console.log(details)
-          onChange(details.value)
+          if (details.value) onChange(details.value)
         }}
         value={period}
       />

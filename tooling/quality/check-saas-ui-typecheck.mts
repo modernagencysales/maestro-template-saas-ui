@@ -69,6 +69,10 @@ export const createSaasUiTypecheckBaseline = (
   typescriptVersion: string,
 ): SaasUiTypecheckBaseline => {
   const diagnostics = parseSaasUiTypecheckDiagnostics(root, output);
+  if (diagnostics.length > 0)
+    throw new Error(
+      `cannot generate the Saas UI typecheck baseline until raw TypeScript has zero diagnostics\n${output.trim()}`,
+    );
   return {
     schemaVersion: 1,
     pnpmLockSha256: sha256(readFileSync(resolve(root, LOCKFILE))),
@@ -216,6 +220,13 @@ export const assertSaasUiTypecheckDiagnostics = (
   const diagnostics = parseSaasUiTypecheckDiagnostics(root, output);
   errors.push(...baselineEnvironmentErrors(root, baseline, typescriptVersion));
   errors.push(...receiptDiagnosticErrors(root, diagnostics));
+  if (
+    baseline.diagnosticCount !== 0 ||
+    baseline.diagnosticsSha256 !== sha256("")
+  )
+    errors.push("Saas UI typecheck baseline must encode zero diagnostics");
+  if (diagnostics.length > 0)
+    errors.push("Saas UI raw TypeScript must report zero diagnostics");
   if (diagnosticIdentities(diagnostics).length !== baseline.diagnosticCount)
     errors.push("diagnostic count does not match the baseline");
   if (diagnosticsDigest(diagnostics) !== baseline.diagnosticsSha256)

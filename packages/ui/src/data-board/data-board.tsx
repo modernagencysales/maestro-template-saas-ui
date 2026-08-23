@@ -93,7 +93,10 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
     ),
     value: useMemo(() => (groupBy ? [groupBy] : []), [groupBy]),
     onChange: (grouping) => {
-      onGroupChange?.(grouping[0])
+      const nextGroup = grouping[0]
+      if (nextGroup) {
+        onGroupChange?.(nextGroup)
+      }
     },
   })
 
@@ -147,6 +150,10 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
   const [items, setItems] = React.useState<KanbanItems>({})
 
   const board = ({ columns, items, activeId }: UseKanbanContainerReturn) => {
+    const activeRow = activeId
+      ? instance.getRowModel().rowsById[activeId]
+      : undefined
+
     return (
       <>
         {columns.map((id) => {
@@ -158,30 +165,40 @@ export const DataBoard = forwardRef(function DataBoard<Data extends object>(
 
           // fallback when this column is empty
           const [groupingColumnId, groupingValue] = String(id).split(':')
+          const header =
+            row ??
+            ({
+              _groupingValuesCache: {},
+              getGroupingValue: (columnId: string) =>
+                columnId === groupingColumnId ? groupingValue : undefined,
+              getIsGrouped: () => true,
+              groupingColumnId,
+              groupingValue,
+            } satisfies GroupingRow)
 
           return (
             <KanbanColumn key={id} id={id} width="320px" px="4">
               <KanbanColumnHeader>
                 {flexRender(
                   renderHeader,
-                  row || { id, groupingValue, groupingColumnId },
+                  header,
                 )}
               </KanbanColumnHeader>
               <KanbanColumnBody>
                 {items[id]?.map((itemId) => {
                   const item = instance.getRowModel().rowsById[itemId]
-                  return (
+                  return item ? (
                     <BoardCard key={itemId} item={item} render={renderCard} />
-                  )
+                  ) : null
                 })}
               </KanbanColumnBody>
             </KanbanColumn>
           )
         })}
         <KanbanDragOverlay>
-          {activeId && (
+          {activeId && activeRow && (
             <KanbanCard id={activeId}>
-              {renderCard(instance.getRowModel().rowsById[activeId])}
+              {renderCard(activeRow)}
             </KanbanCard>
           )}
         </KanbanDragOverlay>

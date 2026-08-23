@@ -39,6 +39,7 @@ const allowedProviderBoundaryFiles = new Set([
   "apps/web/src/routes/api/auth/sign-up.tsx",
   "apps/web/src/start.ts",
   "packages/convex/convex/convex.config.ts",
+  "packages/convex/confect/agents/assistantModel.ts",
   "packages/convex/confect/observability/posthog.ts",
 ]);
 

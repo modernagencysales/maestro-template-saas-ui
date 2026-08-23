@@ -7,7 +7,12 @@ import convexSchema from "../../confect/_generated/convexSchema";
 export const testConfectLayer = TestConfect.layer(
   databaseSchema,
   convexSchema,
-  import.meta.glob("../../convex/**/!(*.*.*)*.*s"),
+  import.meta.glob([
+    "../../convex/**/*.{ts,js}",
+    // Declaration modules are not executable and collide with their generated
+    // runtime siblings after convex-test removes the final extension.
+    "!../../convex/**/*.d.ts",
+  ]),
 );
 
 export const withTestConfect = <A, E>(

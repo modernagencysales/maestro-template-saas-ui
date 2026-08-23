@@ -23,6 +23,8 @@ docs/licenses/saas-ui/pro-NOTICE.md
 docs/licenses/saas-ui/starter-NOTICE.md
 examples/saas-application/seed/source/product.contract.schema.json
 examples/saas-application/seed/source/docs/template/generated/product-contract.md
+product.contract.schema.json
+docs/template/generated/product-contract.md
 apps/web/src/routeTree.gen.ts
 .pnpm-store/
 AGENTS.md

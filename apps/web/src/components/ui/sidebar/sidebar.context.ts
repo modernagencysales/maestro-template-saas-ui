@@ -2,15 +2,18 @@
 
 import * as React from "react";
 
-import { createSlotRecipeContext, useMediaQuery } from "@chakra-ui/react";
 import {
-  type SidebarVariantProps,
-  sidebarSlotRecipe,
-} from "@saas-ui/chakra-preset/slot-recipes/sidebar";
-import {
-  type SidebarNavItemVariantProps,
-  sidebarNavItemSlotRecipe,
-} from "@saas-ui/chakra-preset/slot-recipes/sidebar-nav-item";
+  type RecipeVariantProps,
+  createSlotRecipeContext,
+  useMediaQuery,
+} from "@chakra-ui/react";
+import { sidebarSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/sidebar";
+import { sidebarNavItemSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/sidebar-nav-item";
+
+type SidebarVariantProps = RecipeVariantProps<typeof sidebarSlotRecipe>;
+type SidebarNavItemVariantProps = RecipeVariantProps<
+  typeof sidebarNavItemSlotRecipe
+>;
 
 export type SidebarMode = "flyout" | "collapsible" | "compact";
 

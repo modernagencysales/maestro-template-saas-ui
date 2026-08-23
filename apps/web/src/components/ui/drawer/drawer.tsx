@@ -3,10 +3,16 @@
 import { type ComponentType, forwardRef } from "react";
 
 import { DialogContext } from "@ark-ui/react/dialog";
-import { Drawer as ChakraDrawer, Portal } from "@chakra-ui/react";
-import type { DrawerVariantProps } from "@saas-ui/chakra-preset/slot-recipes/drawer";
+import {
+  Drawer as ChakraDrawer,
+  Portal,
+  type RecipeVariantProps,
+} from "@chakra-ui/react";
+import { drawerSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/drawer";
 
 import { CloseButton as CloseButtonBase } from "../close-button/index";
+
+type DrawerVariantProps = RecipeVariantProps<typeof drawerSlotRecipe>;
 
 export interface ContentProps extends ChakraDrawer.ContentProps {
   portalled?: boolean;

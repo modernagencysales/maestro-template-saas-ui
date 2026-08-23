@@ -2,9 +2,13 @@
 
 import React, { forwardRef } from "react";
 
-import { type HTMLChakraProps, chakra } from "@chakra-ui/react";
+import {
+  type HTMLChakraProps,
+  type RecipeVariantProps,
+  chakra,
+} from "@chakra-ui/react";
 import type { SlotRecipeProps } from "@saas-ui/chakra-preset";
-import type { PageVariantProps } from "@saas-ui/chakra-preset/slot-recipes/page";
+import { pageSlotRecipe } from "@saas-ui/chakra-preset/slot-recipes/page";
 
 import { LoadingOverlay } from "../loading-overlay/index";
 import {
@@ -15,6 +19,8 @@ import {
   withContext,
   withProvider,
 } from "./page.context";
+
+type PageVariantProps = RecipeVariantProps<typeof pageSlotRecipe>;
 
 interface PageOptions {
   children?: React.ReactNode;

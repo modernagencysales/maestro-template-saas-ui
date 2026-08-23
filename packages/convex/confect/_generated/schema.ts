@@ -51,6 +51,7 @@ import organizationMembers from "./tables/organizationMembers";
 import organizations from "./tables/organizations";
 import policies from "./tables/policies";
 import promptRegistry from "./tables/promptRegistry";
+import providerConnections from "./tables/providerConnections";
 import purchases from "./tables/purchases";
 import reportOwnerships from "./tables/reportOwnerships";
 import supportIncidents from "./tables/supportIncidents";
@@ -126,6 +127,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   typeof organizations |
   typeof policies |
   typeof promptRegistry |
+  typeof providerConnections |
   typeof purchases |
   typeof reportOwnerships |
   typeof supportIncidents |
@@ -200,6 +202,7 @@ const databaseSchema: $DatabaseSchema.DatabaseSchema<
   organizations,
   policies,
   promptRegistry,
+  providerConnections,
   purchases,
   reportOwnerships,
   supportIncidents,

@@ -4,7 +4,10 @@ import {
   executeAgentPackCommand,
 } from "./contracts.js";
 import { createRepositoryContext } from "./repoContext.js";
-import { projectProcessEnvironment } from "./processSupervisor.js";
+import {
+  projectProcessEnvironment,
+  type StartProcessSpec,
+} from "./processSupervisor.js";
 import {
   createStartCommand,
   type StartDependencies,
@@ -58,6 +61,15 @@ function fixture(preflight: Partial<StartPreflightResult> = ready) {
     announce: vi.fn(),
   };
   return dependencies;
+}
+
+function requiredProcess(
+  specs: readonly StartProcessSpec[],
+  id: string,
+): StartProcessSpec {
+  const spec = specs.find((candidate) => candidate.id === id);
+  if (!spec) throw new Error(`Missing ${id} process fixture.`);
+  return spec;
 }
 
 describe("start command", () => {
@@ -254,6 +266,13 @@ describe("start command", () => {
           mode === "local" && spec.id === "web" ? "http://127.0.0.1:3210" : "",
         );
       }
+      const webSpec = requiredProcess(specs, "web");
+      const webEnvironment = projectProcessEnvironment(
+        poisoned,
+        webSpec.environment,
+      );
+      expect(webEnvironment.APP_PROVIDER_MODE).toBe("fake");
+      expect(webEnvironment.VITE_MAESTRO_AUTH_MODE).toBe("fixture");
     }
 
     const dev = fixture({

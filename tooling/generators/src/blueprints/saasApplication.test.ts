@@ -38,6 +38,7 @@ import { saasFrontendFoundationPaths } from "./saasFrontendFoundation";
 import { SAAS_APPLICATION_PATTERN_GROUPS } from "./saasApplicationPatterns";
 import {
   CUSTOMER_ROOT_SCRIPTS,
+  CURRENT_CUSTOMER_CONVEX_TEST_EXCLUSIONS,
   CURRENT_EMAIL_CLOSURE,
   CURRENT_HEADLESS_CONTRACT_SOURCE_CLOSURE,
   CURRENT_SAAS_DEPLOY_AUTHORITY_SOURCE_CLOSURE,
@@ -416,6 +417,53 @@ describe("saas application blueprint", () => {
     ).toBe(true);
   });
 
+  it("retains current customer production ownership beyond the immutable release", () => {
+    const entries = new Map(
+      buildSaasApplicationTargetPlan({ name: "Current Ownership" }).entries.map(
+        ({ path, content }) => [path, content],
+      ),
+    );
+    const systems = parseSystemCatalog(
+      JSON.parse(entries.get("docs/template/system-catalog.json") ?? "{}"),
+    ).systems;
+    const dataResources = parseDataResourceCatalog(
+      JSON.parse(entries.get("docs/template/data-resources.json") ?? "{}"),
+    ).resources;
+    const topologyIds = new Set(
+      parseProductTopology(
+        JSON.parse(entries.get("docs/template/product-topology.json") ?? "{}"),
+      ).resources.map(({ id }) => id),
+    );
+
+    expect(
+      systems.some(
+        ({ id, tables }) =>
+          id === "provider-integrations" &&
+          tables.includes("providerConnections"),
+      ),
+    ).toBe(true);
+    expect(dataResources.some(({ id }) => id === "providerConnections")).toBe(
+      true,
+    );
+    for (const id of [
+      "job:workpool",
+      "integration:dodo-crypto",
+      "integration:dodo-webhook",
+      "integration:provider-adapter",
+      "integration:provider-registry",
+      "integration:admaxxer",
+      "integration:email",
+      "integration:email-setup",
+      "provider:observability",
+      "headless:api-key-contract",
+      "headless:api-key-runtime",
+      "headless:executor",
+      "headless:mcp",
+      "headless:openapi",
+    ])
+      expect(topologyIds.has(id), id).toBe(true);
+  });
+
   it("derives scripts and lockfile importers from materialized patterns", () => {
     const buildSelected = buildSaasApplicationTargetPlan as (options: {
       readonly name: string;
@@ -694,6 +742,12 @@ describe("saas application blueprint", () => {
         patterns: ["records-example", "workflow-automation"],
       }).entries.map((entry) => [entry.path, entry]),
     );
+    const neutralEntries = new Map(
+      buildSaasApplicationTargetPlan({
+        name: "Neutral App",
+        patterns: [],
+      }).entries.map((entry) => [entry.path, entry]),
+    );
     const root = JSON.parse(entries.get("package.json")?.content ?? "{}") as {
       readonly scripts?: Readonly<Record<string, string>>;
     };
@@ -703,10 +757,19 @@ describe("saas application blueprint", () => {
     const quality = JSON.parse(
       entries.get("tooling/quality/package.json")?.content ?? "{}",
     ) as { readonly scripts?: Readonly<Record<string, string>> };
+    const convex = JSON.parse(
+      neutralEntries.get("packages/convex/package.json")?.content ?? "{}",
+    ) as { readonly scripts?: Readonly<Record<string, string>> };
 
     expect(generators.scripts?.test).toContain("vitest run");
     expect(generators.scripts?.test).not.toContain("--exclude");
     expect(quality.scripts?.test).toBe(quality.scripts?.["test:customer"]);
+    expect(convex.scripts?.test).toBe(convex.scripts?.["test:customer"]);
+    for (const path of CURRENT_CUSTOMER_CONVEX_TEST_EXCLUSIONS) {
+      expect(convex.scripts?.test, path).toContain(
+        `--exclude ${path.replace("packages/convex/", "")}`,
+      );
+    }
     expect(root.scripts?.["check:coverage-ratchet"]).not.toContain(
       "workflow-publication-generation.test.ts",
     );
@@ -853,6 +916,7 @@ describe("saas application blueprint", () => {
       "template:systems",
       "template:prototype",
       "template:add-feature",
+      "template:configure-shell",
       "template:private-package:dry-run",
       "template:private-package:import",
       "check:system-catalog",
@@ -1088,6 +1152,10 @@ describe("saas application blueprint", () => {
       upgrade: "regenerate",
     });
     expect(prettierIgnore).toMatchObject({ replaces: "copy" });
+    expect(prettierIgnore?.content).toContain("product.contract.schema.json");
+    expect(prettierIgnore?.content).toContain(
+      "docs/template/generated/product-contract.md",
+    );
     expect(
       plan.entries.find(
         (entry) => entry.path === "tooling/confect-manifest/tsconfig.json",
@@ -2058,6 +2126,7 @@ describe("saas application blueprint", () => {
         "apps/cli/src/index.ts",
         "tooling/agent-pack/package.json",
         "apps/cli/package.json",
+        "apps/cli/tsconfig.customer.json",
         "apps/web/package.json",
         "apps/cli/src/factory/start.ts",
         "apps/cli/src/factory/customerRecipes.ts",
@@ -2085,11 +2154,21 @@ describe("saas application blueprint", () => {
         "tooling/release/tsconfig.json",
         "package.json",
         "pnpm-lock.yaml",
+        "patches/@chakra-ui__react@3.33.0.patch",
         "patches/@confect__cli@10.0.0-next.9.patch",
+        "patches/@dnd-kit__core@6.3.1.patch",
+        "patches/@dnd-kit__sortable@8.0.0.patch",
         "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
-        "patches/@tanstack__start-plugin-core@1.171.18.patch",
+        "patches/@saas-ui__react@3.0.0-next.51.patch",
+        "patches/@tanstack__router-core@1.171.27.patch",
+        "patches/@zag-js__toast@1.24.2.patch",
+        "patches/@zag-js__toast@1.31.1.patch",
+        "patches/effect@4.0.0-beta.102.patch",
         "tooling/confect-manifest/tsconfig.json",
         "tooling/generators/package.json",
+        "tooling/convex-compat/package.json",
+        "tooling/convex-compat/tsconfig.customer.json",
+        "tooling/generators/tsconfig.customer.json",
         "tooling/quality/package.json",
         "examples/generic-ai-ops/template-package.json",
         "lefthook.yml",
@@ -2099,6 +2178,8 @@ describe("saas application blueprint", () => {
         "tooling/generators/src/customer.ts",
         "tooling/generators/src/customer-runtime.ts",
         "tooling/generators/src/customer-dispatcher.ts",
+        "tooling/generators/src/shell-configuration.ts",
+        "tooling/generators/src/screen-selection.ts",
         "tooling/generators/src/private-package.ts",
         "tooling/generators/src/customer-cli.ts",
         "tooling/generators/src/crud-proof.ts",
@@ -2212,6 +2293,7 @@ describe("saas application blueprint", () => {
         "packages/convex/confect/_generated/schema.ts",
         "packages/convex/confect/_generated/convexSchema.ts",
         "packages/convex/confect/_generated/spec.ts",
+        "packages/convex/confect/_generated/components.ts",
         "packages/convex/confect/_generated/id.ts",
         "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
         "packages/convex/convex/records/records.ts",
@@ -2222,6 +2304,30 @@ describe("saas application blueprint", () => {
         "packages/template-core/src/templateInstance/templateInstance.test.ts",
         "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
         "packages/template-core/src/generated/confectManifest.ts",
+        "packages/convex/confect/agents/assistant.spec.ts",
+        "packages/convex/confect/agents/assistant.impl.ts",
+        "packages/convex/confect/agents/assistantModel.ts",
+        "packages/convex/confect/brain/pages.spec.ts",
+        "packages/convex/confect/brain/pages.impl.ts",
+        "packages/convex/confect/brain/pageRevision.ts",
+        "packages/convex/confect/brain/snapshotVersion.ts",
+        "packages/convex/confect/capabilities/_kit/capability.ts",
+        "packages/convex/confect/capabilities/_kit/errors.ts",
+        "packages/convex/confect/capabilities/_kit/surfaces.ts",
+        "packages/convex/confect/capabilities/_kit/principal.ts",
+        "packages/convex/confect/integrations/connections.spec.ts",
+        "packages/convex/confect/integrations/connections.impl.ts",
+        "packages/convex/confect/integrations/connectionLifecycle.ts",
+        "packages/convex/confect/tables/brainPages.ts",
+        "packages/convex/confect/tables/providerConnections.ts",
+        "packages/convex/confect/_generated/tables/brainPages.ts",
+        "packages/convex/confect/_generated/tables/providerConnections.ts",
+        "packages/convex/confect/_generated/registeredFunctions/agents/assistant.ts",
+        "packages/convex/confect/_generated/registeredFunctions/brain/pages.ts",
+        "packages/convex/confect/_generated/registeredFunctions/integrations/connections.ts",
+        "packages/convex/convex/agents/assistant.ts",
+        "packages/convex/convex/brain/pages.ts",
+        "packages/convex/convex/integrations/connections.ts",
         "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
         "packages/convex/test/shared-env.test.ts",
         "tooling/generators/src/crud-proof.test.ts",
@@ -2259,7 +2365,19 @@ describe("saas application blueprint", () => {
       first.find(
         ({ path }) => path === "tooling/quality/install-lefthook-if-git.mjs",
       )?.content,
-    ).toContain("/* global process */");
+    ).not.toContain("/* global process */");
+    expect(
+      first.find(({ path }) => path === "eslint.config.mjs")?.content,
+    ).toContain('"**/.output/**"');
+    expect(
+      first.find(({ path }) => path === "tooling/convex-compat/package.json")
+        ?.content,
+    ).toContain("tsconfig.customer.json --noEmit");
+    expect(
+      first.find(
+        ({ path }) => path === "tooling/convex-compat/tsconfig.customer.json",
+      )?.content,
+    ).toContain('"src/matrix.ts"');
     expect(
       first.find(({ path }) => path === ".prettierignore")?.content,
     ).toContain(".maestro/");
@@ -2442,6 +2560,19 @@ describe("saas application blueprint", () => {
       "generateCompleteBuildPack",
     ])
       expect(spec).not.toContain(factoryProductGroup);
+    expect(spec).not.toContain("demo_showcase");
+    expect(spec).not.toContain('.addAt("demo",');
+
+    const components =
+      files.get("packages/convex/confect/_generated/components.ts") ?? "";
+    expect(components).not.toContain('"workflow"');
+    expect(components).not.toContain('"workflowAdmission"');
+    expect(components).not.toContain('"workflowDeadline"');
+
+    const convexApi =
+      files.get("packages/convex/convex/_generated/api.d.ts") ?? "";
+    expect(convexApi).not.toContain("demo_showcase");
+    expect(convexApi).not.toContain('"demo/showcase"');
 
     const databaseSchema =
       files.get("packages/convex/confect/_generated/schema.ts") ?? "";

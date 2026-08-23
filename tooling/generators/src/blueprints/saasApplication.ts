@@ -137,8 +137,8 @@ const governanceFiles = (
       .filter(({ kind }) => kind === "route")
       .map(({ system }) => system),
   );
-  const retainedSystemIds = new Set(
-    releasedSystems.systems
+  const retainedSystemIds = new Set([
+    ...releasedSystems.systems
       .filter(
         ({ id }) =>
           workflowSelected ||
@@ -146,7 +146,8 @@ const governanceFiles = (
           canonicalRouteSystemIds.has(id),
       )
       .map(({ id }) => id),
-  );
+    "provider-integrations",
+  ]);
   const retainedEmailTableIds = [
     "emailCampaigns",
     "emailDeliveries",
@@ -159,6 +160,7 @@ const governanceFiles = (
       .filter(({ id }) => workflowSelected || id !== "workflow-runtime")
       .flatMap(({ tables }) => tables),
     "deployAuthorityAuditEvents",
+    "providerConnections",
     ...retainedEmailTableIds,
   ]);
   const retainedDataResourceIds = new Set([
@@ -166,11 +168,28 @@ const governanceFiles = (
       .filter(({ system }) => workflowSelected || system !== "workflow-runtime")
       .map(({ id }) => id),
     "deployAuthorityAuditEvents",
+    "providerConnections",
     ...retainedEmailTableIds,
   ]);
   const retainedTopologyIds = new Set(
     releasedTopology.resources.map(({ id }) => id),
   );
+  const retainedCurrentCustomerTopologyIds = new Set([
+    "job:workpool",
+    "integration:dodo-crypto",
+    "integration:dodo-webhook",
+    "integration:provider-adapter",
+    "integration:provider-registry",
+    "integration:admaxxer",
+    "integration:email",
+    "integration:email-setup",
+    "provider:observability",
+    "headless:api-key-contract",
+    "headless:api-key-runtime",
+    "headless:executor",
+    "headless:mcp",
+    "headless:openapi",
+  ]);
   const governedSystems = parseSystemCatalog({
     ...systems,
     systems: [
@@ -245,6 +264,7 @@ const governanceFiles = (
         .filter(
           ({ id, system }) =>
             id.startsWith("route:") ||
+            retainedCurrentCustomerTopologyIds.has(id) ||
             (retainedTopologyIds.has(id) &&
               (workflowSelected || system !== "workflow-runtime") &&
               (workflowSelected || !id.startsWith("workflow:"))),
@@ -691,6 +711,7 @@ const SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS = [
   ["tooling/agent-pack/tsconfig.json", "copy"],
   ["tooling/quality/tsconfig.json", "copy"],
   ["tooling/generators/tsconfig.json", "copy"],
+  ["tooling/convex-compat/package.json", "copy"],
   [".claude/settings.json", "generate"],
   [".npmrc", "copy"],
   [".prettierignore", "copy"],
@@ -750,6 +771,31 @@ const targetEntryIdentity = (
 const sha256 = (value: string): string =>
   `sha256:${createHash("sha256").update(value).digest("hex")}`;
 
+const projectTargetTypecheckBaseline = (
+  files: readonly GeneratedFile[],
+): readonly GeneratedFile[] => {
+  const lockfile = files.find(({ path }) => path === "pnpm-lock.yaml");
+  if (!lockfile) throw new Error("SaaS target plan has no pnpm-lock.yaml");
+  const lockDigest = createHash("sha256")
+    .update(lockfile.content)
+    .digest("hex");
+  return files.map((file) => {
+    if (
+      file.path !== "tooling/quality/fixtures/saas-ui-typecheck-baseline.json"
+    )
+      return file;
+    const baseline = JSON.parse(file.content) as Record<string, unknown>;
+    return {
+      ...file,
+      content: `${JSON.stringify(
+        { ...baseline, pnpmLockSha256: lockDigest },
+        null,
+        2,
+      )}\n`,
+    };
+  });
+};
+
 export function buildSaasApplicationTargetPlan(
   options: BlueprintTargetPlanOptions,
 ): BlueprintTargetPlan;
@@ -793,6 +839,26 @@ function buildTargetPlan(
             "copy",
           ],
           ["packages/template-core/src/generated/confectManifest.ts", "copy"],
+          ["packages/convex/confect/agents/assistant.spec.ts", "copy"],
+          ["packages/convex/confect/agents/assistant.impl.ts", "copy"],
+          ["packages/convex/confect/brain/pages.spec.ts", "copy"],
+          ["packages/convex/confect/brain/pages.impl.ts", "copy"],
+          ["packages/convex/confect/capabilities/_kit/capability.ts", "copy"],
+          ["packages/convex/confect/capabilities/_kit/errors.ts", "copy"],
+          ["packages/convex/confect/capabilities/_kit/surfaces.ts", "copy"],
+          ["packages/convex/confect/capabilities/_kit/principal.ts", "copy"],
+          ["packages/convex/confect/tables/brainPages.ts", "copy"],
+          ["packages/convex/confect/_generated/tables/brainPages.ts", "copy"],
+          [
+            "packages/convex/confect/_generated/registeredFunctions/agents/assistant.ts",
+            "copy",
+          ],
+          [
+            "packages/convex/confect/_generated/registeredFunctions/brain/pages.ts",
+            "copy",
+          ],
+          ["packages/convex/convex/agents/assistant.ts", "copy"],
+          ["packages/convex/convex/brain/pages.ts", "copy"],
           ["packages/convex/test/shared-env.test.ts", "copy"],
           ["tooling/agent-pack/package.json", "copy"],
           ["tooling/agent-pack/src/nodeAdapters.test.ts", "copy"],
@@ -963,9 +1029,12 @@ function buildTargetPlan(
     ["packages/convex/test/workflow-lifecycle-registration.test.ts", "copy"],
   ]);
   const customerExtensions = new Set(["CLAUDE.md"]);
-  const files = current
+  const sourceFiles = current
     ? buildFactorySaasApplicationFiles(options)
     : buildAlpha1SaasApplicationFiles(options);
+  const files = current
+    ? projectTargetTypecheckBaseline(sourceFiles)
+    : sourceFiles;
   const entries = files
     .filter(({ path }) => path !== "template-instance.json")
     .map(({ path, content }) => {

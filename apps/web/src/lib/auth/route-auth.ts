@@ -1,13 +1,17 @@
 import { redirect } from "@tanstack/react-router";
 import { getAuthKitContext } from "@workos/authkit-tanstack-react-start";
 
-import { isIsolatedContractsRuntime } from "../../env";
+import { isFixtureAuthRuntime, isIsolatedContractsRuntime } from "../../env";
 import { safeReturnPath } from "./return-path";
 import { isRecoverableAuthError } from "./workos-auth-loader";
 
-export { isIsolatedContractsRuntime, safeReturnPath };
+export { isFixtureAuthRuntime, isIsolatedContractsRuntime, safeReturnPath };
 
 type RouteAuth = { readonly user: unknown; readonly accessToken?: string };
+
+export const fixtureClientAuth = () => ({
+  user: null,
+});
 
 export function loadRouteAuth(
   getAuth: () => RouteAuth = () => getAuthKitContext().auth() as RouteAuth,
@@ -24,8 +28,16 @@ export function requireAuthenticatedRoute(input: {
   readonly auth?: { readonly user: unknown; readonly accessToken?: string };
   readonly location: { readonly pathname: string; readonly searchStr: string };
 }) {
-  if (isIsolatedContractsRuntime()) {
-    return { auth: { user: { id: "contracts-runtime" } } };
+  if (isFixtureAuthRuntime()) {
+    return {
+      auth: {
+        user: {
+          id: isIsolatedContractsRuntime()
+            ? "contracts-runtime"
+            : "fixture-runtime",
+        },
+      },
+    };
   }
   const auth = input.auth ?? loadRouteAuth();
   if (!auth.user) {

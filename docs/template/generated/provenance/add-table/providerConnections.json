@@ -1,0 +1,15 @@
+{
+  "generator": "add-table",
+  "commandFamily": "template:add-table",
+  "name": "providerConnections",
+  "ownership": {
+    "system": "provider-integrations",
+    "disposition": "extend"
+  },
+  "generatedPaths": [
+    "packages/convex/confect/tables/providerConnections.ts",
+    "docs/template/schema-decisions/providerConnections.md",
+    "docs/template/system-catalog.json",
+    "docs/template/data-resources.json"
+  ]
+}

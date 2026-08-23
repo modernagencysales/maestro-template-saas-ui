@@ -3,7 +3,7 @@ import * as React from 'react'
 import { Icon, useBreakpointValue } from '@chakra-ui/react'
 import { Has } from '@saas-ui-pro/feature-flags'
 import { ResizeHandle, ResizeHandler, Resizer } from '@saas-ui-pro/react'
-import { Sidebar } from '@saas-ui/react'
+import { Sidebar } from '#components/ui/sidebar'
 import { useHotkeysShortcut } from '@saas-ui/use-hotkeys'
 import { createLink, linkOptions, useNavigate } from '@tanstack/react-router'
 import {

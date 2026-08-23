@@ -1,14 +1,52 @@
+import type { SelectedScreenAuthority } from "./screen-selection";
+
 export type CrudFeatureOptions = {
   readonly name: string;
   readonly system: string;
   readonly disposition: "reuse" | "extend";
   readonly description?: string;
+  readonly frontend: SelectedScreenAuthority;
 };
 
 export type CrudGeneratedFile = {
   readonly path: string;
   readonly content: string;
 };
+
+function transplantSelectedRoute(frontend: SelectedScreenAuthority): string {
+  if (/from\s+["']\.{1,2}\//u.test(frontend.routeSource)) {
+    throw new Error(
+      `Selected route uses location-dependent relative imports: ${frontend.screenCatalogId}`,
+    );
+  }
+  const component = frontend.routeSource.match(
+    /return\s+<([A-Z][A-Za-z0-9_]*)\s+params=\{params\}/u,
+  )?.[1];
+  if (!component) {
+    throw new Error(
+      `Selected route has no supported screen params binding: ${frontend.screenCatalogId}`,
+    );
+  }
+  const routeBound = frontend.routeSource
+    .replace(
+      /import\s+\{\s*createFileRoute\s*\}\s+from\s+(["'])@tanstack\/react-router\1/u,
+      'import { createFileRoute, useParams } from "@tanstack/react-router"',
+    )
+    .replace(
+      "Route.useParams()",
+      `useParams({ strict: false }) as Parameters<typeof ${component}>[0]["params"]`,
+    );
+  const transplanted = routeBound.replace(
+    /createFileRoute\(\s*["'][^"']+["']\s*\)/u,
+    "createFileRoute()",
+  );
+  if (transplanted === routeBound || routeBound === frontend.routeSource) {
+    throw new Error(
+      `Selected route has no supported TanStack route binding: ${frontend.screenCatalogId}`,
+    );
+  }
+  return transplanted;
+}
 
 const camelCase = (value: string): string => {
   const words = value
@@ -45,7 +83,7 @@ export const buildCrudFeatureFiles = (options: CrudFeatureOptions) => {
     options.description ??
     `Manage workspace ${route} from one complete CRUD slice.`;
   const featurePath = `apps/web/src/features/${name}`;
-  const files: CrudGeneratedFile[] = [
+  const scaffoldFiles: CrudGeneratedFile[] = [
     {
       path: `${featurePath}/contract.ts`,
       content: `export type ${pascalName}Status = "planned" | "active" | "complete";
@@ -137,94 +175,6 @@ export type ${pascalName}FeatureState =
 `,
     },
     {
-      path: `${featurePath}/${route}-feature.tsx`,
-      content: `import { useState } from "react";
-import { QueryResult, useMutation, useQuery } from "@confect/react";
-import { NativeSelect } from "@chakra-ui/react";
-import { Button, Card, Heading, Input, Stack, Text } from "@saas-ui/react";
-import * as Result from "effect/Result";
-import { useCurrentWorkspace } from "#features/common/hooks/use-current-workspace";
-import { ${name}Refs, present${pascalName}Failure, present${pascalName}State } from "./adapter";
-import type { ${pascalName}Status } from "./contract";
-import type { ${pascalName}FeatureState } from "./model";
-
-type CapabilityRefs = typeof ${name}Refs;
-type RefArgs<Ref_> = Ref_ extends { readonly _Args?: infer Args } ? Args : never;
-type WorkspaceId = RefArgs<CapabilityRefs["list"]>["workspaceId"];
-type ItemId = RefArgs<CapabilityRefs["read"]>["id"];
-
-export function ${pascalName}Feature() {
-  const [workspace] = useCurrentWorkspace();
-  const workspaceId = workspace?.id as WorkspaceId | undefined;
-  const query = useQuery(
-    ${name}Refs.list,
-    workspaceId === undefined ? "skip" : { workspaceId },
-  );
-  const createItem = useMutation(${name}Refs.create);
-  const updateItem = useMutation(${name}Refs.update);
-  const removeItem = useMutation(${name}Refs.remove);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mode, setMode] = useState<"list" | "create" | "edit">("list");
-  const [title, setTitle] = useState("");
-  const [detail, setDetail] = useState("");
-  const [status, setStatus] = useState<${pascalName}Status>("planned");
-  const [feedback, setFeedback] = useState<${pascalName}FeatureState | null>(null);
-  const baseState = present${pascalName}State({
-    data: QueryResult.isSuccess(query) ? query.value : undefined,
-    error: QueryResult.isFailure(query) ? query.error : undefined,
-    isError: QueryResult.isFailure(query),
-    isPending: QueryResult.isLoading(query),
-  });
-  const items = baseState.status === "list" ? baseState.items : [];
-  const selected = items.find((item) => item._id === selectedId) ?? null;
-  const state: ${pascalName}FeatureState = feedback ?? (mode === "create"
-    ? { status: "create" }
-    : mode === "edit" && selected !== null
-      ? { status: "edit", item: selected }
-      : selected !== null
-        ? { status: "detail", item: selected }
-        : baseState);
-
-  const save = async () => {
-    if (workspaceId === undefined) return;
-    try {
-      const input = { workspaceId, title, detail, status };
-      const result = mode === "edit" && selected !== null
-        ? await updateItem({ ...input, id: selected._id as ItemId })
-        : await createItem(input);
-      if (Result.isFailure(result)) { setFeedback(present${pascalName}Failure(result.failure)); return; }
-      setSelectedId(null); setMode("list"); setFeedback({ status: "success", message: "${pascalName} saved." });
-    } catch (error) { setFeedback(present${pascalName}Failure(error)); }
-  };
-  const remove = async () => {
-    if (selected === null || workspaceId === undefined) return;
-    try { const result = await removeItem({ workspaceId, id: selected._id as ItemId }); if (Result.isFailure(result)) { setFeedback(present${pascalName}Failure(result.failure)); return; } setSelectedId(null); setFeedback({ status: "success", message: "${pascalName} deleted." }); }
-    catch (error) { setFeedback(present${pascalName}Failure(error)); }
-  };
-  const beginEdit = () => { if (selected === null) return; setTitle(selected.title); setDetail(selected.detail); setStatus(selected.status); setMode("edit"); };
-
-  return <Stack as="section" aria-label="${pascalName} workspace" gap="4">
-    <Heading size="md">${description}</Heading>
-    {state.status === "loading" ? <Text>Loading ${route}…</Text> : null}
-    {state.status === "empty" ? <Text>No ${route} yet.</Text> : null}
-    {state.status === "typed-error" ? <Text role="alert">{state.error}</Text> : null}
-    {state.status === "transport-error" ? <Text role="alert">{state.message}</Text> : null}
-    {state.status === "success" ? <Text role="status">{state.message}</Text> : null}
-    {state.status === "list" ? state.items.map((item) => <Button key={item._id} onClick={() => setSelectedId(item._id)} variant="outline">{item.title}</Button>) : null}
-    {state.status === "detail" ? <Card.Root><Card.Body><Heading size="sm">{state.item.title}</Heading><Text>{state.item.detail}</Text><Button onClick={beginEdit}>Edit ${name}</Button><Button onClick={() => void remove()}>Delete ${name}</Button></Card.Body></Card.Root> : null}
-    {state.status === "create" || state.status === "edit" ? <Card.Root><Card.Body gap="3">
-      <Input aria-label="${pascalName} title" value={title} onChange={(event) => setTitle(event.target.value)} />
-      <Input aria-label="${pascalName} detail" value={detail} onChange={(event) => setDetail(event.target.value)} />
-      <NativeSelect.Root><NativeSelect.Field aria-label="${pascalName} status" value={status} onChange={(event) => setStatus(event.target.value as ${pascalName}Status)}><option value="planned">Planned</option><option value="active">Active</option><option value="complete">Complete</option></NativeSelect.Field><NativeSelect.Indicator /></NativeSelect.Root>
-      <Button onClick={() => void save()}>Save ${name}</Button>
-    </Card.Body></Card.Root> : null}
-    {state.status !== "create" && state.status !== "edit" ? <Button onClick={() => { setSelectedId(null); setFeedback(null); setTitle(""); setDetail(""); setStatus("planned"); setMode("create"); }}>Create ${name}</Button> : null}
-    {feedback !== null || selected !== null ? <Button onClick={() => { setSelectedId(null); setFeedback(null); setMode("list"); }}>Back to ${route}</Button> : null}
-  </Stack>;
-}
-`,
-    },
-    {
       path: `${featurePath}/adapter.test.ts`,
       content: `import { describe, expect, it } from "vitest";
 import { present${pascalName}Failure, present${pascalName}State } from "./adapter";
@@ -241,20 +191,6 @@ describe("${name} presenter", () => {
     expect(present${pascalName}Failure(new TypeError("offline"))).toEqual({ status: "transport-error", message: "offline" });
   });
 });
-`,
-    },
-    {
-      path: `apps/web/src/screens/${route}-screen.tsx`,
-      content: `import { Page } from "@saas-ui/react";
-import { ${pascalName}Feature } from "../features/${name}/${route}-feature";
-export function ${pascalName}Screen() { return <Page.Root><Page.Header title="${pascalName}" description={${JSON.stringify(description)}} /><Page.Body><${pascalName}Feature /></Page.Body></Page.Root>; }
-`,
-    },
-    {
-      path: `apps/web/src/routes/_app/$workspace/_dashboard/${route}.tsx`,
-      content: `import { createFileRoute } from "@tanstack/react-router";
-import { ${pascalName}Screen } from "../../../../screens/${route}-screen";
-export const Route = createFileRoute()({ component: ${pascalName}Screen });
 `,
     },
     {
@@ -327,9 +263,16 @@ export default GroupImpl.make(databaseSchema, group).pipe(Layer.provide(list), L
       content: `# ${pascalName} Feature\n\n${description}\n\nFull workspace-isolated create, list, read, update, and delete behavior uses generated Confect refs and the installed Saas UI primitives. Run Confect codegen after the business-entity table recipe step.\n`,
     },
   ];
+  const files = [
+    ...scaffoldFiles,
+    {
+      path: `apps/web/src/routes/_app/$workspace/_dashboard/${route}.tsx`,
+      content: transplantSelectedRoute(options.frontend),
+    },
+  ];
   files.push({
     path: `docs/template/generated/provenance/add-feature/${name}.json`,
-    content: `${JSON.stringify({ generator: "add-feature", commandFamily: "template:add-feature", name, ownership: { system: options.system, disposition: options.disposition }, generatedPaths: files.map(({ path }) => path) }, null, 2)}\n`,
+    content: `${JSON.stringify({ generator: "add-feature", commandFamily: "template:add-feature", name, ownership: { system: options.system, disposition: options.disposition }, frontend: { screenCatalogId: options.frontend.screenCatalogId, sourceReceipt: options.frontend.sourceReceipt, shellId: options.frontend.shellId, allowedAdaptations: options.frontend.allowedAdaptations, requiredVisualStates: options.frontend.requiredVisualStates, repository: options.frontend.repository, source: options.frontend.source, composition: options.frontend.composition, sourceSha256: options.frontend.sourceSha256, destinationSha256: options.frontend.destinationSha256, closureSha256: options.frontend.closureSha256, destinationClosureSha256: options.frontend.destinationClosureSha256, files: options.frontend.files }, generatedPaths: files.map(({ path }) => path) }, null, 2)}\n`,
   });
   return {
     name,

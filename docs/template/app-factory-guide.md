@@ -128,7 +128,7 @@ work:
 ```bash
 pnpm template:add-client-domain -- --name launchLanguage --system record-management --disposition extend
 pnpm template:add-table -- --name milestone --system record-management --disposition extend ...
-pnpm template:add-feature -- --name milestone --system record-management --disposition extend
+pnpm template:add-feature -- --name milestone --system record-management --disposition extend --screen-catalog-id '<exact-id-from-docs/template/saas-ui-screen-catalog.json>'
 pnpm template:add-capability -- --name approveMilestone --system record-management --disposition extend
 pnpm template:add-workflow -- --name milestoneReview --system record-management --disposition extend
 pnpm template:add-agent -- --name launchCoordinator --system record-management --disposition extend
@@ -137,7 +137,10 @@ pnpm template:add-agent -- --name launchCoordinator --system record-management -
 Direct commands preview their compatible output and point to the matching
 reviewed-scaffold route. Review that route's plan, then rerun it with `--write`.
 Backend generators require a canonical `--system` and
-`--disposition reuse|extend` and write provenance for both.
+`--disposition reuse|extend` and write provenance for both. Frontend feature
+generation additionally requires an exact assembled Starter screen ID. It
+transplants that route composition and records its complete upstream closure;
+there is no generic hand-built page fallback.
 
 Factory maintainers can use `template:quickstart` to preview the broader
 blueprints recorded in [Blueprint Catalog](./blueprint-catalog.md).

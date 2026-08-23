@@ -33,7 +33,7 @@ export const RolesMenu: React.FC<RolesMenuProps> = (props) => {
       value: "admin",
       description: "Full access to manage content, users, and settings.",
     },
-  ];
+  ] as const;
 
   const selectedRole = roles.find((r) => r.value === role) ?? roles[0];
 

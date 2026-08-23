@@ -60,7 +60,7 @@ describe("check:coverage-ratchet", () => {
 
   it("ignores float noise below the epsilon", () => {
     const actual = {
-      lines: 79.999,
+      lines: 79.99,
       functions: 80,
       branches: 80,
       statements: 80,
@@ -68,6 +68,18 @@ describe("check:coverage-ratchet", () => {
     const base = { lines: 80, functions: 80, branches: 80, statements: 80 };
 
     expect(droppedMetrics(actual, base)).toEqual([]);
+  });
+
+  it("still rejects the next two-decimal reporting quantum", () => {
+    const actual = {
+      lines: 79.98,
+      functions: 80,
+      branches: 80,
+      statements: 80,
+    };
+    const base = { lines: 80, functions: 80, branches: 80, statements: 80 };
+
+    expect(droppedMetrics(actual, base)).toEqual(["lines"]);
   });
 
   it("throws on malformed summaries instead of passing silently", () => {

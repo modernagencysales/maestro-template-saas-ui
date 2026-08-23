@@ -23,6 +23,19 @@ scaffold route, its `review-required`/secret-names-only privacy posture, and
 the returned structured `confirmation.argv`. Run the focused gates named in the
 preview.
 
+## Repository And Branch Authority
+
+- `main` is factory development authority; immutable `maestro-template-v*`
+  tags are factory release authority.
+- A customer application is authoritative only in its own repository with a
+  valid `template-instance.json` bound to an immutable template release.
+- Factory `product/*`, `demo/*`, and `codex/*` branches are never canonical
+  customer applications and must not be encoded as launcher authority.
+- Launchers verify repository identity, template-instance identity, release
+  commit, route tree, and screen provenance before starting a customer app.
+- Branch cleanup follows `docs/template/branch-hygiene.md`. Inventory and review
+  precede recovery tags; recovery tags precede exact remote deletion.
+
 The supported customer loop is:
 
 ```text

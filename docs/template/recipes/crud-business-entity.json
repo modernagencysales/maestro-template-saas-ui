@@ -22,6 +22,12 @@
       "answerKind": "text"
     },
     {
+      "id": "screenCatalogId",
+      "prompt": "Which exact assembled Starter screen should present this item?",
+      "why": "Visible features must reuse a pinned complete screen instead of generating a hand-built page.",
+      "answerKind": "text"
+    },
+    {
       "id": "tenantScope",
       "prompt": "Who owns each item?",
       "why": "The exact tenant scope controls authorization and indexes.",
@@ -108,8 +114,8 @@
     },
     {
       "generatorId": "add-feature",
-      "command": "pnpm template:add-feature -- --name <entityName> --system <canonicalOwner> --disposition extend",
-      "purpose": "Preview capability, contract, adapter, feature, screen, route, states, and tests."
+      "command": "pnpm template:add-feature -- --name <entityName> --system <canonicalOwner> --disposition extend --screen-catalog-id <screenCatalogId>",
+      "purpose": "Preview capability, adapters, the selected assembled screen route, provenance, states, and tests."
     }
   ],
   "execution": {
@@ -139,7 +145,11 @@
         "arguments": {
           "name": { "source": "answer", "answerId": "entityName" },
           "system": { "source": "answer", "answerId": "canonicalOwner" },
-          "disposition": { "source": "literal", "value": "extend" }
+          "disposition": { "source": "literal", "value": "extend" },
+          "screenCatalogId": {
+            "source": "answer",
+            "answerId": "screenCatalogId"
+          }
         }
       }
     ]

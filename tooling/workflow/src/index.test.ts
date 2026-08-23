@@ -18,9 +18,11 @@ describe("workflow headless registry", () => {
     const operations = buildHeadlessOperations();
     const ids = operations.map((operation) => operation.id);
 
-    expect(operations).toHaveLength(20);
+    expect(operations).toHaveLength(22);
     expect(ids).toContain("api:brain.pages.createMarkdown");
     expect(ids).toContain("cli:brain.pages.createMarkdown");
+    expect(ids).toContain("web:brain.pages.list");
+    expect(ids).toContain("web:brain.pages.updateMarkdown");
     expect(ids).toContain("web:ops.dataLifecycle.createDsarRequest");
     expect(ids).toContain("web:ops.dataLifecycle.listDsarRequests");
     expect(ids).toContain("api:ops.email.previewBroadcast");
@@ -43,9 +45,9 @@ describe("workflow headless registry", () => {
       validationErrors: [],
       nodeCount: 5,
       edgeCount: 4,
-      capabilityCount: 8,
+      capabilityCount: 10,
       agentCount: 3,
-      headlessOperationCount: 20,
+      headlessOperationCount: 22,
     });
   });
 
