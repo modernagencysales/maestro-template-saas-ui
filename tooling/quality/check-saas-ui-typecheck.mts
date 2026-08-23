@@ -71,7 +71,7 @@ export const createSaasUiTypecheckBaseline = (
   const diagnostics = parseSaasUiTypecheckDiagnostics(root, output);
   if (diagnostics.length > 0)
     throw new Error(
-      "cannot generate the Saas UI typecheck baseline until raw TypeScript has zero diagnostics",
+      `cannot generate the Saas UI typecheck baseline until raw TypeScript has zero diagnostics\n${output.trim()}`,
     );
   return {
     schemaVersion: 1,

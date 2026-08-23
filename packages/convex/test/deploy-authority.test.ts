@@ -658,9 +658,11 @@ describe("repo-owned durable deploy authority", () => {
     });
     expect(audit).toMatchObject({ kind: "ok" });
     if (audit.kind !== "ok") throw new Error("authority audit was blocked");
-    expect(audit.audit.events.map(({ operation }) => operation)).toEqual(
-      expect.arrayContaining(["issuer-rotated", "issuer-provisioned"]),
-    );
+    expect(
+      audit.audit.events.map(
+        (event: { readonly operation: string }) => event.operation,
+      ),
+    ).toEqual(expect.arrayContaining(["issuer-rotated", "issuer-provisioned"]));
     expect(JSON.stringify(audit)).not.toContain("release-operator");
   });
 
