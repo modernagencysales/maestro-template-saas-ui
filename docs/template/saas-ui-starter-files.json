@@ -601,8 +601,8 @@
       "source": "apps/web/src/features/search/search-page.tsx",
       "destination": "apps/web/src/features/search/search-page.tsx",
       "sourceSha256": "9295a847ad0fed878189c40ca3ef92caabc405dccb10acb3b5922385e0de5ec2",
-      "sha256": "9295a847ad0fed878189c40ca3ef92caabc405dccb10acb3b5922385e0de5ec2",
-      "adapted": false
+      "sha256": "689c424523e4da765ebff80cf614ed7a71a91cfa9c1bdf7853f12a75001d9917",
+      "adapted": true
     },
     {
       "source": "apps/web/src/features/settings/account/account-api-page.tsx",

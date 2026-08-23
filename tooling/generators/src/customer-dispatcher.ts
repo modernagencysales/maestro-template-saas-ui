@@ -121,7 +121,7 @@ const customerCommandHelp = {
   "private-package:import":
     "template:private-package:import --fixture <path> --system <canonical-id> --disposition reuse|extend --write",
   "configure-shell":
-    "template:configure-shell --dashboard-label <text> --dashboard-screen reports|connections --inbox-label <text> --inbox-screen contacts|brain --contacts-label <text> --contacts-screen contacts|clients --kanban-label <text> --kanban-route <route> --showcase-label <text> --showcase-route <route> [--write]",
+    "template:configure-shell --dashboard-label <text> --dashboard-screen reports|connections --inbox-label <text> --inbox-screen contacts|brain --contacts-label <text> --contacts-screen contacts|clients --kanban-label <text> --kanban-route <route> --showcase-label <text> --showcase-route <route> --search-screen workspace|assistant [--write]",
   doctor:
     "template:doctor [--mode fake|test|live] [--path <template-instance.json>]",
   systems:
@@ -213,6 +213,7 @@ export const runCustomerGeneratorCli = (
       const contactsScreen = required("--contacts-screen");
       const kanbanRoute = required("--kanban-route");
       const showcaseRoute = required("--showcase-route");
+      const searchScreen = required("--search-screen");
       if (dashboardScreen !== "reports" && dashboardScreen !== "connections")
         throw new Error("--dashboard-screen must be reports or connections");
       if (inboxScreen !== "contacts" && inboxScreen !== "brain")
@@ -229,6 +230,8 @@ export const runCustomerGeneratorCli = (
         showcaseRoute !== "/$workspace/search"
       )
         throw new Error("Unsupported --showcase-route");
+      if (searchScreen !== "workspace" && searchScreen !== "assistant")
+        throw new Error("--search-screen must be workspace or assistant");
       return finish(
         buildShellConfigurationFiles({
           dashboardLabel: required("--dashboard-label"),
@@ -241,6 +244,7 @@ export const runCustomerGeneratorCli = (
           kanbanRoute,
           showcaseLabel: required("--showcase-label"),
           showcaseRoute,
+          searchScreen,
         }),
       );
     }

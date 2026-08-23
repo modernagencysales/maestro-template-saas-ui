@@ -9,6 +9,7 @@ export type ShellConfigurationOptions = Readonly<{
   kanbanRoute: "/$workspace/kanban" | "/$workspace/settings/account/profile";
   showcaseLabel: string;
   showcaseRoute: "/$workspace/showcase" | "/$workspace/search";
+  searchScreen: "workspace" | "assistant";
 }>;
 
 const requiredLabel = (value: string, field: string): string => {
@@ -42,6 +43,7 @@ export const buildShellConfigurationFiles = (
   dashboard: ${JSON.stringify(options.dashboardScreen)} as 'reports' | 'connections',
   inbox: ${JSON.stringify(options.inboxScreen)} as 'contacts' | 'brain',
   contacts: ${JSON.stringify(options.contactsScreen)} as 'contacts' | 'clients',
+  search: ${JSON.stringify(options.searchScreen)} as 'workspace' | 'assistant',
 } as const
 `;
   const generatedPath = "apps/web/src/config/product-shell.ts";

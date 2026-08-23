@@ -260,6 +260,8 @@ describe("customer generator runtime", () => {
         "Ask Maestro",
         "--showcase-route",
         "/$workspace/search",
+        "--search-screen",
+        "assistant",
       ];
       const preview = runCustomerGeneratorCli(argv, cwd);
       expect(preview.exitCode).toBe(0);
@@ -278,6 +280,9 @@ describe("customer generator runtime", () => {
       expect(
         readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
       ).toContain('contacts: "clients"');
+      expect(
+        readFileSync(join(cwd, "apps/web/src/config/product-shell.ts"), "utf8"),
+      ).toContain('search: "assistant"');
       expect(
         readFileSync(
           join(cwd, "docs/template/generated/provenance/configure-shell.json"),

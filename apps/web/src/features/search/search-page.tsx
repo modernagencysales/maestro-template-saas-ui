@@ -10,7 +10,12 @@ import {
   Page,
   Text,
 } from '@saas-ui/react'
+import {
+  getFunctionReference,
+  templateConfectRefs,
+} from '@maestro-template/convex/refs'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation as useConvexMutation } from 'convex/react'
 import {
   Link,
   linkOptions,
@@ -19,14 +24,30 @@ import {
 } from '@tanstack/react-router'
 import { LuSearch, LuX } from 'react-icons/lu'
 
-import type { ContactDTO } from '@workspace/api/types'
 import { SearchInput } from '@workspace/ui/search-input'
 
-import { LinkButton } from '#components/link-button'
+import { productShell } from '#config/product-shell'
+import { useCurrentUser } from '#features/common/hooks/use-current-user'
+import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace'
 import { useWorkspaceSlug } from '#features/common/hooks/use-workspace-slug'
+import { isFixtureAuthRuntime } from '#lib/auth/route-auth'
+
+import {
+  askMaestroPromptFixtures,
+  fakeAskMaestroResult,
+  projectAssistantMessagesToSearchResults,
+  type StarterSearchResult,
+} from './ask-maestro-adapter'
+
+const startAssistantThreadRef = getFunctionReference(
+  templateConfectRefs.public.agents.assistant.startThread,
+)
 
 export function SearchPage() {
   const navigate = useNavigate()
+  const [workspace] = useCurrentWorkspace()
+  const [user] = useCurrentUser()
+  const startAssistantThread = useConvexMutation(startAssistantThreadRef)
 
   const { q } = useSearch({
     from: '/_app/$workspace/_dashboard/search',
@@ -43,10 +64,16 @@ export function SearchPage() {
   }
 
   const { data } = useQuery({
-    queryKey: ['search', q],
+    queryKey: ['search', productShell.search, q],
     queryFn: async () => {
-      // TODO: Implement search
-      return []
+      if (productShell.search !== 'assistant') return []
+      if (isFixtureAuthRuntime()) return fakeAskMaestroResult(q)
+      const result = await startAssistantThread({
+        workspaceId: workspace.id,
+        userId: user.id,
+        firstMessage: q,
+      })
+      return projectAssistantMessagesToSearchResults(result.messages)
     },
     enabled: !!q,
   })
@@ -59,7 +86,11 @@ export function SearchPage() {
         py="1"
         title={
           <SearchInput
-            placeholder="Search your workspace..."
+            placeholder={
+              productShell.search === 'assistant'
+                ? 'Ask Maestro anything...'
+                : 'Search your workspace...'
+            }
             value={q}
             onChange={(e) => setSearch(e.target.value)}
             onReset={() => setSearch('')}
@@ -81,15 +112,17 @@ function RecentSearches() {
   const workspace = useWorkspaceSlug()
 
   const { data, isLoading } = useQuery({
-    queryKey: ['recent-searches'],
+    queryKey: ['recent-searches', productShell.search],
     queryFn: async () => {
-      return ['hello', 'james', 'kira']
+      return productShell.search === 'assistant'
+        ? [...askMaestroPromptFixtures]
+        : ['hello', 'james', 'kira']
     },
   })
 
   const clearRecent = useMutation({
     mutationFn: async () => {
-      queryClient.setQueryData(['recent-searches'], [])
+      queryClient.setQueryData(['recent-searches', productShell.search], [])
     },
   })
 
@@ -111,7 +144,9 @@ function RecentSearches() {
   return (
     <Box>
       <Heading as="h4" size="sm" color="fg.muted" px="5" py="2">
-        Recent searches
+        {productShell.search === 'assistant'
+          ? 'Try asking Maestro'
+          : 'Recent searches'}
       </Heading>
       {isLoading ? (
         <LoadingOverlay.Root>
@@ -131,48 +166,40 @@ function RecentSearches() {
               </Link>
             </GridList.Item>
           ))}
-          <GridList.Item
-            px="5"
-            py="2"
-            onClick={() => {
-              clearRecent.mutate()
-            }}
-          >
-            <GridList.Cell>
-              <LuX />
-            </GridList.Cell>
-            <GridList.Cell flex="1" color="fg.subtle" textStyle="sm">
-              Clear recent searches
-            </GridList.Cell>
-          </GridList.Item>
+          {productShell.search === 'workspace' ? (
+            <GridList.Item
+              px="5"
+              py="2"
+              onClick={() => {
+                clearRecent.mutate()
+              }}
+            >
+              <GridList.Cell>
+                <LuX />
+              </GridList.Cell>
+              <GridList.Cell flex="1" color="fg.subtle" textStyle="sm">
+                Clear recent searches
+              </GridList.Cell>
+            </GridList.Item>
+          ) : null}
         </GridList.Root>
       ) : null}
     </Box>
   )
 }
 
-function SearchResults(props: { data?: ContactDTO[]; search: string }) {
-  const workspace = useWorkspaceSlug()
-
-  const getLinkOptions = (id: string) =>
-    linkOptions({
-      to: '/$workspace/contacts/view/$id',
-      params: {
-        workspace,
-        id,
-      },
-    })
-
+function SearchResults(props: {
+  data?: StarterSearchResult[]
+  search: string
+}) {
   if (props.search && !props.data?.length) {
     return (
       <EmptyState
-        title="No results"
-        description={`No results for for query "${props.search}"`}
-      >
-        <LinkButton to="/$workspace/search" params={{ workspace }}>
-          Clear search
-        </LinkButton>
-      </EmptyState>
+        title={
+          productShell.search === 'assistant' ? 'No answer yet' : 'No results'
+        }
+        description={`No results for query "${props.search}"`}
+      />
     )
   }
 
@@ -182,20 +209,15 @@ function SearchResults(props: { data?: ContactDTO[]; search: string }) {
         Results
       </Heading>
       <GridList.Root interactive>
-        {props.data?.map((contact) => (
-          <GridList.Item key={contact.id} textStyle="sm" px="5" py="2" asChild>
-            <Link {...getLinkOptions(contact.id)}>
-              <GridList.Cell>
-                <Avatar
-                  name={contact.name ?? contact.email ?? ''}
-                  src={contact.avatar ?? undefined}
-                  size="2xs"
-                />
-              </GridList.Cell>
-              <GridList.Cell flex="1">
-                <Text>{contact.name}</Text>
-              </GridList.Cell>
-            </Link>
+        {props.data?.map((result) => (
+          <GridList.Item key={result.id} textStyle="sm" px="5" py="3">
+            <GridList.Cell>
+              <Avatar name={result.title} size="2xs" />
+            </GridList.Cell>
+            <GridList.Cell flex="1">
+              <Text fontWeight="medium">{result.title}</Text>
+              <Text color="fg.muted">{result.description}</Text>
+            </GridList.Cell>
           </GridList.Item>
         ))}
       </GridList.Root>
