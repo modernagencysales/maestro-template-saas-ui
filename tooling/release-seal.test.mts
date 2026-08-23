@@ -224,6 +224,7 @@ describe("release seal factory-only exclusions", () => {
       "tooling/app-map/src/build.ts",
       "tooling/release/__fixtures__/upgrade/provider-posture-v1-to-v2.contract.json",
       "tooling/saas-ui/manifest.ts",
+      "tooling/workflow/package.json",
       "tooling/release-seal.mts",
       "tooling/release-seal.test.mts",
     ];
@@ -238,6 +239,13 @@ describe("release seal factory-only exclusions", () => {
           ownership: "customer-extension",
           action: "copy",
           upgrade: "preserve",
+        },
+        {
+          path: "tooling/workflow",
+          match: "subtree",
+          ownership: "template-owned",
+          action: "copy",
+          upgrade: "replace",
         },
       ],
     });
@@ -283,6 +291,12 @@ describe("release seal factory-only exclusions", () => {
           path: "tooling/saas-ui",
           ownership: "template-owned",
           action: "copy",
+        }),
+        expect.objectContaining({
+          path: "tooling/workflow",
+          match: "subtree",
+          ownership: "factory-only",
+          action: "omit",
         }),
         expect.objectContaining({
           path: "tooling/release-seal.mts",

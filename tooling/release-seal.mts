@@ -481,6 +481,13 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     upgrade: "remove",
   },
   {
+    path: "tooling/workflow",
+    match: "subtree",
+    ownership: "factory-only",
+    action: "omit",
+    upgrade: "remove",
+  },
+  {
     path: "docs/agent",
     match: "subtree",
     ownership: "template-owned",
@@ -684,11 +691,21 @@ export function buildReviewedAdditionalPaths(input: {
       );
       if (inherited === undefined) return true;
       if (JSON.stringify(inherited) === JSON.stringify(candidate)) return false;
-      if (candidate.ownership === "factory-only")
+      if (candidate.ownership === "factory-only") {
+        const matchesSource =
+          candidate.match === "exact"
+            ? input.sourcePaths.includes(candidate.path)
+            : input.sourcePaths.some(
+                (path) =>
+                  path === candidate.path ||
+                  path.startsWith(`${candidate.path}/`),
+              );
         return (
-          candidate.path === "Justfile" &&
-          !input.sourcePaths.includes(candidate.path)
+          matchesSource ||
+          (candidate.path === "Justfile" &&
+            !input.sourcePaths.includes(candidate.path))
         );
+      }
       throw new Error(
         `Release additional path conflicts with inherited authority: ${candidate.match}:${candidate.path}`,
       );
@@ -698,8 +715,17 @@ export function buildReviewedAdditionalPaths(input: {
         `${right.path}:${right.match}`,
       ),
     );
+  const replacementIdentities = new Set(
+    rules.map((entry) => `${entry.match}:${entry.path}`),
+  );
+  const effectiveRules = [
+    ...input.basePaths.filter(
+      (entry) => !replacementIdentities.has(`${entry.match}:${entry.path}`),
+    ),
+    ...rules,
+  ];
   for (const path of input.sourcePaths) {
-    if (!resolveCustomerReleasePath([...input.basePaths, ...rules], path))
+    if (!resolveCustomerReleasePath(effectiveRules, path))
       throw new Error(`Unclassified reviewed release source path: ${path}`);
   }
   return rules;
