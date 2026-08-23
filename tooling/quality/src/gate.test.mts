@@ -41,6 +41,25 @@ describe("evaluateStaticCheck", () => {
     expect(result.failures).toEqual([]);
   });
 
+  it("matches required command strings across formatter whitespace", async () => {
+    const result = await withRepo(
+      { "lefthook.yml": "ESLINT_SHIFT_LEFT=1\n  pnpm eslint {staged_files}\n" },
+      async (repo) =>
+        evaluateStaticCheck(repo, {
+          name: "hooks",
+          requirements: [
+            {
+              file: "lefthook.yml",
+              includes: ["ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}"],
+              message: "hook must preserve staged lint",
+            },
+          ],
+        }),
+    );
+
+    expect(result).toEqual({ ok: true, failures: [] });
+  });
+
   it("fails with a specific message when a required pattern is missing", async () => {
     const result = await withRepo({ "README.md": "hello\n" }, async (repo) =>
       evaluateStaticCheck(repo, {

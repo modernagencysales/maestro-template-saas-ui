@@ -3,25 +3,11 @@ import { describe, expect, it } from "vitest";
 import { expectDescriptorPassesAndFails } from "./src/check-test-helpers.mts";
 import {
   descriptor,
-  validateStagedLintCommand,
   validateRootVerifyHostTerms,
 } from "./check-ci-completeness.mts";
 import { checkDescriptors } from "./src/check-definitions.mts";
 
 describe("check:ci-completeness", () => {
-  it("recognizes the governed staged lint command across formatted YAML whitespace", () => {
-    expect(
-      validateStagedLintCommand(
-        "then ESLINT_SHIFT_LEFT=1\n        pnpm eslint {staged_files}; else",
-      ),
-    ).toEqual([]);
-    expect(
-      validateStagedLintCommand(
-        "then ESLINT_SHIFT_LEFT=1\n        pnpm lint {staged_files}; else",
-      ),
-    ).toEqual([expect.stringContaining("governed ESLINT_SHIFT_LEFT")]);
-  });
-
   it("passes and fails on its declared requirements", async () => {
     await expectDescriptorPassesAndFails(descriptor);
   });
