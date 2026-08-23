@@ -15,9 +15,9 @@ import { LuInbox } from 'react-icons/lu'
 
 import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace.ts'
 import { useOpenState } from '#hooks/use-open-state.ts'
-import { api } from '#lib/trpc/react.tsx'
 import { productShell } from '#config/product-shell'
 
+import { inboxDataHooks } from './brain-inbox-adapter'
 import { InboxList } from './inbox-list.tsx'
 
 export function InboxLayout({
@@ -33,9 +33,8 @@ export function InboxLayout({
 
   const [, startTransition] = React.useTransition()
 
-  const { data, isLoading } = api.notifications.inbox.useQuery({
-    workspaceId: workspace.id,
-  })
+  const useInboxData = inboxDataHooks[productShell.inbox]
+  const { data, isLoading } = useInboxData({ workspaceId: workspace.id })
 
   const isMobile = useBreakpointValue(
     { base: true, lg: false },
