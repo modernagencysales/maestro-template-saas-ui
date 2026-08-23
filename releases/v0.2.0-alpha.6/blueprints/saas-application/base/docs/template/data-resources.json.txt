@@ -707,6 +707,23 @@
       "detail": "promptRegistry is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
     },
     {
+      "id": "providerConnections",
+      "system": "provider-integrations",
+      "sourcePath": "packages/convex/confect/tables/providerConnections.ts",
+      "tenantScope": "workspace",
+      "sensitivity": "confidential",
+      "pii": [],
+      "exportMode": "redacted-json",
+      "deleteMode": "delete",
+      "retention": "retain-until-workspace-delete",
+      "appendOnly": false,
+      "writePosture": "implemented",
+      "workspaceLifecycle": "managed",
+      "writeAuthority": "packages/convex/confect/integrations/connections.impl.ts",
+      "migrationRef": "docs/template/schema-decisions/providerConnections.md",
+      "detail": "Workspace provider authorization and redacted connection status"
+    },
+    {
       "id": "records",
       "system": "record-management",
       "sourcePath": "packages/convex/confect/tables/records.ts",

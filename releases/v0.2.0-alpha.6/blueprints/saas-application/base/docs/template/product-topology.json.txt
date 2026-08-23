@@ -50,6 +50,21 @@
       "lifecycle": "active"
     },
     {
+      "id": "job:workpool",
+      "kind": "job",
+      "system": "workflow-runtime",
+      "path": "packages/convex/confect/jobs/workpool.spec.ts",
+      "responsibility": "schedule bounded durable background work",
+      "surfaces": [
+        "internal",
+        "worker"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
       "id": "route:$workspace",
       "kind": "route",
       "system": "access-and-tenancy",
@@ -526,6 +541,103 @@
       "lifecycle": "active"
     },
     {
+      "id": "integration:dodo-crypto",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/dodoCrypto.ts",
+      "responsibility": "verify Dodo webhook signatures and freshness",
+      "surfaces": [
+        "internal",
+        "worker"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:dodo-webhook",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/dodoWebhook.ts",
+      "responsibility": "normalize and verify Dodo webhook requests",
+      "surfaces": [
+        "internal",
+        "worker"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:provider-adapter",
+      "kind": "provider",
+      "system": "provider-integrations",
+      "path": "packages/integrations/src/providerAdapter.ts",
+      "responsibility": "construct provider adapters behind the canonical registry",
+      "surfaces": [
+        "internal",
+        "worker"
+      ],
+      "uses": [
+        "billing-and-entitlements",
+        "notifications"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:provider-registry",
+      "kind": "provider",
+      "system": "policy-and-prompts",
+      "path": "packages/integrations/src/providerRegistry.ts",
+      "responsibility": "define canonical provider descriptors and configuration validation",
+      "surfaces": [
+        "internal",
+        "worker"
+      ],
+      "uses": [
+        "billing-and-entitlements",
+        "notifications"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:admaxxer",
+      "kind": "provider",
+      "system": "billing-and-entitlements",
+      "path": "packages/integrations/src/admaxxer.ts",
+      "responsibility": "adapt verified payment revenue attribution behind the billing boundary",
+      "surfaces": [
+        "internal",
+        "worker"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:email",
+      "kind": "provider",
+      "system": "notifications",
+      "path": "packages/integrations/src/email.ts",
+      "responsibility": "adapt email delivery behind the canonical provider-neutral service",
+      "surfaces": [
+        "internal",
+        "worker"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "integration:email-setup",
+      "kind": "provider",
+      "system": "notifications",
+      "path": "packages/integrations/src/emailSetup.ts",
+      "responsibility": "define repeatable Postmark templates and authenticated webhook setup",
+      "surfaces": [
+        "internal",
+        "worker"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
       "id": "integration:flags",
       "kind": "provider",
       "system": "policy-and-prompts",
@@ -623,6 +735,19 @@
       "lifecycle": "active"
     },
     {
+      "id": "provider:observability",
+      "kind": "provider",
+      "system": "workflow-runtime",
+      "path": "packages/observability/src/index.ts",
+      "responsibility": "record workflow and capability operational telemetry",
+      "surfaces": [
+        "internal",
+        "worker"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
       "id": "provider:search",
       "kind": "provider",
       "system": "knowledge-brain",
@@ -667,6 +792,33 @@
       "lifecycle": "active"
     },
     {
+      "id": "headless:api-key-contract",
+      "kind": "headless",
+      "system": "access-and-tenancy",
+      "path": "packages/convex/confect/headless/apiKeys.spec.ts",
+      "responsibility": "declare workspace-bound API key capabilities",
+      "surfaces": [
+        "api",
+        "cli"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:api-key-runtime",
+      "kind": "headless",
+      "system": "access-and-tenancy",
+      "path": "packages/convex/confect/headless/apiKeys.impl.ts",
+      "responsibility": "resolve and seed workspace-bound API keys",
+      "surfaces": [
+        "api",
+        "cli",
+        "internal"
+      ],
+      "uses": [],
+      "lifecycle": "active"
+    },
+    {
       "id": "headless:deployment-authority",
       "kind": "headless",
       "system": "deployment-authority",
@@ -691,6 +843,54 @@
         "mcp"
       ],
       "uses": [],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:executor",
+      "kind": "headless",
+      "system": "workflow-runtime",
+      "path": "packages/convex/confect/manifest/executor.ts",
+      "responsibility": "dispatch manifest operations to canonical contracts",
+      "surfaces": [
+        "api",
+        "cli",
+        "mcp"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:mcp",
+      "kind": "headless",
+      "system": "workflow-runtime",
+      "path": "packages/convex/confect/manifest/mcp.ts",
+      "responsibility": "project canonical operations into MCP tools",
+      "surfaces": [
+        "api",
+        "cli",
+        "mcp"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
+      "lifecycle": "active"
+    },
+    {
+      "id": "headless:openapi",
+      "kind": "headless",
+      "system": "workflow-runtime",
+      "path": "packages/convex/confect/manifest/openapi.ts",
+      "responsibility": "project canonical operations into OpenAPI",
+      "surfaces": [
+        "api",
+        "cli",
+        "mcp"
+      ],
+      "uses": [
+        "access-and-tenancy"
+      ],
       "lifecycle": "active"
     },
     {

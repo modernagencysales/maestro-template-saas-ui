@@ -28,6 +28,7 @@ export const currentLifecycleResourceIds = [
   "notificationPreferences",
   "notificationRecords",
   "policies",
+  "providerConnections",
   "records",
   "transformBlocks",
   "transformDefinitions",
@@ -223,6 +224,13 @@ export const workspaceLifecycleResourcePlans = [
     exportMode: "json",
     deleteMode: "delete",
     detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
+  },
+  {
+    id: "providerConnections",
+    owner: "workspace",
+    exportMode: "redacted-json",
+    deleteMode: "delete",
+    detail: "Workspace provider authorization and redacted connection status"
   },
   {
     id: "records",
@@ -427,6 +435,11 @@ export const workspaceRetentionRules = [
     resourceId: "policies",
     action: "retain-until-workspace-delete",
     detail: "policies is durable Policy And Prompts state governed by the canonical policy-and-prompts lifecycle."
+  },
+  {
+    resourceId: "providerConnections",
+    action: "retain-until-workspace-delete",
+    detail: "Workspace provider authorization and redacted connection status"
   },
   {
     resourceId: "records",

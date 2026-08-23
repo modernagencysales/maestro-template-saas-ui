@@ -4,12 +4,12 @@ Complete pinned Saas UI Starter shell for generated Maestro customer apps.
 
 ## What changed
 
-- Ships the complete Starter route tree, shell, Clients, Brain, Connections,
-  and Settings screens through the canonical customer materialization path.
+- Ships the complete Starter route tree, shell, Clients, Brain, Connections, and
+  Settings screens through the canonical customer materialization path.
 - Preserves the purchased Starter screens wholesale and binds product behavior
   through thin route, authentication, data, and mutation adapters.
-- Adds deterministic provenance, dependency, coverage, and branch-hygiene
-  checks for agent-driven product work.
+- Adds deterministic provenance, dependency, coverage, and branch-hygiene checks
+  for agent-driven product work.
 
 ## Compatibility and environment
 

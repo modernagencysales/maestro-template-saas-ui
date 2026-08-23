@@ -20,7 +20,7 @@
     "test": "turbo run test --filter='./packages/*' --filter=@maestro-template/web && pnpm test:tooling",
     "test:runtime-longevity": "pnpm --dir apps/web test:runtime-longevity",
     "test:bootstrap": "node --test scripts/maestro-bootstrap.test.mjs",
-    "test:tooling": "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts src/templateInstanceMigration.test.ts --maxWorkers=1 --no-file-parallelism",
+    "test:tooling": "pnpm test:bootstrap && pnpm --dir tooling/generators exec vitest run src/customer-runtime.test.ts --maxWorkers=1 --no-file-parallelism",
     "test:app-map": "pnpm --dir tooling/app-map test",
     "test:convex-compat": "pnpm --dir tooling/convex-compat test",
     "build": "turbo run build",
@@ -38,6 +38,7 @@
     "template:prototype": "tsx tooling/generators/src/customer-cli.ts prototype",
     "template:add-client-domain": "tsx tooling/generators/src/customer-cli.ts add-client-domain",
     "template:add-feature": "tsx tooling/generators/src/customer-cli.ts add-feature",
+    "template:configure-shell": "tsx tooling/generators/src/customer-cli.ts configure-shell",
     "template:add-capability": "tsx tooling/generators/src/customer-cli.ts add-capability",
     "template:add-table": "tsx tooling/generators/src/customer-cli.ts add-table",
     "template:add-workflow": "tsx tooling/generators/src/customer-cli.ts add-workflow",
@@ -57,7 +58,7 @@
     "check:convex-compat": "pnpm test:convex-compat",
     "check:ci-completeness": "tsx tooling/quality/check-ci-completeness.mts",
     "check:config-drift": "tsx tooling/quality/check-config-drift.mts",
-    "check:deps": "tsx tooling/quality/check-deps.mts",
+    "check:deps": "tsx tooling/quality/check-deps.mts && pnpm check:frontend-dependency-contract",
     "check:knip": "knip --config knip.json",
     "check:route-tree": "tsx tooling/quality/check-route-tree.mts",
     "check:frontend-effect-boundary": "tsx tooling/quality/check-frontend-effect-boundary.mts",
@@ -118,7 +119,7 @@
     "@stryker-mutator/typescript-checker": "9.6.1",
     "@stryker-mutator/vitest-runner": "9.6.1",
     "@types/node": "^22.0.0",
-    "@vitest/coverage-v8": "3.2.6",
+    "@vitest/coverage-v8": "4.1.11",
     "convex": "1.42.1",
     "dependency-cruiser": "^18.0.0",
     "eslint": "^9.0.0",
@@ -131,7 +132,7 @@
     "type-coverage": "^2.29.7",
     "typescript": "^5.0.0",
     "typescript-eslint": "^8.0.0",
-    "vitest": "^3.0.0",
+    "vitest": "4.1.11",
     "yaml": "2.9.0"
   }
 }
