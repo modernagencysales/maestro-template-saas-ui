@@ -640,6 +640,7 @@ const customerGeneratorTsconfig = (): string =>
   `${JSON.stringify(
     {
       extends: "./tsconfig.json",
+      compilerOptions: { composite: false },
       include: ["src/customer.ts", "src/customer-cli.ts"],
     },
     null,
