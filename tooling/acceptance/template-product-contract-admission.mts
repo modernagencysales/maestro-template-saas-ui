@@ -11,6 +11,7 @@ import {
   RecordsCustomerMaterializationError,
   withMaterializedRecordsCustomer,
 } from "./template-product-contract.mts";
+import { applyPrerenderRetryCompatibility } from "../release/src/customerTarget/finalFilesystem.test-support";
 import {
   redactedProcessOutputTail,
   renderBoundedPlaywrightProcessOutput,
@@ -111,6 +112,9 @@ export const prepareMaterializedCustomer = (
   targetRoot: string,
   mode: "structural" | "required",
   runCommand: typeof runPreparedCustomerCommand = runPreparedCustomerCommand,
+  preparePrerenderRuntime: (
+    root: string,
+  ) => void = applyPrerenderRetryCompatibility,
 ): void => {
   runCommand(
     targetRoot,
@@ -167,6 +171,7 @@ export const prepareMaterializedCustomer = (
     );
     rmSync(resolve(targetRoot, ".env.local"), { force: true });
     rmSync(resolve(targetRoot, ".convex"), { force: true, recursive: true });
+    preparePrerenderRuntime(targetRoot);
     runCommand(
       targetRoot,
       ["--dir", "apps/web", "exec", "vite", "build"],

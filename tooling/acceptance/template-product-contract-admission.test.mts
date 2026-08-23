@@ -23,6 +23,7 @@ describe("required acceptance admission summary", () => {
     writeFileSync(resolve(targetRoot, ".env.local"), "stale deployment");
     mkdirSync(resolve(targetRoot, ".convex"));
     const commands: string[][] = [];
+    const preparedPrerenderRoots: string[] = [];
     const stopAfterVite = new Error("stop after Vite");
     const prepare = Reflect.get(admission, "prepareMaterializedCustomer");
     expect(prepare).toBeTypeOf("function");
@@ -37,6 +38,7 @@ describe("required acceptance admission summary", () => {
             if (args.includes("vite")) throw stopAfterVite;
             return "";
           },
+          (root: string) => preparedPrerenderRoots.push(root),
         ]),
       ).toThrow(stopAfterVite);
       expect(commands.slice(2)).toEqual([
@@ -79,6 +81,7 @@ describe("required acceptance admission summary", () => {
         ],
         ["--dir", "apps/web", "exec", "vite", "build"],
       ]);
+      expect(preparedPrerenderRoots).toEqual([targetRoot]);
       expect(existsSync(resolve(targetRoot, ".env.local"))).toBe(false);
       expect(existsSync(resolve(targetRoot, ".convex"))).toBe(false);
     } finally {
