@@ -1,20 +1,18 @@
 {
   "schemaVersion": 1,
   "kind": "reviewed-upgrade-impact-coverage",
-  "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
-  "subjectRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
+  "baseRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
+  "subjectRevision": "4b0b524d8b624bbfdfa7d8b2cf71b477b7386494",
   "structuralPaths": [],
   "ownershipCoveredPaths": [
-    "apps/cli/src/factory/candidateComposition.test.ts",
-    "apps/cli/src/factory/customerCliRuntime.test.ts",
-    "docs/template/template-release-process.md",
-    "lefthook.yml",
-    "tooling/quality/delivery-batch-authority.test.mts"
+    "tooling/generators/src/blueprints/saasFrontendFoundation.test.ts",
+    "tooling/quality/src/gate.mts",
+    "tooling/quality/src/gate.test.mts"
   ],
   "impact": {
     "schemaVersion": 1,
-    "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
-    "subjectRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
+    "baseRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
+    "subjectRevision": "4b0b524d8b624bbfdfa7d8b2cf71b477b7386494",
     "complete": true,
     "risk": "low",
     "changedPaths": [],

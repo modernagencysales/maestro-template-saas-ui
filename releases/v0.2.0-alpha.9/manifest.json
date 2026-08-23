@@ -4,13 +4,13 @@
   "materializationStatus": "materializable",
   "baseManifest": {
     "path": "../v0.2.0-alpha.8/manifest.json",
-    "sha256": "sha256:609def9ca70272268eaea2ddd0ea31c51610ef6b1be8da8771d5fca1a1477948"
+    "sha256": "sha256:7d2cb02f9c3786ff32faac397e49288601f6765d593014a3faf4e1edfc7fee75"
   },
   "release": {
     "version": "0.2.0-alpha.9",
     "tag": "maestro-template-v0.2.0-alpha.9",
-    "sourceCommit": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
-    "sourceChecksum": "sha256:1b86ceb9f041ea7cb502ccf1e64e91a3951cf787fc93576bcc0debd9c90ae9da"
+    "sourceCommit": "4b0b524d8b624bbfdfa7d8b2cf71b477b7386494",
+    "sourceChecksum": "sha256:aad519d04ec9af513831b80ffe345e6f445d78bd768cd6b537755d14f586427e"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -22,44 +22,28 @@
     },
     "operations": [
       {
-        "id": "upgrade-modify-apps-cli-src-factory-candidateComposition-test-ts",
+        "id": "upgrade-modify-tooling-generators-src-blueprints-saasFrontendFoundation-test-ts",
         "kind": "modify",
-        "path": "apps/cli/src/factory/candidateComposition.test.ts",
+        "path": "tooling/generators/src/blueprints/saasFrontendFoundation.test.ts",
         "ownership": "template-owned",
-        "beforeHash": "sha256:8ba5bedc7fb7d19471b943f75cc35c2da4a5eccd9bfea7a7e5f01c64b503228e",
-        "afterHash": "sha256:3dfd9d1507602223e8bc8909e5976a7baf1441ab1a31850d637e4623ff0c49cf"
+        "beforeHash": "sha256:942f0b415aef6ed328d3b0ef8ad5fe8de1dc4ad1a76cb57e5e27d1ff88f813d0",
+        "afterHash": "sha256:702e09b69d048958e752acc37b67aa2a931a54ad674cf85b35161a61aa4f1dd5"
       },
       {
-        "id": "upgrade-modify-apps-cli-src-factory-customerCliRuntime-test-ts",
+        "id": "upgrade-modify-tooling-quality-src-gate-mts",
         "kind": "modify",
-        "path": "apps/cli/src/factory/customerCliRuntime.test.ts",
+        "path": "tooling/quality/src/gate.mts",
         "ownership": "template-owned",
-        "beforeHash": "sha256:0dad008183c80c046c3b7a3d8d1c7c00389467675e483722eb7369dc84b97819",
-        "afterHash": "sha256:089eb35a0e579d0e5c613ece12f01fa6b9c5f376a9b2f4de04c1329e6375e783"
+        "beforeHash": "sha256:72ae7b01d2a63038688cc7d491015e048a48604e2db078178b05adf4f50b02b6",
+        "afterHash": "sha256:66e28752467249ba0aca6c684e14148a253aa851bf4a9492d0706d56abaaabfb"
       },
       {
-        "id": "upgrade-modify-docs-template-template-release-process-md",
+        "id": "upgrade-modify-tooling-quality-src-gate-test-mts",
         "kind": "modify",
-        "path": "docs/template/template-release-process.md",
+        "path": "tooling/quality/src/gate.test.mts",
         "ownership": "template-owned",
-        "beforeHash": "sha256:e2f8177bd842d7af673b81001d6655d9151f3ab3d2a29cff62ec01e899b25291",
-        "afterHash": "sha256:788a67b74f4c330cb81f44196433769cf064b51055b1e51ef899984c4715da2d"
-      },
-      {
-        "id": "upgrade-modify-lefthook-yml",
-        "kind": "modify",
-        "path": "lefthook.yml",
-        "ownership": "template-owned",
-        "beforeHash": "sha256:6d62b234344feb15869b127530f18af49de44bb3a027dbea4ff5f59de48e9ad0",
-        "afterHash": "sha256:129e672f35f3411db31de3c48dfe6c36a5afcc0bdf4f1ee85732768b35cdc2b8"
-      },
-      {
-        "id": "upgrade-modify-tooling-quality-delivery-batch-authority-test-mts",
-        "kind": "modify",
-        "path": "tooling/quality/delivery-batch-authority.test.mts",
-        "ownership": "template-owned",
-        "beforeHash": "sha256:f3322c9d52e9e4c0570d514bd2a0c3aecdb0d0fa97a41b06f07c8f5b396bd7e5",
-        "afterHash": "sha256:8b2ba905328631b2a6147ca0681c8da03463e524401a1f186431b543d447aa00"
+        "beforeHash": "sha256:60ae6783fd1e247fdada1a5e995301ce52ca159935bbf4ffbc5576809a84a95c",
+        "afterHash": "sha256:c3f48cd338ab753655be02f6e8cf886428bd571fac3f66cec30e990f1cc69249"
       }
     ],
     "requirements": []
@@ -68,7 +52,7 @@
   "additionalPaths": [],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:89918c906fc8d61bc882a7bcdff81b52217c222015ad8929b56c76afddb537c1"
+    "sha256": "sha256:ebc131ab152981df7d8fee229279da3408aa6f4a7bae58eb6730ff82771ee513"
   },
   "migrationHandoff": {
     "required": false,
@@ -76,14 +60,14 @@
     "filePhase": "backward-compatible-code",
     "requiredBefore": "migrate",
     "path": "releases/v0.2.0-alpha.9/migrations/manifest.json",
-    "sha256": "sha256:9091f30d34c3d8ddfc0353a27df8de061a4993b638bca267d6bf02a9b256d10d"
+    "sha256": "sha256:1dafec66324989125c0642bbda5df76b351f94ff52c721f734749bfa701554c8"
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.9/upgrade/app-map-input.json",
-    "sha256": "sha256:635c8b5a3c228a33da5590fd7e4bfb135c24cebf83f69e6b2500987ef8d6be46",
+    "sha256": "sha256:2da6d6b48a6d74aaff2f076c1e484ee152e23db1390cc98f55e3af69cae88968",
     "projection": {
       "path": "releases/v0.2.0-alpha.9/upgrade/app-map-impact.json",
-      "sha256": "sha256:3a85ddff7e4c7213bdb7a532b405babaf1a10f02928c8803db49742ffd231c8b"
+      "sha256": "sha256:ce43dc5444cfff365e0386c42b8b69edb2b0d4a57171981f7e9d0a13bffc3dc7"
     }
   }
 }
