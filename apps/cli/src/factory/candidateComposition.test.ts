@@ -546,21 +546,24 @@ describe("candidate customer composition", () => {
     ]);
   }, 900_000);
 
-  it("keeps the zero-argument production composition on the sealed alpha.7 manifest", () => {
+  it("keeps the zero-argument production composition on its sealed manifest", () => {
     const manifest = JSON.parse(
       readFileSync(CURRENT_PUBLIC_SOURCE.manifestPath, "utf8"),
     ) as {
       readonly release: {
         readonly sourceCommit: string;
         readonly tag: string;
+        readonly version: string;
       };
     };
-    expect(manifest.release.tag).toBe("maestro-template-v0.2.0-alpha.7");
+    expect(manifest.release.tag).toBe(
+      `maestro-template-v${manifest.release.version}`,
+    );
     expect(CURRENT_PUBLIC_SOURCE).toMatchObject({
       tag: manifest.release.tag,
       sourceCommit: manifest.release.sourceCommit,
-      manifestPath: expect.stringMatching(
-        /releases\/v0\.2\.0-alpha\.7\/manifest\.json$/u,
+      manifestPath: expect.stringContaining(
+        `releases/v${manifest.release.version}/manifest.json`,
       ),
     });
     expect(loadCustomerCreateComposition().command).toBe("create");
