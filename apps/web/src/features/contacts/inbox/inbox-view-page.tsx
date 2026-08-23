@@ -4,6 +4,7 @@ import { ButtonGroup, IconButton, Spacer } from '@saas-ui/react'
 import { LuChevronLeft, LuClock, LuTrash } from 'react-icons/lu'
 
 import { ContactPage } from '../view/contact-page'
+import { productShell } from '#config/product-shell'
 
 /**
  * This is a simple wrapper around the ContactPage with an inbox specific toolbar
@@ -34,5 +35,12 @@ export function InboxViewPage(props: {
       </IconButton>
     </ButtonGroup>
   )
-  return <ContactPage params={props.params} toolbarItems={toolbar} />
+  return (
+    <ContactPage
+      params={props.params}
+      toolbarItems={toolbar}
+      rootLabel={productShell.labels.inbox}
+      rootTo="/$workspace/inbox"
+    />
+  )
 }

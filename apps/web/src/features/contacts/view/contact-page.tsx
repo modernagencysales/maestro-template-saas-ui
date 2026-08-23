@@ -20,6 +20,7 @@ import {
 } from 'react-icons/lu'
 
 import { Breadcrumbs } from '#components/breadcrumbs'
+import { productShell } from '#config/product-shell'
 import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace'
 import { useOpenState } from '#hooks/use-open-state.ts'
 import { api } from '#lib/trpc/react'
@@ -37,9 +38,16 @@ interface ContactPageProps {
    * Additional toolbar items when embedded in another page, eg the inbox
    */
   toolbarItems?: React.ReactNode
+  rootLabel?: string
+  rootTo?: '/$workspace/contacts' | '/$workspace/inbox'
 }
 
-export function ContactPage({ params, toolbarItems }: ContactPageProps) {
+export function ContactPage({
+  params,
+  toolbarItems,
+  rootLabel = productShell.labels.contacts,
+  rootTo = '/$workspace/contacts',
+}: ContactPageProps) {
   const [workspace] = useCurrentWorkspace()
 
   const [data] = api.contacts.byId.useSuspenseQuery({
@@ -68,9 +76,9 @@ export function ContactPage({ params, toolbarItems }: ContactPageProps) {
     <Breadcrumbs
       items={[
         {
-          to: '/$workspace/contacts',
+          to: rootTo,
           params: { workspace: params.workspace },
-          title: 'Contacts',
+          title: rootLabel,
         },
         { title: data?.name },
       ]}

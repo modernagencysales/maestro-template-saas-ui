@@ -49,6 +49,7 @@ import { useModals } from '@workspace/ui/modals'
 import { OverflowMenu } from '@workspace/ui/overflow-menu'
 
 import { Link } from '#components/link'
+import { productShell } from '#config/product-shell'
 import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace'
 import { api } from '#lib/trpc/react'
 import { useUserSettings } from '#lib/user-settings/use-user-settings'
@@ -458,7 +459,9 @@ export function ContactsListPage({
           renderHeader={(header) => <ContactBoardHeader {...header} />}
           renderCard={(row) => <ContactCard contact={row.original} />}
           groupBy={userSettings.contactsGroupBy}
-          onCardDragEnd={({ items, to, from }) => {
+          onCardDragEnd={
+            // eslint-disable-next-line complexity -- MAESTRO-UI-CANON-05 preserves the pinned Starter board interaction while adding only a product-label seam.
+            ({ items, to, from }) => {
             const contact = data?.contacts.find(
               ({ id }) => id === items[to.columnId]?.[to.index],
             )
@@ -510,7 +513,8 @@ export function ContactsListPage({
               [field]: value,
               sortOrder,
             })
-          }}
+            }
+          }
           noResults={NoFilteredResults}
           getRowId={getRowId}
           initialState={{
@@ -603,7 +607,11 @@ export function ContactsListPage({
           },
         }}
       >
-        <Page.Header title="Contacts" actions={toolbar} footer={tabbar} />
+        <Page.Header
+          title={productShell.labels.contacts}
+          actions={toolbar}
+          footer={tabbar}
+        />
         <ActionBar.Root open={selections.length > 0}>
           <ActionBar.Content portalled>
             <Group
