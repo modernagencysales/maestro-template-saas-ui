@@ -677,6 +677,35 @@ const customerConvexConfig = (workflowSelected: boolean): string => {
   return value;
 };
 
+const customerConfectComponents = (workflowSelected: boolean): string => {
+  const value = currentSource(
+    "packages/convex/confect/_generated/components.ts",
+  );
+  if (workflowSelected) return value;
+  return value
+    .split("\n")
+    .filter(
+      (line) =>
+        !line.includes('"workflow"') &&
+        !line.includes('"workflowAdmission"') &&
+        !line.includes('"workflowDeadline"') &&
+        !line.includes('"workflowDeadlineWorkpool"'),
+    )
+    .join("\n");
+};
+
+const customerConvexApi = (workflowSelected: boolean): string => {
+  const value = currentSource("packages/convex/convex/_generated/api.d.ts");
+  if (workflowSelected) return value;
+  return value
+    .split("\n")
+    .filter(
+      (line) =>
+        !line.includes("demo_showcase") && !line.includes('"demo/showcase"'),
+    )
+    .join("\n");
+};
+
 const customerQualityPackage = (): string => {
   const value = JSON.parse(currentSource("tooling/quality/package.json")) as {
     scripts: Record<string, string>;
@@ -1134,6 +1163,21 @@ const withoutFactoryProductConfectGroups = (value: string): string => {
   return projected;
 };
 
+const WORKFLOW_CONFECT_IMPORT_FRAGMENTS = [
+  'from "../workflowContracts/',
+  'from "../workflowRunners/',
+  'from "../workflows/',
+  'from "../demo/showcase.spec"',
+  'from "../capabilities/_versions/publicationEcho/',
+] as const;
+
+const WORKFLOW_CONFECT_GROUP_FRAGMENTS = [
+  '"workflowContracts"',
+  '"workflowRunners"',
+  '>, "demo">',
+  '>, "workflows">',
+] as const;
+
 const withoutWorkflowConfectGroups = (value: string): string => {
   let projected = value
     .split("\n")
@@ -1141,16 +1185,15 @@ const withoutWorkflowConfectGroups = (value: string): string => {
       (line) =>
         !(
           line.startsWith("import ") &&
-          (line.includes('from "../workflowContracts/') ||
-            line.includes('from "../workflowRunners/') ||
-            line.includes('from "../workflows/') ||
-            line.includes('from "../capabilities/_versions/publicationEcho/'))
+          WORKFLOW_CONFECT_IMPORT_FRAGMENTS.some((fragment) =>
+            line.includes(fragment),
+          )
         ) &&
         !(
           line.startsWith("  | GroupSpec.NamedAt") &&
-          (line.includes('"workflowContracts"') ||
-            line.includes('"workflowRunners"') ||
-            line.includes('>, "workflows">'))
+          WORKFLOW_CONFECT_GROUP_FRAGMENTS.some((fragment) =>
+            line.includes(fragment),
+          )
         ),
     )
     .join("\n");
@@ -1160,6 +1203,7 @@ const withoutWorkflowConfectGroups = (value: string): string => {
   );
   for (const marker of [
     '.addGroupAt("_versions",',
+    '.addAt("demo",',
     '.addAt("workflowContracts",',
     '.addAt("workflowRunners",',
     '.addAt("workflows",',
@@ -1805,9 +1849,11 @@ export const buildSaasRegistrationProjections = (
               path.endsWith("workflowSchedule.ts") ||
               path.endsWith("workflowScheduledCapability.ts")
             ? currentSource(path)
-            : path === "packages/convex/convex/convex.config.ts" && current
-              ? customerConvexConfig(workflowSelected)
-              : source(path),
+            : path === "packages/convex/convex/_generated/api.d.ts" && current
+              ? customerConvexApi(workflowSelected)
+              : path === "packages/convex/convex/convex.config.ts" && current
+                ? customerConvexConfig(workflowSelected)
+                : source(path),
     })),
     ...[
       "start.ts",
@@ -1897,6 +1943,14 @@ export const buildSaasRegistrationProjections = (
       path: "packages/convex/confect/_generated/spec.ts",
       content: confectSpec(current, recordsSelected, workflowSelected),
     },
+    ...(current
+      ? [
+          {
+            path: "packages/convex/confect/_generated/components.ts",
+            content: customerConfectComponents(workflowSelected),
+          },
+        ]
+      : []),
     {
       path: "packages/convex/confect/_generated/id.ts",
       content: confectIds(recordsSelected, workflowSelected),

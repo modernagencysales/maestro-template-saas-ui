@@ -2213,6 +2213,7 @@ describe("saas application blueprint", () => {
         "packages/convex/confect/_generated/schema.ts",
         "packages/convex/confect/_generated/convexSchema.ts",
         "packages/convex/confect/_generated/spec.ts",
+        "packages/convex/confect/_generated/components.ts",
         "packages/convex/confect/_generated/id.ts",
         "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
         "packages/convex/convex/records/records.ts",
@@ -2443,6 +2444,19 @@ describe("saas application blueprint", () => {
       "generateCompleteBuildPack",
     ])
       expect(spec).not.toContain(factoryProductGroup);
+    expect(spec).not.toContain("demo_showcase");
+    expect(spec).not.toContain('.addAt("demo",');
+
+    const components =
+      files.get("packages/convex/confect/_generated/components.ts") ?? "";
+    expect(components).not.toContain('"workflow"');
+    expect(components).not.toContain('"workflowAdmission"');
+    expect(components).not.toContain('"workflowDeadline"');
+
+    const convexApi =
+      files.get("packages/convex/convex/_generated/api.d.ts") ?? "";
+    expect(convexApi).not.toContain("demo_showcase");
+    expect(convexApi).not.toContain('"demo/showcase"');
 
     const databaseSchema =
       files.get("packages/convex/confect/_generated/schema.ts") ?? "";
