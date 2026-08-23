@@ -143,6 +143,12 @@ ${packages
       target: ${name}
       ${kind === "template-gap" ? "templateBacklogRef: AP-001\n      templateResolutionPath: records adapter" : kind === "pattern-instance" ? "generatorCommand: pnpm template:add-feature" : "persistenceOrProviderBoundary: records repository"}
       followUpGates: [check:records]
+      frontend:
+        screenCatalogId: starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx
+        sourceReceipt: docs/template/saas-ui-starter-files.json
+        shellId: app-shell
+        allowedAdaptations: [route-binding, data-adapter]
+        requiredVisualStates: [loading, empty, error, populated, selected, mutation]
 `,
   )
   .join("")}proofs:
@@ -435,6 +441,12 @@ workPackages:
       templateBacklogRef: AP-001
       templateResolutionPath: records adapter
       followUpGates: [check:records]
+      frontend:
+        screenCatalogId: starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx
+        sourceReceipt: docs/template/saas-ui-starter-files.json
+        shellId: app-shell
+        allowedAdaptations: [route-binding, data-adapter]
+        requiredVisualStates: [loading, empty, error, populated, selected, mutation]
 proofs:
   - behavior: BHV-REC-001
     behaviorRevision: 1
@@ -693,7 +705,7 @@ proofs:
     );
     await writeFile(
       join(root, "docs", "records.md"),
-      `---\nplanSchemaVersion: 1\nproductContract: product.contract.yaml\nworkPackages:\n  - id: WP-REC-001\n    behaviorIds: [BHV-REC-001]\n    appMapTargets: [route:records]\n    work:\n      kind: template-gap\n      target: records\n      templateBacklogRef: AP-001\n      templateResolutionPath: records adapter\n      followUpGates: [check:records]\nproofs:\n  - behavior: BHV-REC-001\n    behaviorRevision: 1\n    level: black-box\n    surfaces: [web-ui]\n    observation: The record appears.\n    failureWitness: It would be absent.\n---\n# Plan\n`,
+      `---\nplanSchemaVersion: 1\nproductContract: product.contract.yaml\nworkPackages:\n  - id: WP-REC-001\n    behaviorIds: [BHV-REC-001]\n    appMapTargets: [route:records]\n    work:\n      kind: template-gap\n      target: records\n      templateBacklogRef: AP-001\n      templateResolutionPath: records adapter\n      followUpGates: [check:records]\n      frontend:\n        screenCatalogId: starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx\n        sourceReceipt: docs/template/saas-ui-starter-files.json\n        shellId: app-shell\n        allowedAdaptations: [route-binding, data-adapter]\n        requiredVisualStates: [loading, empty, error, populated, selected, mutation]\nproofs:\n  - behavior: BHV-REC-001\n    behaviorRevision: 1\n    level: black-box\n    surfaces: [web-ui]\n    observation: The record appears.\n    failureWitness: It would be absent.\n---\n# Plan\n`,
     );
     await generateProductContract({
       repoRoot: root,
