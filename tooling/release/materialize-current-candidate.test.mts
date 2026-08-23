@@ -36,6 +36,17 @@ describe("current source customer candidate", () => {
       name: "Maestro Brain",
       outcome: "Operate the agency",
     });
+    expect(
+      parseCandidateArguments([
+        "--",
+        "--target",
+        "/tmp/maestro-brain-candidate",
+        "--name",
+        "Maestro Brain",
+        "--outcome",
+        "Operate the agency",
+      ]),
+    ).toMatchObject({ name: "Maestro Brain" });
     expect(() => parseCandidateArguments(["--target", "relative"])).toThrow(
       "requires --name",
     );

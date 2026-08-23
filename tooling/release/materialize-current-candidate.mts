@@ -47,7 +47,7 @@ const requiredCandidateValue = (
 export function parseCandidateArguments(
   argv: readonly string[],
 ): CandidateArguments {
-  const values = parseCandidateValues(argv);
+  const values = parseCandidateValues(argv[0] === "--" ? argv.slice(1) : argv);
   const targetRoot = requiredCandidateValue(values, "--target");
   const name = requiredCandidateValue(values, "--name");
   const outcome = requiredCandidateValue(values, "--outcome");
