@@ -64,6 +64,38 @@ export function parseCandidateArguments(
 const gitText = (root: string, args: readonly string[]): string =>
   execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
 
+export function initializeStandaloneCandidateRepository(
+  targetRoot: string,
+): string {
+  if (existsSync(join(targetRoot, ".git")))
+    throw new Error(
+      `Current candidate target is already a Git repository: ${targetRoot}`,
+    );
+  execFileSync("git", ["-C", targetRoot, "init", "-q", "-b", "main"]);
+  execFileSync("git", ["-C", targetRoot, "add", "-A"]);
+  execFileSync(
+    "git",
+    [
+      "-C",
+      targetRoot,
+      "-c",
+      "user.name=Maestro Candidate Materializer",
+      "-c",
+      "user.email=materializer@maestro.local",
+      "commit",
+      "-q",
+      "-m",
+      "chore: materialize current customer candidate",
+    ],
+    { stdio: "pipe" },
+  );
+  if (gitText(targetRoot, ["branch", "--show-current"]) !== "main")
+    throw new Error("Current candidate repository must initialize on main");
+  if (gitText(targetRoot, ["status", "--porcelain", "--untracked-files=all"]))
+    throw new Error("Current candidate repository must initialize cleanly");
+  return gitText(targetRoot, ["rev-parse", "HEAD"]);
+}
+
 export function assertCurrentCandidateSource(input: {
   readonly sourceRoot: string;
   readonly targetRoot: string;
@@ -147,6 +179,7 @@ export async function materializeCurrentCandidate(
         `Current candidate materialization failed.\n${result.stdout}${result.stderr}`,
       );
     assertCanonicalTemplateInstance(fixture.targetRoot);
+    initializeStandaloneCandidateRepository(fixture.targetRoot);
     return {
       targetRoot: fixture.targetRoot,
       sourceCommit: fixture.reviewedSourceCommit,

@@ -5,6 +5,7 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import {
   assertCurrentCandidateSource,
+  initializeStandaloneCandidateRepository,
   parseCandidateArguments,
 } from "./materialize-current-candidate.mts";
 
@@ -78,4 +79,21 @@ describe("current source customer candidate", () => {
       }),
     ).toThrow("clean source checkout");
   });
+
+  it("initializes the materialized customer as a clean standalone main repository", () => {
+    const targetRoot = temporaryRoot();
+    writeFileSync(join(targetRoot, "template-instance.json"), "{}\n");
+
+    const commit = initializeStandaloneCandidateRepository(targetRoot);
+
+    expect(gitText(targetRoot, ["branch", "--show-current"])).toBe("main");
+    expect(gitText(targetRoot, ["status", "--porcelain"])).toBe("");
+    expect(gitText(targetRoot, ["rev-parse", "HEAD"])).toBe(commit);
+    expect(gitText(targetRoot, ["log", "-1", "--pretty=%s"])).toBe(
+      "chore: materialize current customer candidate",
+    );
+  });
 });
+
+const gitText = (root: string, args: readonly string[]): string =>
+  execFileSync("git", ["-C", root, ...args], { encoding: "utf8" }).trim();
