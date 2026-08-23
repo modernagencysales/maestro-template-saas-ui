@@ -5,7 +5,7 @@
       "id": "saas-ui-pro",
       "commit": "ac3a40c8dc05e403f9d501a87c092646891d3c40",
       "root": "repos/saas-ui-pro",
-      "files": 832
+      "files": 831
     },
     {
       "id": "tanstack-start-starter-kit-pro",
@@ -188,12 +188,6 @@
       "source": ".vscode/settings.json",
       "kind": "file",
       "sha256": "23bd0f5b61af8d6041136136a637bf22ad4bfe7df951445778f230b8d77ea915"
-    },
-    {
-      "id": "saas-ui-pro",
-      "source": "apps/demo/.env.example",
-      "kind": "file",
-      "sha256": "16de32677a4df75f8a5aff1229d500232c924190fbc2741dfce61d5b782aeae3"
     },
     {
       "id": "saas-ui-pro",
