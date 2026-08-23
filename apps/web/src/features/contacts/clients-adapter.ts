@@ -3,7 +3,7 @@ import {
   getFunctionReference,
   templateConfectRefs,
 } from '@maestro-template/convex/refs'
-import type { ContactDTO } from '@workspace/api/types'
+import type { ContactDTO, ContactType } from '@workspace/api/types'
 
 import { isFixtureAuthRuntime } from '#lib/auth/route-auth'
 import { api } from '#lib/trpc/react'
@@ -25,6 +25,11 @@ type ContactsListDataResult = Readonly<{
 type ContactDetailDataResult = Readonly<{
   data: ContactDTO | undefined
   isLoading?: boolean
+}>
+
+type ContactsListInput = Readonly<{
+  workspaceId: string
+  type?: ContactType
 }>
 
 export const projectClientWorkspaceToContact = (
@@ -74,10 +79,10 @@ const clientWorkspacesListRef = getFunctionReference(
 
 const useClientsList = ({
   workspaceId,
-}: {
-  workspaceId: string
-}): ContactsListDataResult => {
+  type,
+}: ContactsListInput): ContactsListDataResult => {
   void workspaceId
+  void type
   const fixtureRuntime = isFixtureAuthRuntime()
   const result = useConvexQuery(
     clientWorkspacesListRef,
@@ -91,8 +96,16 @@ const useClientsList = ({
   }
 }
 
-const useStarterContactsList = ({ workspaceId }: { workspaceId: string }) =>
-  api.contacts.listByType.useQuery({ workspaceId }) as ContactsListDataResult
+export const starterContactsListInput = ({
+  workspaceId,
+  type,
+}: ContactsListInput): { workspaceId: string; type?: ContactType } =>
+  type === undefined ? { workspaceId } : { workspaceId, type }
+
+const useStarterContactsList = (input: ContactsListInput) =>
+  api.contacts.listByType.useQuery(
+    starterContactsListInput(input),
+  ) as ContactsListDataResult
 
 const useClientDetail = ({
   id,

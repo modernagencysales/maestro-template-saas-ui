@@ -138,6 +138,7 @@ export function ContactsListPage({
 
   const { data, isLoading } = contactsListDataHooks[productShell.contacts]({
     workspaceId: workspace.id,
+    type,
   })
 
   const updateContactMutation = api.contacts.update.useMutation()

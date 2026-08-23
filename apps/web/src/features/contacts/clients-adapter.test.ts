@@ -4,6 +4,7 @@ import {
   clientWorkspaceFixtures,
   projectClientWorkspaceToContact,
   projectClientWorkspacesToContacts,
+  starterContactsListInput,
 } from './clients-adapter'
 
 describe('client workspaces to Starter Contacts adapter', () => {
@@ -40,5 +41,17 @@ describe('client workspaces to Starter Contacts adapter', () => {
           expect.objectContaining({ name: 'Juniper Works' }),
         ]),
       )
+  })
+
+  it('preserves the selected Starter contact type at the query adapter', () => {
+    expect(
+      starterContactsListInput({
+        workspaceId: 'workspace-northstar',
+        type: 'lead',
+      }),
+    ).toEqual({ workspaceId: 'workspace-northstar', type: 'lead' })
+    expect(
+      starterContactsListInput({ workspaceId: 'workspace-northstar' }),
+    ).toEqual({ workspaceId: 'workspace-northstar' })
   })
 })
