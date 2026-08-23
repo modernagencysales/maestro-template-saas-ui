@@ -20,6 +20,7 @@ const allowedEnvBoundaryFiles = new Set([
   "apps/cli/src/index.ts",
   "apps/web/src/components/default-error-page.tsx",
   "apps/web/src/env.ts",
+  "apps/web/src/start.ts",
   "apps/web/src/features/common/util/get-base-url.ts",
   "apps/web/vite.config.ts",
   "packages/convex/convex/auth.config.ts",
