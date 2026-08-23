@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import {
+  access,
   lstat,
   readFile,
   readdir,
@@ -16,11 +17,21 @@ const pins = {
 } as const;
 
 type CatalogOptions = Readonly<{ proRoot: string; starterRoot: string }>;
-type SourceEntry = Readonly<{
+type Repository = "pro" | "starter";
+type ClosureEntry = Readonly<{
+  source: string;
+  sha256: string;
+}>;
+type HashedSourceEntry = Readonly<{
   id: string;
   source: string;
   sha256: string;
 }>;
+type SourceEntry = HashedSourceEntry &
+  Readonly<{
+    closure: readonly ClosureEntry[];
+    closureSha256: string;
+  }>;
 type RouteEntry = SourceEntry &
   Readonly<{
     route: string;
@@ -59,7 +70,8 @@ type VendorReceipt = Readonly<{
     root: string;
     files: number;
   }>[];
-  entries: readonly (SourceEntry & Readonly<{ kind: "file" | "symlink" }>)[];
+  entries: readonly (HashedSourceEntry &
+    Readonly<{ kind: "file" | "symlink" }>)[];
 }>;
 
 const ignoredDirectories = new Set([".git", "node_modules"]);
@@ -70,6 +82,136 @@ function portablePath(path: string): string {
 
 function hash(content: string | Buffer): string {
   return createHash("sha256").update(content).digest("hex");
+}
+
+const moduleExtensions = [
+  "",
+  ".ts",
+  ".tsx",
+  ".js",
+  ".jsx",
+  ".mjs",
+  ".cjs",
+  ".json",
+  ".css",
+] as const;
+
+function importedSpecifiers(content: string): readonly string[] {
+  return [
+    ...content.matchAll(
+      /(?:\bimport\s*(?:[^"'`]*?\sfrom\s*)?|\bexport\s+(?:type\s+)?[^"'`]*?\sfrom\s*|\bimport\s*\(|\brequire\s*\()\s*["'`]([^"'`]+)["'`]/gu,
+    ),
+  ].flatMap((match) => (match[1] ? [match[1]] : []));
+}
+
+function starterImportBase(
+  root: string,
+  importer: string,
+  specifier: string,
+): string | undefined {
+  if (specifier.startsWith(".")) return resolve(importer, "..", specifier);
+  if (specifier.startsWith("#/"))
+    return resolve(root, "apps/web/src", specifier.slice(2));
+  if (specifier.startsWith("#"))
+    return resolve(
+      root,
+      "apps/web/src",
+      specifier.slice(1).replace(/^\//u, ""),
+    );
+  if (specifier.startsWith("@/"))
+    return resolve(root, "apps/web/src", specifier.slice(2));
+  return undefined;
+}
+
+function proImportBase(
+  root: string,
+  importer: string,
+  specifier: string,
+): string | undefined {
+  if (specifier.startsWith(".")) return resolve(importer, "..", specifier);
+  if (specifier.startsWith("#")) {
+    return resolve(
+      root,
+      "apps/demo/src",
+      specifier.slice(1).replace(/^\//u, ""),
+    );
+  }
+  if (specifier === "@saas-ui/auth-provider")
+    return resolve(root, "apps/demo/src/lib/auth-provider");
+  const packageImport = specifier.match(
+    /^@saas-ui-pro\/(react|billing|onboarding|feature-flags|kanban)(?:\/(.+))?$/u,
+  );
+  if (packageImport?.[1]) {
+    const subpath = packageImport[2] ?? "index";
+    return resolve(root, `packages/${packageImport[1]}/src/${subpath}`);
+  }
+  return undefined;
+}
+
+function localImportBase(
+  root: string,
+  importer: string,
+  specifier: string,
+  repository: Repository,
+): string | undefined {
+  return repository === "starter"
+    ? starterImportBase(root, importer, specifier)
+    : proImportBase(root, importer, specifier);
+}
+
+async function existingModule(base: string): Promise<string | undefined> {
+  const candidates = moduleExtensions.flatMap((extension) => [
+    `${base}${extension}`,
+    join(base, `index${extension}`),
+  ]);
+  for (const candidate of candidates) {
+    try {
+      await access(candidate);
+      if ((await lstat(candidate)).isFile()) return candidate;
+    } catch {
+      // An unresolved candidate can be an external package export.
+    }
+  }
+  return undefined;
+}
+
+async function importClosure(
+  root: string,
+  entry: string,
+  repository: Repository,
+): Promise<readonly ClosureEntry[]> {
+  const pending = [join(root, entry)];
+  const visited = new Set<string>();
+  const closure: ClosureEntry[] = [];
+
+  while (pending.length > 0) {
+    const path = pending.pop();
+    if (!path || visited.has(path)) continue;
+    visited.add(path);
+    const content = await readFile(path);
+    closure.push({
+      source: portablePath(relative(root, path)),
+      sha256: hash(content),
+    });
+    const text = content.toString("utf8");
+    for (const specifier of importedSpecifiers(text)) {
+      const base = localImportBase(root, path, specifier, repository);
+      if (!base) continue;
+      const dependency = await existingModule(base);
+      if (dependency && dependency.startsWith(`${root}${sep}`))
+        pending.push(dependency);
+    }
+  }
+
+  return closure.sort((left, right) =>
+    left.source.localeCompare(right.source, "en"),
+  );
+}
+
+function closureHash(closure: readonly ClosureEntry[]): string {
+  return hash(
+    closure.map(({ source, sha256 }) => `${source}\0${sha256}`).join("\n"),
+  );
 }
 
 async function filesUnder(root: string): Promise<readonly string[]> {
@@ -124,14 +266,17 @@ function tanstackRoute(content: string): string | undefined {
 function primaryComposition(
   content: string,
   prefix: string,
+  repository: Repository,
 ): string | undefined {
   const specifier = [...content.matchAll(/from\s+["']([^"']+)["']/g)]
     .map((match) => match[1])
     .find((value) => value?.startsWith(prefix));
   if (!specifier) return undefined;
-  return specifier
-    .replace(/^#/, "apps/demo/src/")
-    .replace(/^@\//, "apps/web/src/");
+  if (repository === "starter")
+    return specifier
+      .replace(/^#/, "apps/web/src/")
+      .replace(/^@\//, "apps/web/src/");
+  return specifier.replace(/^#/, "apps/demo/src/");
 }
 
 function storyTitle(content: string, source: string): string {
@@ -155,18 +300,28 @@ async function routeEntry(
   root: string,
   source: string,
   route: string,
-  idPrefix: string,
-  compositionPrefix: string,
+  options: Readonly<{
+    idPrefix: string;
+    compositionPrefix: string;
+    repository: Repository;
+  }>,
 ): Promise<RouteEntry> {
   const content = await readFile(join(root, source), "utf8");
-  const composition = primaryComposition(content, compositionPrefix);
+  const composition = primaryComposition(
+    content,
+    options.compositionPrefix,
+    options.repository,
+  );
+  const closure = await importClosure(root, source, options.repository);
   return {
-    id: `${idPrefix}:${source}`,
+    id: `${options.idPrefix}:${source}`,
     route,
     name: screenName(route),
     source,
     ...(composition ? { composition } : {}),
     sha256: hash(content),
+    closure,
+    closureSha256: closureHash(closure),
   };
 }
 
@@ -175,8 +330,10 @@ async function storyEntry(
   source: string,
   preview: StoryEntry["preview"],
   idPrefix: string,
+  repository: Repository,
 ): Promise<StoryEntry> {
   const content = await readFile(join(root, source), "utf8");
+  const closure = await importClosure(root, source, repository);
   return {
     id: `${idPrefix}:${source}`,
     title: storyTitle(content, source),
@@ -184,6 +341,8 @@ async function storyEntry(
     variants: storyVariants(content),
     preview,
     sha256: hash(content),
+    closure,
+    closureSha256: closureHash(closure),
   };
 }
 
@@ -221,12 +380,16 @@ export async function buildScreenCatalog({
 
   const demoRoutes = await Promise.all(
     demoRouteSources.map((source) =>
-      routeEntry(proRoot, source, nextRoute(source), "pro-demo", "#features/"),
+      routeEntry(proRoot, source, nextRoute(source), {
+        idPrefix: "pro-demo",
+        compositionPrefix: "#features/",
+        repository: "pro",
+      }),
     ),
   );
   const stories = await Promise.all(
     storySources.map((source) =>
-      storyEntry(proRoot, source, "pro-storybook", "pro-story"),
+      storyEntry(proRoot, source, "pro-storybook", "pro-story", "pro"),
     ),
   );
   const demoStates = await Promise.all(
@@ -235,8 +398,11 @@ export async function buildScreenCatalog({
         proRoot,
         source,
         source.endsWith("not-found.tsx") ? "/_not-found" : "/_error",
-        "pro-demo-state",
-        "#features/",
+        {
+          idPrefix: "pro-demo-state",
+          compositionPrefix: "#features/",
+          repository: "pro",
+        },
       ),
     ),
   );
@@ -246,20 +412,24 @@ export async function buildScreenCatalog({
         const content = await readFile(join(starterRoot, source), "utf8");
         const route = tanstackRoute(content);
         return route
-          ? routeEntry(
-              starterRoot,
-              source,
-              route,
-              "starter-route",
-              "@/features/",
-            )
+          ? routeEntry(starterRoot, source, route, {
+              idPrefix: "starter-route",
+              compositionPrefix: "#features/",
+              repository: "starter",
+            })
           : undefined;
       }),
     )
   ).filter((entry): entry is RouteEntry => Boolean(entry));
   const starterStories = await Promise.all(
     starterStorySources.map((source) =>
-      storyEntry(starterRoot, source, "starter-storybook", "starter-story"),
+      storyEntry(
+        starterRoot,
+        source,
+        "starter-storybook",
+        "starter-story",
+        "starter",
+      ),
     ),
   );
 
@@ -309,8 +479,9 @@ export async function buildVendorReceipt({
       repositoryRoot: "repos/tanstack-start-starter-kit-pro",
     },
   ] as const;
-  const entries: Array<SourceEntry & Readonly<{ kind: "file" | "symlink" }>> =
-    [];
+  const entries: Array<
+    HashedSourceEntry & Readonly<{ kind: "file" | "symlink" }>
+  > = [];
   const sources: Array<{
     id: string;
     commit: string;
