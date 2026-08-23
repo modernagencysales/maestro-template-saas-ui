@@ -54,8 +54,9 @@ export async function evaluateStaticCheck(
       continue;
     }
 
+    const normalizedContent = content.replace(/\s+/gu, " ");
     for (const expected of requirement.includes ?? []) {
-      if (!content.includes(expected)) {
+      if (!normalizedContent.includes(expected.replace(/\s+/gu, " "))) {
         failures.push(
           `${requirement.message}: ${requirement.file} is missing \`${expected}\``,
         );

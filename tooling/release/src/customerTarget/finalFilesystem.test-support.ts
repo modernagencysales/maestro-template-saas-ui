@@ -109,7 +109,7 @@ export async function retryTransientPrerenderStartup<T>(
 
 export function applyPrerenderRetryCompatibility(root: string): void {
   const matches = globSync(
-    "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.18*/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
+    "node_modules/.pnpm/@tanstack+start-plugin-core@*/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
     { cwd: root },
   );
   const [match] = matches;

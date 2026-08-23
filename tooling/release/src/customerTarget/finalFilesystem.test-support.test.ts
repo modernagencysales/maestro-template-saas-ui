@@ -62,7 +62,7 @@ const createCompatibilityRoot = (): string => {
   const root = mkdtempSync(join(tmpdir(), "prerender-compat-"));
   const path = join(
     root,
-    "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.18_fixture/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
+    "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.39_fixture/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
   );
   const vitePath = join(path, "../vite/prerender.js");
   mkdirSync(join(path, ".."), { recursive: true });
@@ -117,7 +117,7 @@ describe("final filesystem prerender startup retry", () => {
     const root = createCompatibilityRoot();
     const path = join(
       root,
-      "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.18_fixture/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
+      "node_modules/.pnpm/@tanstack+start-plugin-core@1.171.39_fixture/node_modules/@tanstack/start-plugin-core/dist/esm/prerender.js",
     );
     const vitePath = join(path, "../vite/prerender.js");
 

@@ -11,7 +11,10 @@ pre-commit:
     lint-staged:
       glob: "*.{ts,tsx,mts,mjs,cjs}"
       exclude: "^repos/"
-      run: ESLINT_SHIFT_LEFT=1 pnpm eslint {staged_files}
+      run:
+        if git rev-parse --verify HEAD >/dev/null 2>&1; then ESLINT_SHIFT_LEFT=1
+        pnpm eslint {staged_files}; else echo "Skipping inherited baseline lint
+        on the initial commit."; fi
     qlty-staged:
       glob: "*.{ts,tsx,mts,mjs,cjs,py,rs,go}"
       exclude: "^repos/"

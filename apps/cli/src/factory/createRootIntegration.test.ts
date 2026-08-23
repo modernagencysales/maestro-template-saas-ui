@@ -36,6 +36,16 @@ import { createFactoryCliComposition } from "./composition";
 import { CURRENT_PUBLIC_SOURCE } from "./createComposition";
 
 const repoRoot = fileURLToPath(new URL("../../../../", import.meta.url));
+const currentRelease = (
+  JSON.parse(readFileSync(CURRENT_PUBLIC_SOURCE.manifestPath, "utf8")) as {
+    readonly release: {
+      readonly sourceChecksum: string;
+      readonly sourceCommit: string;
+      readonly tag: string;
+      readonly version: string;
+    };
+  }
+).release;
 // Task 7 removed this historical alpha source while the projection still lists
 // it. Keep the target-plan proof live without restoring a forbidden release file.
 vi.mock("node:fs", async (importOriginal) => {
@@ -406,10 +416,10 @@ describe("create root integration", () => {
       ],
       data: {
         release: {
-          version: "0.2.0-alpha.7",
-          tag: "maestro-template-v0.2.0-alpha.7",
-          sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
-          sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+          version: currentRelease.version,
+          tag: currentRelease.tag,
+          sourceCommit: currentRelease.sourceCommit,
+          sourceChecksum: currentRelease.sourceChecksum,
         },
         privacy: {
           privacyDocument: "docs/template/agent-pack-privacy.md",

@@ -1,0 +1,487 @@
+{
+  "schemaVersion": 1,
+  "systems": [
+    {
+      "id": "access-and-tenancy",
+      "name": "Access And Tenancy",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "real",
+      "summary": "Owns user, organization, workspace, membership, invitation, API-key, and access-audit identity and authorization state.",
+      "responsibilities": [
+        "resolve workspace access",
+        "provision tenant identity",
+        "manage memberships and invitations",
+        "issue and revoke API credentials",
+        "record access lifecycle events"
+      ],
+      "aliases": [
+        "auth",
+        "authentication",
+        "authorization",
+        "identity",
+        "memberships",
+        "organizations",
+        "permissions",
+        "rbac",
+        "tenancy",
+        "users",
+        "workspaces"
+      ],
+      "tables": [
+        "accessAuditEvents",
+        "apiKeys",
+        "invitations",
+        "organizationMembers",
+        "organizations",
+        "users",
+        "workspaceMembers",
+        "workspaces"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/access",
+        "packages/convex/confect/auth/workspaces.spec.ts"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#access-and-tenancy"
+    },
+    {
+      "id": "knowledge-brain",
+      "name": "Knowledge Brain",
+      "kind": "product-system",
+      "lifecycle": "active",
+      "implementationStatus": "mixed",
+      "summary": "Owns source-backed pages, structured concepts and claims, citations, and bounded context packs used by product workflows and agents.",
+      "responsibilities": [
+        "author brain pages",
+        "curate concepts and claims",
+        "attach evidence citations",
+        "assemble source-grounded context"
+      ],
+      "aliases": [
+        "brain",
+        "claims",
+        "concept graph",
+        "context packs",
+        "knowledge",
+        "knowledge base",
+        "rag",
+        "retrieval",
+        "sources"
+      ],
+      "tables": [
+        "brainPages",
+        "citations",
+        "claims",
+        "concepts",
+        "contextPacks"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/agents/assistant.spec.ts",
+        "packages/convex/confect/brain",
+        "packages/convex/confect/ops/knowledge.spec.ts"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#knowledge-brain"
+    },
+    {
+      "id": "document-collaboration",
+      "name": "Document Collaboration",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "mixed",
+      "summary": "Owns editable documents, immutable document versions, anchored annotations, and the collaboration/sync contract around them.",
+      "responsibilities": [
+        "author editable documents",
+        "settle document versions",
+        "anchor review annotations",
+        "synchronize collaborative edits"
+      ],
+      "aliases": [
+        "annotations",
+        "coediting",
+        "collaboration",
+        "document editor",
+        "documents",
+        "editor",
+        "prosemirror",
+        "version history"
+      ],
+      "tables": [
+        "documentAnnotations",
+        "documentVersions",
+        "documents"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/editor",
+        "packages/convex/confect/editorSync.spec.ts",
+        "packages/convex/confect/ops/coediting.spec.ts"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#document-collaboration"
+    },
+    {
+      "id": "workflow-runtime",
+      "name": "Workflow Runtime",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "real",
+      "summary": "Owns durable workflow execution, stage attempts, event history, evidence and context snapshots, parent-child links, replay, and control.",
+      "responsibilities": [
+        "start and control durable workflows",
+        "execute workflow graphs",
+        "record workflow stages and events",
+        "pin workflow evidence and context",
+        "link parent and child workflow runs"
+      ],
+      "aliases": [
+        "durable execution",
+        "durable workflows",
+        "jobs",
+        "orchestration",
+        "run history",
+        "workflow engine",
+        "workflow runs",
+        "workflows"
+      ],
+      "tables": [],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/workflows",
+        "packages/convex/confect/jobs/workpool.spec.ts"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#workflow-runtime"
+    },
+    {
+      "id": "action-automation",
+      "name": "Action Automation",
+      "kind": "product-system",
+      "lifecycle": "active",
+      "implementationStatus": "fixture",
+      "summary": "Owns external-action jobs, trigger configuration, human approval receipts, digest delivery, and action idempotency.",
+      "responsibilities": [
+        "queue external actions",
+        "configure action triggers",
+        "approve guarded actions",
+        "deliver action digests"
+      ],
+      "aliases": [
+        "action approvals",
+        "action jobs",
+        "automations",
+        "external actions",
+        "human approval",
+        "scheduled actions",
+        "triggers"
+      ],
+      "tables": [
+        "actionApprovals",
+        "actionDigests",
+        "actionJobs",
+        "actionTriggers"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/ops/actions.spec.ts"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#action-automation"
+    },
+    {
+      "id": "billing-and-entitlements",
+      "name": "Billing And Entitlements",
+      "kind": "product-system",
+      "lifecycle": "active",
+      "implementationStatus": "mixed",
+      "summary": "Owns plans, feature entitlements, usage metering, the append-only credit ledger, and idempotent billing webhook receipts.",
+      "responsibilities": [
+        "assign billing plans",
+        "resolve feature entitlements",
+        "meter provider and product usage",
+        "record credit ledger entries",
+        "reconcile billing webhooks"
+      ],
+      "aliases": [
+        "billing",
+        "credits",
+        "entitlements",
+        "metering",
+        "payments",
+        "plans",
+        "quotas",
+        "subscriptions",
+        "usage",
+        "webhooks"
+      ],
+      "tables": [
+        "billingPlans",
+        "creditLedger",
+        "entitlements",
+        "usageEvents",
+        "webhookEvents"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/ops/billing.spec.ts"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#billing-and-entitlements"
+    },
+    {
+      "id": "policy-and-prompts",
+      "name": "Policy And Prompts",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "real",
+      "summary": "Owns versioned policy values, scoped policy resolution, prompt registration, and feature-flag rollout/kill-switch policy.",
+      "responsibilities": [
+        "register versioned policies",
+        "resolve scoped policy snapshots",
+        "register prompt versions",
+        "evaluate feature flags"
+      ],
+      "aliases": [
+        "configuration",
+        "feature flags",
+        "kill switches",
+        "model configuration",
+        "policies",
+        "policy store",
+        "prompt registry",
+        "prompts",
+        "rollouts"
+      ],
+      "tables": [
+        "featureFlagPolicies",
+        "policies",
+        "promptRegistry"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/policy",
+        "packages/convex/confect/ops/flags.spec.ts"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#policy-and-prompts"
+    },
+    {
+      "id": "notifications",
+      "name": "Notifications",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "real",
+      "summary": "Owns notification records, explicit email consent, suppression, campaigns, provider events, recipient preferences, and delivery idempotency.",
+      "responsibilities": [
+        "record notifications",
+        "deliver notifications idempotently",
+        "manage notification preferences",
+        "send transactional templates through provider-neutral email",
+        "send confirmed broadcasts only to opted-in non-suppressed recipients",
+        "process unsubscribe, bounce, and complaint suppression"
+      ],
+      "aliases": [
+        "alerts",
+        "email notifications",
+        "inbox",
+        "messages",
+        "notification center",
+        "notification preferences"
+      ],
+      "tables": [
+        "emailCampaigns",
+        "emailDeliveries",
+        "emailEvents",
+        "emailSubscribers",
+        "emailSuppressions",
+        "notificationPreferences",
+        "notificationRecords"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/ops/email.spec.ts",
+        "packages/convex/confect/ops/notifications.spec.ts",
+        "packages/integrations/src/email.ts",
+        "packages/integrations/src/emailSetup.ts",
+        "packages/notifications"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#notifications"
+    },
+    {
+      "id": "transforms",
+      "name": "Transforms",
+      "kind": "product-system",
+      "lifecycle": "active",
+      "implementationStatus": "fixture",
+      "summary": "Owns reusable transform definitions, durable transform runs, block-level lineage, hashes, and source/output evidence.",
+      "responsibilities": [
+        "define reusable transforms",
+        "execute transforms",
+        "record transform block lineage"
+      ],
+      "aliases": [
+        "content transforms",
+        "processing pipeline",
+        "transform blocks",
+        "transform definitions",
+        "transform runs",
+        "transformations"
+      ],
+      "tables": [
+        "transformBlocks",
+        "transformDefinitions",
+        "transformRuns"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/ops/transforms.spec.ts",
+        "packages/template-core/src/transforms.ts"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#transforms"
+    },
+    {
+      "id": "generic-versioning",
+      "name": "Generic Versioning",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "fixture",
+      "summary": "Owns append-only generic entity versions and mutable freshness/reconciliation state for domains without a specialized version model.",
+      "responsibilities": [
+        "append generic entity versions",
+        "track generic entity freshness"
+      ],
+      "aliases": [
+        "audit versions",
+        "entity freshness",
+        "entity history",
+        "generic versions",
+        "versioned entries",
+        "versioning"
+      ],
+      "tables": [
+        "versionFreshness",
+        "versionedEntries"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/ops/versioning.spec.ts",
+        "packages/template-core/src/versioning.ts"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#generic-versioning"
+    },
+    {
+      "id": "data-lifecycle",
+      "name": "Data Lifecycle",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "real",
+      "summary": "Owns DSAR request planning and audit state plus the export, retention, redaction, and deletion posture joined from every durable resource.",
+      "responsibilities": [
+        "plan data subject exports",
+        "plan guarded workspace deletion",
+        "plan retention and redaction",
+        "record DSAR review state"
+      ],
+      "aliases": [
+        "data deletion",
+        "data export",
+        "data retention",
+        "dsar",
+        "gdpr",
+        "privacy",
+        "retention"
+      ],
+      "tables": [
+        "dsarRequests"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/ops/dataLifecycle.ts",
+        "packages/convex/confect/ops/dataLifecycle.spec.ts",
+        "docs/template/data-lifecycle.md"
+      ],
+      "decisionRef": "docs/template/system-catalog.md#data-lifecycle"
+    },
+    {
+      "id": "deployment-authority",
+      "name": "Deployment Authority",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "real",
+      "summary": "Owns authenticated environment-scoped release provisioning, runtime-key-bound signed deployment verdicts, workflow census, bounded trusted issuer lifecycle, lossless append-only audit, and approval-bound deployment-action consumption state.",
+      "responsibilities": [
+        "verify trusted deployment issuer configuration",
+        "verify release approvals against exact environment targets and commits",
+        "validate complete workflow census evidence",
+        "verify signed deployment verdicts",
+        "authenticate and audit operator provisioning and issuer lifecycle",
+        "consume deployment actions exactly once"
+      ],
+      "aliases": [
+        "deploy approvals",
+        "deploy authority",
+        "deploy census",
+        "deploy verdicts",
+        "promotion authorization",
+        "release authority"
+      ],
+      "tables": [
+        "deployActionConsumptions",
+        "deployApprovals",
+        "deployAuthorityAuditEvents",
+        "deployAuthorityIssuers",
+        "deployCensusSnapshots",
+        "deployVerdicts"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/deploy/authority.spec.ts",
+        "packages/convex/confect/deployAuthority/admin.ts",
+        "packages/convex/confect/deployAuthority/http.ts",
+        "packages/convex/confect/deployAuthority/store.ts"
+      ],
+      "decisionRef": "docs/template/system-decisions/deployment-authority.md"
+    },
+    {
+      "id": "provider-integrations",
+      "name": "Provider Integrations",
+      "kind": "shared-primitive",
+      "lifecycle": "active",
+      "implementationStatus": "mixed",
+      "summary": "Owns workspace-scoped third-party provider authorization, connection status, generation fencing, and revocation state.",
+      "responsibilities": [
+        "list workspace provider connection state",
+        "begin and complete provider authorization",
+        "fence connection generations",
+        "revoke provider connections",
+        "redact provider authorization metadata"
+      ],
+      "aliases": [
+        "connected apps",
+        "connections",
+        "integrations",
+        "oauth connections",
+        "provider auth",
+        "provider connections"
+      ],
+      "tables": [
+        "providerConnections"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/integrations/connections.spec.ts",
+        "packages/integrations/src/providerAdapter.ts"
+      ],
+      "decisionRef": "docs/template/system-decisions/provider-integrations.md"
+    },
+    {
+      "id": "record-management",
+      "name": "Record Management",
+      "kind": "product-system",
+      "lifecycle": "active",
+      "implementationStatus": "real",
+      "summary": "Owns the renameable workspace-scoped record CRUD slice shipped by the SaaS application blueprint.",
+      "responsibilities": [
+        "create workspace records",
+        "list workspace records",
+        "read workspace record details"
+      ],
+      "aliases": [
+        "business records",
+        "crud",
+        "records"
+      ],
+      "tables": [
+        "records"
+      ],
+      "canonicalEntrypoints": [
+        "packages/convex/confect/records/records.spec.ts",
+        "apps/web/src/routes/_app/$workspace/_dashboard/records.tsx"
+      ],
+      "decisionRef": "docs/template/system-decisions/record-management.md"
+    }
+  ]
+}

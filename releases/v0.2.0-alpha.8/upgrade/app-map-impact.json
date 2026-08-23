@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "reviewed-upgrade-impact-coverage",
+  "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
+  "subjectRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
+  "structuralPaths": [],
+  "ownershipCoveredPaths": [
+    "apps/cli/src/factory/candidateComposition.test.ts",
+    "apps/cli/src/factory/customerCliRuntime.test.ts",
+    "docs/template/template-release-process.md",
+    "lefthook.yml",
+    "tooling/quality/delivery-batch-authority.test.mts"
+  ],
+  "impact": {
+    "schemaVersion": 1,
+    "baseRevision": "c5a371b39dde1d76070d2cc9b2b89254c7951ebb",
+    "subjectRevision": "051605dfb500cdbf7bf642660f5f2aa550ea6eb8",
+    "complete": true,
+    "risk": "low",
+    "changedPaths": [],
+    "nodes": { "direct": [], "generated": [], "transitive": [] },
+    "affected": {
+      "systems": [],
+      "durableData": [],
+      "workflowVersions": [],
+      "providers": [],
+      "publicContracts": [],
+      "routes": [],
+      "headlessSurfaces": [],
+      "semanticRuleIds": [],
+      "adrs": []
+    },
+    "unknownPaths": [],
+    "focusedGates": ["pnpm check:app-map"]
+  }
+}

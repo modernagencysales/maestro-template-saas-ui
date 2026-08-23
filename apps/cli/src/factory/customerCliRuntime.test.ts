@@ -31,6 +31,17 @@ const installedStoreDir = readFileSync(
   join(repositoryRoot, "node_modules/.modules.yaml"),
   "utf8",
 ).match(/^storeDir: (.+)$/m)?.[1];
+const currentRelease = (
+  JSON.parse(readFileSync(CURRENT_PUBLIC_SOURCE.manifestPath, "utf8")) as {
+    readonly release: {
+      readonly sourceChecksum: string;
+      readonly sourceCommit: string;
+      readonly tag: string;
+      readonly version: string;
+    };
+  }
+).release;
+const currentReleaseIdentity = `release:${currentRelease.version}@${currentRelease.sourceCommit}`;
 let taggedReleaseParent: string | undefined;
 let taggedReleaseRoot: string | undefined;
 const taggedRepository = (): string => {
@@ -289,13 +300,13 @@ describe("materialized customer CLI runtime closure", () => {
     };
     expect(instance).toMatchObject({
       release: {
-        version: "0.2.0-alpha.7",
-        tag: "maestro-template-v0.2.0-alpha.7",
-        sourceCommit: expect.stringMatching(/^[0-9a-f]{40}$/),
-        sourceChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
+        version: currentRelease.version,
+        tag: currentRelease.tag,
+        sourceCommit: currentRelease.sourceCommit,
+        sourceChecksum: currentRelease.sourceChecksum,
       },
       ownership: {
-        manifest: "releases/v0.2.0-alpha.7/manifest.json",
+        manifest: `releases/v${currentRelease.version}/manifest.json`,
         manifestChecksum: expect.stringMatching(/^sha256:[0-9a-f]{64}$/),
       },
       customerExtension: {
@@ -860,9 +871,19 @@ describe("materialized customer CLI runtime closure", () => {
       "7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
     );
     execFileSync("git", ["add", "."], { cwd: target });
-    execFileSync("git", ["commit", "--quiet", "--no-verify", "-m", "fixture"], {
-      cwd: target,
-    });
+    const initialCommit = spawnSync(
+      "git",
+      ["commit", "--quiet", "-m", "fixture"],
+      {
+        cwd: target,
+        encoding: "utf8",
+        timeout: 120_000,
+      },
+    );
+    expect(
+      initialCommit.status,
+      `${initialCommit.stdout}\n${initialCommit.stderr}`,
+    ).toBe(0);
     const hostBin = join(parent, "supported-host-bin");
     mkdirSync(hostBin);
     const corepack = join(hostBin, "corepack");
@@ -1058,15 +1079,9 @@ describe("materialized customer CLI runtime closure", () => {
         safeToMutate: true,
         facts: {
           versions: {
-            pack: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.7@[0-9a-f]{40}$/,
-            ),
-            cli: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.7@[0-9a-f]{40}$/,
-            ),
-            template: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.7@[0-9a-f]{40}$/,
-            ),
+            pack: currentReleaseIdentity,
+            cli: currentReleaseIdentity,
+            template: currentReleaseIdentity,
           },
           versionsCompatible: true,
         },

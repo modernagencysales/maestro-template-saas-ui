@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "transition": {
+    "id": "template-0.2-alpha.8-to-alpha.9",
+    "fromVersion": "0.2.0-alpha.8",
+    "toVersion": "0.2.0-alpha.9",
+    "immediatePriorVersion": "0.2.0-alpha.8"
+  },
+  "handoff": {
+    "migrationId": "no-data-migration-alpha.9"
+  },
+  "receiptAuthority": {
+    "available": false,
+    "requiredProof": "none-no-data-migration",
+    "durableReplayConsumptionRequired": false
+  },
+  "steps": [],
+  "rollback": {
+    "preUpgradeCommitRequired": true,
+    "codeDisposition": "reviewed-git-restore",
+    "dataDisposition": "unchanged"
+  }
+}

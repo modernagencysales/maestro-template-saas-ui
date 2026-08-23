@@ -23,6 +23,15 @@ contract tests but must never materialize a target. See the
 7. Publish the immutable tag and archive, then record and verify their exact
    commit and checksum before marking its customer manifest materializable.
 
+For composed customer releases, the immutable tag must target the exact CI-green
+release-branch head whose sealed `release.sourceCommit` is an ancestor. Do not
+tag a squash-only merge commit: identical tree contents do not preserve the
+ancestry proof required by production `maestro create`. Before pushing the tag,
+require both `git merge-base --is-ancestor <source> <tag-target>` and a clean
+release-seal check on that exact target. After publication, run untouched create
+and frozen install from a fresh detached tag checkout before advancing a
+launcher or public default.
+
 ## Alpha.3 Candidate Stop Boundary
 
 The Confect 10 / Effect 4 candidate prepares `v0.2.0-alpha.3` /

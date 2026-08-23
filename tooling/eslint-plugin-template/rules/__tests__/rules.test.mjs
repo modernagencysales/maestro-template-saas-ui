@@ -914,7 +914,7 @@ test("record appears", async ({ acceptancePage: page }) => { await proxy(page); 
     {
       filename: "tests/acceptance/support/fixtures.ts",
       code: `import { test as base } from "@playwright/test";
-import { createContractsRuntimeController } from "./runtime";
+import { CONTRACTS_HOOK_TIMEOUT_MS, createContractsRuntimeController } from "./runtime";
 export const test = base.extend({
   runtime: [async ({ playwright: _playwright }, use) => {
     void _playwright;
@@ -922,9 +922,9 @@ export const test = base.extend({
     const activeRuntime = await controller.start();
     try { await use(activeRuntime); } finally { await controller.stop(); }
   }, { scope: "worker", auto: true }],
-  scenario: async ({ runtime }, use) => {
+  scenario: [async ({ runtime }, use) => {
     await use(await runtime.provisionScenario());
-  },
+  }, { timeout: CONTRACTS_HOOK_TIMEOUT_MS }],
   acceptancePage: async ({ runtime, scenario }, use) => {
     const context = await runtime.browser.newContext();
     try {

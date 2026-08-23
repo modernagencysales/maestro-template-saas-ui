@@ -85,6 +85,67 @@ const CURRENT_CUSTOMER_SOURCE_PROJECTIONS = [
   "tooling/quality/src/env-manifest.test.mts",
 ] as const;
 
+const STARTER_RECEIPT_PATH = "docs/template/saas-ui-starter-files.json";
+
+const bindStarterReceiptToGeneratedFiles = (
+  files: readonly GeneratedFile[],
+): readonly GeneratedFile[] => {
+  const generatedByPath = new Map(files.map((file) => [file.path, file]));
+  return files.map((file) => {
+    if (file.path !== STARTER_RECEIPT_PATH) return file;
+    const receipt = JSON.parse(file.content) as {
+      readonly files: readonly (Record<string, unknown> & {
+        readonly destination?: unknown;
+      })[];
+    };
+    return {
+      ...file,
+      content: `${JSON.stringify(
+        {
+          ...receipt,
+          files: receipt.files.map((entry) => {
+            if (typeof entry.destination !== "string") return entry;
+            const generated = generatedByPath.get(entry.destination);
+            return generated === undefined
+              ? entry
+              : {
+                  ...entry,
+                  sha256: createHash("sha256")
+                    .update(generated.content)
+                    .digest("hex"),
+                };
+          }),
+        },
+        null,
+        2,
+      )}\n`,
+    };
+  });
+};
+
+const bindRecordsContractToFrontendRefs = (
+  files: readonly GeneratedFile[],
+  selected: boolean,
+): readonly GeneratedFile[] =>
+  selected
+    ? files.map((file) =>
+        file.path === "packages/convex/src/refs.ts"
+          ? {
+              ...file,
+              content: file.content
+                .replace(
+                  'import connections from "../confect/integrations/connections.spec";',
+                  'import connections from "../confect/integrations/connections.spec";\nimport records from "../confect/records/records.spec";',
+                )
+                .replace(
+                  'GroupSpec.makeAt("integrations").addGroupAt("connections", connections),\n  );',
+                  'GroupSpec.makeAt("integrations").addGroupAt("connections", connections),\n  )\n  .addAt("records", GroupSpec.makeAt("records").addGroupAt("records", records));',
+                ),
+            }
+          : file,
+      )
+    : files;
+
 const customerSourcePath = (path: string): string =>
   path === "packages/convex/confect/workflows/_generated/workflowRegistry.ts"
     ? `const definePublicationRegistry = <const Registry>(\n  registry: Registry,\n): Registry => registry;\n\nexport const workflowPublicationRegistry = definePublicationRegistry({\n  capabilities: [],\n  workflows: [],\n});\n`
@@ -732,26 +793,31 @@ export const buildFactorySaasApplicationFiles = (options: {
       ({ path }) => path,
     ),
   );
-  return projectWorkflowCommandReferences(
-    [
-      ...currentFiles,
-      ...contractFiles,
-      ...registrationFiles,
-      ...frontendFiles.filter(({ path }) => !existingPaths.has(path)),
-      ...currentCustomerSourceProjections(options).filter(
-        ({ path }) =>
-          !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
+  return bindStarterReceiptToGeneratedFiles(
+    bindRecordsContractToFrontendRefs(
+      projectWorkflowCommandReferences(
+        [
+          ...currentFiles,
+          ...contractFiles,
+          ...registrationFiles,
+          ...frontendFiles.filter(({ path }) => !existingPaths.has(path)),
+          ...currentCustomerSourceProjections(options).filter(
+            ({ path }) =>
+              !frontendPaths.has(path) && !isObsoleteFrontendAuthority(path),
+          ),
+          ...(selectsSaasApplicationPattern(options, "records-example")
+            ? [recordsFeatureProvenance()]
+            : []),
+        ].reduce<GeneratedFile[]>((files, file) => {
+          const existing = files.findIndex(({ path }) => path === file.path);
+          if (existing >= 0) files[existing] = file;
+          else files.push(file);
+          return files;
+        }, []),
+        options,
       ),
-      ...(selectsSaasApplicationPattern(options, "records-example")
-        ? [recordsFeatureProvenance()]
-        : []),
-    ].reduce<GeneratedFile[]>((files, file) => {
-      const existing = files.findIndex(({ path }) => path === file.path);
-      if (existing >= 0) files[existing] = file;
-      else files.push(file);
-      return files;
-    }, []),
-    options,
+      selectsSaasApplicationPattern(options, "records-example"),
+    ),
   );
 };
 

@@ -1,0 +1,2316 @@
+{
+  "schemaVersion": 1,
+  "id": "saas-application",
+  "provenance": "@maestro-template/generators/saas-application@1",
+  "projectionSource": {
+    "sourceCommit": "3aefd456354b344b9595bddc44fc0782240e2b7d",
+    "assets": [
+      {
+        "path": "base/apps/cli/src/factory/customerComposition.ts.txt",
+        "sha256": "sha256:1f55ec5cef40baf8fedcf4535cbb666dbb640903b616bcc8611233683c5b4ea7"
+      },
+      {
+        "path": "base/apps/cli/src/factory/customerRecipes.ts.txt",
+        "sha256": "sha256:52fa7d322e27ae824c5e503ea48975c9aab9c6f01eac7bae1aba0b47603ded1a"
+      },
+      {
+        "path": "base/apps/cli/src/factory/recipes.ts.txt",
+        "sha256": "sha256:920c702b1c6ca2a2edc56a4bd4157ce2c82e09a4067df9bd05fd0142057a10f7"
+      },
+      {
+        "path": "base/docs/template/data-resources.json.txt",
+        "sha256": "sha256:70323ad2666e2b8c9a05b3879d1ce2cd90b725de9c8d277c7a5d3d0e11d188d3"
+      },
+      {
+        "path": "base/docs/template/product-topology.json.txt",
+        "sha256": "sha256:7a0c634e867a83617f041cb9302692ecb36cb79d99c08517d236d569eca43a1e"
+      },
+      {
+        "path": "base/docs/template/system-catalog.json.txt",
+        "sha256": "sha256:3c8e54fceeb48017649b04db3c97c701ecfaf5d62bf3ac82ff0ae204720925c9"
+      },
+      {
+        "path": "base/package.json.txt",
+        "sha256": "sha256:e6d65f046be228bc8c25d480d3b831e01dd5d59bf279badbcc65be7c3c7c34f6"
+      },
+      {
+        "path": "base/packages/convex/confect/_generated/spec.ts.txt",
+        "sha256": "sha256:43e96c8fdc06d496d7736d018da05d1e9848c4ccd2ab95120fb851afd3cb6cfe"
+      },
+      {
+        "path": "base/packages/convex/confect/ops/dataResources.generated.ts.txt",
+        "sha256": "sha256:1f051aa5cd4191a560e3ed71b1da01253e429f071ca42de204bf6d66434d00c9"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/index.ts.txt",
+        "sha256": "sha256:3fe14ee1c219624af13b32d5bdf506660bde486464476c0d386c4a050111c0b5"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/recipes.ts.txt",
+        "sha256": "sha256:391d0dc2080a1828ca0192c4b4c0c84e1f1774ca681843a7588ac4e23c4a9fc5"
+      },
+      {
+        "path": "base/tooling/agent-pack/src/recipeTransaction.ts.txt",
+        "sha256": "sha256:948b84beb844ec25e723767b7b7283d72e78799a9ea90ebf188101e95527f8fb"
+      },
+      {
+        "path": "base/tooling/generators/src/customer-dispatcher.ts.txt",
+        "sha256": "sha256:6d72166e8aca72cae393393a70bfc0e26744cb87d67f29bf6e982c3c098f285e"
+      },
+      {
+        "path": "base/tooling/generators/src/customer-runtime.ts.txt",
+        "sha256": "sha256:dd3c504edd20dcaa4b726c7ac23c1fa6e75e07be47d412a8ce4342eae2c89ce4"
+      }
+    ]
+  },
+  "registrations": [
+    "README.md",
+    "AGENTS.md",
+    "agent-patterns/effect-confect.md",
+    "docs/template/agent-pack-privacy.md",
+    "apps/web/package.json",
+    "Justfile",
+    "docs/template/env-manifest.json",
+    "docs/template/env-manifest.md",
+    "docs/template/operations-runbook.md",
+    "packages/template-core/src/templateInstance/templateInstance.test.ts",
+    "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+    "packages/template-core/src/generated/confectManifest.ts",
+    "tooling/app-map/src/composition.test.ts",
+    "tooling/app-map/src/composition.ts",
+    "tooling/app-map/src/schema.ts",
+    "tooling/generators/src/crud-proof.test.ts",
+    "tooling/quality/src/env-manifest.test.mts",
+    "docs/template/generated/provenance/add-feature/records.json",
+    "tooling/agent-pack/package.json",
+    "apps/cli/src/factory/customerComposition.ts",
+    "apps/cli/src/factory/mcp.ts",
+    "apps/cli/src/index.ts",
+    "apps/cli/package.json",
+    "apps/cli/src/factory/start.ts",
+    "apps/cli/src/factory/customerRecipes.ts",
+    "apps/cli/src/factory/recipeCatalog.ts",
+    "apps/cli/src/factory/recipes.ts",
+    "apps/cli/src/factory/supportBundle.ts",
+    "package.json",
+    "pnpm-lock.yaml",
+    "tooling/generators/src/crud-proof.ts",
+    "tooling/quality/package.json",
+    "tooling/generators/src/private-package.ts",
+    "examples/generic-ai-ops/template-package.json",
+    "lefthook.yml",
+    "scripts/pre-push-rubric.sh",
+    "tooling/quality/contract-review-rubric.md",
+    "tooling/quality/taste-review.mts",
+    "tooling/quality/install-lefthook-if-git.mjs",
+    "tooling/generators/src/workflow-files.ts",
+    "tooling/generators/src/workflow-predeploy.ts",
+    "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
+    "packages/convex/confect/_generated/docs.ts",
+    "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+    "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
+    "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+    "packages/convex/confect/tables/deployActionConsumptions.ts",
+    "packages/convex/confect/tables/deployApprovals.ts",
+    "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
+    "packages/convex/confect/tables/deployAuthorityIssuers.ts",
+    "packages/convex/confect/tables/deployCensusSnapshots.ts",
+    "packages/convex/confect/tables/deployVerdicts.ts",
+    "packages/convex/confect/deploy/authority.impl.ts",
+    "packages/convex/confect/deploy/authority.spec.ts",
+    "packages/convex/confect/deploy/authority.ts",
+    "packages/convex/confect/deployAuthority/admin.ts",
+    "packages/convex/confect/deployAuthority/env.ts",
+    "packages/convex/confect/deployAuthority/http.ts",
+    "packages/convex/confect/deployAuthority/store.ts",
+    "packages/convex/confect/http.ts",
+    "packages/convex/confect/shared/env.ts",
+    "packages/convex/convex/convex.config.ts",
+    "packages/convex/convex/deploy/authority.ts",
+    "packages/convex/test/deploy-authority.test.ts",
+    "packages/convex/confect/ops/dataResources.generated.ts",
+    "docs/template/system-catalog.json",
+    "docs/template/data-resources.json",
+    "docs/template/product-topology.json",
+    "docs/template/system-decisions/record-management.md",
+    "docs/template/schema-decisions/records.md",
+    "packages/convex/confect/tables/workflowArtifacts.ts",
+    "packages/convex/confect/tables/workflowRuns.ts",
+    "packages/convex/confect/tables/workflowStageRuns.ts",
+    "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
+    "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
+    "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+    "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+    "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
+    "packages/convex/confect/workflows/_kit/observedStagePayloadCurrent.ts",
+    "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
+    "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
+    "packages/convex/confect/workflows/_kit/workflowScheduledCapability.ts",
+    "packages/convex/confect/workflows/graphCurrent.ts",
+    "packages/convex/confect/workflows/graphNodeSchemaCurrent.ts",
+    "packages/convex/confect/workflows/graphSchemaCurrent.ts",
+    "packages/convex/confect/workflows/graphValidationCurrent.ts",
+    "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+    "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
+    "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+    "packages/convex/confect/workflows/_kit/lifecycle.ts",
+    "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
+    "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+    "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+    "packages/convex/confect/workflows/_kit/lifecycleSweep.ts",
+    "packages/convex/confect/workflows/_kit/observedStage.ts",
+    "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
+    "packages/convex/confect/workflows/_kit/payloadBudget.ts",
+    "packages/convex/confect/workflows/_kit/policySnapshot.ts",
+    "packages/convex/confect/workflows/_kit/principal.ts",
+    "packages/convex/confect/workflows/_kit/subworkflows.ts",
+    "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+    "packages/convex/confect/workflows/lifecycleAdapters.ts",
+    "packages/convex/confect/workflows/lifecycle.impl.ts",
+    "packages/convex/confect/workflows/lifecycleInspection.ts",
+    "packages/convex/confect/workflows/lifecyclePersistence.ts",
+    "packages/convex/confect/workflows/lifecycleReconciliation.ts",
+    "packages/convex/confect/workflows/lifecycle.spec.ts",
+    "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
+    "packages/convex/test/workflow-lifecycle-registration.test.ts",
+    "tooling/quality/check-workflow-policy-snapshots.mts",
+    "tooling/quality/check-workflow-principal-propagation.mts",
+    "tooling/quality/fixtures/workflow-policy-snapshots.json",
+    "tooling/agent-pack/src/start.ts",
+    "tooling/agent-pack/src/ports.ts",
+    "tooling/agent-pack/src/verify.ts",
+    "tooling/agent-pack/src/receiptWriter.ts",
+    "tooling/agent-pack/src/recipes.ts",
+    "tooling/agent-pack/src/recipeTransaction.ts",
+    "tooling/agent-pack/src/index.ts",
+    "tooling/agent-pack/src/customerTestClosure.ts",
+    "tooling/agent-pack/src/customerTestClosure.test.ts",
+    "tooling/agent-pack/src/mcp/projection.test.ts",
+    "tooling/agent-pack/src/mcp/protocol.test.ts",
+    "tooling/agent-pack/src/mcp/server.test.ts",
+    "tooling/agent-pack/src/nodeAdapters.test.ts",
+    "tooling/agent-pack/src/mcp/protocol.ts",
+    "tooling/agent-pack/src/mcp/projection.ts",
+    "tooling/agent-pack/src/mcp/server.ts",
+    "tooling/agent-pack/src/readiness/artifacts.ts",
+    "tooling/agent-pack/src/readiness/index.ts",
+    "tooling/agent-pack/src/readiness/nodeSurface.ts",
+    "tooling/agent-pack/src/readiness/presenter.ts",
+    "tooling/agent-pack/src/readiness/server.ts",
+    "tooling/agent-pack/src/privacy/supportBundle.ts",
+    "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
+    "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
+    "tooling/agent-pack/src/privacy/support-bundle.schema.json",
+    "tooling/quality/check-agent-pack.mts",
+    "tooling/quality/check-customer-context.mts",
+    "tooling/quality/check-convex-ai-files.mts",
+    "docs/template/customer-context.manifest.json",
+    "CLAUDE.md",
+    ".claude/settings.json",
+    "skills-lock.json",
+    "packages/convex/confect/tables/records.ts",
+    "packages/convex/confect/records.spec.ts",
+    "packages/convex/confect/records.impl.ts",
+    "packages/convex/confect/_generated/tables/records.ts",
+    "packages/convex/confect/_generated/schema.ts",
+    "packages/convex/confect/_generated/convexSchema.ts",
+    "packages/convex/confect/_generated/spec.ts",
+    "packages/convex/confect/_generated/id.ts",
+    "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+    "packages/convex/convex/records/records.ts",
+    "apps/web/src/routes/_workspace.records.tsx",
+    "apps/web/src/routeTree.gen.ts",
+    "apps/web/src/routeRegistry.generated.ts"
+  ],
+  "parameterizedEntries": [
+    "examples/saas-application/seed/crud-scenario.json",
+    "examples/saas-application/seed/records.json",
+    "examples/saas-application/seed/workspace.json",
+    "generated/blueprints/saas-application/application-contract.json"
+  ],
+  "entries": [
+    {
+      "path": ".agents/skills/convex-create-component/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:03dd30545fe6a4b6694e19069b855e19981eddc4a1fdb9d5a76f50bcfd57fa25"
+    },
+    {
+      "path": ".agents/skills/convex-create-component/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9a3cd1373505abe79ed7c6036791c38a0c69e70cd41530abdd886449e247a02d"
+    },
+    {
+      "path": ".agents/skills/convex-create-component/references/advanced-patterns.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:02da039712bb9bbf0aac46f109b87fe1add5c9ec9c652f2bed38c6673efff47d"
+    },
+    {
+      "path": ".agents/skills/convex-create-component/references/hybrid-components.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:22b2a79b2de33816f49dc872069b27cc736840934d291c0f8b321003232da02a"
+    },
+    {
+      "path": ".agents/skills/convex-create-component/references/local-components.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9377421806a92ccea7c84b358b739472265684bf3f745ca04390fa64633a0d24"
+    },
+    {
+      "path": ".agents/skills/convex-create-component/references/packaged-components.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5c74edadb9061e4fdee82d0f9272c0555cac97b79531d36b3ccba385be11f6a6"
+    },
+    {
+      "path": ".agents/skills/convex-create-component/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:71c4781ec586f9dde750de892242848a3981f4b0003ec5d362c2921eb27017e9"
+    },
+    {
+      "path": ".agents/skills/convex-migration-helper/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:0bc3e0eda497793004e82ab1439e7290de33972d4acb09507c63eee4d779ed1a"
+    },
+    {
+      "path": ".agents/skills/convex-migration-helper/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b191971e5cd0347fb23ea91c87e7468b2a3759613d3dd928fdd326004a5542ae"
+    },
+    {
+      "path": ".agents/skills/convex-migration-helper/references/migration-patterns.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6a891a932fdb045862ba09e50ba5c932469759562f053466149dc8f5390c7456"
+    },
+    {
+      "path": ".agents/skills/convex-migration-helper/references/migrations-component.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:fa2bd0ce2832f0e9d317d319974702e8cb28818f8bd46a8aca6037dfb908769a"
+    },
+    {
+      "path": ".agents/skills/convex-migration-helper/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:77bc11973377357633cf80c1d111abd52daaa4249cc6ed25b76fac51457ce7ce"
+    },
+    {
+      "path": ".agents/skills/convex-performance-audit/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:df55912a7cf79e764863bdb07f8a665ed43da1bf1f74b9046a38f46ee2b5d9a6"
+    },
+    {
+      "path": ".agents/skills/convex-performance-audit/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7a26bbe0641421d26cf2d3b7daba200d10e780f03c8bd28ccb616bc870eb0c6f"
+    },
+    {
+      "path": ".agents/skills/convex-performance-audit/references/function-budget.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4e8e5e07a910b16967a2508f79733a10249409aecf763d548ddd3fbdbb4dc941"
+    },
+    {
+      "path": ".agents/skills/convex-performance-audit/references/hot-path-rules.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9ab8f2f8a7645a78ff404f22d16f749f6bd12ebc929f6e397fb833ea7f001c1d"
+    },
+    {
+      "path": ".agents/skills/convex-performance-audit/references/occ-conflicts.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e55004cbcbbf1ec84b8ad041e80efdb3eaaf1d6086cb6f1eacc83ccc52000a8f"
+    },
+    {
+      "path": ".agents/skills/convex-performance-audit/references/subscription-cost.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:464f4c88f6fec00a90f05a05bdde000dc705c1f974683726fb19f39c5fbbd99c"
+    },
+    {
+      "path": ".agents/skills/convex-performance-audit/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7a3943446e7c654d4d37b960cd75f10eae89d6e9ef57c9bf72fd4b9754cd31d1"
+    },
+    {
+      "path": ".agents/skills/convex-quickstart/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d580334718477ebc352b0eb3d81195d4ebec7aa803340bb78fefefd739905ab7"
+    },
+    {
+      "path": ".agents/skills/convex-quickstart/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:44d9e90de4cb0ce460aa047dc3b049535ec3a2bb25d1e1a503367c5457daf280"
+    },
+    {
+      "path": ".agents/skills/convex-quickstart/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:3cdc8fc0c306f662f35c559654798023b505de558b4e212a575babc574436b59"
+    },
+    {
+      "path": ".agents/skills/convex-setup-auth/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1a384a83bd4c1b6b68f7ec6580b4de7b70d4572dd150c2e0994048bf20295dc3"
+    },
+    {
+      "path": ".agents/skills/convex-setup-auth/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:339b23156b86e081a7c2676d7636229ad4e5cad52e3c2e3b00852bee720e5c70"
+    },
+    {
+      "path": ".agents/skills/convex-setup-auth/references/auth0.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2f37666fc4ecba8359a34138c32b9525fb062d0736b6a0d4c8e19010a84af61d"
+    },
+    {
+      "path": ".agents/skills/convex-setup-auth/references/clerk.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6c400d6da5253ea97a0437d54cf809e6abbf621d6521e5443b87eb9b51e86f8b"
+    },
+    {
+      "path": ".agents/skills/convex-setup-auth/references/convex-auth.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5f8eb30d3ee4b8fcba2c75e5e33c8eed0f9cc69840a7bf01419b7adc4db36062"
+    },
+    {
+      "path": ".agents/skills/convex-setup-auth/references/workos-authkit.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:53a35fd5f45b05548edc049a1fdb138a249748ad2afaea158af1b9ec7caed475"
+    },
+    {
+      "path": ".agents/skills/convex-setup-auth/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:771d9fb3c0e4c3ecad71634e3acdd1c69f5e8529879a036005fa9a680c8ffbfb"
+    },
+    {
+      "path": ".agents/skills/convex/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d0fc889b645ea292dc301968c2113e624c119381ebd82bfe628b6ca1585c6129"
+    },
+    {
+      "path": ".agents/skills/maestro-convex/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:da944c6a7e40fad68fcafbd575d50ff24b46ce7fe8e5a6629968140fc02b1efa"
+    },
+    {
+      "path": ".agents/skills/maestro/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:80e4d320c174f6a66507d9b80b63eea198f1f56d6b4335dceeb1abf5e24118ec"
+    },
+    {
+      "path": ".agents/skills/maestro/references/host-safety.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8833d5a3cc2357de6e96fc7aef8b83073b0099cc3000937e7cdaef26e54e8c00"
+    },
+    {
+      "path": ".agents/skills/maestro/references/workflow-authoring.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8b8ec921894ea54a090bd508e40943d0e5990c88830bc4765d6b9a5a02bf3cd0"
+    },
+    {
+      "path": ".agents/skills/maestro/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:fe798fd57236e4d1590eba6ce68bf3b89a7da87cf9b35a2beb2c4c680513f4ae"
+    },
+    {
+      "path": ".claude/settings.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7825364f57b5c5f07c64d5c5bbbaa8046a6c1c21d3216112cc86f99d2e5b6ccc",
+      "replaces": "generate"
+    },
+    {
+      "path": ".claude/skills/convex-create-component/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:03dd30545fe6a4b6694e19069b855e19981eddc4a1fdb9d5a76f50bcfd57fa25"
+    },
+    {
+      "path": ".claude/skills/convex-create-component/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9a3cd1373505abe79ed7c6036791c38a0c69e70cd41530abdd886449e247a02d"
+    },
+    {
+      "path": ".claude/skills/convex-create-component/references/advanced-patterns.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:02da039712bb9bbf0aac46f109b87fe1add5c9ec9c652f2bed38c6673efff47d"
+    },
+    {
+      "path": ".claude/skills/convex-create-component/references/hybrid-components.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:22b2a79b2de33816f49dc872069b27cc736840934d291c0f8b321003232da02a"
+    },
+    {
+      "path": ".claude/skills/convex-create-component/references/local-components.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9377421806a92ccea7c84b358b739472265684bf3f745ca04390fa64633a0d24"
+    },
+    {
+      "path": ".claude/skills/convex-create-component/references/packaged-components.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5c74edadb9061e4fdee82d0f9272c0555cac97b79531d36b3ccba385be11f6a6"
+    },
+    {
+      "path": ".claude/skills/convex-create-component/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:71c4781ec586f9dde750de892242848a3981f4b0003ec5d362c2921eb27017e9"
+    },
+    {
+      "path": ".claude/skills/convex-migration-helper/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:0bc3e0eda497793004e82ab1439e7290de33972d4acb09507c63eee4d779ed1a"
+    },
+    {
+      "path": ".claude/skills/convex-migration-helper/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b191971e5cd0347fb23ea91c87e7468b2a3759613d3dd928fdd326004a5542ae"
+    },
+    {
+      "path": ".claude/skills/convex-migration-helper/references/migration-patterns.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6a891a932fdb045862ba09e50ba5c932469759562f053466149dc8f5390c7456"
+    },
+    {
+      "path": ".claude/skills/convex-migration-helper/references/migrations-component.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:fa2bd0ce2832f0e9d317d319974702e8cb28818f8bd46a8aca6037dfb908769a"
+    },
+    {
+      "path": ".claude/skills/convex-migration-helper/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:77bc11973377357633cf80c1d111abd52daaa4249cc6ed25b76fac51457ce7ce"
+    },
+    {
+      "path": ".claude/skills/convex-performance-audit/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:df55912a7cf79e764863bdb07f8a665ed43da1bf1f74b9046a38f46ee2b5d9a6"
+    },
+    {
+      "path": ".claude/skills/convex-performance-audit/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7a26bbe0641421d26cf2d3b7daba200d10e780f03c8bd28ccb616bc870eb0c6f"
+    },
+    {
+      "path": ".claude/skills/convex-performance-audit/references/function-budget.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4e8e5e07a910b16967a2508f79733a10249409aecf763d548ddd3fbdbb4dc941"
+    },
+    {
+      "path": ".claude/skills/convex-performance-audit/references/hot-path-rules.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9ab8f2f8a7645a78ff404f22d16f749f6bd12ebc929f6e397fb833ea7f001c1d"
+    },
+    {
+      "path": ".claude/skills/convex-performance-audit/references/occ-conflicts.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e55004cbcbbf1ec84b8ad041e80efdb3eaaf1d6086cb6f1eacc83ccc52000a8f"
+    },
+    {
+      "path": ".claude/skills/convex-performance-audit/references/subscription-cost.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:464f4c88f6fec00a90f05a05bdde000dc705c1f974683726fb19f39c5fbbd99c"
+    },
+    {
+      "path": ".claude/skills/convex-performance-audit/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7a3943446e7c654d4d37b960cd75f10eae89d6e9ef57c9bf72fd4b9754cd31d1"
+    },
+    {
+      "path": ".claude/skills/convex-quickstart/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d580334718477ebc352b0eb3d81195d4ebec7aa803340bb78fefefd739905ab7"
+    },
+    {
+      "path": ".claude/skills/convex-quickstart/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:44d9e90de4cb0ce460aa047dc3b049535ec3a2bb25d1e1a503367c5457daf280"
+    },
+    {
+      "path": ".claude/skills/convex-quickstart/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:3cdc8fc0c306f662f35c559654798023b505de558b4e212a575babc574436b59"
+    },
+    {
+      "path": ".claude/skills/convex-setup-auth/agents/openai.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1a384a83bd4c1b6b68f7ec6580b4de7b70d4572dd150c2e0994048bf20295dc3"
+    },
+    {
+      "path": ".claude/skills/convex-setup-auth/assets/icon.svg",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:339b23156b86e081a7c2676d7636229ad4e5cad52e3c2e3b00852bee720e5c70"
+    },
+    {
+      "path": ".claude/skills/convex-setup-auth/references/auth0.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2f37666fc4ecba8359a34138c32b9525fb062d0736b6a0d4c8e19010a84af61d"
+    },
+    {
+      "path": ".claude/skills/convex-setup-auth/references/clerk.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6c400d6da5253ea97a0437d54cf809e6abbf621d6521e5443b87eb9b51e86f8b"
+    },
+    {
+      "path": ".claude/skills/convex-setup-auth/references/convex-auth.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5f8eb30d3ee4b8fcba2c75e5e33c8eed0f9cc69840a7bf01419b7adc4db36062"
+    },
+    {
+      "path": ".claude/skills/convex-setup-auth/references/workos-authkit.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:53a35fd5f45b05548edc049a1fdb138a249748ad2afaea158af1b9ec7caed475"
+    },
+    {
+      "path": ".claude/skills/convex-setup-auth/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:771d9fb3c0e4c3ecad71634e3acdd1c69f5e8529879a036005fa9a680c8ffbfb"
+    },
+    {
+      "path": ".claude/skills/convex/SKILL.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d0fc889b645ea292dc301968c2113e624c119381ebd82bfe628b6ca1585c6129"
+    },
+    {
+      "path": ".prettierignore",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e90e598a4badb5157d2dbf8e6a73e424d5c9404ed129885e41f5053bb75a945d",
+      "replaces": "copy"
+    },
+    {
+      "path": "agent-patterns/effect-confect.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e79d1cb0008f43b3db4bde0fb5a886f3de85b1a1b72749aa6fcc460c9dbfdbb7",
+      "replaces": "copy"
+    },
+    {
+      "path": "AGENTS.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6101fa9204fd2f0f60176c7c82d1242de3b1e94be1904aa9df996478b9cf4335",
+      "replaces": "copy"
+    },
+    {
+      "path": "apps/cli/package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:79bf345664d94d18f200df564720736998a2cf104f0ca104487b53ab4f604c4f",
+      "replaces": "copy"
+    },
+    {
+      "path": "apps/cli/src/factory/customerComposition.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:56f7b8fbb8627f33e287296c47d26751f18015fbfe9b855c553a10b32a4fba8e",
+      "replaces": "copy"
+    },
+    {
+      "path": "apps/cli/src/factory/customerRecipes.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9c9e631d2241979d66906f68b643dc68cdca6125c3228a4e486d8d33ea97d5b1",
+      "replaces": "copy"
+    },
+    {
+      "path": "apps/cli/src/factory/mcp.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5a103f494febba91101b370bb0370bba36110c03aead7219333651185a906247"
+    },
+    {
+      "path": "apps/cli/src/factory/recipeCatalog.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e81c2fb4dd383c8bd289947f2960b2c210f860f5e7e60dc3726435343d540d7b"
+    },
+    {
+      "path": "apps/cli/src/factory/recipes.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:920c702b1c6ca2a2edc56a4bd4157ce2c82e09a4067df9bd05fd0142057a10f7",
+      "replaces": "copy"
+    },
+    {
+      "path": "apps/cli/src/factory/start.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:237832ef813d2a3fefe1b13b4c06ba5329dd1f3ad64e6935f9b66a4d510fff2c",
+      "replaces": "copy"
+    },
+    {
+      "path": "apps/cli/src/factory/supportBundle.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4df32fb2d305b96eaff61a6fed7bd3e7bd6d41b6981781a7e3e2c54e1ac835d4",
+      "replaces": "copy"
+    },
+    {
+      "path": "apps/cli/src/index.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:86e6c87f1a14c547291b295f20385ff48e26cc879cb7a4cb3294b01497474263",
+      "replaces": "copy"
+    },
+    {
+      "path": "apps/web/package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:67369a123bcd0651b00049f395873a538c003b111b5386acef975cddb0a3d524",
+      "replaces": "copy"
+    },
+    {
+      "path": "apps/web/scripts/check-client-bundle-budget.mjs",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5bcee6054971a093f66c87f8f24110e3c6061885a74a78434bb2457acbde8a12"
+    },
+    {
+      "path": "apps/web/scripts/check-client-bundle-budget.test.mjs",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:45a45f3904770c741dc1660d34031572b5d46e3ab3825f3165bd82c05d572ee3"
+    },
+    {
+      "path": "apps/web/src/adapters/records/contract.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:312c580a3f6491fd9d64dd2b69a731ed8fc11d848574fe2ab1f9d47bbe3eaa99"
+    },
+    {
+      "path": "apps/web/src/adapters/records/fake.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e3ee55ce2b42ca85d37c26850cf0ab1d44e45a25b8c2dcec93f328f3d2a725ab"
+    },
+    {
+      "path": "apps/web/src/bundle-policy.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:39c77fc86063dd106982d67ed69d23cc9555bc90d196c17faf2a993273d24d54"
+    },
+    {
+      "path": "apps/web/src/bundle-policy.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7b218fc16dc169a7ce06fd62655ae770fb743c1a0b829c0ed566985321b6810b"
+    },
+    {
+      "path": "apps/web/src/features/records/model.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f4a555a4e9e31481f94e3ecdc531bc6349181f7d6070c013817c0aaecd2fa56b"
+    },
+    {
+      "path": "apps/web/src/features/records/records-surface.tsx",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1b555178efd5fc7a3b371ffc6ffc1618d96fca8bfb063c92e4e1d1b3d80e0e1b"
+    },
+    {
+      "path": "apps/web/src/routeRegistry.generated.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:76514892ae38e2c23bcda81bc188d9232f596d4638981afd82ab88564d8faac0"
+    },
+    {
+      "path": "apps/web/src/routes/_workspace.records.tsx",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b114374f005010801425451465ad4f8c37e532bc76350be8caf7e9d3f430eb8b"
+    },
+    {
+      "path": "apps/web/src/routeTree.gen.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f236805c7a9869afa91aae9c9766c17df6b99175e4438c5b2542c75debf3ae12",
+      "replaces": "generate"
+    },
+    {
+      "path": "apps/web/src/screens/records-screen.tsx",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b286b9b74361a54db90a496ac61e42965fea07d08e464ee7d7b3a158e5537ea6"
+    },
+    {
+      "path": "apps/web/vite.config.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5efdeaa2bad43ec36c7e5eb90f2daaf49e380e9cdc28858341a24e285b87e6ad",
+      "replaces": "copy"
+    },
+    {
+      "path": "CLAUDE.md",
+      "ownership": "customer-extension",
+      "action": "copy",
+      "upgrade": "preserve",
+      "sha256": "sha256:ba9d79e5f48e9e128910cdd227bd2220333a14095ba18d3bc3e3ae34a28b74e8"
+    },
+    {
+      "path": "docs/template/agent-pack-privacy.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:57fc28ba3e3171562e54b748e0731e260b26edb3a2be16b19a16625abdd366ad",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/agent-worker-playbook.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9c623359b4af500ee8060fc9d7c7994750668ca6567bcbcee0e9a1ded4edcbcd",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/customer-context.manifest.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4bf94873ab73b6ae146f4f4c6c4766592d3b767233c0b148a26b1e0e1cf3e3a3"
+    },
+    {
+      "path": "docs/template/data-resources.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e502d0d31e1f1951ffe11bb973d707e99f5434b4f5dc8e262222172cd243b194",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/env-manifest.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:961dfd0091c8fb837ffbe0464da987b3838410bc8d54f4cfe90139d28341fe04",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/env-manifest.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:01928205a22174885930fa707ebebc733822c2404159cc8463e3f1c34c79b4c7",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/generated/provenance/add-feature/records.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6f069a3dfda060a76898e1c6ea482a8a3322905ff318d5bc57bb872b69d7ddfc"
+    },
+    {
+      "path": "docs/template/how-this-relates-to-maestro.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:13d821781e4a4862d921d6c7afbdb370cb37139d939a7db095c72c7d362f8645",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/operations-runbook.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:31b587f3351466542dddcbd12cf4def912990e68f3e1edd1070c6c0e68cec287",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/preflight.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b19cccd4db0fe714c91c9c5dba1b29567eaacc5dc39c88b66a869abfc5887fef",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/product-topology.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7a0c634e867a83617f041cb9302692ecb36cb79d99c08517d236d569eca43a1e",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/repo-map.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:c1ae71e5feebfef8f22b2c54f5d08a9738b862329b4ae2f589edf32c80516408",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/schema-decisions/records.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e3e5bdbfc11ebd462dfa3c04dc5835b3c5839ea525f43c8105ee5d143c34f31d"
+    },
+    {
+      "path": "docs/template/system-catalog.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6cc20ec7fee1241abb664241fe4edf44dbf4e871f126d1d87846fa8faf06d613",
+      "replaces": "copy"
+    },
+    {
+      "path": "docs/template/system-decisions/record-management.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:be8375a0740b576a7f8ac5d0fb08fcfeb2bb40529bb95883e2392289285154b5"
+    },
+    {
+      "path": "docs/template/template-maturity-model.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6d01540b4b78e3a0ab0bfa3568e1adaccf609c76c671245a24ce5d45eed4f0dd",
+      "replaces": "copy"
+    },
+    {
+      "path": "examples/generic-ai-ops/template-package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4d2fab4f654d2b3b383dd11e0b4cd1d309ea332287daaf138b857edfd57c85ba",
+      "replaces": "copy"
+    },
+    {
+      "path": "examples/saas-application/seed/crud-scenario.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2786847d5b817ae4a4a60b79ea031301fae0f529225d051fa1ccb6c928a7d871"
+    },
+    {
+      "path": "examples/saas-application/seed/records.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:50cc993f81cfeab95263a3306430e3301f4faa043f31fca1be83f91ccb0df7e9"
+    },
+    {
+      "path": "examples/saas-application/seed/source.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b3679c472b8706d218ad8f299512c67eba1678e93eeea98c070372cc0888d71d"
+    },
+    {
+      "path": "examples/saas-application/seed/workspace.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:aa726c48e9fdf5353d5e6d411640c9f11200e41cb97f7d9ecd6f1dfec630a507"
+    },
+    {
+      "path": "generated/blueprints/saas-application/application-contract.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:03d04a52fb51510c5f1b6aa3636b986ad8ffcee41dd79c6a19073e3214a21416"
+    },
+    {
+      "path": "generated/blueprints/saas-application/readiness.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:69edc5715308dc0f1d0a14bcf1c81b255d1b0bb7981d2b63ecbae9ecbc2437b4"
+    },
+    {
+      "path": "generated/blueprints/saas-application/surface-contract.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ef298e47f05a1383ce9c5c6b9de222f0a02adecb26640a6a5a3ca55b5cf9fd2a"
+    },
+    {
+      "path": "Justfile",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:0a17b120573e2963b1edc70371bbfb7ada5f60c82c5268ce4e7e26b861184090",
+      "replaces": "generate"
+    },
+    {
+      "path": "lefthook.yml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:de36ea267db0c1493e277718cfa38366f64cfb2080dd17983ae8d44c21edee71",
+      "replaces": "copy"
+    },
+    {
+      "path": "maestro-template.mjs",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a740d81fe2e2d63f1fe20fc9e0acb6ca86e41bca33f6319c452142a3fd3d420c"
+    },
+    {
+      "path": "package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ab23ed210a0dea2932c52b8281a872f9314d005afc79869c4c57f00583cee5b3",
+      "replaces": "generate"
+    },
+    {
+      "path": "packages/convex/confect/_generated/convexSchema.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f570d6903cc7ff15667ba521546e64db7e40f4ac85e001c41422b368db92bfee",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/docs.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6974bf4e474421800c41258ff11b4d5f4ef80c2a228ae7baa5222d33295eabc6",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/id.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5a323dceb615649d47406f3cf2b5bcecd6f9da2bdbcfbab1c5f8abac0d6041d9",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/registeredFunctions/records/records.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f8671dcc11913a0d844e42b794501d9eb9a8b6f71048d208a6ebbba6010392a7"
+    },
+    {
+      "path": "packages/convex/confect/_generated/schema.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:46699c7e12563eefaa0fe52f0e5343fbc1df39f8cc4dda7f12a4d41ba0b71bf1",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/spec.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b5ffc652a2fc00392d2689bfc5eb1fe87d88d9fd3fb33ac558287753e3212b03",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/deployAuthorityAuditEvents.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:163359738a2495ebb077cc2a87d9ad9abf120b6671c3497e948d85c7de68b78a"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/deployAuthorityIssuers.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:816a17253fe68a1c32dddb276cfff1fd0a8dae490f25a3d354edaa8b04d6ebeb",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/records.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b2b60b14989a0305c303c31a7700f345422ac6d39fa36c0d567cf56e809c3dbf"
+    },
+    {
+      "path": "packages/convex/confect/_generated/tables/workflowArtifacts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9c168f15312f6bc69a53f5dbd1eb42620cc13c54d79c1736c0ce0bebd8fa6472",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/capabilities/_kit/workspaceAccess.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:c247d328e93308e7d2ad435642542d57c419aa2ab191709ab4e82ce71c93c5ea",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/deploy/authority.impl.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2cd7c7fe647ae0f1160e05b920a47220d7443aae525ee8702fa72e24f075e6fe",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/deploy/authority.spec.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8c04709b5c3665aeb711eb3862be09795eec407bc6254aecb31d37cb5a387cf0",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/deploy/authority.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9f686c9adbc659a5c89772338f6c839b552e4a95754a4abe4fd615f4991d5c57",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/deployAuthority/admin.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:0198afff9363404a3179e2b52b8b7be3c0f6019924b95d94c7779dce8dc50baf"
+    },
+    {
+      "path": "packages/convex/confect/deployAuthority/env.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:96c6ef02c52e8e52fb7686ff359698252cd5c4fd982a652508245861652d1687"
+    },
+    {
+      "path": "packages/convex/confect/deployAuthority/http.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7b662e1b6173189770dfc058a1a317e293d4a54cc1bce8dee7e6b3d0448dbbf2",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/deployAuthority/store.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1b558af8fd67a2a02cb40344caf8a5e3d8fab5954ab6ea1270ecaf05a833f022",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/http.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2ff8e4aded6797ec905cb05bc199e727d4c2359f949e5e45e0345784689f16f3",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/ops/dataResources.generated.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1f051aa5cd4191a560e3ed71b1da01253e429f071ca42de204bf6d66434d00c9",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/records.impl.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4a21d6611ce34b0cda33fdffe7833499af11ad3eeeb6af103927dc1159c7f622"
+    },
+    {
+      "path": "packages/convex/confect/records.spec.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2243b9327f8808f5c5349869dd34da995d0002447c72bf685c864b2d7e9546f2"
+    },
+    {
+      "path": "packages/convex/confect/shared/env.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:c6264cdd78b71d1da3ee06608b9addca40ffee991d736885b2e17615e8ae5f18",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/deployActionConsumptions.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8880685111ba340f2ce93ad1f2fafeb8d53aed7c403369443c6ebb386484dc7f",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/deployApprovals.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b5402de1aaa33a9021cadc4eb494d5da2feca7ef13e10ef7898222a32be28173",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/deployAuthorityAuditEvents.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8303e0db8b20fd61fb909d149fd7e5a542837c5a15409992daaa019273c6205e"
+    },
+    {
+      "path": "packages/convex/confect/tables/deployAuthorityIssuers.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:289e7045ea6541071c48d8fff8064d392092385115ca0dccd83cf96ddbaa5228",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/deployCensusSnapshots.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b4f9e76f163f91dddced5ad1a3a19ae7b573bddff94d7b802eac2138654acf8d",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/deployVerdicts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7c93c37213c00386829831b697e0499e1305b352fb8fdacfa9f6c74bea70e857",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/records.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a5de66aa782dc72875b456738c6d52ef651ca340a67733065f322412262dc896"
+    },
+    {
+      "path": "packages/convex/confect/tables/workflowArtifacts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f1da4e74fa10a4cb12a72be7cfbdc4884cae556a1df0f205cd367e4edaa69cf8",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/workflowRuns.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9eb5d08187a3f32cc34d61996a9eebfd6f79624cd4c28a232757cffafe27dde6",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/tables/workflowStageRuns.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e135bccc81def1cf43e6d1f7de76b861cca00a5f60fc50ababe1a06ec93e1259",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/defineMaestroWorkflow.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a9bfcb9fb2934d3581e724866ca79079cd3586017a81af696d0530a925695165",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/graphRunnerCurrent.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1dc81f44a74265e41472857ddad5ecce0caaf9678d158fe52c9e3b54c13aa06a",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/graphRunnerExecution.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:15b66fff49db4a991873bd5954807fdf18e16fd6123206eeac919c879d8f48e6",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/graphRunnerNodes.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:30c36b4564704de0c57190f3a162cfbf8c1793e6277b2646cdd623221c3b8883",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/graphRunnerV2.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:980cd9f429d0b47193ec8783252e1fb0b6589e1bd0d61fab2cdb986b1f9ffaa4",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/graphRunnerV2Current.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:5ee986be1dceb676ed684e8942ccda7341af6e28cece2cf26ee332c78ce87488",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/lifecycle.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:323de644f25399c33cd4e583cdea927e19f1942a1e5c5f884efe71ed6a5c7165",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/lifecycleControls.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:49624f27e20baaa5914f643cdd180e3a0fce0ed5004acfe216aba80c5ebf14dd",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/lifecycleSafety.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2046b5d12f56b44b3acfc7b6cf0433847bbd94f84899f941e809fd9534d136f9",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/lifecycleState.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:89077a4bc0a0020f14177d59266096325b75f63cf14ab938a90376a0b1978bdf",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/lifecycleSweep.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:023aa9b7ca1d12ab6a4530e3a2fb328deaeb545e5ca46924cefd08c8137c12a1",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/observedStage.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7938ed38ff3d1da2394a8f0df752f885da7d5fba95f758d35ec9d627f3d6939b",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/observedStageCurrent.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f22fb4764b2b2ae8694b6e13de7198be951a36b94bd2fe1697ba8a92adb9b5af",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/observedStagePayload.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7e16fe7c008460d1f9d40744681e16707e9ceae5430ec0a2412b3b5ba4dc7811",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/observedStagePayloadCurrent.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:bf01d78be2daf831813d02e57c32e333f3e85975a204c8b7d67fe66c6a55d768",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/payloadBudget.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:bcc1f2477b8e532624d752c056c8a028a79ee2b662bf47587144bcd7169a0322",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/policySnapshot.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:cd360058e27ae3ecf6de33178de7d23267bb45a3fc1dd442d963c042f66a7492",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/policySnapshotCurrent.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:34a26b4279cc5872106c0a88728625cf61a88b9cac17197bf56e71e31fd50e62"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/principal.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e7efe3c84e5c9140950b70ca02e0dc71db2e3dd5b616e09f7b0fdd04cf0419a0",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/subworkflows.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:13d7da74558350c43ee7a8bc45ea41ea00ff0454ac84b36066a7c9b52997d9cc",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/workflowArtifacts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:733d17db9647758fe925063582cb9032f8c28ab9e793893c87e59ba99d5e5dba",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/workflowBuilderCurrent.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1ffde88df7eff9c55f4ed5200b21721af55c4958b3b09df64065fa8b95e3eec9",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/workflowSchedule.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:c70700f80e56a79efbda5e00aab2e89f6cfabf9b102c21826fb621391f5ac9a6",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/_kit/workflowScheduledCapability.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:126902a1c128c34a4c5b1af3cd8843ea17248b55c79d1e30b0bebd85861d21cc",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/graphCurrent.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:92a5a5278a28fa3c32c392ff97bb4691d8621c2746f913a6bf240b1a4bd0048c",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/graphNodeSchemaCurrent.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:17c8019147a34529d926d77a8863723d14f9b0a80c2d689417c65a1295ea5f40",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/graphSchemaCurrent.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4c3c25e00db25f63040b019843f2d61aae851b0acba4e3b9056c51f38053bf64",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/graphValidationCurrent.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8d76e6611d8e72ffb3d1414e88e2c03b749664f063957212d1c4714505afbb1d",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/lifecycle.impl.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:85a90c7baafc634c54a3e5e3b58542f263a3a8c3fd7c8fe8433ac3907a927a22",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/lifecycle.spec.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:3fb631e09ff052e98525177e213b3140cbe4eca6a3d95015d220083378de4d75",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/lifecycleAdapters.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:c37848fb192bef4f7948e38093556765c94cb7342bf7149ee8731074d13c4c99",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/lifecycleInspection.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:05b3fdbcac40d9d8aabf01c781e5e015d3bac16e29532fef4e7a426270d49194",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/lifecyclePersistence.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8070cba594f9f7752b7a66241e99c45691cab5b8e14bbe6f9cd554e570ec85ca",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/confect/workflows/lifecycleReconciliation.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:353727ee6a61ada36532e84ff222d03ebbd74d837c3ab12b7f830991ab7eea92",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/convex/convex.config.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:59befe42df777ba05eab011b9a57d666d962d7c01b7a9648ad606f7cb8a10a04",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/convex/deploy/authority.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1a770228d8a34a1f1a73ce31a3fc5b84b55b9cc26be44d44bbea46d31a942cc5",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/convex/records/records.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:bcb6df6b2f832e8837f6b3e2674392c85acc07d5bcfc26b9b968754b2b4963a8"
+    },
+    {
+      "path": "packages/convex/package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:773e43a4f61386b3860af70c7c2855144ba4026c0187fd8d5b5a04b05886dbc6",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/test/deploy-authority.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ff96c6415a6b66ea2cbcc2db965594176ecdb8f226f2bc8e6c269f8f2e738857",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/test/workflow-lifecycle-controls.fixture.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a7e90c7b2140316a5e8813b20be8abeb26e05051708db4cd8dbbe529d8d07c7c",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/convex/test/workflow-lifecycle-registration.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:04151cdfd93e958a3cea484b972b141372326d8e5fcd3efe9f70041d85fb3ae6",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/product-journey/package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:52df2c6ee85d933dc2531ce3327e5b62722d615a0a51ab4d8830fc9ff82df66c"
+    },
+    {
+      "path": "packages/product-journey/src/attestation.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d9fee02fed328af80ecc5849b5a821825aebe51b70cf44c8f580b537a3308412"
+    },
+    {
+      "path": "packages/product-journey/src/contract-diff.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:eaae56997676508a0a3d8dd240a3424ea97d35f890bf5f6283d4dbc506520657"
+    },
+    {
+      "path": "packages/product-journey/src/evidence.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:db2cb083628bad13d8de9695ba58ae77bb5626db9feab70f77e981cab0b88705"
+    },
+    {
+      "path": "packages/product-journey/src/graph.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d04744efddfba75facb1a6ffe6a3414fe8aa9105b2a5ca7f0d85770856c204d7"
+    },
+    {
+      "path": "packages/product-journey/src/index.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:06760e2c29454c9b312a642fcb52333620f25a76be4bfc5ff93037cc58974f9c"
+    },
+    {
+      "path": "packages/product-journey/src/lease.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:0b694cacf5542df39fdc4f8c8510141e7fd103582d5227884d5cb271219e6a22"
+    },
+    {
+      "path": "packages/product-journey/src/manifest.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:feefb8dcd7dd6095c225083fd73313ce6864b5d7acf7df346655a1f01644cbcf"
+    },
+    {
+      "path": "packages/product-journey/src/ordering.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a83808b12c50466880bea99e718e3e53e23c042a49f5ea5b3276626926955882"
+    },
+    {
+      "path": "packages/product-journey/src/receipts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a79963f9211a9c2f59c279ba105739f0fc7a9352f5776488d3a75d2d2775f945"
+    },
+    {
+      "path": "packages/product-journey/src/redaction.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:eccab11a8c43e36bbc24ee672a73235bd3703da40450fd2ffb4bb05e4d3e81fe"
+    },
+    {
+      "path": "packages/product-journey/src/runner.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:83bf4b73a81387b098b93bb6ead23bb11ab1c30ef88e1c288dd3bce416758ca6"
+    },
+    {
+      "path": "packages/product-journey/src/selection.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:72e76ee1a7e61c503bc56f565ec2330173af0e74a885de4db0ac3e355f67006f"
+    },
+    {
+      "path": "packages/product-journey/tsconfig.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9d519271b131856625aff0b8c1870a8789399edffe91c11077147a646b3f01c6"
+    },
+    {
+      "path": "packages/template-core/src/generated/confectManifest.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f21e85fc4e229951a72b8aef1d38eabec2fadcd38b1009b068f9540c6857f464",
+      "replaces": "copy"
+    },
+    {
+      "path": "packages/template-core/src/templateInstance/__fixtures__/provider-posture-v1-to-v2.contract.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ac117e67d524834def10d892663b6a23cf59f4697e1232c8b2e133361de90af2"
+    },
+    {
+      "path": "packages/template-core/src/templateInstance/templateInstance.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:680505cb6c42468635126e567f375c5c2ee25688fd3d0eafbebca36c5b8b8c4b",
+      "replaces": "copy"
+    },
+    {
+      "path": "pnpm-lock.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:490c32d9cdcabbc46fd797b488c0aea9f03c25d33fc95c8139a2f3cf7464d944",
+      "replaces": "copy"
+    },
+    {
+      "path": "pnpm-workspace.yaml",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4e32a4a9b9b9bf66b16fc90d3926bb2468217f7aea1514bd92bff3990ab1d84a",
+      "replaces": "copy"
+    },
+    {
+      "path": "README.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f215fd88c589a73216cf745b244802ccd2265b8fb438ae7279eafedeb994bc10",
+      "replaces": "copy"
+    },
+    {
+      "path": "scripts/maestro-bootstrap.mjs",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:71a6f438004b68fd865111565d56c595512e93f51069afbdde209d63d70b1700"
+    },
+    {
+      "path": "scripts/maestro-bootstrap.test.mjs",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:438ebdec47475250fb012954f8db080ec871d5e3cd0bf78ef40969dfce101eb2"
+    },
+    {
+      "path": "scripts/pre-push-rubric.sh",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:fc420b96131df28e1476d19ee311dbb84fd0e65dad4565f0b7553cdd9c45bc51",
+      "replaces": "copy"
+    },
+    {
+      "path": "skills-lock.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:82c5d7e6f30359d506401d773dd60b8126ffc525eb1b064de09635e858497761"
+    },
+    {
+      "path": "tooling/agent-pack/package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:854801a4251ed7f11f7f28555f018132829e30c6733139d5acff7f83e45dfff8",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/customerTestClosure.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8543f70c7abcc5d9950b76742642b190f8834586289c835dd8e795b0b149dab9"
+    },
+    {
+      "path": "tooling/agent-pack/src/customerTestClosure.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:47db9660d98ed22d3d7ef91804c30a361d03679a3b81bbd10177090d86772e76"
+    },
+    {
+      "path": "tooling/agent-pack/src/index.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f906206f03102b8d60bcbb6a831285a4066b1c1cee5504321b17af9f9d6f6047",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/mcp/projection.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:cf61c433a8562b67e65e3597a8ba0fab54c5eaa1899b016a6ed0bc31fa122875"
+    },
+    {
+      "path": "tooling/agent-pack/src/mcp/projection.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:607318c949678b94141ea5fa7085ce79097f0f76c55c6253947e8b4a7a0b7c62"
+    },
+    {
+      "path": "tooling/agent-pack/src/mcp/protocol.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d52d0b866fff24c6cf59828a9e045825c1ec61515df86edd665390581812f1a4"
+    },
+    {
+      "path": "tooling/agent-pack/src/mcp/protocol.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:80f7e81ad383bdfdfc8551e1f2a63f0efa53fc7487aec6e84ff2556f5d47fabc"
+    },
+    {
+      "path": "tooling/agent-pack/src/mcp/server.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:edd438a363f7ff3932ac629426c96a27960f485650d77d19f6171905fd41ad6e"
+    },
+    {
+      "path": "tooling/agent-pack/src/mcp/server.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:895abc9f2c5e6f23d7a0d499c3985a1a3c0d23f79b8afbf87e8a5fce0ee778b5"
+    },
+    {
+      "path": "tooling/agent-pack/src/nodeAdapters.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:cda38004be9dad56ac700f2d77a55a6bb9b0274e9608b788765eb313d4ea6894",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/ports.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d81be7605deb469c153eac22c931463c5e2552ee4ae16f108582e2211e1c9052",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/privacy/nodeSupportBundleExporter.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b1beb61129f371c6949bef78a3b0d77d01b4e0e8504893585929b73117c64550",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/privacy/support-bundle.schema.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:893bc5b420060292a8bd803f4a361137e05ec88d755d9a4570c07c0534f1fd91",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/privacy/supportBundle.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:b86a85f9285de0459e4b605959ff129aa5f5d54424f9006818c8fe78c93b7a2c",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/privacy/supportBundleCommand.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:271f6f96a01c41bca5ce4f6f6442ef1f4e12e0f1c3b8a22abe78bac08437a617",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/artifacts.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:003548193f36c23b5f862003801d7142d356dc9433c0a8c6b2af407aa8446ce4",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/index.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a0a4004d297d145de609134138633be7061833a0e07434954c6a8928faf64949",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/nodeSurface.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a37a70d87bf66e8bf6daaae48dc1a5cbd4c54cdbd1818d33a78e80d0028907d0",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/presenter.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:a3de6cc2a7652a8fa81894a0125b06698d959848b72bd80de842701ed84eb20d",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/readiness/server.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7a3e5890f7a1d40d6f4896a5970906394024f33505c3a5bf3ffe9872e29e4b25",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/receiptWriter.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d24dfc9e8b69842bfbe0f4961bb11580e8337f1b8abab6df40c1b96652469e0b",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/recipes.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:391d0dc2080a1828ca0192c4b4c0c84e1f1774ca681843a7588ac4e23c4a9fc5",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/recipeTransaction.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:948b84beb844ec25e723767b7b7283d72e78799a9ea90ebf188101e95527f8fb",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/start.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2a1126430a4b7bb8115cdeba94ca6cb28caef558d4e86eda2a9e063e2a51b6d4",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/agent-pack/src/verify.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:297a537513ffc11b0c693e640e7925d80e21e7d9ce89447a176364e03cd41b64",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/app-map/src/composition.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:e328079847dbe31b58d8b887ac8910a40d86d5ae716ca01c88cef2cf87bae97e",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/app-map/src/composition.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ebe468515446f4449fee43bbee45edd14a3f6b7b10c5973be7855a75903d19b7",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/app-map/src/schema.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:9080825edb0d60014a24833666f7842c10d26961d402cb49979b9ac143f5c64e",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/confect-manifest/tsconfig.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f30f8906c7e1769ecde287df6d71214511195b8cd4a15ce8084b3e89068a73bc",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7f6b3ac867534cf544aa06e0bfff4b2588661946ecd3e586cd39b7778fb6bfc3",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/blueprints/gtmImplementation.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:16ddad3d6cc5387d32f6e55300582a37d233ea2aed8d914658135af2b1a5d690",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/crud-proof.test.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6f5fb20e465aff8c0f4f84c6f227bfedf5db3e80cc9ddf94a83c3cad958322d0",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/crud-proof.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ce77a1681cc7b4bf4dcfa4294b67aea5d0e1a77861cf1a9b14d9da05f20a7181",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/customer-cli.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f3644fae5b4544c0b8eb0a09857ff9031556acf48584d26ab4485fee18d5f234",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/customer-dispatcher.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:dafc4bef257eed7b3154a855c09a64a402724418e548ef59ed41f03920b44cf0",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/customer-runtime.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:eb5ab2a76de742b56c9c0d46db47d78078d4d4e00f4cb754f2f3ff5e3d374bb0",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/customer.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:97c2491d3425360f274ab2a29411fac391917a54284cec70cc4c58e09258aea1",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/direct-run.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:766e70b4aa8ffc1620ae699c82bf1ee95ae9685b63ecad429346ce6816095040",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/private-package.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f61f8f3109810aeab9779c38a29bba32026e72b7cf6ecafac2ae72f30b2cc1bd"
+    },
+    {
+      "path": "tooling/generators/src/workflow-files.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:26dbaca376b5f51d94cf434bc9168b9536156159f63f27b01efb5682f864f53c",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/workflow-predeploy.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:4ae1b4bf1335f89d324882822f83445bc993a732684c1ede37d557c407c7343d",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/workflow-release-commands.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:8e96afe877a9e80bd098305e5f28fb2c8df9e5edb80d43f46c95e8b685a520e9",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/generators/src/workflow-source-closure.ts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:63fdf70d014f4461bcddbead63f608cedad67c24a900face7144af0392184c97",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/check-agent-pack.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:d0aea01ad75b1ed67d1eb2013f05ee267920fec18a78688c0541c0aab55634bb",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/check-convex-ai-files.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:f1607bb7021242a7b31c7c711a584f971d2b968ed3a7fda08c337c80e3ef4336",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/check-convex-generation.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:37209a44d2b9502ea80a6a1c8cfbc12629321c4d95adc00226d14b5ab4525269"
+    },
+    {
+      "path": "tooling/quality/check-customer-context.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:2afb296aafbbd9a6679d0e7a1b3016d2a5abf722d7b82a34d69c03097f77b462"
+    },
+    {
+      "path": "tooling/quality/check-product-journeys.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:df400af6449f990a90c6ac1ff1f37260dbb529ca413950843cb17550b53cf46a"
+    },
+    {
+      "path": "tooling/quality/check-workflow-policy-snapshots.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:7f2538f98e70200c398f2eddb833e5ef25dfb0571f64cfea2d26ae5cf378a886",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/check-workflow-principal-propagation.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:6bb301be1eec7e0a86c3181c25fb3352b09e8a5d3e75c845a1bcb390099caf81",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/contract-review-rubric.md",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:24654c12e38a393b87da495296087f2ebec152189a40b8cd518e74fc44d8b9a2",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/fixtures/workflow-policy-snapshots.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:0b9bd9cf266b88904fa09b268e2ecae734687597e2506982e2d7460328be9b6a",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/install-lefthook-if-git.mjs",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:89b82e70613239033115422d98868ad6568c0a762c89e1bde2482f12af71ad3b"
+    },
+    {
+      "path": "tooling/quality/package.json",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:1daf4f14e455b387db3deee7aaa7db5c39a40d2a2f4b2c265dd9a63dc1e0fec8",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/src/check-definitions.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:30a53738b629d698fb82b1149aa0849ec6ebf107d7919e03d7acc564810e0698",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/src/env-manifest.test.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:ea684477b5c93b578e7237e409bbdb6789702e267302d90b41321d0621602926",
+      "replaces": "copy"
+    },
+    {
+      "path": "tooling/quality/taste-review.mts",
+      "ownership": "generated",
+      "action": "generate",
+      "upgrade": "regenerate",
+      "sha256": "sha256:132af57bb0765f2782a752dd6ccfe6bffcfd111e668cab262c1e7ddbe60b088b",
+      "replaces": "copy"
+    }
+  ]
+}
