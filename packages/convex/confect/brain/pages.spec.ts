@@ -19,6 +19,7 @@ const BrainPageError = Schema.Union([
   Unauthorized,
   MemberNotInWorkspace,
   WorkspaceNotFound,
+  NotFound,
 ]);
 
 const BrainPageWriteError = Schema.Union([BrainPageError, ValidationFailed]);
@@ -37,6 +38,18 @@ const CreateMarkdownArgs = Schema.Struct({
 });
 
 const CreateMarkdownReturns = Id("brainPages");
+
+const PageDetailArgs = Schema.Struct({
+  workspaceId: Id("workspaces"),
+  pageId: Id("brainPages"),
+});
+
+const UpdateMarkdownArgs = Schema.Struct({
+  workspaceId: Id("workspaces"),
+  pageId: Id("brainPages"),
+  markdown: Schema.String,
+  expectedUpdatedAt: Schema.Number,
+});
 
 export const RecordSnapshotArgs = Schema.Struct({
   workspaceId: Id("workspaces"),
@@ -71,6 +84,33 @@ const list = defineContractFunction(
   },
 );
 
+const get = defineContractFunction(
+  FunctionSpec.publicQuery({
+    name: "get",
+    args: () => PageDetailArgs,
+    returns: () => brainPages.Doc,
+    error: () => BrainPageError,
+  }),
+  {
+    namespace: "brain.pages",
+    name: "get",
+    operationId: "brain.pages.get",
+    kind: "query",
+    surfaces: ["web"],
+    typedErrors: [
+      "Unauthorized",
+      "MemberNotInWorkspace",
+      "WorkspaceNotFound",
+      "NotFound",
+    ],
+    idempotent: true,
+    argsSchemaName: "brain.pages.get.args",
+    returnsSchemaName: "brain.pages.get.returns",
+    argsSchema: PageDetailArgs,
+    returnsSchema: brainPages.Doc,
+  },
+);
+
 const createMarkdown = defineContractFunction(
   FunctionSpec.publicMutation({
     name: "createMarkdown",
@@ -98,6 +138,34 @@ const createMarkdown = defineContractFunction(
   },
 );
 
+const updateMarkdown = defineContractFunction(
+  FunctionSpec.publicMutation({
+    name: "updateMarkdown",
+    args: () => UpdateMarkdownArgs,
+    returns: () => brainPages.Doc,
+    error: () => BrainPageWriteError,
+  }),
+  {
+    namespace: "brain.pages",
+    name: "updateMarkdown",
+    operationId: "brain.pages.updateMarkdown",
+    kind: "mutation",
+    surfaces: ["web"],
+    typedErrors: [
+      "Unauthorized",
+      "MemberNotInWorkspace",
+      "WorkspaceNotFound",
+      "NotFound",
+      "ValidationFailed",
+    ],
+    idempotent: false,
+    argsSchemaName: "brain.pages.updateMarkdown.args",
+    returnsSchemaName: "brain.pages.updateMarkdown.returns",
+    argsSchema: UpdateMarkdownArgs,
+    returnsSchema: brainPages.Doc,
+  },
+);
+
 const recordSnapshotInternal = FunctionSpec.internalMutation({
   name: "recordSnapshotInternal",
   args: () => RecordSnapshotArgs,
@@ -105,12 +173,14 @@ const recordSnapshotInternal = FunctionSpec.internalMutation({
   error: () => Schema.Union([NotFound, ValidationFailed]),
 });
 
-const contractFunctions = [list, createMarkdown] as const;
+const contractFunctions = [list, get, createMarkdown, updateMarkdown] as const;
 
 export const manifest = collectContractManifest(contractFunctions);
 export const schemaRegistry = collectContractSchemas(contractFunctions);
 
 export default GroupSpec.make()
   .addFunction(list.spec)
+  .addFunction(get.spec)
   .addFunction(createMarkdown.spec)
+  .addFunction(updateMarkdown.spec)
   .addFunction(recordSnapshotInternal);

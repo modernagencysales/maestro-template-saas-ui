@@ -8,6 +8,7 @@ import { requireWorkspaceAccess } from "../capabilities/_kit/workspaceAccess";
 import { NotFound, ValidationFailed } from "../errors";
 import { withMutationErrorCapture } from "../observability/errorCapture";
 import pages from "./pages.spec";
+import { isCurrentPageRevision, nextPageUpdatedAt } from "./pageRevision";
 import { isAdvancingSnapshotVersion } from "./snapshotVersion";
 
 const unsafeAssumeClockProvided = <A, E, R>(
@@ -31,6 +32,27 @@ const list = FunctionImpl.make(
         .index("by_workspace", (q) => q.eq("workspaceId", workspaceId))
         .collect()
         .pipe(Effect.orDie);
+    }),
+);
+
+const get = FunctionImpl.make(
+  databaseSchema,
+  pages,
+  "get",
+  ({ workspaceId, pageId }) =>
+    Effect.gen(function* () {
+      yield* unsafeAssumeClockProvided(
+        requireWorkspaceAccess(workspaceId, "viewer"),
+      );
+      const reader = yield* DatabaseReader;
+      const page = yield* reader
+        .table("brainPages")
+        .get(pageId)
+        .pipe(Effect.orDie);
+      if (page === null || page.workspaceId !== workspaceId) {
+        return yield* new NotFound({ resource: "brainPages", id: pageId });
+      }
+      return page;
     }),
 );
 
@@ -60,6 +82,45 @@ const createMarkdown = FunctionImpl.make(
             updatedAt,
           })
           .pipe(Effect.orDie);
+      }),
+    ),
+);
+
+const updateMarkdown = FunctionImpl.make(
+  databaseSchema,
+  pages,
+  "updateMarkdown",
+  ({ workspaceId, pageId, markdown, expectedUpdatedAt }) =>
+    withMutationErrorCapture(
+      "brain/pages.updateMarkdown",
+      Effect.gen(function* () {
+        yield* unsafeAssumeClockProvided(
+          requireWorkspaceAccess(workspaceId, "editor"),
+        );
+        const reader = yield* DatabaseReader;
+        const writer = yield* DatabaseWriter;
+        const page = yield* reader
+          .table("brainPages")
+          .get(pageId)
+          .pipe(Effect.orDie);
+        if (page === null || page.workspaceId !== workspaceId) {
+          return yield* new NotFound({ resource: "brainPages", id: pageId });
+        }
+        if (!isCurrentPageRevision(page.updatedAt, expectedUpdatedAt)) {
+          return yield* new ValidationFailed({
+            field: "expectedUpdatedAt",
+            message: "Brain page changed after this editor loaded.",
+          });
+        }
+        const clockNow = yield* unsafeAssumeClockProvided(
+          Clock.currentTimeMillis,
+        );
+        const updatedAt = nextPageUpdatedAt(page.updatedAt, clockNow);
+        yield* writer
+          .table("brainPages")
+          .patch(pageId, { markdown, updatedAt })
+          .pipe(Effect.orDie);
+        return { ...page, markdown, updatedAt };
       }),
     ),
 );
@@ -113,7 +174,9 @@ const recordSnapshotInternal = FunctionImpl.make(
 
 export default GroupImpl.make(databaseSchema, pages).pipe(
   Layer.provide(list),
+  Layer.provide(get),
   Layer.provide(createMarkdown),
+  Layer.provide(updateMarkdown),
   Layer.provide(recordSnapshotInternal),
   GroupImpl.finalize,
 );
