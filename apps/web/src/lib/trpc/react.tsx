@@ -620,4 +620,12 @@ export function TRPCReactProvider(props: { children: React.ReactNode }) {
   return props.children;
 }
 
-export const isTRPCClientError = () => false;
+export const isTRPCClientError = (
+  error: unknown,
+): error is StarterError & {
+  readonly data: { readonly httpStatus?: number };
+} =>
+  error instanceof Error &&
+  "data" in error &&
+  typeof error.data === "object" &&
+  error.data !== null;

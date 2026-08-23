@@ -22,18 +22,39 @@ overrides:
   "@formatjs/intl": 4.1.2
   intl-messageformat: 11.1.2
   react-intl: 8.1.3
-  motion-dom: 12.23.23
+  motion-dom: 13.1.1
 
 patchedDependencies:
   "@chakra-ui/react@3.33.0":
-    hash: c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669
+    hash: 624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a
     path: patches/@chakra-ui__react@3.33.0.patch
   "@confect/cli@10.0.0-next.9":
     hash: 1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08
     path: patches/@confect__cli@10.0.0-next.9.patch
+  "@dnd-kit/core@6.3.1":
+    hash: 7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4
+    path: patches/@dnd-kit__core@6.3.1.patch
+  "@dnd-kit/sortable@8.0.0":
+    hash: bf2c240c1811d4a480bff9946f39add5ba31797fc245fb6815b6bb934abee093
+    path: patches/@dnd-kit__sortable@8.0.0.patch
   "@saas-ui-pro/react@1.0.0-next.4":
     hash: a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b
     path: patches/@saas-ui-pro__react@1.0.0-next.4.patch
+  "@saas-ui/react@3.0.0-next.51":
+    hash: 663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a
+    path: patches/@saas-ui__react@3.0.0-next.51.patch
+  "@tanstack/router-core@1.171.27":
+    hash: 7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce
+    path: patches/@tanstack__router-core@1.171.27.patch
+  "@zag-js/toast@1.24.2":
+    hash: 476030f5264724cb12e74354b5ff0336aa8faffaa0adad94523ea3fbd5684403
+    path: patches/@zag-js__toast@1.24.2.patch
+  "@zag-js/toast@1.31.1":
+    hash: 49ad5a901f637e4814df92802c793272bd00273c9bfcf51df28acf8b9de51acb
+    path: patches/@zag-js__toast@1.31.1.patch
+  effect@4.0.0-beta.102:
+    hash: 6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811
+    path: patches/effect@4.0.0-beta.102.patch
 
 importers:
   .:
@@ -58,13 +79,13 @@ importers:
         version: 9.6.1(@stryker-mutator/core@9.6.1(@types/node@22.20.0))(typescript@5.9.3)
       "@stryker-mutator/vitest-runner":
         specifier: 9.6.1
-        version: 9.6.1(@stryker-mutator/core@9.6.1(@types/node@22.20.0))(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
+        version: 9.6.1(@stryker-mutator/core@9.6.1(@types/node@22.20.0))(vitest@4.1.11)
       "@types/node":
         specifier: ^22.0.0
         version: 22.20.0
       "@vitest/coverage-v8":
-        specifier: 3.2.6
-        version: 3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 4.1.11
+        version: 4.1.11(vitest@4.1.11)
       convex:
         specifier: 1.42.1
         version: 1.42.1(react@19.2.0)
@@ -102,8 +123,8 @@ importers:
         specifier: ^8.0.0
         version: 8.62.1(eslint@9.39.4(jiti@2.7.0))(typescript@5.9.3)
       vitest:
-        specifier: ^3.0.0
-        version: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
+        specifier: 4.1.11
+        version: 4.1.11(@types/node@22.20.0)(@vitest/coverage-v8@4.1.11)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       yaml:
         specifier: 2.9.0
         version: 2.9.0
@@ -112,7 +133,7 @@ importers:
     dependencies:
       "@confect/js":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       "@maestro-template/agent-pack":
         specifier: workspace:*
         version: link:../../tooling/agent-pack
@@ -139,7 +160,7 @@ importers:
         version: link:../../tooling/workflow
       effect:
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102
+        version: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
 
   apps/web:
     dependencies:
@@ -148,25 +169,25 @@ importers:
         version: 5.30.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@chakra-ui/charts":
         specifier: 3.30.0
-        version: 3.30.0(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(recharts@3.5.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1))
+        version: 3.30.0(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(recharts@3.10.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1))
       "@chakra-ui/react":
         specifier: 3.33.0
-        version: 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@confect/react":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)(react@19.2.0)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(react@19.2.0)
       "@convex-dev/react-query":
         specifier: 0.1.0
         version: 0.1.0(@tanstack/react-query@5.101.2(react@19.2.0))(convex@1.42.1(react@19.2.0))
       "@dnd-kit/core":
         specifier: ^6.3.1
-        version: 6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@dnd-kit/modifiers":
         specifier: ^9.0.0
-        version: 9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
+        version: 9.0.0(@dnd-kit/core@6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
       "@dnd-kit/sortable":
         specifier: 8.0.0
-        version: 8.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
+        version: 8.0.0(patch_hash=bf2c240c1811d4a480bff9946f39add5ba31797fc245fb6815b6bb934abee093)(@dnd-kit/core@6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
       "@dnd-kit/utilities":
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.0)
@@ -190,10 +211,10 @@ importers:
         version: 0.18.0(@types/react@19.2.7)(immer@11.1.11)(react@19.2.0)
       "@saas-ui-pro/kanban":
         specifier: ^1.0.0-next.1
-        version: 1.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 1.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui-pro/react":
         specifier: 1.0.0-next.4
-        version: 1.0.0-next.4(patch_hash=a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b)(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 1.0.0-next.4(patch_hash=a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/assets":
         specifier: ^1.1.0
         version: 1.1.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -202,19 +223,19 @@ importers:
         version: 1.3.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/chakra-preset":
         specifier: 3.0.0-next.8
-        version: 3.0.0-next.8(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
+        version: 3.0.0-next.8(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       "@saas-ui/hooks":
         specifier: 3.0.0-next.3
         version: 3.0.0-next.3(react@19.2.0)
       "@saas-ui/react":
         specifier: 3.0.0-next.51
-        version: 3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/use-hotkeys":
         specifier: 2.0.0-next.0
         version: 2.0.0-next.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/react-form":
         specifier: ^1.33.2
-        version: 1.33.5(@tanstack/react-start@1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 1.33.5(@tanstack/react-start@1.168.49(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/react-query":
         specifier: 5.101.2
         version: 5.101.2(react@19.2.0)
@@ -222,17 +243,17 @@ importers:
         specifier: 5.101.2
         version: 5.101.2(@tanstack/react-query@5.101.2(react@19.2.0))(react@19.2.0)
       "@tanstack/react-router":
-        specifier: 1.170.17
-        version: 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: 1.170.32
+        version: 1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/react-router-devtools":
-        specifier: 1.167.0
-        version: 1.167.0(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.14)(csstype@3.2.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: 1.167.1
+        version: 1.167.1(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce))(csstype@3.2.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/react-router-ssr-query":
         specifier: 1.167.1
-        version: 1.167.1(@tanstack/query-core@5.101.2)(@tanstack/react-query@5.101.2(react@19.2.0))(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.14)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 1.167.1(@tanstack/query-core@5.101.2)(@tanstack/react-query@5.101.2(react@19.2.0))(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/react-start":
-        specifier: 1.168.27
-        version: 1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+        specifier: 1.168.49
+        version: 1.168.49(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       "@tanstack/react-table":
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -241,7 +262,7 @@ importers:
         version: 0.6.0(@workos-inc/node@10.7.0)(typescript@5.9.3)
       "@workos/authkit-tanstack-react-start":
         specifier: 0.9.1
-        version: 0.9.1(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/react-start@1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.7.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
+        version: 0.9.1(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/react-start@1.168.49(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.7.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)
       "@workspace/api":
         specifier: workspace:*
         version: link:../../packages/saas-api
@@ -262,10 +283,10 @@ importers:
         version: 4.1.0
       effect:
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102
+        version: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
       framer-motion:
-        specifier: 12.23.24
-        version: 12.23.24(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        specifier: 13.1.1
+        version: 13.1.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       js-cookie:
         specifier: ^3.0.8
         version: 3.0.8
@@ -279,14 +300,14 @@ importers:
         specifier: 19.2.0
         version: 19.2.0(react@19.2.0)
       react-icons:
-        specifier: 5.5.0
-        version: 5.5.0(react@19.2.0)
+        specifier: 5.7.0
+        version: 5.7.0(react@19.2.0)
       react-intl:
         specifier: 8.1.3
         version: 8.1.3(@types/react@19.2.7)(react@19.2.0)(typescript@5.9.3)
       recharts:
-        specifier: 3.5.1
-        version: 3.5.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1)
+        specifier: 3.10.1
+        version: 3.10.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1)
       slug:
         specifier: ^11.0.1
         version: 11.0.1
@@ -326,7 +347,7 @@ importers:
         version: link:../template-core
       effect:
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102
+        version: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
 
   packages/config:
     dependencies:
@@ -354,16 +375,16 @@ importers:
         version: 0.51.4(@types/hast@3.0.4)
       "@confect/cli":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)
+        version: 10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1)
       "@confect/core":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       "@confect/server":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       "@confect/test":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(convex-test@0.0.54(convex@1.42.1(react@19.2.0)))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(convex-test@0.0.54(convex@1.42.1(react@19.2.0)))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       "@convex-dev/migrations":
         specifier: 0.3.5
         version: 0.3.5(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))
@@ -378,10 +399,10 @@ importers:
         version: 0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))
       "@effect/platform-node":
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1)
+        version: 4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1)
       "@effect/vitest":
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102(effect@4.0.0-beta.102)(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))
+        version: 4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(vitest@4.1.11)
       "@maestro-template/app-idea-evaluator":
         specifier: workspace:*
         version: link:../app-idea-evaluator
@@ -420,7 +441,7 @@ importers:
         version: 2.44.0
       effect:
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102
+        version: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
       ioredis:
         specifier: 5.11.1
         version: 5.11.1
@@ -433,7 +454,7 @@ importers:
     dependencies:
       effect:
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102
+        version: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
     devDependencies:
       typescript:
         specifier: ^5.0.0
@@ -535,7 +556,7 @@ importers:
         version: 2.44.0
       effect:
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102
+        version: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
     devDependencies:
       "@types/node":
         specifier: ^22.20.0
@@ -555,16 +576,16 @@ importers:
     dependencies:
       effect:
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102
+        version: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
 
   packages/ui:
     dependencies:
       "@dnd-kit/core":
         specifier: ^6.3.1
-        version: 6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@dnd-kit/sortable":
         specifier: 8.0.0
-        version: 8.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
+        version: 8.0.0(patch_hash=bf2c240c1811d4a480bff9946f39add5ba31797fc245fb6815b6bb934abee093)(@dnd-kit/core@6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
       "@dnd-kit/utilities":
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.0)
@@ -576,19 +597,19 @@ importers:
         version: 25.2.0(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui-pro/kanban":
         specifier: ^1.0.0-next.1
-        version: 1.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 1.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/assets":
         specifier: ^1.1.0
         version: 1.1.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/modals":
         specifier: 3.0.0-next.52
-        version: 3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/use-hotkeys":
         specifier: 2.0.0-next.0
         version: 2.0.0-next.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/react-form":
         specifier: ^1.33.1
-        version: 1.33.5(@tanstack/react-start@1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 1.33.5(@tanstack/react-start@1.168.49(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/react-table":
         specifier: ^8.21.3
         version: 8.21.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -653,24 +674,24 @@ importers:
         specifier: ^1.41.3
         version: 1.42.0
       react-icons:
-        specifier: ^5.5.0
-        version: 5.5.0(react@19.2.0)
+        specifier: 5.7.0
+        version: 5.7.0(react@19.2.0)
     devDependencies:
       "@chakra-ui/react":
         specifier: 3.33.0
-        version: 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@emotion/react":
         specifier: ^11.14.0
         version: 11.14.0(@types/react@19.2.7)(react@19.2.0)
       "@saas-ui-pro/react":
         specifier: 1.0.0-next.4
-        version: 1.0.0-next.4(patch_hash=a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b)(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 1.0.0-next.4(patch_hash=a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/hooks":
         specifier: 3.0.0-next.3
         version: 3.0.0-next.3(react@19.2.0)
       "@saas-ui/react":
         specifier: 3.0.0-next.51
-        version: 3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@storybook/addon-essentials":
         specifier: ^8.6.14
         version: 8.6.14(@types/react@19.2.7)(storybook@9.1.20(@testing-library/dom@10.4.1)(prettier@3.9.4)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))
@@ -777,7 +798,7 @@ importers:
         version: link:../../packages/template-core
       effect:
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102
+        version: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
     devDependencies:
       tsx:
         specifier: ^4.0.0
@@ -805,13 +826,13 @@ importers:
         version: 0.51.4(@types/hast@3.0.4)
       "@confect/core":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       "@confect/server":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       "@confect/test":
         specifier: 10.0.0-next.9
-        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(convex-test@0.0.54(convex@1.42.1(react@19.1.0)))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+        version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(convex-test@0.0.54(convex@1.42.1(react@19.1.0)))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       "@convex-dev/prosemirror-sync":
         specifier: 0.2.5
         version: 0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(convex@1.42.1(react@19.1.0))(decode-named-character-reference@1.3.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
@@ -835,7 +856,7 @@ importers:
         version: 1.3.0
       effect:
         specifier: 4.0.0-beta.102
-        version: 4.0.0-beta.102
+        version: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
       react:
         specifier: 19.1.0
         version: 19.1.0
@@ -908,13 +929,6 @@ packages:
       {
         integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==,
       }
-
-  "@ampproject/remapping@2.3.0":
-    resolution:
-      {
-        integrity: sha512-30iZtAPgz+LTIYoeivqYo853f02jBYSd5uGnGpkFV0M3xOt9aN73erkgYAmZU43x4VfqcnLxW9Kpg3R5LC4YYw==,
-      }
-    engines: { node: ">=6.0.0" }
 
   "@ark-ui/react@5.25.1":
     resolution:
@@ -2884,13 +2898,6 @@ packages:
       }
     engines: { node: ">=12" }
 
-  "@istanbuljs/schema@0.1.6":
-    resolution:
-      {
-        integrity: sha512-+Sg6GCR/wy1oSmQDFq4LQDAhm3ETKnorxN+y5nbLULOR3P0c14f2Wurzj3/xqPXtasLFfHd5iRFQ7AJt4KH2cw==,
-      }
-    engines: { node: ">=8" }
-
   "@joshwooding/vite-plugin-react-docgen-typescript@0.6.1":
     resolution:
       {
@@ -4483,10 +4490,10 @@ packages:
         integrity: sha512-3dfx9MBP0aq5sXKteikG629X9oviptrQj0IFRk9YGcb+lB7Kv5x8S17oOSk1wUWgjQZ4xVJEMbKwOAODymocgA==,
       }
 
-  "@tanstack/history@1.162.0":
+  "@tanstack/history@1.162.1":
     resolution:
       {
-        integrity: sha512-79pf/RkhteYZTRgcR4F9kbk84P2N8rugQJswxfIqovlbRiT3yI7eBE+5QorIrZaOKktsgzRlXh1l/du/xpl4iA==,
+        integrity: sha512-DR9t6lfLVdrjgCwpglrR9DR7Ok8/HlXjcOE+goWXF3zyuLUO/ug7vMbSFxTqrQTtbRghJfyhmIZ0S6LhPIy44w==,
       }
     engines: { node: ">=20.19" }
 
@@ -4538,15 +4545,15 @@ packages:
     peerDependencies:
       react: ^18 || ^19
 
-  "@tanstack/react-router-devtools@1.167.0":
+  "@tanstack/react-router-devtools@1.167.1":
     resolution:
       {
-        integrity: sha512-nGw095EG7IHx0h5NtlEmzf6vcCTaFNPWdTSuDKazajhN0ct/v/TkekJ9J6KYUCeV1a8/2ZmToc58M+0rrOyn7w==,
+        integrity: sha512-pjfGrmjj4d7naEPM7oshqFfwBoxDPNo/UxltlHH5ePbHsJ+plBhd+JaAewm1ueYOjZ0js9hckjWWDYXpCrSfKw==,
       }
     engines: { node: ">=20.19" }
     peerDependencies:
-      "@tanstack/react-router": ^1.170.0
-      "@tanstack/router-core": ^1.170.0
+      "@tanstack/react-router": ^1.170.19
+      "@tanstack/router-core": ^1.171.16
       react: ">=18.0.0 || >=19.0.0"
       react-dom: ">=18.0.0 || >=19.0.0"
     peerDependenciesMeta:
@@ -4566,35 +4573,35 @@ packages:
       react: ">=18.0.0 || >=19.0.0"
       react-dom: ">=18.0.0 || >=19.0.0"
 
-  "@tanstack/react-router@1.170.17":
+  "@tanstack/react-router@1.170.32":
     resolution:
       {
-        integrity: sha512-ppLkjCfSMaeug9rmFRYzOd4TIqWV+yTE7tzIny7alJsSnM7w4lzEZm6eqCehG0SPetpZ0R3K+UnanSmBgOAVcQ==,
+        integrity: sha512-SIpxvaTKco100a5ZR3ePmArbhtm3XOx+w1dpGYY9gxHDta4iXSKDdQuhLonwJbIMkVJsU1rwXf0UDHMrF/1snw==,
       }
     engines: { node: ">=20.19" }
     peerDependencies:
       react: ">=18.0.0 || >=19.0.0"
       react-dom: ">=18.0.0 || >=19.0.0"
 
-  "@tanstack/react-start-client@1.168.15":
+  "@tanstack/react-start-client@1.168.30":
     resolution:
       {
-        integrity: sha512-pW50PHvadgi50iNCw6deUOvqc9rzs30SstyFZY2tcS9z1XlqTlELSvGowjxdu2m0ymtqm1emj1jau1iP7+3+PQ==,
+        integrity: sha512-qsZuykUl1EF0/rc1bin1RtjFzz07YMOTBzhOstSDzbOVm/WKf1QKFTN+qAZi74xlbXSWNuT2MiFRyg4RKwj8iw==,
       }
     engines: { node: ">=22.12.0" }
     peerDependencies:
       react: ">=18.0.0 || >=19.0.0"
       react-dom: ">=18.0.0 || >=19.0.0"
 
-  "@tanstack/react-start-rsc@0.1.26":
+  "@tanstack/react-start-rsc@0.1.48":
     resolution:
       {
-        integrity: sha512-+FMm3qtT1gWsl0i5sG/Q70mh1k7tzZUsPBaqbg4v34zVJZ+XGn1mJb34x2w7z1M0/e7co6GkZfV8BRpczrs8UA==,
+        integrity: sha512-UglRdTMuF3c4dvzL/gh4dMVbMWHsPy8ZgTQdT2qpTlyt1b/3m+R40tBFdsfTgw76VTXivW+qV/ih0PN9000XTw==,
       }
     engines: { node: ">=22.12.0" }
     peerDependencies:
       "@rspack/core": ">=2.0.0-0"
-      "@vitejs/plugin-rsc": ">=0.5.20"
+      "@vitejs/plugin-rsc": ">=0.5.30"
       react: ">=18.0.0 || >=19.0.0"
       react-dom: ">=18.0.0 || >=19.0.0"
       react-server-dom-rspack: ">=0.0.2"
@@ -4606,20 +4613,20 @@ packages:
       react-server-dom-rspack:
         optional: true
 
-  "@tanstack/react-start-server@1.167.21":
+  "@tanstack/react-start-server@1.167.37":
     resolution:
       {
-        integrity: sha512-puJ7eFxaLuDzeM/tiLDJaXCA4uK+PZnEOoIC73zipsFqx865MGzrRS/GSZxeVxjavC5iHU+ZwC+rgI0qYSol1A==,
+        integrity: sha512-cODHpFU8vIm7AdHii9W3NEuwyruNmT5wLDZjRsJLT9Jp+7FACnfJrRbvxnp1ldSv/9mxcHKi/OgwbdHQeMZcAQ==,
       }
     engines: { node: ">=22.12.0" }
     peerDependencies:
       react: ">=18.0.0 || >=19.0.0"
       react-dom: ">=18.0.0 || >=19.0.0"
 
-  "@tanstack/react-start@1.168.27":
+  "@tanstack/react-start@1.168.49":
     resolution:
       {
-        integrity: sha512-rdGFDqfCW71gyofyAxaYxhelNKmeVjpmbpm0uFYbNHORCa///4aBxi7B7ecShibKv9O4GfJ66MPX5F0ozbm+ig==,
+        integrity: sha512-iQb1ZoEHqvZMGLR4G7v3tTtgL06yv/bwxvGP3waVHxVn7bRpyopM44YbOluaGkcJzc13ZTvdLKWYNAN3bxMX/Q==,
       }
     engines: { node: ">=22.12.0" }
     peerDependencies:
@@ -4682,42 +4689,42 @@ packages:
       react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
       react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
-  "@tanstack/router-core@1.171.14":
+  "@tanstack/router-core@1.171.27":
     resolution:
       {
-        integrity: sha512-Mo3hwx0qB0cJsVYGDjG0+Ouf7VV74h/vsoDMGztdlyzDanp4gBA2s7IVvm6hFrmQM6GpD9F0Z7SqD7OldfLE7g==,
+        integrity: sha512-wDwSLvoLwIaNcnx9UNcN9Mb7Y8QwCYq1U1RQZwyN186gnkIoIYI2SOxy8VqH1vFigbkHkk4FmwMAQlghPgDK2g==,
       }
     engines: { node: ">=20.19" }
 
-  "@tanstack/router-devtools-core@1.168.0":
+  "@tanstack/router-devtools-core@1.168.1":
     resolution:
       {
-        integrity: sha512-wQoQhlBK7nlZgqzaqdYXKWNTpdHdsaREdaPhFZVH0/Ador+F+eM3/NF2i3f2LPeS0GgKraZUQXe1Q/1+KHyEYg==,
+        integrity: sha512-qr4voa4cpSMwQvS3867xkU3AB3MtJbTuovKIy+btjJ/Faju6er9w0nDylmD+005Mk/3YKw9/iueZJl2JAB7JOA==,
       }
     engines: { node: ">=20.19" }
     peerDependencies:
-      "@tanstack/router-core": ^1.170.0
+      "@tanstack/router-core": ^1.171.16
       csstype: ^3.0.10
     peerDependenciesMeta:
       csstype:
         optional: true
 
-  "@tanstack/router-generator@1.167.18":
+  "@tanstack/router-generator@1.167.33":
     resolution:
       {
-        integrity: sha512-kFvM4caRds9Q3EXg64bZubJ6rbDxyV0YDSBSGvOGzmKspQPdz5Xrh0uj5T1Ov8avUUg+c761u04VQAaEzSBXRw==,
+        integrity: sha512-Z3lCWIPuRUMPmuI8Mm48x/s49TxmHOaFVZ52j1W1QKYrsFHyT6U/h9bqfHJDxfQ8kz7y9q+W1YPKZ15Ee7yuCA==,
       }
     engines: { node: ">=20.19" }
 
-  "@tanstack/router-plugin@1.168.19":
+  "@tanstack/router-plugin@1.168.35":
     resolution:
       {
-        integrity: sha512-aFglwLc+bbPTgZlkXn3PvOwpjJAfgUyPGSuql4MP3XrqTTh6WkBiy2RYb6oaG5h0s7EKwivEuq85K3Y4V0Mt1g==,
+        integrity: sha512-foDAZKFqHXae+oFbIgcsSvy2QCVRn7XdS3nhwcRvD+ed6JrKPUP/1lQMsZLJqWycgR1vkZF7gs955KGa0NZQ0w==,
       }
     engines: { node: ">=20.19" }
     peerDependencies:
       "@rsbuild/core": ">=1.0.2 || ^2.0.0"
-      "@tanstack/react-router": ^1.170.17
+      "@tanstack/react-router": ^1.170.32
       vite: ">=5.0.0 || >=6.0.0 || >=7.0.0 || >=8.0.0"
       vite-plugin-solid: ^2.11.10 || ^3.0.0-0
       webpack: ">=5.92.0"
@@ -4750,10 +4757,10 @@ packages:
       }
     engines: { node: ">=20.19" }
 
-  "@tanstack/start-client-core@1.170.13":
+  "@tanstack/start-client-core@1.170.27":
     resolution:
       {
-        integrity: sha512-o37M3msIK5ec87kPrIYJWXb1XPnjIe5/jrkGLXiXpFuVL99z7mhoBCzftKtVPtzqI8EElnRE/VGFYT9BHNnWcw==,
+        integrity: sha512-Ro6ZSM0NgYKDMxM0e8qyU4mBfnld2Zb74BA/9f4i35C0Y3IAA8Zxs/DIPfOo9VRYWp5c5n5Q8dRBn2qn0vtPhQ==,
       }
     engines: { node: ">=22.12.0" }
 
@@ -4764,10 +4771,10 @@ packages:
       }
     engines: { node: ">=22.12.0" }
 
-  "@tanstack/start-plugin-core@1.171.19":
+  "@tanstack/start-plugin-core@1.171.39":
     resolution:
       {
-        integrity: sha512-+fpW3Z/2vPT8HDV1c5p2WC6/g2k/AV/ujdJVDcn/VFd+gXRtzSX1D/LfozlaDbhDoEsqOnAk/mGwjg60JkUA2Q==,
+        integrity: sha512-Zyj6G4MDFLXcHYhPavhewCBo8dsxi3qvPk31zl/QtTzYzOY9rJHDDBGarKsJq20ziChmkGn/sttYqb4vGCxJDA==,
       }
     engines: { node: ">=22.12.0" }
     peerDependencies:
@@ -4779,17 +4786,17 @@ packages:
       vite:
         optional: true
 
-  "@tanstack/start-server-core@1.169.16":
+  "@tanstack/start-server-core@1.169.31":
     resolution:
       {
-        integrity: sha512-lvAjQpH3nHJtd4xy0iHIaWbsTbyN9EBxuYCxbtXH0EpeBQPg+TCPhu9GQC9WbbA1rE//s82CpE55oYDQMqkU5A==,
+        integrity: sha512-56w8l+Fao01YCrmv0hzNxL3b3FRmqLRGdE11izZNQsW+1CcSYuehAM5khWKABuI1DI/UIBLGV7BwL4Dlg0eHCw==,
       }
     engines: { node: ">=22.12.0" }
 
-  "@tanstack/start-storage-context@1.167.16":
+  "@tanstack/start-storage-context@1.167.29":
     resolution:
       {
-        integrity: sha512-zTegxlij4BC1DbCrC6rsVlMOQVMzOuG5IllacZEkrUdhiFwMIMYpk0VWGH+d0ucx5RBkmv8e8GNX3AOVBWclfg==,
+        integrity: sha512-8qfprC5774XMRDQlMogkfiGpFLiBf0xDG4bMFUbfkSzpCAQwpLbgGY4Zwft22O9rKYq2vUXusKAdVjvJTUEquQ==,
       }
     engines: { node: ">=22.12.0" }
 
@@ -5800,14 +5807,14 @@ packages:
       babel-plugin-react-compiler:
         optional: true
 
-  "@vitest/coverage-v8@3.2.6":
+  "@vitest/coverage-v8@4.1.11":
     resolution:
       {
-        integrity: sha512-LsAdmUapA0qSN306d8+zOyawM0hFm2m2Hg9IwVNIKBm+qJV8cijiq2c+gxKZcB1HCfIWAy+0qEZDCUQA58A1cw==,
+        integrity: sha512-8MVGEFnJIcdGjcbfKmeq8z0pZHH0JlVtoVZH9Q/qwUp6wyFnEJUBMrw9DCaj+ra3vShGmhavjalMIhPNxZAUcw==,
       }
     peerDependencies:
-      "@vitest/browser": 3.2.6
-      vitest: 3.2.6
+      "@vitest/browser": 4.1.11
+      vitest: 4.1.11
     peerDependenciesMeta:
       "@vitest/browser":
         optional: true
@@ -5822,6 +5829,12 @@ packages:
     resolution:
       {
         integrity: sha512-1+7q9BtaKzEmO+fmNT3kYvoNn5Y71XWAx2Q5HRim4tTVRQVRv4uJFAQ5FbK0OPUeNP/WmVCpxYxoJdvuHVjzBQ==,
+      }
+
+  "@vitest/expect@4.1.11":
+    resolution:
+      {
+        integrity: sha512-VX2x5vNJXET47KAFzwERI+KRMtTTCSWTfSMKsW7JsUsXV4psq++e3DvZpuTDOpHcxytiDs6p2nhVb2tVDiiUYw==,
       }
 
   "@vitest/mocker@3.2.4":
@@ -5852,6 +5865,20 @@ packages:
       vite:
         optional: true
 
+  "@vitest/mocker@4.1.11":
+    resolution:
+      {
+        integrity: sha512-2XJVD55d1o5AZous5CCGKS74g/riOj9odEt2bQpCVZeblHyHdnMeFl4jl0XjU21stf4mbjUkew2eXQZt65g5CQ==,
+      }
+    peerDependencies:
+      msw: ^2.4.9
+      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      msw:
+        optional: true
+      vite:
+        optional: true
+
   "@vitest/pretty-format@3.2.4":
     resolution:
       {
@@ -5864,16 +5891,34 @@ packages:
         integrity: sha512-lb7XXXzmm2h2ASzFnRvQpDo6onT1NmMJA3tkGTWiBFtRJ9lxGY3d3mm/Apt36gej2bkkOVLL/yTOtufDaFa/jA==,
       }
 
+  "@vitest/pretty-format@4.1.11":
+    resolution:
+      {
+        integrity: sha512-yiZzPbGTS9Sr/JpFl8zHrcIkAofNbFV6k21vIgQN/cY/oxZeXhJv5sc/MBJ5jFKWmWs+oJHw0UXLZjmf931+Vw==,
+      }
+
   "@vitest/runner@3.2.6":
     resolution:
       {
         integrity: sha512-HYcoSj1w5tcgUnzoF0HcyaAQjpA1gj9ftUJ7iSJSuipc02jW9gKkigwZbjFldAfYHA1fa8UZVRftdMY5msWM9Q==,
       }
 
+  "@vitest/runner@4.1.11":
+    resolution:
+      {
+        integrity: sha512-LztvUgdwMNJMIkj3hQnnxiC2Xy1zNxq928W/xhjCLaNCzqTZOudjwbQf6v9IntZGPw132i2Lq2rgTRZHD3JHNw==,
+      }
+
   "@vitest/snapshot@3.2.6":
     resolution:
       {
         integrity: sha512-H+ZjNTWGpObenh0YnlBctAPnJSI20P81PL8BPzWpx54YXLLTm8hEsWawtcYLMrwvpK48hGxLLbCS+1KRXhsKhw==,
+      }
+
+  "@vitest/snapshot@4.1.11":
+    resolution:
+      {
+        integrity: sha512-pN7ikn1ON7h8ee4gIAp4AzyK+zBtJPzVbqOgu5LCEh4VaJVbPQcgYQYJIMGQPXVeJJq1fnfazis7a5pFNPahog==,
       }
 
   "@vitest/spy@3.2.4":
@@ -5888,6 +5933,12 @@ packages:
         integrity: sha512-oq6BbH68WzcWmwtBrU9nqLeaXTR4XwJF7FSLkKEZo4i6eoXcrxjcwSuTvWBIRUTC6VC72nXYunzqgZA+IKdtxg==,
       }
 
+  "@vitest/spy@4.1.11":
+    resolution:
+      {
+        integrity: sha512-apNa/prQy2qCeywhnixOHPRCgGNhvg7T4Dapfl1GahLp/R+uhBm5cPyFoNVyqsNd2h1nJxL6BqqdIjiABL60YA==,
+      }
+
   "@vitest/utils@3.2.4":
     resolution:
       {
@@ -5898,6 +5949,12 @@ packages:
     resolution:
       {
         integrity: sha512-lI23nIs4bnT3T8NIoh+vFaz5s2/DdP0Jgt2jxwgWljvwn82cLJtyi/If+fjFyoLMGIOz0U/fKvWE0d4jsNQEfg==,
+      }
+
+  "@vitest/utils@4.1.11":
+    resolution:
+      {
+        integrity: sha512-zTCVGpyFsGWBhllOyKlTw/vnr6D9qxsfSDyfbyZmTyjHw5N/VuvzHpHoQjm2ZJzn4RJgx5w4r7V0er69CmLgPQ==,
       }
 
   "@workos-inc/node@10.7.0":
@@ -7472,10 +7529,10 @@ packages:
       }
     engines: { node: ">=4" }
 
-  ast-v8-to-istanbul@0.3.12:
+  ast-v8-to-istanbul@1.0.5:
     resolution:
       {
-        integrity: sha512-BRRC8VRZY2R4Z4lFIL35MwNXmwVqBityvOIwETtsCSwvjl0IdgFsy9NhdaA6j74nUdtJJlIypeRhpDam19Wq3g==,
+        integrity: sha512-UPAgKJFSEGMWSDr3LX4tqnAb4f7KGT8O40Tyx8wbYmmZ/yn58lNCm8h3svs3eXgiGd5AXxz8NDOvXWvicq+rJA==,
       }
 
   async-channel@0.2.0:
@@ -7627,6 +7684,13 @@ packages:
     resolution:
       {
         integrity: sha512-4zNhdJD/iOjSH0A05ea+Ke6MU5mmpQcbQsSOkgdaUMJ9zTlDTD/GYlwohmIE2u0gaxHYiVHEn1Fw9mZ/ktJWgw==,
+      }
+    engines: { node: ">=18" }
+
+  chai@6.2.2:
+    resolution:
+      {
+        integrity: sha512-NUPRluOfOiTKBKvWPtSD4PhFvWCqOi0BGStNWs57X9js7XGTprSmFoz5F0tWhR4WPjNeR9jXqdC7/UpSJTnlRg==,
       }
     engines: { node: ">=18" }
 
@@ -8326,6 +8390,12 @@ packages:
         integrity: sha512-jEQoCwk8hyb2AZziIOLhDqpm5+2ww5uIE6lkO/6jcOCusfk6LhMHpXXfBLXTZ7Ydyt0j4VoUQv6uGNYbdW+kBA==,
       }
 
+  es-module-lexer@2.3.2:
+    resolution:
+      {
+        integrity: sha512-poHGpORABojJJucnV9KbOavETW8lBVnphkW77ER5/BQ5Fz7oXSoCNek7IH3vR5nRjdsEz926ibFYX8KtLQmdyw==,
+      }
+
   es-object-atoms@1.1.2:
     resolution:
       {
@@ -8716,18 +8786,15 @@ packages:
     engines: { node: ">=18.3.0" }
     hasBin: true
 
-  framer-motion@12.23.24:
+  framer-motion@13.1.1:
     resolution:
       {
-        integrity: sha512-HMi5HRoRCTou+3fb3h9oTLyJGBxHfW+HnNE25tAXOvVx/IvwMHK0cx7IR4a2ZU6sh3IX1Z+4ts32PcYBOqka8w==,
+        integrity: sha512-B/xn2TPS4f61cEBLFjiYlQFnBZUW1YVj/LM+C+N4OP8Rs95VLEI2ot/RlfBg111la/EiyECFaJJi/A3FWA8MUA==,
       }
     peerDependencies:
-      "@emotion/is-prop-valid": "*"
       react: ^18.0.0 || ^19.0.0
       react-dom: ^18.0.0 || ^19.0.0
     peerDependenciesMeta:
-      "@emotion/is-prop-valid":
-        optional: true
       react:
         optional: true
       react-dom:
@@ -9014,12 +9081,6 @@ packages:
       }
     engines: { node: ">= 4" }
 
-  immer@10.2.0:
-    resolution:
-      {
-        integrity: sha512-d/+XTN3zfODyjr89gM3mPq1WNX2B8pYsu7eORitdwyA2sBubnTl3laYlBk4sXY5FUa5qTZGBDPJICVbvqzjlbw==,
-      }
-
   immer@11.1.11:
     resolution:
       {
@@ -9258,13 +9319,6 @@ packages:
     resolution:
       {
         integrity: sha512-GCfE1mtsHGOELCU8e/Z7YWzpmybrx/+dSTfLrvY8qRmaY6zXTKWn6WQIjaAFw069icm6GVMNkgu0NzI4iPZUNw==,
-      }
-    engines: { node: ">=10" }
-
-  istanbul-lib-source-maps@5.0.6:
-    resolution:
-      {
-        integrity: sha512-yg2d+Em4KizZC5niWhQaIomgf5WlL4vOOjZ5xGCmF8SnPE/mDWWXgvRExdcpCgh9lLRRa1/fSYp2ymmbJ1pI+A==,
       }
     engines: { node: ">=10" }
 
@@ -9755,10 +9809,10 @@ packages:
         integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==,
       }
 
-  magicast@0.3.5:
+  magicast@0.5.4:
     resolution:
       {
-        integrity: sha512-L0WhttDl+2BOsybvEOLK7fW3UA0OQ0IQ2d6Zl2x/a6vVRs3bAY0ECOSHHeL5jD+SbOpOCUEi0y1DgHEn9Qn1AQ==,
+        integrity: sha512-llBEhWm1SacoRwgHUoQJYtwp4PBLF4faQi5TCpIGyGs9n4y5+juI0tDgyKIfpqxckRHaHzouUEph3THklWh03w==,
       }
 
   make-dir@2.1.0:
@@ -9897,16 +9951,16 @@ packages:
         integrity: sha512-d+ObxMQFmbt10sretNDytwt85VrbkhhUA/JBGm1MPaWJ65Cl4wOgLaB1NYvJSZ0Ef03MMEU/0xpPMXUIQ29UfA==,
       }
 
-  motion-dom@12.23.23:
+  motion-dom@13.1.1:
     resolution:
       {
-        integrity: sha512-n5yolOs0TQQBRUFImrRfs/+6X4p3Q4n1dUEqt/H58Vx7OW6RF+foWEgmTVDhIWJIMXOuNNL0apKH2S16en9eiA==,
+        integrity: sha512-XSf8VYWSB6G/0IY3rWVbyLcxWXtAVHkN1PQE2agTaCv3u8RGvbwu56TyyR/MNzBqqNavEBTZzErcxI1TxBrjcA==,
       }
 
-  motion-utils@12.39.0:
+  motion-utils@13.0.0:
     resolution:
       {
-        integrity: sha512-8nadJAJjTtqRkmRF36FoJTrywK9nnFmnPwnSMyxaOCU7GDjN9RTMJIxx9De8ErM+vpPhMccr/6fo5WciyQLnMQ==,
+        integrity: sha512-7DnN7TmbLcYXcG4RVadXIihWlyuM9afoUww8Y5Agg431kGKiuL2/OMyP4mJ5wLz+pvN3t5ySClLOaVXJ+wekRQ==,
       }
 
   ms@2.1.3:
@@ -10104,6 +10158,13 @@ packages:
         integrity: sha512-NuAESUOUMrlIXOfHKzD6bpPu3tYt3xvjNdRIQ+FeT0lNb4K8WR70CaDxhuNguS2XG+GjkyMwOzsN5ZktImfhLA==,
       }
     engines: { node: ">= 0.4" }
+
+  obug@2.1.4:
+    resolution:
+      {
+        integrity: sha512-4a+OsYv9UktOJKE+l1A4OufDgdRF9PifWj+tJnHURo/P+WOxpG4GzUFL9qCalmWauao6ogiG+QvnCovwPoyAWA==,
+      }
+    engines: { node: ">=12.20.0" }
 
   ocache@0.1.5:
     resolution:
@@ -10698,10 +10759,10 @@ packages:
     peerDependencies:
       react: ^16.8.0 || ^17 || ^18 || ^19
 
-  react-icons@5.5.0:
+  react-icons@5.7.0:
     resolution:
       {
-        integrity: sha512-MEFcXdkP3dLo8uumGI5xN3lDFNsRtrjbOEKDLD7yv76v4wpnEq2Lt2qeHaQOr34I/wPN3s3+N08WkQ+CW37Xiw==,
+        integrity: sha512-LBLy340Rzqy6+/yVhZKT3B/QpP1BZaesGqasf09HPOBzRarcDIFH0WwXlXQfE7q7ipxK4MSiC5DIBWURCny6fw==,
       }
     peerDependencies:
       react: "*"
@@ -10788,10 +10849,10 @@ packages:
       }
     engines: { node: ">= 4" }
 
-  recharts@3.5.1:
+  recharts@3.10.1:
     resolution:
       {
-        integrity: sha512-+v+HJojK7gnEgG6h+b2u7k8HH7FhyFUzAc4+cPrsjL4Otdgqr/ecXzAnHciqlzV1ko064eNcsdzrYOM78kankA==,
+        integrity: sha512-QXFrvt6IVcw7eeZCoyXTwkIJAX3Dv1nyVhMicXJ47GsGDDpcN8z6o644DibE9XjpBTThtsomLKnTV6lc+cVFUA==,
       }
     engines: { node: ">=18" }
     peerDependencies:
@@ -10855,10 +10916,10 @@ packages:
       }
     engines: { node: ">=0.10.0" }
 
-  reselect@5.1.1:
+  reselect@5.2.0:
     resolution:
       {
-        integrity: sha512-K/BG6eIky/SBpzfHZv/dd+9JBFiS4SWV7FIujVyJRux6e45+73RaUHXLmIR1f7WOMaQ0U1km6qwklRQxpJJY0w==,
+        integrity: sha512-AgZ3UOZm3YndfrJ4OYjgrT7bmCm/1iqkjvEfH/oYjzh6PD2qw4QuT3jjnXIrpdt4MTpMXclMT3lXbmRY+XRakw==,
       }
 
   resolve-from@4.0.0:
@@ -10999,19 +11060,19 @@ packages:
     engines: { node: ">=10" }
     hasBin: true
 
-  seroval-plugins@1.5.4:
+  seroval-plugins@1.6.3:
     resolution:
       {
-        integrity: sha512-S0xQPhUTefAhNvNWFg0c1J8qJArHt5KdtJ/cFAofo06KD1MVSeFWyl4iiu+ApDIuw0WhjpOfCdgConOfAnLgkw==,
+        integrity: sha512-zQIy62HW683pMIUOKv9yKueQmOr+xMjpP2eH/qEPhr6nTAC+pJTh508md571Oduf/K/QpAoyeWpOhOp1+RFeDA==,
       }
     engines: { node: ">=10" }
     peerDependencies:
       seroval: ^1.0
 
-  seroval@1.5.4:
+  seroval@1.6.3:
     resolution:
       {
-        integrity: sha512-46uFvgrXTVxZcUorgSSRZ4y+ieqLLQRMlG4bnCZKW3qI6BZm7Rg4ntMW4p1mILEEBZWrFlcpp0AyIIlM6jD9iw==,
+        integrity: sha512-5PwLbVPpT4DEki1hYVSSsoxWY6xCNMVucAVLK/CH0mXSDfp/I4KaAex72q80GNt5hpn7CCMGdSpIg4YGqH/wXQ==,
       }
     engines: { node: ">=10" }
 
@@ -11204,6 +11265,12 @@ packages:
         integrity: sha512-5GS12FdOZNliM5mAOxFRg7Ir0pWz8MdpYm6AY6VPkGpbA7ZzmbzNcBJQ0GPvvyWgcY7QAhCgf9Uy89I03faLkg==,
       }
 
+  std-env@4.2.0:
+    resolution:
+      {
+        integrity: sha512-oCUKSupKTHX53EyjDtuZQ64pjLJ6yYCtpmEw0goYxtjG9KpbRe8KAsl2tBUGU9DyMcJ0RwJ8GqJAFzMXcXW1Rw==,
+      }
+
   storybook@9.1.20:
     resolution:
       {
@@ -11365,13 +11432,6 @@ packages:
       }
     engines: { node: ">=6.0.0" }
 
-  test-exclude@7.0.2:
-    resolution:
-      {
-        integrity: sha512-u9E6A+ZDYdp7a4WnarkXPZOx8Ilz46+kby6p1yZ8zsGTz9gYa6FIS7lj2oezzNKmtdyyJNNmmXDppga5GB7kSw==,
-      }
-    engines: { node: ">=18" }
-
   tiny-invariant@1.3.3:
     resolution:
       {
@@ -11389,6 +11449,13 @@ packages:
       {
         integrity: sha512-KQQR9yN7R5+OSwaK0XQoj22pwHoTlgYqmUscPYoknOoWCWfj/5/ABTMRi69FrKU5ffPVh5QcFikpWJI/P1ocHA==,
       }
+
+  tinyexec@1.3.0:
+    resolution:
+      {
+        integrity: sha512-QKAl9m8gWWGHV8jZcPeym6j+XULi6tOf1mT83WYJ4Lk2ytW/uwAWkrP0uFsdoYMdueVJ0qs26wZ+23xeB4ibNQ==,
+      }
+    engines: { node: ">=18" }
 
   tinyglobby@0.2.17:
     resolution:
@@ -11408,6 +11475,13 @@ packages:
     resolution:
       {
         integrity: sha512-op4nsTR47R6p0vMUUoYl/a+ljLFVtlfaXkLQmqfLR1qHma1h/ysYk4hEXZ880bf2CYgTskvTa/e196Vd5dDQXw==,
+      }
+    engines: { node: ">=14.0.0" }
+
+  tinyrainbow@3.1.1:
+    resolution:
+      {
+        integrity: sha512-yau8yJdTt989Mm0Bd/236QnzEiPf2xLLTqUZRUJOo/3CB078LSwzei343DgtJVmfJKJE3TMINY1u42SQsP6mXw==,
       }
     engines: { node: ">=14.0.0" }
 
@@ -11970,6 +12044,50 @@ packages:
       jsdom:
         optional: true
 
+  vitest@4.1.11:
+    resolution:
+      {
+        integrity: sha512-fhACrNXUidIbGSBr5FlbuBkO7VWC1ZyLl0DO4CU2DrQoAPxX84Ysxs+HeGQpii5lZWV1Q4gBZTTu49mF+A6Edw==,
+      }
+    engines: { node: ^20.0.0 || ^22.0.0 || >=24.0.0 }
+    hasBin: true
+    peerDependencies:
+      "@edge-runtime/vm": "*"
+      "@opentelemetry/api": ^1.9.0
+      "@types/node": ^20.0.0 || ^22.0.0 || >=24.0.0
+      "@vitest/browser-playwright": 4.1.11
+      "@vitest/browser-preview": 4.1.11
+      "@vitest/browser-webdriverio": 4.1.11
+      "@vitest/coverage-istanbul": 4.1.11
+      "@vitest/coverage-v8": 4.1.11
+      "@vitest/ui": 4.1.11
+      happy-dom: "*"
+      jsdom: "*"
+      vite: ^6.0.0 || ^7.0.0 || ^8.0.0
+    peerDependenciesMeta:
+      "@edge-runtime/vm":
+        optional: true
+      "@opentelemetry/api":
+        optional: true
+      "@types/node":
+        optional: true
+      "@vitest/browser-playwright":
+        optional: true
+      "@vitest/browser-preview":
+        optional: true
+      "@vitest/browser-webdriverio":
+        optional: true
+      "@vitest/coverage-istanbul":
+        optional: true
+      "@vitest/coverage-v8":
+        optional: true
+      "@vitest/ui":
+        optional: true
+      happy-dom:
+        optional: true
+      jsdom:
+        optional: true
+
   w3c-keyname@2.2.8:
     resolution:
       {
@@ -12212,11 +12330,6 @@ packages:
 snapshots:
   "@adobe/css-tools@4.5.0": {}
 
-  "@ampproject/remapping@2.3.0":
-    dependencies:
-      "@jridgewell/gen-mapping": 0.3.13
-      "@jridgewell/trace-mapping": 0.3.31
-
   "@ark-ui/react@5.25.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@internationalized/date": 3.10.0
@@ -12272,7 +12385,7 @@ snapshots:
       "@zag-js/tabs": 1.24.2
       "@zag-js/tags-input": 1.24.2
       "@zag-js/timer": 1.24.2
-      "@zag-js/toast": 1.24.2
+      "@zag-js/toast": 1.24.2(patch_hash=476030f5264724cb12e74354b5ff0336aa8faffaa0adad94523ea3fbd5684403)
       "@zag-js/toggle": 1.24.2
       "@zag-js/toggle-group": 1.24.2
       "@zag-js/tooltip": 1.24.2
@@ -12341,7 +12454,7 @@ snapshots:
       "@zag-js/tabs": 1.31.1
       "@zag-js/tags-input": 1.31.1
       "@zag-js/timer": 1.31.1
-      "@zag-js/toast": 1.31.1
+      "@zag-js/toast": 1.31.1(patch_hash=49ad5a901f637e4814df92802c793272bd00273c9bfcf51df28acf8b9de51acb)
       "@zag-js/toggle": 1.31.1
       "@zag-js/toggle-group": 1.31.1
       "@zag-js/tooltip": 1.31.1
@@ -12760,7 +12873,7 @@ snapshots:
       lodash.merge: 4.6.2
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
-      react-icons: 5.5.0(react@19.1.0)
+      react-icons: 5.7.0(react@19.1.0)
       use-sync-external-store: 1.6.0(react@19.1.0)
     transitivePeerDependencies:
       - "@floating-ui/dom"
@@ -12791,7 +12904,7 @@ snapshots:
       lodash.merge: 4.6.2
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      react-icons: 5.5.0(react@19.2.0)
+      react-icons: 5.7.0(react@19.2.0)
       use-sync-external-store: 1.6.0(react@19.2.0)
     transitivePeerDependencies:
       - "@floating-ui/dom"
@@ -12822,7 +12935,7 @@ snapshots:
       lodash.merge: 4.6.2
       react: 19.1.0
       react-dom: 19.1.0(react@19.1.0)
-      react-icons: 5.5.0(react@19.1.0)
+      react-icons: 5.7.0(react@19.1.0)
       use-sync-external-store: 1.6.0(react@19.1.0)
     transitivePeerDependencies:
       - "@floating-ui/dom"
@@ -12836,14 +12949,14 @@ snapshots:
       - refractor
       - sugar-high
 
-  "@chakra-ui/charts@3.30.0(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(recharts@3.5.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1))":
+  "@chakra-ui/charts@3.30.0(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(recharts@3.10.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1))":
     dependencies:
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
-      recharts: 3.5.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1)
+      recharts: 3.10.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1)
 
-  "@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@ark-ui/react": 5.37.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@emotion/is-prop-valid": 1.4.0
@@ -12856,14 +12969,14 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@confect/cli@10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(effect@4.0.0-beta.102)(ioredis@5.11.1)":
+  "@confect/cli@10.0.0-next.9(patch_hash=1a1e00f1d9117b5d866ad1f0ca6eda3e769a036461541c3593fd2c4fa9b13a08)(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1)":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
-      "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
-      "@effect/platform-node": 4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
+      "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
+      "@effect/platform-node": 4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1)
       bundle-require: 5.1.0(esbuild@0.28.1)
       code-block-writer: 13.0.3
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
       esbuild: 0.28.1
       exsolve: 1.1.0
     transitivePeerDependencies:
@@ -12871,60 +12984,60 @@ snapshots:
       - ioredis
       - utf-8-validate
 
-  "@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)":
+  "@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))":
     dependencies:
       convex: 1.42.1(react@19.1.0)
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
 
-  "@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)":
+  "@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))":
     dependencies:
       convex: 1.42.1(react@19.2.0)
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
 
-  "@confect/js@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)":
+  "@confect/js@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       convex: 1.42.1(react@19.2.0)
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
 
-  "@confect/react@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)(react@19.2.0)":
+  "@confect/react@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(react@19.2.0)":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       convex: 1.42.1(react@19.2.0)
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
       react: 19.2.0
 
-  "@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)":
+  "@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       convex: 1.42.1(react@19.1.0)
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
     optionalDependencies:
-      "@effect/platform-node": 4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1)
+      "@effect/platform-node": 4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1)
 
-  "@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)":
+  "@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       convex: 1.42.1(react@19.2.0)
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
     optionalDependencies:
-      "@effect/platform-node": 4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1)
+      "@effect/platform-node": 4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1)
 
-  "@confect/test@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(convex-test@0.0.54(convex@1.42.1(react@19.1.0)))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)":
+  "@confect/test@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(convex-test@0.0.54(convex@1.42.1(react@19.1.0)))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
-      "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
+      "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.1.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       convex: 1.42.1(react@19.1.0)
       convex-test: 0.0.54(convex@1.42.1(react@19.1.0))
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
 
-  "@confect/test@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(convex-test@0.0.54(convex@1.42.1(react@19.2.0)))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)":
+  "@confect/test@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(convex-test@0.0.54(convex@1.42.1(react@19.2.0)))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))":
     dependencies:
-      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
-      "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102)
+      "@confect/core": 10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
+      "@confect/server": 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
       convex: 1.42.1(react@19.2.0)
       convex-test: 0.0.54(convex@1.42.1(react@19.2.0))
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
 
   "@convex-dev/migrations@0.3.5(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))":
     dependencies:
@@ -13001,7 +13114,7 @@ snapshots:
       react: 19.2.0
       tslib: 2.8.1
 
-  "@dnd-kit/core@6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@dnd-kit/core@6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@dnd-kit/accessibility": 3.1.1(react@19.2.0)
       "@dnd-kit/utilities": 3.2.2(react@19.2.0)
@@ -13009,16 +13122,16 @@ snapshots:
       react-dom: 19.2.0(react@19.2.0)
       tslib: 2.8.1
 
-  "@dnd-kit/modifiers@9.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)":
+  "@dnd-kit/modifiers@9.0.0(@dnd-kit/core@6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@dnd-kit/core": 6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@dnd-kit/core": 6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@dnd-kit/utilities": 3.2.2(react@19.2.0)
       react: 19.2.0
       tslib: 2.8.1
 
-  "@dnd-kit/sortable@8.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)":
+  "@dnd-kit/sortable@8.0.0(patch_hash=bf2c240c1811d4a480bff9946f39add5ba31797fc245fb6815b6bb934abee093)(@dnd-kit/core@6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@dnd-kit/core": 6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@dnd-kit/core": 6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@dnd-kit/utilities": 3.2.2(react@19.2.0)
       react: 19.2.0
       tslib: 2.8.1
@@ -13030,19 +13143,19 @@ snapshots:
 
   "@effect/language-service@0.87.1": {}
 
-  "@effect/platform-node-shared@4.0.0-beta.102(effect@4.0.0-beta.102)":
+  "@effect/platform-node-shared@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))":
     dependencies:
       "@types/ws": 8.18.1
-      effect: 4.0.0-beta.102
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
       ws: 8.21.0
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
 
-  "@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102)(ioredis@5.11.1)":
+  "@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1)":
     dependencies:
-      "@effect/platform-node-shared": 4.0.0-beta.102(effect@4.0.0-beta.102)
-      effect: 4.0.0-beta.102
+      "@effect/platform-node-shared": 4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
       ioredis: 5.11.1
       mime: 4.1.0
       undici: 8.9.0
@@ -13050,10 +13163,10 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  "@effect/vitest@4.0.0-beta.102(effect@4.0.0-beta.102)(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@effect/vitest@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(vitest@4.1.11)":
     dependencies:
-      effect: 4.0.0-beta.102
-      vitest: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
+      effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
+      vitest: 4.1.11(@types/node@22.20.0)(@vitest/coverage-v8@4.1.11)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
   "@emnapi/core@1.11.0":
     dependencies:
@@ -13743,8 +13856,6 @@ snapshots:
       wrap-ansi: 8.1.0
       wrap-ansi-cjs: wrap-ansi@7.0.0
 
-  "@istanbuljs/schema@0.1.6": {}
-
   "@joshwooding/vite-plugin-react-docgen-typescript@0.6.1(typescript@7.0.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
       glob: 10.5.0
@@ -14027,7 +14138,7 @@ snapshots:
       immer: 11.1.11
       redux: 5.0.1
       redux-thunk: 3.1.0(redux@5.0.1)
-      reselect: 5.1.1
+      reselect: 5.2.0
     optionalDependencies:
       react: 19.2.0
       react-redux: 9.3.0(@types/react@19.2.7)(react@19.2.0)(redux@5.0.1)
@@ -14230,43 +14341,43 @@ snapshots:
 
   "@saas-ui-pro/kanban-core@0.5.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@dnd-kit/core": 6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@dnd-kit/sortable": 8.0.0(@dnd-kit/core@6.3.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
+      "@dnd-kit/core": 6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@dnd-kit/sortable": 8.0.0(patch_hash=bf2c240c1811d4a480bff9946f39add5ba31797fc245fb6815b6bb934abee093)(@dnd-kit/core@6.3.1(patch_hash=7f2b26e2e301147e605d7d5c4ffc29420ea2ea7b4e15d9050134544f666799f4)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react@19.2.0)
       "@dnd-kit/utilities": 3.2.2(react@19.2.0)
       "@zag-js/core": 0.73.1
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@saas-ui-pro/kanban@1.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@saas-ui-pro/kanban@1.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@emotion/react": 11.14.0(@types/react@19.2.7)(react@19.2.0)
       "@saas-ui-pro/kanban-core": 0.5.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@saas-ui-pro/onboarding@1.0.0-next.0(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@saas-ui-pro/onboarding@1.0.0-next.0(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@emotion/react": 11.14.0(@types/react@19.2.7)(react@19.2.0)
       "@floating-ui/react": 0.27.19(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/core": 3.0.0-next.14(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@saas-ui/react": 3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@saas-ui-pro/react@1.0.0-next.4(patch_hash=a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b)(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@saas-ui-pro/react@1.0.0-next.4(patch_hash=a39fe46196fb3e5af204380d425842ccd465c23472268bae9f194f006472535b)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@ark-ui/react": 5.30.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@emotion/react": 11.14.0(@types/react@19.2.7)(react@19.2.0)
       "@react-hookz/web": 25.2.0(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@saas-ui-pro/onboarding": 1.0.0-next.0(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@saas-ui/chakra-preset": 3.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
+      "@saas-ui-pro/onboarding": 1.0.0-next.0(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@saas-ui/chakra-preset": 3.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       "@saas-ui/core": 3.0.0-next.14(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@saas-ui/forms": 3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@saas-ui/forms": 3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/hooks": 3.0.0-next.3(react@19.2.0)
-      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@saas-ui/react": 3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/react-table": 8.21.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/react-virtual": 3.14.5(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@zag-js/dom-utils": 0.2.4
@@ -14286,17 +14397,17 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@saas-ui/chakra-preset@3.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))":
+  "@saas-ui/chakra-preset@3.0.0-next.2(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))":
     dependencies:
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
-  "@saas-ui/chakra-preset@3.0.0-next.6(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))":
+  "@saas-ui/chakra-preset@3.0.0-next.6(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))":
     dependencies:
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
-  "@saas-ui/chakra-preset@3.0.0-next.8(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))":
+  "@saas-ui/chakra-preset@3.0.0-next.8(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))":
     dependencies:
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
 
   "@saas-ui/core@3.0.0-next.12(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
@@ -14318,13 +14429,13 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@saas-ui/forms@3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@saas-ui/forms@3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@emotion/react": 11.14.0(@types/react@19.2.7)(react@19.2.0)
       "@hookform/resolvers": 5.4.0(react-hook-form@7.80.0(react@19.2.0))
       "@saas-ui/core": 3.0.0-next.12(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@saas-ui/react": 3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@standard-schema/spec": 1.1.0
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -14340,24 +14451,24 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@saas-ui/modals@3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@saas-ui/modals@3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(@saas-ui/react@3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@emotion/react": 11.14.0(@types/react@19.2.7)(react@19.2.0)
       "@saas-ui/core": 3.0.0-next.12(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@saas-ui/forms": 3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@saas-ui/forms": 3.0.0-next.52(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/hooks": 3.0.0-next.3(react@19.2.0)
       "@saas-ui/modals-provider": 1.0.0-next.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@saas-ui/react": 3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@saas-ui/react": 3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@saas-ui/react@3.0.0-next.51(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@saas-ui/react@3.0.0-next.51(patch_hash=663aee7a4a1a8d021c7c3e7fe28134e6f9e509f6cbf73a3253cb53d636dbc47a)(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@ark-ui/react": 5.30.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@chakra-ui/react": 3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@chakra-ui/react": 3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@emotion/react": 11.14.0(@types/react@19.2.7)(react@19.2.0)
-      "@saas-ui/chakra-preset": 3.0.0-next.6(@chakra-ui/react@3.33.0(patch_hash=c08ad8e1b74998c2e85985921913da7f0967821fcfc09cbe2a4efe1a0df9d669)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
+      "@saas-ui/chakra-preset": 3.0.0-next.6(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))
       "@saas-ui/core": 3.0.0-next.12(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@saas-ui/hooks": 3.0.0-next.3(react@19.2.0)
       next-themes: 0.4.6(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -14659,14 +14770,14 @@ snapshots:
 
   "@stryker-mutator/util@9.6.1": {}
 
-  "@stryker-mutator/vitest-runner@9.6.1(@stryker-mutator/core@9.6.1(@types/node@22.20.0))(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@stryker-mutator/vitest-runner@9.6.1(@stryker-mutator/core@9.6.1(@types/node@22.20.0))(vitest@4.1.11)":
     dependencies:
       "@stryker-mutator/api": 9.6.1
       "@stryker-mutator/core": 9.6.1(@types/node@22.20.0)
       "@stryker-mutator/util": 9.6.1
       semver: 7.8.5
       tslib: 2.8.1
-      vitest: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
+      vitest: 4.1.11(@types/node@22.20.0)(@vitest/coverage-v8@4.1.11)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
   "@swc/helpers@0.5.23":
     dependencies:
@@ -14680,7 +14791,7 @@ snapshots:
       "@tanstack/pacer-lite": 0.1.1
       "@tanstack/store": 0.11.1
 
-  "@tanstack/history@1.162.0": {}
+  "@tanstack/history@1.162.1": {}
 
   "@tanstack/pacer-lite@0.1.1": {}
 
@@ -14688,13 +14799,13 @@ snapshots:
 
   "@tanstack/query-devtools@5.101.2": {}
 
-  "@tanstack/react-form@1.33.5(@tanstack/react-start@1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@tanstack/react-form@1.33.5(@tanstack/react-start@1.168.49(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@tanstack/form-core": 1.33.5
       "@tanstack/react-store": 0.11.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       react: 19.2.0
     optionalDependencies:
-      "@tanstack/react-start": 1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/react-start": 1.168.49(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
     transitivePeerDependencies:
       - react-dom
 
@@ -14709,55 +14820,54 @@ snapshots:
       "@tanstack/query-core": 5.101.2
       react: 19.2.0
 
-  "@tanstack/react-router-devtools@1.167.0(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.14)(csstype@3.2.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@tanstack/react-router-devtools@1.167.1(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce))(csstype@3.2.3)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/router-devtools-core": 1.168.0(@tanstack/router-core@1.171.14)(csstype@3.2.3)
+      "@tanstack/react-router": 1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/router-devtools-core": 1.168.1(@tanstack/router-core@1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce))(csstype@3.2.3)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
     optionalDependencies:
-      "@tanstack/router-core": 1.171.14
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
     transitivePeerDependencies:
       - csstype
 
-  "@tanstack/react-router-ssr-query@1.167.1(@tanstack/query-core@5.101.2)(@tanstack/react-query@5.101.2(react@19.2.0))(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.14)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@tanstack/react-router-ssr-query@1.167.1(@tanstack/query-core@5.101.2)(@tanstack/react-query@5.101.2(react@19.2.0))(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/router-core@1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@tanstack/query-core": 5.101.2
       "@tanstack/react-query": 5.101.2(react@19.2.0)
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/router-ssr-query-core": 1.169.1(@tanstack/query-core@5.101.2)(@tanstack/router-core@1.171.14)
+      "@tanstack/react-router": 1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/router-ssr-query-core": 1.169.1(@tanstack/query-core@5.101.2)(@tanstack/router-core@1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce))
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
     transitivePeerDependencies:
       - "@tanstack/router-core"
 
-  "@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@tanstack/history": 1.162.0
+      "@tanstack/history": 1.162.1
       "@tanstack/react-store": 0.9.3(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/router-core": 1.171.14
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
       isbot: 5.1.44
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@tanstack/react-start-client@1.168.15(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@tanstack/react-start-client@1.168.30(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/router-core": 1.171.14
-      "@tanstack/start-client-core": 1.170.13
+      "@tanstack/react-router": 1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
+      "@tanstack/start-client-core": 1.170.27
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@tanstack/react-start-rsc@0.1.26(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@tanstack/react-start-rsc@0.1.48(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/router-core": 1.171.14
+      "@tanstack/react-router": 1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
       "@tanstack/router-utils": 1.162.2
-      "@tanstack/start-client-core": 1.170.13
+      "@tanstack/start-client-core": 1.170.27
       "@tanstack/start-fn-stubs": 1.162.0
-      "@tanstack/start-plugin-core": 1.171.19(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
-      "@tanstack/start-server-core": 1.169.16(crossws@0.4.10(srvx@0.11.18))
-      "@tanstack/start-storage-context": 1.167.16
+      "@tanstack/start-plugin-core": 1.171.39(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/start-storage-context": 1.167.29
       pathe: 2.0.3
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -14775,26 +14885,26 @@ snapshots:
       - vite-plugin-solid
       - webpack
 
-  "@tanstack/react-start-server@1.167.21(crossws@0.4.10(srvx@0.11.18))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+  "@tanstack/react-start-server@1.167.37(crossws@0.4.10(srvx@0.11.18))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/router-core": 1.171.14
-      "@tanstack/start-server-core": 1.169.16(crossws@0.4.10(srvx@0.11.18))
+      "@tanstack/react-router": 1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
+      "@tanstack/start-server-core": 1.169.31(crossws@0.4.10(srvx@0.11.18))
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
     transitivePeerDependencies:
       - crossws
 
-  "@tanstack/react-start@1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@tanstack/react-start@1.168.49(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/react-start-client": 1.168.15(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/react-start-rsc": 0.1.26(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
-      "@tanstack/react-start-server": 1.167.21(crossws@0.4.10(srvx@0.11.18))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/react-router": 1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/react-start-client": 1.168.30(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/react-start-rsc": 0.1.48(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/react-start-server": 1.167.37(crossws@0.4.10(srvx@0.11.18))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@tanstack/router-utils": 1.162.2
-      "@tanstack/start-client-core": 1.170.13
-      "@tanstack/start-plugin-core": 1.171.19(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
-      "@tanstack/start-server-core": 1.169.16(crossws@0.4.10(srvx@0.11.18))
+      "@tanstack/start-client-core": 1.170.27
+      "@tanstack/start-plugin-core": 1.171.39(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/start-server-core": 1.169.31(crossws@0.4.10(srvx@0.11.18))
       pathe: 2.0.3
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -14855,25 +14965,25 @@ snapshots:
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
-  "@tanstack/router-core@1.171.14":
+  "@tanstack/router-core@1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)":
     dependencies:
-      "@tanstack/history": 1.162.0
+      "@tanstack/history": 1.162.1
       cookie-es: 3.1.1
-      seroval: 1.5.4
-      seroval-plugins: 1.5.4(seroval@1.5.4)
+      seroval: 1.6.3
+      seroval-plugins: 1.6.3(seroval@1.6.3)
 
-  "@tanstack/router-devtools-core@1.168.0(@tanstack/router-core@1.171.14)(csstype@3.2.3)":
+  "@tanstack/router-devtools-core@1.168.1(@tanstack/router-core@1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce))(csstype@3.2.3)":
     dependencies:
-      "@tanstack/router-core": 1.171.14
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
       clsx: 2.1.1
       goober: 2.1.19(csstype@3.2.3)
     optionalDependencies:
       csstype: 3.2.3
 
-  "@tanstack/router-generator@1.167.18":
+  "@tanstack/router-generator@1.167.33":
     dependencies:
       "@babel/types": 7.29.7
-      "@tanstack/router-core": 1.171.14
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
       "@tanstack/router-utils": 1.162.2
       "@tanstack/virtual-file-routes": 1.162.0
       jiti: 2.7.0
@@ -14883,19 +14993,19 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  "@tanstack/router-plugin@1.168.19(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@tanstack/router-plugin@1.168.35(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
       "@babel/core": 7.29.7
       "@babel/template": 7.29.7
       "@babel/types": 7.29.7
-      "@tanstack/router-core": 1.171.14
-      "@tanstack/router-generator": 1.167.18
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
+      "@tanstack/router-generator": 1.167.33
       "@tanstack/router-utils": 1.162.2
       chokidar: 5.0.0
       unplugin: 3.3.0(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       zod: 4.4.3
     optionalDependencies:
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/react-router": 1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       vite: 8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
     transitivePeerDependencies:
       - "@farmfe/core"
@@ -14907,10 +15017,10 @@ snapshots:
       - supports-color
       - unloader
 
-  "@tanstack/router-ssr-query-core@1.169.1(@tanstack/query-core@5.101.2)(@tanstack/router-core@1.171.14)":
+  "@tanstack/router-ssr-query-core@1.169.1(@tanstack/query-core@5.101.2)(@tanstack/router-core@1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce))":
     dependencies:
       "@tanstack/query-core": 5.101.2
-      "@tanstack/router-core": 1.171.14
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
 
   "@tanstack/router-utils@1.162.2":
     dependencies:
@@ -14925,32 +15035,32 @@ snapshots:
     transitivePeerDependencies:
       - supports-color
 
-  "@tanstack/start-client-core@1.170.13":
+  "@tanstack/start-client-core@1.170.27":
     dependencies:
-      "@tanstack/router-core": 1.171.14
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
       "@tanstack/start-fn-stubs": 1.162.0
-      "@tanstack/start-storage-context": 1.167.16
-      seroval: 1.5.4
+      "@tanstack/start-storage-context": 1.167.29
+      seroval: 1.6.3
 
   "@tanstack/start-fn-stubs@1.162.0": {}
 
-  "@tanstack/start-plugin-core@1.171.19(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@tanstack/start-plugin-core@1.171.39(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
       "@babel/code-frame": 7.27.1
       "@babel/core": 7.29.7
       "@babel/types": 7.29.7
-      "@tanstack/router-core": 1.171.14
-      "@tanstack/router-generator": 1.167.18
-      "@tanstack/router-plugin": 1.168.19(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
+      "@tanstack/router-generator": 1.167.33
+      "@tanstack/router-plugin": 1.168.35(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       "@tanstack/router-utils": 1.162.2
-      "@tanstack/start-server-core": 1.169.16(crossws@0.4.10(srvx@0.11.18))
+      "@tanstack/start-server-core": 1.169.31(crossws@0.4.10(srvx@0.11.18))
       exsolve: 1.1.0
       lightningcss: 1.32.0
       pathe: 2.0.3
-      picomatch: 4.0.4
-      seroval: 1.5.4
+      picomatch: 4.0.5
+      seroval: 1.6.3
       source-map: 0.7.6
-      srvx: 0.11.18
+      srvx: 0.11.22
       tinyglobby: 0.2.17
       ufo: 1.6.4
       vitefu: 1.1.3(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
@@ -14972,21 +15082,21 @@ snapshots:
       - vite-plugin-solid
       - webpack
 
-  "@tanstack/start-server-core@1.169.16(crossws@0.4.10(srvx@0.11.18))":
+  "@tanstack/start-server-core@1.169.31(crossws@0.4.10(srvx@0.11.18))":
     dependencies:
-      "@tanstack/history": 1.162.0
-      "@tanstack/router-core": 1.171.14
-      "@tanstack/start-client-core": 1.170.13
-      "@tanstack/start-storage-context": 1.167.16
+      "@tanstack/history": 1.162.1
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
+      "@tanstack/start-client-core": 1.170.27
+      "@tanstack/start-storage-context": 1.167.29
       fetchdts: 0.1.7
       h3-v2: h3@2.0.1-rc.20(crossws@0.4.10(srvx@0.11.18))
-      seroval: 1.5.4
+      seroval: 1.6.3
     transitivePeerDependencies:
       - crossws
 
-  "@tanstack/start-storage-context@1.167.16":
+  "@tanstack/start-storage-context@1.167.29":
     dependencies:
-      "@tanstack/router-core": 1.171.14
+      "@tanstack/router-core": 1.171.27(patch_hash=7e5e21cfbf3dcbc5ebfc5de9259b00a9f9ca11914c6b90b6cf48ca52cf8746ce)
 
   "@tanstack/store@0.11.1": {}
 
@@ -15635,24 +15745,19 @@ snapshots:
       "@rolldown/pluginutils": 1.0.1
       vite: 8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
 
-  "@vitest/coverage-v8@3.2.6(vitest@3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0))":
+  "@vitest/coverage-v8@4.1.11(vitest@4.1.11)":
     dependencies:
-      "@ampproject/remapping": 2.3.0
       "@bcoe/v8-coverage": 1.0.2
-      ast-v8-to-istanbul: 0.3.12
-      debug: 4.4.3
+      "@vitest/utils": 4.1.11
+      ast-v8-to-istanbul: 1.0.5
       istanbul-lib-coverage: 3.2.2
       istanbul-lib-report: 3.0.1
-      istanbul-lib-source-maps: 5.0.6
       istanbul-reports: 3.2.0
-      magic-string: 0.30.21
-      magicast: 0.3.5
-      std-env: 3.10.0
-      test-exclude: 7.0.2
-      tinyrainbow: 2.0.0
-      vitest: 3.2.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
-    transitivePeerDependencies:
-      - supports-color
+      magicast: 0.5.4
+      obug: 2.1.4
+      std-env: 4.2.0
+      tinyrainbow: 3.1.1
+      vitest: 4.1.11(@types/node@22.20.0)(@vitest/coverage-v8@4.1.11)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
 
   "@vitest/expect@3.2.4":
     dependencies:
@@ -15670,6 +15775,15 @@ snapshots:
       chai: 5.3.3
       tinyrainbow: 2.0.0
 
+  "@vitest/expect@4.1.11":
+    dependencies:
+      "@standard-schema/spec": 1.1.0
+      "@types/chai": 5.2.3
+      "@vitest/spy": 4.1.11
+      "@vitest/utils": 4.1.11
+      chai: 6.2.2
+      tinyrainbow: 3.1.1
+
   "@vitest/mocker@3.2.4(vite@8.1.4(@types/node@22.20.0)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
       "@vitest/spy": 3.2.4
@@ -15686,6 +15800,14 @@ snapshots:
     optionalDependencies:
       vite: 7.3.6(@types/node@22.20.0)(jiti@2.7.0)(lightningcss@1.32.0)(tsx@4.22.4)(yaml@2.9.0)
 
+  "@vitest/mocker@4.1.11(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
+    dependencies:
+      "@vitest/spy": 4.1.11
+      estree-walker: 3.0.3
+      magic-string: 0.30.21
+    optionalDependencies:
+      vite: 8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
+
   "@vitest/pretty-format@3.2.4":
     dependencies:
       tinyrainbow: 2.0.0
@@ -15694,15 +15816,31 @@ snapshots:
     dependencies:
       tinyrainbow: 2.0.0
 
+  "@vitest/pretty-format@4.1.11":
+    dependencies:
+      tinyrainbow: 3.1.1
+
   "@vitest/runner@3.2.6":
     dependencies:
       "@vitest/utils": 3.2.6
       pathe: 2.0.3
       strip-literal: 3.1.0
 
+  "@vitest/runner@4.1.11":
+    dependencies:
+      "@vitest/utils": 4.1.11
+      pathe: 2.0.3
+
   "@vitest/snapshot@3.2.6":
     dependencies:
       "@vitest/pretty-format": 3.2.6
+      magic-string: 0.30.21
+      pathe: 2.0.3
+
+  "@vitest/snapshot@4.1.11":
+    dependencies:
+      "@vitest/pretty-format": 4.1.11
+      "@vitest/utils": 4.1.11
       magic-string: 0.30.21
       pathe: 2.0.3
 
@@ -15713,6 +15851,8 @@ snapshots:
   "@vitest/spy@3.2.6":
     dependencies:
       tinyspy: 4.0.4
+
+  "@vitest/spy@4.1.11": {}
 
   "@vitest/utils@3.2.4":
     dependencies:
@@ -15726,6 +15866,12 @@ snapshots:
       loupe: 3.2.1
       tinyrainbow: 2.0.0
 
+  "@vitest/utils@4.1.11":
+    dependencies:
+      "@vitest/pretty-format": 4.1.11
+      convert-source-map: 2.0.0
+      tinyrainbow: 3.1.1
+
   "@workos-inc/node@10.7.0": {}
 
   "@workos/authkit-session@0.6.0(@workos-inc/node@10.7.0)(typescript@5.9.3)":
@@ -15737,10 +15883,10 @@ snapshots:
     transitivePeerDependencies:
       - typescript
 
-  "@workos/authkit-tanstack-react-start@0.9.1(@tanstack/react-router@1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/react-start@1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.7.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)":
+  "@workos/authkit-tanstack-react-start@0.9.1(@tanstack/react-router@1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tanstack/react-start@1.168.49(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)))(@workos-inc/node@10.7.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(typescript@5.9.3)":
     dependencies:
-      "@tanstack/react-router": 1.170.17(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tanstack/react-start": 1.168.27(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@tanstack/react-router": 1.170.32(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tanstack/react-start": 1.168.49(crossws@0.4.10(srvx@0.11.18))(esbuild@0.28.1)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
       "@workos/authkit-session": 0.6.0(@workos-inc/node@10.7.0)(typescript@5.9.3)
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
@@ -17233,7 +17379,7 @@ snapshots:
       "@zag-js/types": 1.41.2
       "@zag-js/utils": 1.41.2
 
-  "@zag-js/toast@1.24.2":
+  "@zag-js/toast@1.24.2(patch_hash=476030f5264724cb12e74354b5ff0336aa8faffaa0adad94523ea3fbd5684403)":
     dependencies:
       "@zag-js/anatomy": 1.24.2
       "@zag-js/core": 1.24.2
@@ -17242,7 +17388,7 @@ snapshots:
       "@zag-js/types": 1.24.2
       "@zag-js/utils": 1.24.2
 
-  "@zag-js/toast@1.31.1":
+  "@zag-js/toast@1.31.1(patch_hash=49ad5a901f637e4814df92802c793272bd00273c9bfcf51df28acf8b9de51acb)":
     dependencies:
       "@zag-js/anatomy": 1.31.1
       "@zag-js/core": 1.31.1
@@ -17493,7 +17639,7 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
-  ast-v8-to-istanbul@0.3.12:
+  ast-v8-to-istanbul@1.0.5:
     dependencies:
       "@jridgewell/trace-mapping": 0.3.31
       estree-walker: 3.0.3
@@ -17592,6 +17738,8 @@ snapshots:
       deep-eql: 5.0.2
       loupe: 3.2.1
       pathval: 2.0.1
+
+  chai@6.2.2: {}
 
   chalk@4.1.2:
     dependencies:
@@ -17914,7 +18062,7 @@ snapshots:
 
   eastasianwidth@0.2.0: {}
 
-  effect@4.0.0-beta.102:
+  effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811):
     dependencies:
       "@standard-schema/spec": 1.1.0
       fast-check: 4.9.0
@@ -17958,6 +18106,8 @@ snapshots:
   es-errors@1.3.0: {}
 
   es-module-lexer@1.7.0: {}
+
+  es-module-lexer@2.3.2: {}
 
   es-object-atoms@1.1.2:
     dependencies:
@@ -18277,13 +18427,12 @@ snapshots:
     dependencies:
       fd-package-json: 2.0.0
 
-  framer-motion@12.23.24(@emotion/is-prop-valid@1.4.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
+  framer-motion@13.1.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
-      motion-dom: 12.23.23
-      motion-utils: 12.39.0
+      motion-dom: 13.1.1
+      motion-utils: 13.0.0
       tslib: 2.8.1
     optionalDependencies:
-      "@emotion/is-prop-valid": 1.4.0
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
 
@@ -18442,8 +18591,6 @@ snapshots:
 
   ignore@7.0.5: {}
 
-  immer@10.2.0: {}
-
   immer@11.1.11: {}
 
   import-fresh@3.3.1:
@@ -18551,14 +18698,6 @@ snapshots:
       istanbul-lib-coverage: 3.2.2
       make-dir: 4.0.0
       supports-color: 7.2.0
-
-  istanbul-lib-source-maps@5.0.6:
-    dependencies:
-      "@jridgewell/trace-mapping": 0.3.31
-      debug: 4.4.3
-      istanbul-lib-coverage: 3.2.2
-    transitivePeerDependencies:
-      - supports-color
 
   istanbul-reports@3.2.0:
     dependencies:
@@ -18813,7 +18952,7 @@ snapshots:
     dependencies:
       "@jridgewell/sourcemap-codec": 1.5.5
 
-  magicast@0.3.5:
+  magicast@0.5.4:
     dependencies:
       "@babel/parser": 7.29.7
       "@babel/types": 7.29.7
@@ -18885,11 +19024,11 @@ snapshots:
       pkg-types: 1.3.1
       ufo: 1.6.4
 
-  motion-dom@12.23.23:
+  motion-dom@13.1.1:
     dependencies:
-      motion-utils: 12.39.0
+      motion-utils: 13.0.0
 
-  motion-utils@12.39.0: {}
+  motion-utils@13.0.0: {}
 
   ms@2.1.3: {}
 
@@ -19026,6 +19165,8 @@ snapshots:
   object-inspect@1.13.4: {}
 
   object-keys@1.1.1: {}
+
+  obug@2.1.4: {}
 
   ocache@0.1.5:
     dependencies:
@@ -19399,11 +19540,11 @@ snapshots:
     dependencies:
       react: 19.2.0
 
-  react-icons@5.5.0(react@19.1.0):
+  react-icons@5.7.0(react@19.1.0):
     dependencies:
       react: 19.1.0
 
-  react-icons@5.5.0(react@19.2.0):
+  react-icons@5.7.0(react@19.2.0):
     dependencies:
       react: 19.2.0
 
@@ -19474,19 +19615,19 @@ snapshots:
       tiny-invariant: 1.3.3
       tslib: 2.8.1
 
-  recharts@3.5.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1):
+  recharts@3.10.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1):
     dependencies:
       "@reduxjs/toolkit": 2.12.0(react-redux@9.3.0(@types/react@19.2.7)(react@19.2.0)(redux@5.0.1))(react@19.2.0)
       clsx: 2.1.1
       decimal.js-light: 2.5.1
       es-toolkit: 1.50.0
       eventemitter3: 5.0.4
-      immer: 10.2.0
+      immer: 11.1.11
       react: 19.2.0
       react-dom: 19.2.0(react@19.2.0)
       react-is: 19.2.8
       react-redux: 9.3.0(@types/react@19.2.7)(react@19.2.0)(redux@5.0.1)
-      reselect: 5.1.1
+      reselect: 5.2.0
       tiny-invariant: 1.3.3
       use-sync-external-store: 1.6.0(react@19.2.0)
       victory-vendor: 37.3.6
@@ -19519,7 +19660,7 @@ snapshots:
 
   require-from-string@2.0.2: {}
 
-  reselect@5.1.1: {}
+  reselect@5.2.0: {}
 
   resolve-from@4.0.0: {}
 
@@ -19641,11 +19782,11 @@ snapshots:
 
   semver@7.8.5: {}
 
-  seroval-plugins@1.5.4(seroval@1.5.4):
+  seroval-plugins@1.6.3(seroval@1.6.3):
     dependencies:
-      seroval: 1.5.4
+      seroval: 1.6.3
 
-  seroval@1.5.4: {}
+  seroval@1.6.3: {}
 
   server-only@0.0.1: {}
 
@@ -19739,6 +19880,8 @@ snapshots:
       fast-sha256: 1.3.0
 
   std-env@3.10.0: {}
+
+  std-env@4.2.0: {}
 
   storybook@9.1.20(@testing-library/dom@10.4.1)(prettier@3.9.4)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)):
     dependencies:
@@ -19839,17 +19982,13 @@ snapshots:
     dependencies:
       rimraf: 2.6.3
 
-  test-exclude@7.0.2:
-    dependencies:
-      "@istanbuljs/schema": 0.1.6
-      glob: 10.5.0
-      minimatch: 10.2.5
-
   tiny-invariant@1.3.3: {}
 
   tinybench@2.9.0: {}
 
   tinyexec@0.3.2: {}
+
+  tinyexec@1.3.0: {}
 
   tinyglobby@0.2.17:
     dependencies:
@@ -19859,6 +19998,8 @@ snapshots:
   tinypool@1.1.1: {}
 
   tinyrainbow@2.0.0: {}
+
+  tinyrainbow@3.1.1: {}
 
   tinyspy@4.0.4: {}
 
@@ -20016,7 +20157,7 @@ snapshots:
   unplugin@3.3.0(esbuild@0.28.1)(rolldown@1.1.5)(rollup@4.62.2)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)):
     dependencies:
       "@jridgewell/remapping": 2.3.5
-      picomatch: 4.0.4
+      picomatch: 4.0.5
       webpack-virtual-modules: 0.6.2
     optionalDependencies:
       esbuild: 0.28.1
@@ -20190,6 +20331,34 @@ snapshots:
       - terser
       - tsx
       - yaml
+
+  vitest@4.1.11(@types/node@22.20.0)(@vitest/coverage-v8@4.1.11)(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)):
+    dependencies:
+      "@vitest/expect": 4.1.11
+      "@vitest/mocker": 4.1.11(vite@8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))
+      "@vitest/pretty-format": 4.1.11
+      "@vitest/runner": 4.1.11
+      "@vitest/snapshot": 4.1.11
+      "@vitest/spy": 4.1.11
+      "@vitest/utils": 4.1.11
+      es-module-lexer: 2.3.2
+      expect-type: 1.4.0
+      magic-string: 0.30.21
+      obug: 2.1.4
+      pathe: 2.0.3
+      picomatch: 4.0.5
+      std-env: 4.2.0
+      tinybench: 2.9.0
+      tinyexec: 1.3.0
+      tinyglobby: 0.2.17
+      tinyrainbow: 3.1.1
+      vite: 8.1.4(@types/node@22.20.0)(esbuild@0.28.1)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0)
+      why-is-node-running: 2.3.0
+    optionalDependencies:
+      "@types/node": 22.20.0
+      "@vitest/coverage-v8": 4.1.11(vitest@4.1.11)
+    transitivePeerDependencies:
+      - msw
 
   w3c-keyname@2.2.8: {}
 

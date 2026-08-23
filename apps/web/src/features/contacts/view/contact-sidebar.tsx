@@ -23,7 +23,7 @@ import {
   TagsListItem,
 } from '@workspace/ui/tags-list'
 
-import { useTags } from '#features/common/hooks/use-tags'
+import { useTagOptions } from '#features/common/hooks/use-tags'
 import { api } from '#lib/trpc/react'
 
 import { ContactStatus } from '../common/contact-status'
@@ -49,7 +49,6 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
       boxShadow="md"
       bg="bg.panel"
       borderLeftWidth="1px"
-      size="lg"
       {...rest}
     >
       {contact ? (
@@ -80,7 +79,7 @@ export const ContactSidebar: React.FC<ContactSidebarProps> = (props) => {
 function ContactDetails({ contact }: { contact: ContactDTO }) {
   const tags = contact.tags || []
 
-  const allTags = useTags()
+  const allTags = useTagOptions()
 
   const utils = api.useUtils()
 
@@ -134,7 +133,7 @@ function ContactDetails({ contact }: { contact: ContactDTO }) {
             <Icon
               transitionProperty="transform"
               transitionDuration="fast"
-              _groupOpen={{
+              _groupExpanded={{
                 transform: 'rotate(90deg)',
               }}
             >

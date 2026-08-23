@@ -24,7 +24,7 @@ export function InboxLayout({
   children,
 }: {
   params: { workspace: string; id?: string }
-  children: React.ReactNode
+  children: React.ReactElement
 }) {
   const navigate = useNavigate()
 
@@ -155,7 +155,11 @@ export function InboxLayout({
   )
 
   return (
-    <SplitPage open={open} onOpenChange={setOpen}>
+    <SplitPage
+      open={!!open}
+      onOpen={() => setOpen(true)}
+      onClose={() => setOpen(false)}
+    >
       <Resizer
         defaultWidth={width}
         onResize={({ width }) => setWidth(width)}

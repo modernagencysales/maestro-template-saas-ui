@@ -6,6 +6,9 @@ import {
   VStack,
 } from '@saas-ui/react'
 
+type SettingsPageRootProps = Page.RootProps & { variant?: 'settings' }
+const PageRoot = Page.Root as React.ComponentType<SettingsPageRootProps>
+
 interface SettingsPageProps
   extends
     Omit<Page.RootProps, 'title'>,
@@ -33,7 +36,7 @@ export const SettingsPage = (props: SettingsPageProps) => {
   } = props
 
   return (
-    <Page.Root variant="settings" mt={[14, null, 0]} bg="bg.muted" {...rest}>
+    <PageRoot variant="settings" mt={[14, null, 0]} bg="bg.muted" {...rest}>
       <Container maxW={contentWidth}>
         <Page.Header
           title={title}
@@ -51,6 +54,6 @@ export const SettingsPage = (props: SettingsPageProps) => {
           </VStack>
         </Page.Body>
       </Container>
-    </Page.Root>
+    </PageRoot>
   )
 }

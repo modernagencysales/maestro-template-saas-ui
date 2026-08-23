@@ -5,7 +5,10 @@ import {
   collectResolvedVersions,
   findGeneratedPresetTypeImports,
   findLegacyFrontendApiImports,
+  findUnmaterializedShellImports,
+  hasMenuButtonValueOmission,
   missingButtonRecipeVariants,
+  missingStarterRecipeVariants,
   type DependencyTree,
 } from "./check-frontend-dependency-contract.mts";
 
@@ -43,6 +46,35 @@ describe("frontend dependency contract", () => {
     ).toEqual([]);
   });
 
+  it("requires generated recipe types to match Starter runtime variants", () => {
+    expect(
+      missingStarterRecipeVariants(`
+        export interface BadgeVariant { variant?: "subtle" }
+        export interface MenuVariant { variant?: "subtle" }
+        export interface TabsVariant { size?: "sm"; variant?: "line" }
+      `),
+    ).toEqual([
+      "Badge.variant:ghost",
+      "Menu.variant:compact",
+      "Menu.variant:default",
+      "Tabs.size:xs",
+      "Tabs.variant:pills",
+    ]);
+  });
+
+  it("requires the Saas UI menu trigger type compatibility patch", () => {
+    expect(
+      hasMenuButtonValueOmission(
+        `interface MenuButtonProps extends ButtonProps, ChakraMenu.TriggerProps {}`,
+      ),
+    ).toBe(false);
+    expect(
+      hasMenuButtonValueOmission(
+        `interface MenuButtonProps extends Omit<ButtonProps, 'value'>, ChakraMenu.TriggerProps {}`,
+      ),
+    ).toBe(true);
+  });
+
   it("rejects registry wrappers that import unpublished generated recipe types", () => {
     expect(
       findGeneratedPresetTypeImports({
@@ -53,6 +85,19 @@ describe("frontend dependency contract", () => {
     ).toEqual([
       "also-invalid.tsx imports an unpublished generated VariantProps type from @saas-ui/chakra-preset",
       "invalid.tsx imports an unpublished generated VariantProps type from @saas-ui/chakra-preset",
+    ]);
+  });
+
+  it("requires shell-level variants to use the materialized registry", () => {
+    expect(
+      findUnmaterializedShellImports({
+        "apps/web/src/components/default-loader.tsx": `import { LoadingOverlay } from "@saas-ui/react";`,
+        "apps/web/src/features/common/layouts/app-layout.tsx": `import { Sidebar } from "@saas-ui/react";`,
+        "valid.tsx": `import { Sidebar } from "#components/ui/sidebar";`,
+      }),
+    ).toEqual([
+      "apps/web/src/components/default-loader.tsx must use the materialized LoadingOverlay registry primitive",
+      "apps/web/src/features/common/layouts/app-layout.tsx must use the materialized Sidebar registry primitive",
     ]);
   });
 

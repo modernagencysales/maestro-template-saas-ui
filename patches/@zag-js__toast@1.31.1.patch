@@ -1,0 +1,13 @@
+diff --git a/dist/index.d.mts b/dist/index.d.mts
+index ea145859a42eba6e1dbb41fd8cbf23fc6fe1db67..19ea4bf572aefa6b5cc7e071da4d17295b2465c5 100644
+--- a/dist/index.d.mts
++++ b/dist/index.d.mts
+@@ -90,7 +90,7 @@ interface ToastProps<T = any> extends Omit<CommonProperties, "id">, Options<T> {
+      */
+     gap?: number | undefined;
+ }
+-type ToastPropsWithDefault = "type" | "parent" | "duration" | "id" | "removeDelay";
++type ToastPropsWithDefault = "type" | "duration" | "id" | "removeDelay";
+ type ToastSchema<O = any> = {
+     props: RequiredBy<ToastProps<O>, ToastPropsWithDefault>;
+     context: {

@@ -273,13 +273,15 @@
       "source": "packages/blocks/menus/organization-menu/organization-menu.tsx",
       "destination": "apps/web/src/components/organization-menu/organization-menu.tsx",
       "sourceSha256": "50403a94205285cd9df6cb3ad03fdbea5d6e190e106220fd380b8ba5c4cab1c5",
-      "sha256": "dc3d19f27e086349016181629cf76fa903d0f92bba057835734086c79f4f37bf"
+      "sha256": "e1a930f06b7f3a7a8188334f95f20a8bc0217dc65069bdb0c4f54724a5a0094a",
+      "adapted": true
     },
     {
       "source": "packages/blocks/menus/roles-menu/roles-menu.tsx",
       "destination": "apps/web/src/components/roles-menu/roles-menu.tsx",
       "sourceSha256": "b53da677619a549518f135058962a04aad7590aae3972ee420438fd665761ba4",
-      "sha256": "faaba90f458b0e657c1391b8a43ab5cf43b133182ca7840167c864cdb04951f4"
+      "sha256": "5fbf809d8438ba98f03bd9fe105ac17569300db32584a9e6a104e8f294d145a3",
+      "adapted": true
     },
     {
       "source": "packages/blocks/modals/select-users-modal/select-users-modal.tsx",
@@ -333,7 +335,8 @@
       "source": "packages/blocks/lists/sortable-task-list/sortable-task-list.tsx",
       "destination": "apps/web/src/components/sortable-task-list/sortable-task-list.tsx",
       "sourceSha256": "72e4ed382b3c085e20a0c47f14ebbe103d4f78450b0ffa53a0f2b439f285b270",
-      "sha256": "3730165694ca3a96f70cffefe03daff01969b59e3648b954925ddc80d857f407"
+      "sha256": "442df50e3d2c70da27f71fd332fe46ef1966be325ea117a90d04e40059716605",
+      "adapted": true
     },
     {
       "source": "packages/blocks/cards/task-card-with-labels/task-card-with-labels.tsx",
@@ -438,7 +441,8 @@
       "source": "registry:file-upload/ui/file-upload/file-upload.tsx",
       "destination": "apps/web/src/components/ui/file-upload/file-upload.tsx",
       "sourceSha256": "4c0e8a2f2710b002084eb177950ae9a1a629aa5de31e787912f2b528c60b1790",
-      "sha256": "30e15db24d9749cc7da4b7b73af612110d9e262f40cea4125b2414a6407e669c"
+      "sha256": "a7c89884644d6e66ea9bdf5af8bf1981a46d6d48d3e5420f915ae497663e2394",
+      "adapted": true
     },
     {
       "source": "registry:file-upload/ui/file-upload/index.ts",
@@ -543,7 +547,8 @@
       "source": "registry:menu/ui/menu/menu.tsx",
       "destination": "apps/web/src/components/ui/menu/menu.tsx",
       "sourceSha256": "328701b79ed078994a34df2f0c6761b8f9bdd9f0dd5d3f04ae4772a5773f0aa1",
-      "sha256": "534bce45206c2f98005a4e1768de7d2ad2c1155d9872bbf2e37be53cb23515bf"
+      "sha256": "394f3220547d0c449bdf0b8cceac1de90f24361ab393c31601eb85bbc99b2483",
+      "adapted": true
     },
     {
       "source": "registry:navbar/ui/navbar/index.ts",

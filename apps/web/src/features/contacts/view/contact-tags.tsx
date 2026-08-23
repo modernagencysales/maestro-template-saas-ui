@@ -8,13 +8,13 @@ import {
   TagsListItem,
 } from '@workspace/ui/tags-list'
 
-import { useTags } from '#features/common/hooks/use-tags'
+import { useTagOptions } from '#features/common/hooks/use-tags'
 import { api } from '#lib/trpc/react'
 
 export const ContactTags: React.FC<{ contact: ContactDTO }> = ({ contact }) => {
   const tags = contact.tags || []
 
-  const allTags = useTags()
+  const allTags = useTagOptions()
 
   const utils = api.useUtils()
 
@@ -53,7 +53,7 @@ export const ContactTags: React.FC<{ contact: ContactDTO }> = ({ contact }) => {
             key={tag.id}
             icon={<TagColor color={tag?.color ?? undefined} />}
           >
-            {tag?.name || t}
+            {tag?.label || t}
           </TagsListItem>
         ) : null
       })}

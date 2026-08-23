@@ -31,6 +31,32 @@ export const missingButtonRecipeVariants = (
 ): readonly string[] =>
   themeButtonVariants.filter((variant) => !source.includes(`"${variant}"`));
 
+const starterRecipeVariants = {
+  Badge: { variant: ["ghost"] },
+  Menu: { variant: ["compact", "default"] },
+  Tabs: { size: ["xs"], variant: ["pills"] },
+} as const;
+
+export const missingStarterRecipeVariants = (
+  source: string,
+): readonly string[] =>
+  Object.entries(starterRecipeVariants).flatMap(([recipe, fields]) => {
+    const body = new RegExp(
+      `export interface ${recipe}Variant \\{([\\s\\S]*?)\\n\\}`,
+      "u",
+    ).exec(source)?.[1];
+    return Object.entries(fields).flatMap(([field, variants]) =>
+      variants.flatMap((variant) =>
+        body?.includes(`"${variant}"`) ? [] : [`${recipe}.${field}:${variant}`],
+      ),
+    );
+  });
+
+export const hasMenuButtonValueOmission = (source: string): boolean =>
+  /MenuButtonProps\s+extends\s+Omit<ButtonProps,\s*["']value["']>/u.test(
+    source,
+  );
+
 const generatedPresetTypeImport =
   /import(?:\s+type)?\s*\{[^}]*\b(?:type\s+)?\w+VariantProps\b[^}]*\}\s*from\s*["']@saas-ui\/chakra-preset\/(?:slot-)?recipes\//u;
 
@@ -80,6 +106,34 @@ export const findLegacyFrontendApiImports = (
       ),
     )
     .sort();
+
+const materializedShellPrimitives = [
+  {
+    path: "apps/web/src/components/default-loader.tsx",
+    name: "LoadingOverlay",
+  },
+  {
+    path: "apps/web/src/features/common/layouts/app-layout.tsx",
+    name: "Sidebar",
+  },
+] as const;
+
+export const findUnmaterializedShellImports = (
+  files: Readonly<Record<string, string>>,
+): readonly string[] =>
+  materializedShellPrimitives.flatMap(({ path, name }) => {
+    const source = files[path];
+    if (
+      source === undefined ||
+      !new RegExp(
+        `import\\s*\\{[^}]*\\b${name}\\b[^}]*\\}\\s*from\\s*["']@saas-ui/react["']`,
+        "u",
+      ).test(source)
+    ) {
+      return [];
+    }
+    return [`${path} must use the materialized ${name} registry primitive`];
+  });
 
 export const collectResolvedVersions = (
   roots: readonly DependencyTree[],
@@ -162,15 +216,29 @@ export const checkFrontendDependencyContract = (
     ),
     "utf8",
   );
+  const saasUiPatch = readFileSync(
+    resolve(root, "patches/@saas-ui__react@3.0.0-next.51.patch"),
+    "utf8",
+  );
   const missingVariants = missingButtonRecipeVariants(buttonTypes);
+  const missingRecipeVariants = missingStarterRecipeVariants(buttonTypes);
   return [
     ...assertFrontendDependencyContract(installedDependencyTree(root)),
     ...findGeneratedPresetTypeImports(sources),
     ...findLegacyFrontendApiImports(sources),
+    ...findUnmaterializedShellImports(sources),
     ...(missingVariants.length > 0
       ? [
           `Chakra Button recipe types are missing theme variants: ${missingVariants.join(", ")}`,
         ]
+      : []),
+    ...(missingRecipeVariants.length > 0
+      ? [
+          `Chakra recipe types are missing Starter variants: ${missingRecipeVariants.join(", ")}`,
+        ]
+      : []),
+    ...(!hasMenuButtonValueOmission(saasUiPatch)
+      ? ["Saas UI Menu.Button patch must omit the conflicting value prop"]
       : []),
   ];
 };

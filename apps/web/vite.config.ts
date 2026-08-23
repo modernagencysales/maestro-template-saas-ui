@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => ({
   resolve: {
     tsconfigPaths: true,
     alias: {
+      "@": fileURLToPath(new URL("./src", import.meta.url)),
       "@maestro-template/convex/refs": fileURLToPath(
         new URL("../../packages/convex/src/refs.ts", import.meta.url),
       ),

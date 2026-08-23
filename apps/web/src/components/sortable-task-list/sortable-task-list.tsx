@@ -54,29 +54,48 @@ export function reorderTasks(
   if (activeIndex < 0) return [...items];
 
   const activeItem = items[activeIndex];
+  if (!activeItem) return [...items];
 
-  if (target.type === "task") {
-    const overIndex = items.findIndex((item) => item.id === target.id);
-    if (overIndex < 0 || activeIndex === overIndex) return [...items];
+  return target.type === "task"
+    ? reorderOntoTask(items, activeItem, activeIndex, target.id)
+    : reorderAtHeader(items, activeItem, activeIndex, target.status);
+}
 
-    const overItem = items[overIndex];
-    const nextItems = [...items];
-    nextItems[activeIndex] =
-      activeItem.status === overItem.status
-        ? activeItem
-        : { ...activeItem, status: overItem.status };
+function reorderOntoTask(
+  items: readonly Task[],
+  activeItem: Task,
+  activeIndex: number,
+  targetId: UniqueIdentifier,
+): Task[] {
+  const overIndex = items.findIndex((item) => item.id === targetId);
+  if (overIndex < 0 || activeIndex === overIndex) return [...items];
 
-    return arrayMove(nextItems, activeIndex, overIndex);
-  }
+  const overItem = items[overIndex];
+  if (!overItem) return [...items];
+  const nextItems = [...items];
+  nextItems[activeIndex] =
+    activeItem.status === overItem.status
+      ? activeItem
+      : { ...activeItem, status: overItem.status };
 
+  return arrayMove(nextItems, activeIndex, overIndex);
+}
+
+function reorderAtHeader(
+  items: readonly Task[],
+  activeItem: Task,
+  activeIndex: number,
+  targetStatus: string,
+): Task[] {
   const groupOrder = Array.from(new Set(items.map((item) => item.status)));
-  const headerIndex = groupOrder.indexOf(target.status);
+  const headerIndex = groupOrder.indexOf(targetStatus);
 
   // A header represents the boundary below the preceding group. There is no
   // valid destination above the first header.
   if (headerIndex <= 0) return [...items];
 
   const destinationStatus = groupOrder[headerIndex - 1];
+  if (!destinationStatus) return [...items];
   const movedItem =
     activeItem.status === destinationStatus
       ? activeItem
@@ -113,12 +132,14 @@ const useSortableTaskList = (props: SortableTaskListProps) => {
     const flatIds: string[] = [];
 
     for (const task of items) {
-      if (!groupedItems[task.status]) {
-        groupedItems[task.status] = [];
+      let group = groupedItems[task.status];
+      if (!group) {
+        group = [];
+        groupedItems[task.status] = group;
         flatIds.push(getHeaderId(task.status));
       }
 
-      groupedItems[task.status].push(task);
+      group.push(task);
       flatIds.push(task.id);
     }
 
@@ -314,11 +335,7 @@ const useSortableProps = ({
   over: Over | null;
 }) => {
   // make sure items can't be dropped above the first header.
-  if (
-    id === over?.id &&
-    over?.data.current?.type === "header" &&
-    over.data.current.isFirstHeader === true
-  ) {
+  if (isFirstHeaderDrop(id, over)) {
     return {
       "data-dnd-dragging": "false",
       "data-dnd-over": "false",
@@ -326,19 +343,14 @@ const useSortableProps = ({
     };
   }
 
-  const activeIndex = active?.data.current?.sortable?.index;
-  const overIndex = over?.data.current?.sortable?.index;
+  const isDragging = active?.id === id;
+  const isOver = isDropTarget(id, active, over);
+  const isBelow = isBelowActive(active, over);
 
   return {
-    "data-dnd-dragging": active?.id === id ? "true" : "false",
-    "data-dnd-over":
-      active?.id !== over?.id && over?.id === id ? "true" : "false",
-    "data-dnd-below-active":
-      typeof activeIndex === "number" && typeof overIndex === "number"
-        ? overIndex > activeIndex
-          ? "true"
-          : "false"
-        : "false",
+    "data-dnd-dragging": booleanDataAttribute(isDragging),
+    "data-dnd-over": booleanDataAttribute(isOver),
+    "data-dnd-below-active": booleanDataAttribute(isBelow),
     css: {
       "&[data-dnd-dragging=true]": {
         opacity: 0.5,
@@ -365,6 +377,33 @@ const useSortableProps = ({
     },
   };
 };
+
+const isFirstHeaderDrop = (id: string, over: Over | null): boolean =>
+  id === over?.id &&
+  over?.data.current?.type === "header" &&
+  over.data.current.isFirstHeader === true;
+
+const isDropTarget = (
+  id: string,
+  active: Active | null,
+  over: Over | null,
+): boolean => active?.id !== over?.id && over?.id === id;
+
+const sortableIndex = (item: Active | Over | null): unknown =>
+  item?.data.current?.sortable?.index;
+
+const isBelowActive = (active: Active | null, over: Over | null): boolean => {
+  const activeIndex = sortableIndex(active);
+  const overIndex = sortableIndex(over);
+  return (
+    typeof activeIndex === "number" &&
+    typeof overIndex === "number" &&
+    overIndex > activeIndex
+  );
+};
+
+const booleanDataAttribute = (value: boolean): "true" | "false" =>
+  value ? "true" : "false";
 
 const TaskListItem: React.FC<{ task: Task }> = (props) => {
   const { task } = props;

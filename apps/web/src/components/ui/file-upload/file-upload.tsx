@@ -130,7 +130,7 @@ export const Input = React.forwardRef<HTMLButtonElement, InputProps>(
           <ChakraFileUpload.Context>
             {({ acceptedFiles }) => {
               if (acceptedFiles.length === 1) {
-                return <span>{acceptedFiles[0].name}</span>;
+                return <span>{acceptedFiles[0]?.name}</span>;
               }
               if (acceptedFiles.length > 1) {
                 return <span>{acceptedFiles.length} files</span>;

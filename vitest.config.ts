@@ -38,6 +38,7 @@ export const coverageRatchetDirs = [
 export default defineConfig({
   resolve: {
     alias: {
+      "@": fileURLToPath(new URL("./apps/web/src", import.meta.url)),
       "#config": fileURLToPath(
         new URL("./apps/web/src/config", import.meta.url),
       ),

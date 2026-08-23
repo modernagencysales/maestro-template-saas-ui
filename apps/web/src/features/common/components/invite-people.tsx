@@ -37,13 +37,14 @@ export function InvitePeopleDialog(props: {
                 title: 'Invitation(s) have been sent.',
               }
             },
-            error: (error: Error) => {
+            error: (error: unknown) => {
               if (isTRPCClientError(error)) {
                 console.error(error.data)
               }
 
               return {
-                title: error.message,
+                title:
+                  error instanceof Error ? error.message : 'Invitation failed',
               }
             },
           },

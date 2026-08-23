@@ -20,12 +20,19 @@ overrides:
   "@formatjs/intl": "4.1.2"
   "intl-messageformat": "11.1.2"
   "react-intl": "8.1.3"
-  motion-dom: "12.23.23"
+  motion-dom: "13.1.1"
 
 patchedDependencies:
   "@chakra-ui/react@3.33.0": "patches/@chakra-ui__react@3.33.0.patch"
   "@confect/cli@10.0.0-next.9": "patches/@confect__cli@10.0.0-next.9.patch"
   "@saas-ui-pro/react@1.0.0-next.4": "patches/@saas-ui-pro__react@1.0.0-next.4.patch"
+  "@saas-ui/react@3.0.0-next.51": "patches/@saas-ui__react@3.0.0-next.51.patch"
+  "@dnd-kit/core@6.3.1": "patches/@dnd-kit__core@6.3.1.patch"
+  "@dnd-kit/sortable@8.0.0": "patches/@dnd-kit__sortable@8.0.0.patch"
+  "@tanstack/router-core@1.171.27": "patches/@tanstack__router-core@1.171.27.patch"
+  "@zag-js/toast@1.24.2": "patches/@zag-js__toast@1.24.2.patch"
+  "@zag-js/toast@1.31.1": "patches/@zag-js__toast@1.31.1.patch"
+  "effect@4.0.0-beta.102": "patches/effect@4.0.0-beta.102.patch"
 
 onlyBuiltDependencies:
   - "@parcel/watcher"

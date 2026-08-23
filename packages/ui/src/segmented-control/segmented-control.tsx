@@ -43,6 +43,10 @@ export const SegmentedControl: React.FC<SegmentedControlProps> = (props) => {
   )
   const activeSegment = segments[activeIndex] ?? segments[0]
 
+  if (!activeSegment) {
+    return null
+  }
+
   if (isMobile) {
     return (
       <Menu.Root>

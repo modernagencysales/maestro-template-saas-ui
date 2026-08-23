@@ -1,0 +1,16 @@
+diff --git a/dist/SchemaAST.d.ts b/dist/SchemaAST.d.ts
+index 56012be2ace8b836c862b1cd2fbf0706fba3c56f..c8ce89a38a5e53fd5aad3518205df0a9e7fd2365 100644
+--- a/dist/SchemaAST.d.ts
++++ b/dist/SchemaAST.d.ts
+@@ -819,6 +819,11 @@ export declare class UniqueSymbol extends Base {
+  * @since 3.10.0
+  */
+ export type LiteralValue = string | number | boolean | bigint;
++/** @internal */
++export type Sentinel = {
++    readonly key: PropertyKey;
++    readonly literal: LiteralValue | symbol;
++};
+ /**
+  * AST node matching an exact primitive value (string, number, boolean, or
+  * bigint).

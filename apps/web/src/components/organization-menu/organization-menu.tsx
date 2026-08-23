@@ -32,7 +32,7 @@ export const OrganizationMenu: React.FC = () => {
       icon: FaMagento,
       color: "#000000",
     },
-  ];
+  ] as const;
 
   const selected = orgs.find((r) => r.slug === currentOrg) ?? orgs[0];
 
