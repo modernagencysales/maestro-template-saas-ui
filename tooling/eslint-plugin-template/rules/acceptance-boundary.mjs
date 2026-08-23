@@ -464,10 +464,14 @@ const isAwaitedUse = (node, use, value) =>
   value(node.expression.argument.arguments[0]);
 
 const isCanonicalScenarioFixture = (scenario) => {
-  const factory = scenario?.value;
+  const value = scenario?.value;
+  const [factory, options] = value?.elements ?? [];
   const [runtime, use] = factory?.params ?? [];
   const statement = factory?.body?.body?.[0];
+  const timeout = options?.properties?.[0];
   return (
+    value?.type === "ArrayExpression" &&
+    value.elements.length === 2 &&
     isFunction(factory) &&
     factory.body.type === "BlockStatement" &&
     factory.body.body.length === 1 &&
@@ -475,7 +479,12 @@ const isCanonicalScenarioFixture = (scenario) => {
     use?.type === "Identifier" &&
     isAwaitedUse(statement, use.name, (value) =>
       awaitedDirectCall(value, "runtime", "provisionScenario"),
-    )
+    ) &&
+    options?.type === "ObjectExpression" &&
+    options.properties.length === 1 &&
+    propertyName(timeout) === "timeout" &&
+    timeout.value?.type === "Identifier" &&
+    timeout.value.name === "CONTRACTS_HOOK_TIMEOUT_MS"
   );
 };
 

@@ -1,6 +1,7 @@
 import { expect, test as base } from "@playwright/test";
 
 import {
+  CONTRACTS_HOOK_TIMEOUT_MS,
   CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS,
   createContractsRuntimeController,
   type ContractsRuntime,
@@ -34,9 +35,12 @@ export const test = base.extend<TestFixtures, WorkerFixtures>({
       timeout: CONTRACTS_RUNTIME_STARTUP_TIMEOUT_MS,
     },
   ],
-  scenario: async ({ runtime }, use) => {
-    await use(await runtime.provisionScenario());
-  },
+  scenario: [
+    async ({ runtime }, use) => {
+      await use(await runtime.provisionScenario());
+    },
+    { timeout: CONTRACTS_HOOK_TIMEOUT_MS },
+  ],
   acceptancePage: async ({ runtime, scenario }, use) => {
     const context = await runtime.browser.newContext();
     try {
