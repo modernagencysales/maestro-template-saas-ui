@@ -144,6 +144,31 @@ describe("Convex starter query compatibility", () => {
     expect(neutralMutationValue("workspaceMembers.updateRoles")).toBeNull();
   });
 
+  it("returns screen-safe results for stateful neutral mutations", () => {
+    expect(
+      neutralMutationValue("workspaces.slugAvailable", { slug: "acme" }),
+    ).toEqual({ available: true });
+    expect(
+      neutralMutationValue("contacts.create", {
+        id: "contact_1",
+        workspaceId: "workspace_1",
+        name: "Ada Lovelace",
+        email: "ada@example.com",
+        type: "lead",
+      }),
+    ).toMatchObject({
+      id: "contact_1",
+      workspaceId: "workspace_1",
+      name: "Ada Lovelace",
+      email: "ada@example.com",
+      type: "lead",
+      status: "new",
+    });
+    expect(neutralMutationValue("billing.createCheckoutSession")).toEqual({
+      url: "#",
+    });
+  });
+
   it("exposes the Starter namespace invalidation seam", async () => {
     const compatibility = createCompatibilityApi();
     await expect(
@@ -157,5 +182,24 @@ describe("Convex starter query compatibility", () => {
     expect(compatibility.notifications.inbox.useQuery().data).toEqual({
       notifications: [],
     });
+  });
+
+  it("returns exact empty collection objects for neutral contact screens", () => {
+    const compatibility = createCompatibilityApi();
+
+    expect(compatibility.contacts.listByType.useQuery().data).toEqual({
+      contacts: [],
+    });
+    expect(compatibility.contacts.activitiesById.useQuery().data).toEqual({
+      activities: [],
+    });
+  });
+
+  it("returns complete neutral notification settings", () => {
+    const compatibility = createCompatibilityApi();
+
+    expect(
+      compatibility.workspaceMembers.notificationSettings.useQuery().data,
+    ).toEqual({ channels: {}, topics: {}, newsletters: {} });
   });
 });
