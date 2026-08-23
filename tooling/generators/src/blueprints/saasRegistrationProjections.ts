@@ -92,6 +92,19 @@ export const CURRENT_FACTORY_PRODUCT_TABLES = [
   "supportIncidents",
 ] as const;
 
+const CURRENT_CUSTOMER_PATCHES = [
+  "patches/@chakra-ui__react@3.33.0.patch",
+  "patches/@confect__cli@10.0.0-next.9.patch",
+  "patches/@dnd-kit__core@6.3.1.patch",
+  "patches/@dnd-kit__sortable@8.0.0.patch",
+  "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
+  "patches/@saas-ui__react@3.0.0-next.51.patch",
+  "patches/@tanstack__router-core@1.171.27.patch",
+  "patches/@zag-js__toast@1.24.2.patch",
+  "patches/@zag-js__toast@1.31.1.patch",
+  "patches/effect@4.0.0-beta.102.patch",
+] as const;
+
 const customerReadme = (
   recordsSelected: boolean,
 ): string => `# Generated Maestro App
@@ -1727,24 +1740,10 @@ export const buildSaasRegistrationProjections = (
       ? [{ path: "pnpm-lock.yaml", content: customerLockfile(options) }]
       : []),
     ...(current
-      ? [
-          {
-            path: "patches/@confect__cli@10.0.0-next.9.patch",
-            content: currentSource("patches/@confect__cli@10.0.0-next.9.patch"),
-          },
-          {
-            path: "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
-            content: currentSource(
-              "patches/@saas-ui-pro__react@1.0.0-next.4.patch",
-            ),
-          },
-          {
-            path: "patches/@tanstack__start-plugin-core@1.171.18.patch",
-            content: currentSource(
-              "patches/@tanstack__start-plugin-core@1.171.18.patch",
-            ),
-          },
-        ]
+      ? CURRENT_CUSTOMER_PATCHES.map((path) => ({
+          path,
+          content: currentSource(path),
+        }))
       : []),
     {
       path: "tooling/confect-manifest/tsconfig.json",
@@ -1802,6 +1801,8 @@ export const buildSaasRegistrationProjections = (
         ["customer.ts", "customer.ts"],
         ["customer-runtime.ts", "customer-runtime.ts"],
         ["customer-dispatcher.ts", "customer-dispatcher.ts"],
+        ["shell-configuration.ts", "shell-configuration.ts"],
+        ["screen-selection.ts", "screen-selection.ts"],
         ...(current
           ? ([["private-package.ts", "private-package.ts"]] as const)
           : []),

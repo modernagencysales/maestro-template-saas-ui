@@ -14,6 +14,8 @@ const crudAnswers = [
   "--answer",
   "canonicalOwner=access-and-tenancy",
   "--answer",
+  "screenCatalogId=starter-route:apps/web/src/routes/_app/$workspace/_dashboard/contacts/index.tsx",
+  "--answer",
   "tenantScope=workspace",
   "--answer",
   "sensitivity=internal",
