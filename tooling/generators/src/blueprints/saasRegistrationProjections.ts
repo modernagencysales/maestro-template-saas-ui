@@ -647,6 +647,25 @@ const customerGeneratorTsconfig = (): string =>
     2,
   )}\n`;
 
+const customerConvexCompatPackage = (): string => {
+  const value = JSON.parse(
+    currentSource("tooling/convex-compat/package.json"),
+  ) as { scripts: Record<string, string> };
+  value.scripts.typecheck = "tsc -p tsconfig.customer.json --noEmit";
+  return `${JSON.stringify(value, null, 2)}\n`;
+};
+
+const customerConvexCompatTsconfig = (): string =>
+  `${JSON.stringify(
+    {
+      extends: "./tsconfig.json",
+      compilerOptions: { composite: false },
+      include: ["src/matrix.ts"],
+    },
+    null,
+    2,
+  )}\n`;
+
 const customerPackageWithoutOptionalPatterns = (
   path: string,
   selection: SaasApplicationPatternSelection,
@@ -1726,6 +1745,14 @@ export const buildSaasRegistrationProjections = (
     },
     ...(current
       ? [
+          {
+            path: "tooling/convex-compat/package.json",
+            content: customerConvexCompatPackage(),
+          },
+          {
+            path: "tooling/convex-compat/tsconfig.customer.json",
+            content: customerConvexCompatTsconfig(),
+          },
           {
             path: "tooling/generators/tsconfig.customer.json",
             content: customerGeneratorTsconfig(),

@@ -2092,6 +2092,8 @@ describe("saas application blueprint", () => {
         "patches/@tanstack__start-plugin-core@1.171.18.patch",
         "tooling/confect-manifest/tsconfig.json",
         "tooling/generators/package.json",
+        "tooling/convex-compat/package.json",
+        "tooling/convex-compat/tsconfig.customer.json",
         "tooling/generators/tsconfig.customer.json",
         "tooling/quality/package.json",
         "examples/generic-ai-ops/template-package.json",
@@ -2267,6 +2269,15 @@ describe("saas application blueprint", () => {
     expect(
       first.find(({ path }) => path === "eslint.config.mjs")?.content,
     ).toContain('"**/.output/**"');
+    expect(
+      first.find(({ path }) => path === "tooling/convex-compat/package.json")
+        ?.content,
+    ).toContain("tsconfig.customer.json --noEmit");
+    expect(
+      first.find(
+        ({ path }) => path === "tooling/convex-compat/tsconfig.customer.json",
+      )?.content,
+    ).toContain('"src/matrix.ts"');
     expect(
       first.find(({ path }) => path === ".prettierignore")?.content,
     ).toContain(".maestro/");

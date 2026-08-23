@@ -691,6 +691,7 @@ const SAAS_APPLICATION_ALPHA2_BASE_WRITE_REPLACEMENTS = [
   ["tooling/agent-pack/tsconfig.json", "copy"],
   ["tooling/quality/tsconfig.json", "copy"],
   ["tooling/generators/tsconfig.json", "copy"],
+  ["tooling/convex-compat/package.json", "copy"],
   [".claude/settings.json", "generate"],
   [".npmrc", "copy"],
   [".prettierignore", "copy"],
