@@ -9,52 +9,52 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AppRouteImport } from './routes/_app'
+import { Route as AuthRouteImport } from './routes/_auth'
 import { Route as AppIndexRouteImport } from './routes/_app/index'
-import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
-import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
-import { Route as AuthLoginRouteImport } from './routes/_auth/login'
-import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
-import { Route as AppGettingStartedRouteImport } from './routes/_app/getting-started'
-import { Route as AppAcceptInviteRouteImport } from './routes/_app/accept-invite'
 import { Route as AppWorkspaceRouteImport } from './routes/_app/$workspace'
-import { Route as AppGettingStartedIndexRouteImport } from './routes/_app/getting-started/index'
-import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
-import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
-import { Route as ApiAuthSignUpRouteImport } from './routes/api/auth/sign-up'
-import { Route as ApiAuthSignInRouteImport } from './routes/api/auth/sign-in'
-import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
-import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
-import { Route as AppAcceptInviteTokenRouteImport } from './routes/_app/accept-invite/$token'
-import { Route as AppWorkspaceSettingsRouteImport } from './routes/_app/$workspace/settings'
+import { Route as AppAcceptInviteRouteImport } from './routes/_app/accept-invite'
+import { Route as AppGettingStartedRouteImport } from './routes/_app/getting-started'
+import { Route as AuthForgotPasswordRouteImport } from './routes/_auth/forgot-password'
+import { Route as AuthLoginRouteImport } from './routes/_auth/login'
+import { Route as AuthResetPasswordRouteImport } from './routes/_auth/reset-password'
+import { Route as AuthSignupRouteImport } from './routes/_auth/signup'
 import { Route as AppWorkspaceDashboardRouteImport } from './routes/_app/$workspace/_dashboard'
-import { Route as AppWorkspaceSettingsIndexRouteImport } from './routes/_app/$workspace/settings/index'
+import { Route as AppWorkspaceSettingsRouteImport } from './routes/_app/$workspace/settings'
+import { Route as AppAcceptInviteTokenRouteImport } from './routes/_app/accept-invite/$token'
+import { Route as AppGettingStartedIndexRouteImport } from './routes/_app/getting-started/index'
+import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiAuthCallbackRouteImport } from './routes/api/auth/callback'
+import { Route as ApiAuthSignInRouteImport } from './routes/api/auth/sign-in'
+import { Route as ApiAuthSignUpRouteImport } from './routes/api/auth/sign-up'
+import { Route as ApiTrpcSplatRouteImport } from './routes/api/trpc/$'
+import { Route as ApiWebhooksStripeRouteImport } from './routes/api/webhooks/stripe'
 import { Route as AppWorkspaceDashboardIndexRouteImport } from './routes/_app/$workspace/_dashboard/index'
-import { Route as AppWorkspaceSettingsWorkspaceRouteImport } from './routes/_app/$workspace/settings/workspace'
-import { Route as AppWorkspaceSettingsTagsRouteImport } from './routes/_app/$workspace/settings/tags'
-import { Route as AppWorkspaceSettingsPlansRouteImport } from './routes/_app/$workspace/settings/plans'
-import { Route as AppWorkspaceSettingsMembersRouteImport } from './routes/_app/$workspace/settings/members'
-import { Route as AppWorkspaceSettingsBillingRouteImport } from './routes/_app/$workspace/settings/billing'
-import { Route as AppWorkspaceDashboardShowcaseRouteImport } from './routes/_app/$workspace/_dashboard/showcase'
-import { Route as AppWorkspaceDashboardSearchRouteImport } from './routes/_app/$workspace/_dashboard/search'
-import { Route as AppWorkspaceDashboardKanbanRouteImport } from './routes/_app/$workspace/_dashboard/kanban'
 import { Route as AppWorkspaceDashboardInboxRouteImport } from './routes/_app/$workspace/_dashboard/inbox'
-import { Route as AppWorkspaceSettingsAccountIndexRouteImport } from './routes/_app/$workspace/settings/account/index'
+import { Route as AppWorkspaceDashboardKanbanRouteImport } from './routes/_app/$workspace/_dashboard/kanban'
+import { Route as AppWorkspaceDashboardSearchRouteImport } from './routes/_app/$workspace/_dashboard/search'
+import { Route as AppWorkspaceDashboardShowcaseRouteImport } from './routes/_app/$workspace/_dashboard/showcase'
+import { Route as AppWorkspaceSettingsIndexRouteImport } from './routes/_app/$workspace/settings/index'
+import { Route as AppWorkspaceSettingsBillingRouteImport } from './routes/_app/$workspace/settings/billing'
+import { Route as AppWorkspaceSettingsMembersRouteImport } from './routes/_app/$workspace/settings/members'
+import { Route as AppWorkspaceSettingsPlansRouteImport } from './routes/_app/$workspace/settings/plans'
+import { Route as AppWorkspaceSettingsTagsRouteImport } from './routes/_app/$workspace/settings/tags'
+import { Route as AppWorkspaceSettingsWorkspaceRouteImport } from './routes/_app/$workspace/settings/workspace'
 import { Route as AppWorkspaceDashboardContactsIndexRouteImport } from './routes/_app/$workspace/_dashboard/contacts/index'
-import { Route as AppWorkspaceSettingsAccountSecurityRouteImport } from './routes/_app/$workspace/settings/account/security'
-import { Route as AppWorkspaceSettingsAccountProfileRouteImport } from './routes/_app/$workspace/settings/account/profile'
-import { Route as AppWorkspaceDashboardTagTagRouteImport } from './routes/_app/$workspace/_dashboard/tag/$tag'
-import { Route as AppWorkspaceDashboardInboxIdRouteImport } from './routes/_app/$workspace/_dashboard/inbox/$id'
 import { Route as AppWorkspaceDashboardContactsTypeRouteImport } from './routes/_app/$workspace/_dashboard/contacts/$type'
+import { Route as AppWorkspaceDashboardInboxIdRouteImport } from './routes/_app/$workspace/_dashboard/inbox/$id'
+import { Route as AppWorkspaceDashboardTagTagRouteImport } from './routes/_app/$workspace/_dashboard/tag/$tag'
+import { Route as AppWorkspaceSettingsAccountIndexRouteImport } from './routes/_app/$workspace/settings/account/index'
+import { Route as AppWorkspaceSettingsAccountProfileRouteImport } from './routes/_app/$workspace/settings/account/profile'
+import { Route as AppWorkspaceSettingsAccountSecurityRouteImport } from './routes/_app/$workspace/settings/account/security'
 import { Route as AppWorkspaceDashboardContactsViewIdRouteImport } from './routes/_app/$workspace/_dashboard/contacts/view/$id'
 
-const AuthRoute = AuthRouteImport.update({
-  id: '/_auth',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const AppRoute = AppRouteImport.update({
   id: '/_app',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthRoute = AuthRouteImport.update({
+  id: '/_auth',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppIndexRoute = AppIndexRouteImport.update({
@@ -62,29 +62,9 @@ const AppIndexRoute = AppIndexRouteImport.update({
   path: '/',
   getParentRoute: () => AppRoute,
 } as any)
-const AuthSignupRoute = AuthSignupRouteImport.update({
-  id: '/signup',
-  path: '/signup',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
-  id: '/reset-password',
-  path: '/reset-password',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthLoginRoute = AuthLoginRouteImport.update({
-  id: '/login',
-  path: '/login',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
-  id: '/forgot-password',
-  path: '/forgot-password',
-  getParentRoute: () => AuthRoute,
-} as any)
-const AppGettingStartedRoute = AppGettingStartedRouteImport.update({
-  id: '/getting-started',
-  path: '/getting-started',
+const AppWorkspaceRoute = AppWorkspaceRouteImport.update({
+  id: '/$workspace',
+  path: '/$workspace',
   getParentRoute: () => AppRoute,
 } as any)
 const AppAcceptInviteRoute = AppAcceptInviteRouteImport.update({
@@ -92,34 +72,53 @@ const AppAcceptInviteRoute = AppAcceptInviteRouteImport.update({
   path: '/accept-invite',
   getParentRoute: () => AppRoute,
 } as any)
-const AppWorkspaceRoute = AppWorkspaceRouteImport.update({
-  id: '/$workspace',
-  path: '/$workspace',
+const AppGettingStartedRoute = AppGettingStartedRouteImport.update({
+  id: '/getting-started',
+  path: '/getting-started',
   getParentRoute: () => AppRoute,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/forgot-password',
+  path: '/forgot-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthLoginRoute = AuthLoginRouteImport.update({
+  id: '/login',
+  path: '/login',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/reset-password',
+  path: '/reset-password',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AuthSignupRoute = AuthSignupRouteImport.update({
+  id: '/signup',
+  path: '/signup',
+  getParentRoute: () => AuthRoute,
+} as any)
+const AppWorkspaceDashboardRoute = AppWorkspaceDashboardRouteImport.update({
+  id: '/_dashboard',
+  getParentRoute: () => AppWorkspaceRoute,
+} as any)
+const AppWorkspaceSettingsRoute = AppWorkspaceSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AppWorkspaceRoute,
+} as any)
+const AppAcceptInviteTokenRoute = AppAcceptInviteTokenRouteImport.update({
+  id: '/$token',
+  path: '/$token',
+  getParentRoute: () => AppAcceptInviteRoute,
 } as any)
 const AppGettingStartedIndexRoute = AppGettingStartedIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppGettingStartedRoute,
 } as any)
-const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
-  id: '/api/webhooks/stripe',
-  path: '/api/webhooks/stripe',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
-  id: '/api/trpc/$',
-  path: '/api/trpc/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAuthSignUpRoute = ApiAuthSignUpRouteImport.update({
-  id: '/api/auth/sign-up',
-  path: '/api/auth/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAuthSignInRoute = ApiAuthSignInRouteImport.update({
-  id: '/api/auth/sign-in',
-  path: '/api/auth/sign-in',
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
@@ -127,83 +126,30 @@ const ApiAuthCallbackRoute = ApiAuthCallbackRouteImport.update({
   path: '/api/auth/callback',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
+const ApiAuthSignInRoute = ApiAuthSignInRouteImport.update({
+  id: '/api/auth/sign-in',
+  path: '/api/auth/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
-const AppAcceptInviteTokenRoute = AppAcceptInviteTokenRouteImport.update({
-  id: '/$token',
-  path: '/$token',
-  getParentRoute: () => AppAcceptInviteRoute,
+const ApiAuthSignUpRoute = ApiAuthSignUpRouteImport.update({
+  id: '/api/auth/sign-up',
+  path: '/api/auth/sign-up',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppWorkspaceSettingsRoute = AppWorkspaceSettingsRouteImport.update({
-  id: '/settings',
-  path: '/settings',
-  getParentRoute: () => AppWorkspaceRoute,
+const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
+  id: '/api/trpc/$',
+  path: '/api/trpc/$',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppWorkspaceDashboardRoute = AppWorkspaceDashboardRouteImport.update({
-  id: '/_dashboard',
-  getParentRoute: () => AppWorkspaceRoute,
+const ApiWebhooksStripeRoute = ApiWebhooksStripeRouteImport.update({
+  id: '/api/webhooks/stripe',
+  path: '/api/webhooks/stripe',
+  getParentRoute: () => rootRouteImport,
 } as any)
-const AppWorkspaceSettingsIndexRoute =
-  AppWorkspaceSettingsIndexRouteImport.update({
-    id: '/',
-    path: '/',
-    getParentRoute: () => AppWorkspaceSettingsRoute,
-  } as any)
 const AppWorkspaceDashboardIndexRoute =
   AppWorkspaceDashboardIndexRouteImport.update({
     id: '/',
     path: '/',
-    getParentRoute: () => AppWorkspaceDashboardRoute,
-  } as any)
-const AppWorkspaceSettingsWorkspaceRoute =
-  AppWorkspaceSettingsWorkspaceRouteImport.update({
-    id: '/workspace',
-    path: '/workspace',
-    getParentRoute: () => AppWorkspaceSettingsRoute,
-  } as any)
-const AppWorkspaceSettingsTagsRoute =
-  AppWorkspaceSettingsTagsRouteImport.update({
-    id: '/tags',
-    path: '/tags',
-    getParentRoute: () => AppWorkspaceSettingsRoute,
-  } as any)
-const AppWorkspaceSettingsPlansRoute =
-  AppWorkspaceSettingsPlansRouteImport.update({
-    id: '/plans',
-    path: '/plans',
-    getParentRoute: () => AppWorkspaceSettingsRoute,
-  } as any)
-const AppWorkspaceSettingsMembersRoute =
-  AppWorkspaceSettingsMembersRouteImport.update({
-    id: '/members',
-    path: '/members',
-    getParentRoute: () => AppWorkspaceSettingsRoute,
-  } as any)
-const AppWorkspaceSettingsBillingRoute =
-  AppWorkspaceSettingsBillingRouteImport.update({
-    id: '/billing',
-    path: '/billing',
-    getParentRoute: () => AppWorkspaceSettingsRoute,
-  } as any)
-const AppWorkspaceDashboardShowcaseRoute =
-  AppWorkspaceDashboardShowcaseRouteImport.update({
-    id: '/showcase',
-    path: '/showcase',
-    getParentRoute: () => AppWorkspaceDashboardRoute,
-  } as any)
-const AppWorkspaceDashboardSearchRoute =
-  AppWorkspaceDashboardSearchRouteImport.update({
-    id: '/search',
-    path: '/search',
-    getParentRoute: () => AppWorkspaceDashboardRoute,
-  } as any)
-const AppWorkspaceDashboardKanbanRoute =
-  AppWorkspaceDashboardKanbanRouteImport.update({
-    id: '/kanban',
-    path: '/kanban',
     getParentRoute: () => AppWorkspaceDashboardRoute,
   } as any)
 const AppWorkspaceDashboardInboxRoute =
@@ -212,10 +158,58 @@ const AppWorkspaceDashboardInboxRoute =
     path: '/inbox',
     getParentRoute: () => AppWorkspaceDashboardRoute,
   } as any)
-const AppWorkspaceSettingsAccountIndexRoute =
-  AppWorkspaceSettingsAccountIndexRouteImport.update({
-    id: '/account/',
-    path: '/account/',
+const AppWorkspaceDashboardKanbanRoute =
+  AppWorkspaceDashboardKanbanRouteImport.update({
+    id: '/kanban',
+    path: '/kanban',
+    getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
+const AppWorkspaceDashboardSearchRoute =
+  AppWorkspaceDashboardSearchRouteImport.update({
+    id: '/search',
+    path: '/search',
+    getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
+const AppWorkspaceDashboardShowcaseRoute =
+  AppWorkspaceDashboardShowcaseRouteImport.update({
+    id: '/showcase',
+    path: '/showcase',
+    getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
+const AppWorkspaceSettingsIndexRoute =
+  AppWorkspaceSettingsIndexRouteImport.update({
+    id: '/',
+    path: '/',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
+const AppWorkspaceSettingsBillingRoute =
+  AppWorkspaceSettingsBillingRouteImport.update({
+    id: '/billing',
+    path: '/billing',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
+const AppWorkspaceSettingsMembersRoute =
+  AppWorkspaceSettingsMembersRouteImport.update({
+    id: '/members',
+    path: '/members',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
+const AppWorkspaceSettingsPlansRoute =
+  AppWorkspaceSettingsPlansRouteImport.update({
+    id: '/plans',
+    path: '/plans',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
+const AppWorkspaceSettingsTagsRoute =
+  AppWorkspaceSettingsTagsRouteImport.update({
+    id: '/tags',
+    path: '/tags',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
+const AppWorkspaceSettingsWorkspaceRoute =
+  AppWorkspaceSettingsWorkspaceRouteImport.update({
+    id: '/workspace',
+    path: '/workspace',
     getParentRoute: () => AppWorkspaceSettingsRoute,
   } as any)
 const AppWorkspaceDashboardContactsIndexRoute =
@@ -224,22 +218,10 @@ const AppWorkspaceDashboardContactsIndexRoute =
     path: '/contacts/',
     getParentRoute: () => AppWorkspaceDashboardRoute,
   } as any)
-const AppWorkspaceSettingsAccountSecurityRoute =
-  AppWorkspaceSettingsAccountSecurityRouteImport.update({
-    id: '/account/security',
-    path: '/account/security',
-    getParentRoute: () => AppWorkspaceSettingsRoute,
-  } as any)
-const AppWorkspaceSettingsAccountProfileRoute =
-  AppWorkspaceSettingsAccountProfileRouteImport.update({
-    id: '/account/profile',
-    path: '/account/profile',
-    getParentRoute: () => AppWorkspaceSettingsRoute,
-  } as any)
-const AppWorkspaceDashboardTagTagRoute =
-  AppWorkspaceDashboardTagTagRouteImport.update({
-    id: '/tag/$tag',
-    path: '/tag/$tag',
+const AppWorkspaceDashboardContactsTypeRoute =
+  AppWorkspaceDashboardContactsTypeRouteImport.update({
+    id: '/contacts/$type',
+    path: '/contacts/$type',
     getParentRoute: () => AppWorkspaceDashboardRoute,
   } as any)
 const AppWorkspaceDashboardInboxIdRoute =
@@ -248,11 +230,29 @@ const AppWorkspaceDashboardInboxIdRoute =
     path: '/$id',
     getParentRoute: () => AppWorkspaceDashboardInboxRoute,
   } as any)
-const AppWorkspaceDashboardContactsTypeRoute =
-  AppWorkspaceDashboardContactsTypeRouteImport.update({
-    id: '/contacts/$type',
-    path: '/contacts/$type',
+const AppWorkspaceDashboardTagTagRoute =
+  AppWorkspaceDashboardTagTagRouteImport.update({
+    id: '/tag/$tag',
+    path: '/tag/$tag',
     getParentRoute: () => AppWorkspaceDashboardRoute,
+  } as any)
+const AppWorkspaceSettingsAccountIndexRoute =
+  AppWorkspaceSettingsAccountIndexRouteImport.update({
+    id: '/account/',
+    path: '/account/',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
+const AppWorkspaceSettingsAccountProfileRoute =
+  AppWorkspaceSettingsAccountProfileRouteImport.update({
+    id: '/account/profile',
+    path: '/account/profile',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
+  } as any)
+const AppWorkspaceSettingsAccountSecurityRoute =
+  AppWorkspaceSettingsAccountSecurityRouteImport.update({
+    id: '/account/security',
+    path: '/account/security',
+    getParentRoute: () => AppWorkspaceSettingsRoute,
   } as any)
 const AppWorkspaceDashboardContactsViewIdRoute =
   AppWorkspaceDashboardContactsViewIdRouteImport.update({
@@ -506,18 +506,18 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/_auth': {
-      id: '/_auth'
-      path: ''
-      fullPath: '/'
-      preLoaderRoute: typeof AuthRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/_app': {
       id: '/_app'
       path: ''
       fullPath: '/'
       preLoaderRoute: typeof AppRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/_auth': {
+      id: '/_auth'
+      path: ''
+      fullPath: '/'
+      preLoaderRoute: typeof AuthRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/_app/': {
@@ -527,39 +527,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_auth/signup': {
-      id: '/_auth/signup'
-      path: '/signup'
-      fullPath: '/signup'
-      preLoaderRoute: typeof AuthSignupRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/reset-password': {
-      id: '/_auth/reset-password'
-      path: '/reset-password'
-      fullPath: '/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/login': {
-      id: '/_auth/login'
-      path: '/login'
-      fullPath: '/login'
-      preLoaderRoute: typeof AuthLoginRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_auth/forgot-password': {
-      id: '/_auth/forgot-password'
-      path: '/forgot-password'
-      fullPath: '/forgot-password'
-      preLoaderRoute: typeof AuthForgotPasswordRouteImport
-      parentRoute: typeof AuthRoute
-    }
-    '/_app/getting-started': {
-      id: '/_app/getting-started'
-      path: '/getting-started'
-      fullPath: '/getting-started'
-      preLoaderRoute: typeof AppGettingStartedRouteImport
+    '/_app/$workspace': {
+      id: '/_app/$workspace'
+      path: '/$workspace'
+      fullPath: '/$workspace'
+      preLoaderRoute: typeof AppWorkspaceRouteImport
       parentRoute: typeof AppRoute
     }
     '/_app/accept-invite': {
@@ -569,12 +541,61 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppAcceptInviteRouteImport
       parentRoute: typeof AppRoute
     }
-    '/_app/$workspace': {
-      id: '/_app/$workspace'
-      path: '/$workspace'
-      fullPath: '/$workspace'
-      preLoaderRoute: typeof AppWorkspaceRouteImport
+    '/_app/getting-started': {
+      id: '/_app/getting-started'
+      path: '/getting-started'
+      fullPath: '/getting-started'
+      preLoaderRoute: typeof AppGettingStartedRouteImport
       parentRoute: typeof AppRoute
+    }
+    '/_auth/forgot-password': {
+      id: '/_auth/forgot-password'
+      path: '/forgot-password'
+      fullPath: '/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/login': {
+      id: '/_auth/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof AuthLoginRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/reset-password': {
+      id: '/_auth/reset-password'
+      path: '/reset-password'
+      fullPath: '/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_auth/signup': {
+      id: '/_auth/signup'
+      path: '/signup'
+      fullPath: '/signup'
+      preLoaderRoute: typeof AuthSignupRouteImport
+      parentRoute: typeof AuthRoute
+    }
+    '/_app/$workspace/_dashboard': {
+      id: '/_app/$workspace/_dashboard'
+      path: ''
+      fullPath: '/$workspace'
+      preLoaderRoute: typeof AppWorkspaceDashboardRouteImport
+      parentRoute: typeof AppWorkspaceRoute
+    }
+    '/_app/$workspace/settings': {
+      id: '/_app/$workspace/settings'
+      path: '/settings'
+      fullPath: '/$workspace/settings'
+      preLoaderRoute: typeof AppWorkspaceSettingsRouteImport
+      parentRoute: typeof AppWorkspaceRoute
+    }
+    '/_app/accept-invite/$token': {
+      id: '/_app/accept-invite/$token'
+      path: '/$token'
+      fullPath: '/accept-invite/$token'
+      preLoaderRoute: typeof AppAcceptInviteTokenRouteImport
+      parentRoute: typeof AppAcceptInviteRoute
     }
     '/_app/getting-started/': {
       id: '/_app/getting-started/'
@@ -583,32 +604,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppGettingStartedIndexRouteImport
       parentRoute: typeof AppGettingStartedRoute
     }
-    '/api/webhooks/stripe': {
-      id: '/api/webhooks/stripe'
-      path: '/api/webhooks/stripe'
-      fullPath: '/api/webhooks/stripe'
-      preLoaderRoute: typeof ApiWebhooksStripeRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/trpc/$': {
-      id: '/api/trpc/$'
-      path: '/api/trpc/$'
-      fullPath: '/api/trpc/$'
-      preLoaderRoute: typeof ApiTrpcSplatRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/sign-up': {
-      id: '/api/auth/sign-up'
-      path: '/api/auth/sign-up'
-      fullPath: '/api/auth/sign-up'
-      preLoaderRoute: typeof ApiAuthSignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/api/auth/sign-in': {
-      id: '/api/auth/sign-in'
-      path: '/api/auth/sign-in'
-      fullPath: '/api/auth/sign-in'
-      preLoaderRoute: typeof ApiAuthSignInRouteImport
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/callback': {
@@ -618,102 +618,39 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthCallbackRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
+    '/api/auth/sign-in': {
+      id: '/api/auth/sign-in'
+      path: '/api/auth/sign-in'
+      fullPath: '/api/auth/sign-in'
+      preLoaderRoute: typeof ApiAuthSignInRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/_app/accept-invite/$token': {
-      id: '/_app/accept-invite/$token'
-      path: '/$token'
-      fullPath: '/accept-invite/$token'
-      preLoaderRoute: typeof AppAcceptInviteTokenRouteImport
-      parentRoute: typeof AppAcceptInviteRoute
+    '/api/auth/sign-up': {
+      id: '/api/auth/sign-up'
+      path: '/api/auth/sign-up'
+      fullPath: '/api/auth/sign-up'
+      preLoaderRoute: typeof ApiAuthSignUpRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/$workspace/settings': {
-      id: '/_app/$workspace/settings'
-      path: '/settings'
-      fullPath: '/$workspace/settings'
-      preLoaderRoute: typeof AppWorkspaceSettingsRouteImport
-      parentRoute: typeof AppWorkspaceRoute
+    '/api/trpc/$': {
+      id: '/api/trpc/$'
+      path: '/api/trpc/$'
+      fullPath: '/api/trpc/$'
+      preLoaderRoute: typeof ApiTrpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
     }
-    '/_app/$workspace/_dashboard': {
-      id: '/_app/$workspace/_dashboard'
-      path: ''
-      fullPath: '/$workspace'
-      preLoaderRoute: typeof AppWorkspaceDashboardRouteImport
-      parentRoute: typeof AppWorkspaceRoute
-    }
-    '/_app/$workspace/settings/': {
-      id: '/_app/$workspace/settings/'
-      path: '/'
-      fullPath: '/$workspace/settings/'
-      preLoaderRoute: typeof AppWorkspaceSettingsIndexRouteImport
-      parentRoute: typeof AppWorkspaceSettingsRoute
+    '/api/webhooks/stripe': {
+      id: '/api/webhooks/stripe'
+      path: '/api/webhooks/stripe'
+      fullPath: '/api/webhooks/stripe'
+      preLoaderRoute: typeof ApiWebhooksStripeRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/_app/$workspace/_dashboard/': {
       id: '/_app/$workspace/_dashboard/'
       path: '/'
       fullPath: '/$workspace/'
       preLoaderRoute: typeof AppWorkspaceDashboardIndexRouteImport
-      parentRoute: typeof AppWorkspaceDashboardRoute
-    }
-    '/_app/$workspace/settings/workspace': {
-      id: '/_app/$workspace/settings/workspace'
-      path: '/workspace'
-      fullPath: '/$workspace/settings/workspace'
-      preLoaderRoute: typeof AppWorkspaceSettingsWorkspaceRouteImport
-      parentRoute: typeof AppWorkspaceSettingsRoute
-    }
-    '/_app/$workspace/settings/tags': {
-      id: '/_app/$workspace/settings/tags'
-      path: '/tags'
-      fullPath: '/$workspace/settings/tags'
-      preLoaderRoute: typeof AppWorkspaceSettingsTagsRouteImport
-      parentRoute: typeof AppWorkspaceSettingsRoute
-    }
-    '/_app/$workspace/settings/plans': {
-      id: '/_app/$workspace/settings/plans'
-      path: '/plans'
-      fullPath: '/$workspace/settings/plans'
-      preLoaderRoute: typeof AppWorkspaceSettingsPlansRouteImport
-      parentRoute: typeof AppWorkspaceSettingsRoute
-    }
-    '/_app/$workspace/settings/members': {
-      id: '/_app/$workspace/settings/members'
-      path: '/members'
-      fullPath: '/$workspace/settings/members'
-      preLoaderRoute: typeof AppWorkspaceSettingsMembersRouteImport
-      parentRoute: typeof AppWorkspaceSettingsRoute
-    }
-    '/_app/$workspace/settings/billing': {
-      id: '/_app/$workspace/settings/billing'
-      path: '/billing'
-      fullPath: '/$workspace/settings/billing'
-      preLoaderRoute: typeof AppWorkspaceSettingsBillingRouteImport
-      parentRoute: typeof AppWorkspaceSettingsRoute
-    }
-    '/_app/$workspace/_dashboard/showcase': {
-      id: '/_app/$workspace/_dashboard/showcase'
-      path: '/showcase'
-      fullPath: '/$workspace/showcase'
-      preLoaderRoute: typeof AppWorkspaceDashboardShowcaseRouteImport
-      parentRoute: typeof AppWorkspaceDashboardRoute
-    }
-    '/_app/$workspace/_dashboard/search': {
-      id: '/_app/$workspace/_dashboard/search'
-      path: '/search'
-      fullPath: '/$workspace/search'
-      preLoaderRoute: typeof AppWorkspaceDashboardSearchRouteImport
-      parentRoute: typeof AppWorkspaceDashboardRoute
-    }
-    '/_app/$workspace/_dashboard/kanban': {
-      id: '/_app/$workspace/_dashboard/kanban'
-      path: '/kanban'
-      fullPath: '/$workspace/kanban'
-      preLoaderRoute: typeof AppWorkspaceDashboardKanbanRouteImport
       parentRoute: typeof AppWorkspaceDashboardRoute
     }
     '/_app/$workspace/_dashboard/inbox': {
@@ -723,11 +660,67 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceDashboardInboxRouteImport
       parentRoute: typeof AppWorkspaceDashboardRoute
     }
-    '/_app/$workspace/settings/account/': {
-      id: '/_app/$workspace/settings/account/'
-      path: '/account'
-      fullPath: '/$workspace/settings/account/'
-      preLoaderRoute: typeof AppWorkspaceSettingsAccountIndexRouteImport
+    '/_app/$workspace/_dashboard/kanban': {
+      id: '/_app/$workspace/_dashboard/kanban'
+      path: '/kanban'
+      fullPath: '/$workspace/kanban'
+      preLoaderRoute: typeof AppWorkspaceDashboardKanbanRouteImport
+      parentRoute: typeof AppWorkspaceDashboardRoute
+    }
+    '/_app/$workspace/_dashboard/search': {
+      id: '/_app/$workspace/_dashboard/search'
+      path: '/search'
+      fullPath: '/$workspace/search'
+      preLoaderRoute: typeof AppWorkspaceDashboardSearchRouteImport
+      parentRoute: typeof AppWorkspaceDashboardRoute
+    }
+    '/_app/$workspace/_dashboard/showcase': {
+      id: '/_app/$workspace/_dashboard/showcase'
+      path: '/showcase'
+      fullPath: '/$workspace/showcase'
+      preLoaderRoute: typeof AppWorkspaceDashboardShowcaseRouteImport
+      parentRoute: typeof AppWorkspaceDashboardRoute
+    }
+    '/_app/$workspace/settings/': {
+      id: '/_app/$workspace/settings/'
+      path: '/'
+      fullPath: '/$workspace/settings/'
+      preLoaderRoute: typeof AppWorkspaceSettingsIndexRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
+    }
+    '/_app/$workspace/settings/billing': {
+      id: '/_app/$workspace/settings/billing'
+      path: '/billing'
+      fullPath: '/$workspace/settings/billing'
+      preLoaderRoute: typeof AppWorkspaceSettingsBillingRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
+    }
+    '/_app/$workspace/settings/members': {
+      id: '/_app/$workspace/settings/members'
+      path: '/members'
+      fullPath: '/$workspace/settings/members'
+      preLoaderRoute: typeof AppWorkspaceSettingsMembersRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
+    }
+    '/_app/$workspace/settings/plans': {
+      id: '/_app/$workspace/settings/plans'
+      path: '/plans'
+      fullPath: '/$workspace/settings/plans'
+      preLoaderRoute: typeof AppWorkspaceSettingsPlansRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
+    }
+    '/_app/$workspace/settings/tags': {
+      id: '/_app/$workspace/settings/tags'
+      path: '/tags'
+      fullPath: '/$workspace/settings/tags'
+      preLoaderRoute: typeof AppWorkspaceSettingsTagsRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
+    }
+    '/_app/$workspace/settings/workspace': {
+      id: '/_app/$workspace/settings/workspace'
+      path: '/workspace'
+      fullPath: '/$workspace/settings/workspace'
+      preLoaderRoute: typeof AppWorkspaceSettingsWorkspaceRouteImport
       parentRoute: typeof AppWorkspaceSettingsRoute
     }
     '/_app/$workspace/_dashboard/contacts/': {
@@ -737,25 +730,11 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceDashboardContactsIndexRouteImport
       parentRoute: typeof AppWorkspaceDashboardRoute
     }
-    '/_app/$workspace/settings/account/security': {
-      id: '/_app/$workspace/settings/account/security'
-      path: '/account/security'
-      fullPath: '/$workspace/settings/account/security'
-      preLoaderRoute: typeof AppWorkspaceSettingsAccountSecurityRouteImport
-      parentRoute: typeof AppWorkspaceSettingsRoute
-    }
-    '/_app/$workspace/settings/account/profile': {
-      id: '/_app/$workspace/settings/account/profile'
-      path: '/account/profile'
-      fullPath: '/$workspace/settings/account/profile'
-      preLoaderRoute: typeof AppWorkspaceSettingsAccountProfileRouteImport
-      parentRoute: typeof AppWorkspaceSettingsRoute
-    }
-    '/_app/$workspace/_dashboard/tag/$tag': {
-      id: '/_app/$workspace/_dashboard/tag/$tag'
-      path: '/tag/$tag'
-      fullPath: '/$workspace/tag/$tag'
-      preLoaderRoute: typeof AppWorkspaceDashboardTagTagRouteImport
+    '/_app/$workspace/_dashboard/contacts/$type': {
+      id: '/_app/$workspace/_dashboard/contacts/$type'
+      path: '/contacts/$type'
+      fullPath: '/$workspace/contacts/$type'
+      preLoaderRoute: typeof AppWorkspaceDashboardContactsTypeRouteImport
       parentRoute: typeof AppWorkspaceDashboardRoute
     }
     '/_app/$workspace/_dashboard/inbox/$id': {
@@ -765,12 +744,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppWorkspaceDashboardInboxIdRouteImport
       parentRoute: typeof AppWorkspaceDashboardInboxRoute
     }
-    '/_app/$workspace/_dashboard/contacts/$type': {
-      id: '/_app/$workspace/_dashboard/contacts/$type'
-      path: '/contacts/$type'
-      fullPath: '/$workspace/contacts/$type'
-      preLoaderRoute: typeof AppWorkspaceDashboardContactsTypeRouteImport
+    '/_app/$workspace/_dashboard/tag/$tag': {
+      id: '/_app/$workspace/_dashboard/tag/$tag'
+      path: '/tag/$tag'
+      fullPath: '/$workspace/tag/$tag'
+      preLoaderRoute: typeof AppWorkspaceDashboardTagTagRouteImport
       parentRoute: typeof AppWorkspaceDashboardRoute
+    }
+    '/_app/$workspace/settings/account/': {
+      id: '/_app/$workspace/settings/account/'
+      path: '/account'
+      fullPath: '/$workspace/settings/account/'
+      preLoaderRoute: typeof AppWorkspaceSettingsAccountIndexRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
+    }
+    '/_app/$workspace/settings/account/profile': {
+      id: '/_app/$workspace/settings/account/profile'
+      path: '/account/profile'
+      fullPath: '/$workspace/settings/account/profile'
+      preLoaderRoute: typeof AppWorkspaceSettingsAccountProfileRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
+    }
+    '/_app/$workspace/settings/account/security': {
+      id: '/_app/$workspace/settings/account/security'
+      path: '/account/security'
+      fullPath: '/$workspace/settings/account/security'
+      preLoaderRoute: typeof AppWorkspaceSettingsAccountSecurityRouteImport
+      parentRoute: typeof AppWorkspaceSettingsRoute
     }
     '/_app/$workspace/_dashboard/contacts/view/$id': {
       id: '/_app/$workspace/_dashboard/contacts/view/$id'
