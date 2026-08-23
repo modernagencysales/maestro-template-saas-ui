@@ -10,6 +10,7 @@ import assistant, {
   verifyWorkspaceAccess,
 } from "../confect/agents/assistant.spec";
 import assistantImpl from "../confect/agents/assistant.impl";
+import { createAssistantLanguageModel } from "../confect/agents/assistantModel";
 
 describe("assistant agent Confect entrypoints", () => {
   it("declares startThread, continueThread, and listThreadMessages contracts", () => {
@@ -23,17 +24,15 @@ describe("assistant agent Confect entrypoints", () => {
     expect(
       Schema.decodeUnknownSync(StartThreadArgs)({
         workspaceId: "workspace_123",
-        userId: "user_123",
         firstMessage: "Create a source-grounded brief.",
       }),
     ).toMatchObject({
       workspaceId: "workspace_123",
-      userId: "user_123",
+      firstMessage: "Create a source-grounded brief.",
     });
     expect(
       Schema.decodeUnknownSync(ContinueThreadArgs)({
         workspaceId: "workspace_123",
-        userId: "user_123",
         threadId: "thread_123",
         message: "Continue.",
         idempotencyKey: "turn-001",
@@ -42,7 +41,6 @@ describe("assistant agent Confect entrypoints", () => {
     expect(
       Schema.decodeUnknownSync(ListThreadMessagesArgs)({
         workspaceId: "workspace_123",
-        userId: "user_123",
         threadId: "thread_123",
       }),
     ).toMatchObject({ threadId: "thread_123" });
@@ -54,6 +52,15 @@ describe("assistant agent Confect entrypoints", () => {
         createdAt: 1,
       }),
     ).toMatchObject({ role: "assistant" });
+  });
+
+  it("does not accept a caller user id for authorization", () => {
+    const decoded = Schema.decodeUnknownSync(StartThreadArgs)({
+      workspaceId: "workspace_123",
+      userId: "impersonated-user",
+      firstMessage: "Hello",
+    });
+    expect(decoded).not.toHaveProperty("userId");
   });
 
   it("declares typed errors for access, thread, tool, and validation failures", () => {
@@ -114,5 +121,17 @@ describe("assistant agent Confect entrypoints", () => {
 
   it("exports a finalized Confect implementation", () => {
     expect(Layer.isLayer(assistantImpl)).toBe(true);
+  });
+
+  it("uses a deterministic fake model and fails closed for live mode", () => {
+    expect(
+      createAssistantLanguageModel({ mode: "fake", env: {} }),
+    ).toMatchObject({
+      provider: "maestro-fake",
+      modelId: "maestro-assistant-fake",
+    });
+    expect(() =>
+      createAssistantLanguageModel({ mode: "live", env: {} }),
+    ).toThrow("Live assistant provider configuration is missing");
   });
 });

@@ -370,6 +370,12 @@ importers:
 
   packages/convex:
     dependencies:
+      "@ai-sdk/openai-compatible":
+        specifier: 3.0.35
+        version: 3.0.35(zod@4.4.3)
+      "@ai-sdk/provider":
+        specifier: 4.0.7
+        version: 4.0.7
       "@blocknote/core":
         specifier: 0.51.4
         version: 0.51.4(@types/hast@3.0.4)
@@ -385,12 +391,15 @@ importers:
       "@confect/test":
         specifier: 10.0.0-next.9
         version: 10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@confect/server@10.0.0-next.9(@confect/core@10.0.0-next.9(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(@effect/platform-node@4.0.0-beta.102(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))(ioredis@5.11.1))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)))(convex-test@0.0.54(convex@1.42.1(react@19.2.0)))(convex@1.42.1(react@19.2.0))(effect@4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811))
+      "@convex-dev/agent":
+        specifier: 0.7.1
+        version: 0.7.1(@ai-sdk/provider-utils@5.0.29(zod@4.4.3))(@ai-sdk/provider@4.0.7)(ai@7.0.77(zod@4.4.3))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))(react@19.2.0)
       "@convex-dev/migrations":
         specifier: 0.3.5
         version: 0.3.5(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))
       "@convex-dev/prosemirror-sync":
         specifier: 0.2.5
-        version: 0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(convex@1.42.1(react@19.2.0))(decode-named-character-reference@1.3.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+        version: 0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(convex@1.42.1(react@19.2.0))(decode-named-character-reference@1.3.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
       "@convex-dev/workflow":
         specifier: 0.4.4
         version: 0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0)))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))
@@ -430,9 +439,15 @@ importers:
       "@tiptap/pm":
         specifier: 3.30.1
         version: 3.30.1
+      ai:
+        specifier: 7.0.77
+        version: 7.0.77(zod@4.4.3)
       convex:
         specifier: 1.42.1
         version: 1.42.1(react@19.2.0)
+      convex-helpers:
+        specifier: 0.1.120
+        version: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3)
       convex-test:
         specifier: 0.0.54
         version: 0.0.54(convex@1.42.1(react@19.2.0))
@@ -446,6 +461,12 @@ importers:
         specifier: 5.11.1
         version: 5.11.1
     devDependencies:
+      "@types/react":
+        specifier: 19.2.7
+        version: 19.2.7
+      "@types/react-dom":
+        specifier: 19.2.3
+        version: 19.2.3(@types/react@19.2.7)
       concurrently:
         specifier: ^10.0.3
         version: 10.0.3
@@ -838,7 +859,7 @@ importers:
         version: 0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(convex@1.42.1(react@19.1.0))(decode-named-character-reference@1.3.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
       "@convex-dev/workflow":
         specifier: 0.4.4
-        version: 0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0)))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))
+        version: 0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0)))(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))
       "@posthog/convex":
         specifier: 2.0.32
         version: 2.0.32(convex@1.42.1(react@19.1.0))(rxjs@7.8.2)
@@ -929,6 +950,40 @@ packages:
       {
         integrity: sha512-6OzddxPio9UiWTCemp4N8cYLV2ZN1ncRnV1cVGtve7dhPOtRkleRyx32GQCYSwDYgaHU3USMm84tNsvKzRCa1Q==,
       }
+
+  "@ai-sdk/gateway@4.0.62":
+    resolution:
+      {
+        integrity: sha512-zR3pustGWhw5eUZHG+fJZx/V/PBe+LxdDpc5hDFWxozG/3MB/+eY62jn+YiR+9uOH+Hx63e5zJoeKLfZfPktWQ==,
+      }
+    engines: { node: ">=22" }
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  "@ai-sdk/openai-compatible@3.0.35":
+    resolution:
+      {
+        integrity: sha512-zXN7FtaUALqE677kLjUf+CwvXCrLdGP+1MnZZVmHEHTmcAAcovescUF0Iy8APds7+aZOT29rMS90ClXvBf8PGA==,
+      }
+    engines: { node: ">=22" }
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  "@ai-sdk/provider-utils@5.0.29":
+    resolution:
+      {
+        integrity: sha512-7EIbwXiXKGa7EFk6tDZpuZBs6lxhEJpOuHeqrDb3Vd85uYdjwkdRuHnZDVDIIb2+QTSRmyph2NrXcbvuO/KAjQ==,
+      }
+    engines: { node: ">=22" }
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
+  "@ai-sdk/provider@4.0.7":
+    resolution:
+      {
+        integrity: sha512-6or44XprPzKbr8zkmzosowSE0pxkvJcoojBL+mCZvPUt3kvXp3XSNqeVun9golb1acEfSo6yaEBRT18h2VU+1Q==,
+      }
+    engines: { node: ">=22" }
 
   "@ark-ui/react@5.25.1":
     resolution:
@@ -1407,6 +1462,23 @@ packages:
       convex: ^1.32.0
       convex-test: ">=0.0.50 <0.1.0"
       effect: ^4.0.0-beta.102
+
+  "@convex-dev/agent@0.7.1":
+    resolution:
+      {
+        integrity: sha512-2q7s7/m79wV40gJscxhOQKeG+yOvxVivI7fCzJdakk/15xxnClaj2/jep8jS9jYHB3ze0P393H1xlBKGbqcKZw==,
+      }
+    engines: { node: ">=22" }
+    peerDependencies:
+      "@ai-sdk/provider": ^4.0.0
+      "@ai-sdk/provider-utils": ^5.0.0
+      ai: ^7.0.0
+      convex: ^1.24.8
+      convex-helpers: ^0.1.103
+      react: ^18.3.1 || ^19.0.0
+    peerDependenciesMeta:
+      react:
+        optional: true
 
   "@convex-dev/migrations@0.3.5":
     resolution:
@@ -5784,12 +5856,25 @@ packages:
     cpu: [x64]
     os: [win32]
 
+  "@ungap/structured-clone@1.3.3":
+    resolution:
+      {
+        integrity: sha512-60YRaenCQcVjYEKOcG824+DRGGIQ3VKErcBoAEDJZz5bKIs2ZG+X/H9Nk+Q6EVkwJk5QNApxbrc5QtBSwtrXAg==,
+      }
+
   "@ver0/deep-equal@1.0.1":
     resolution:
       {
         integrity: sha512-XSvL5wKXBZIv7fflMqhQx936sRpEtzxeV25xAEt0rLLXzbF6RCQaRA1jrVIn8JCubMyn/y0TaidphUtilLzl1A==,
       }
     engines: { node: ">=18" }
+
+  "@vercel/oidc@3.2.0":
+    resolution:
+      {
+        integrity: sha512-UycprH3T6n3jH0k44NHMa7pnFHGu/N05MjojYr+Mc6I7obkoLIJujSWwin1pCvdy/eOxrI/l3uDLQsmcrOb4ug==,
+      }
+    engines: { node: ">= 20" }
 
   "@vitejs/plugin-react@6.0.3":
     resolution:
@@ -5955,6 +6040,12 @@ packages:
     resolution:
       {
         integrity: sha512-zTCVGpyFsGWBhllOyKlTw/vnr6D9qxsfSDyfbyZmTyjHw5N/VuvzHpHoQjm2ZJzn4RJgx5w4r7V0er69CmLgPQ==,
+      }
+
+  "@workflow/serde@4.1.0":
+    resolution:
+      {
+        integrity: sha512-pav4F2BoirECWR7Nf1TKt+2eETcBj7jj4cBefQ8VXQCA6NPkaKeLfj/zMgi+3zYV5ZIBT4GuUiphsj0/b9hPQQ==,
       }
 
   "@workos-inc/node@10.7.0":
@@ -7428,6 +7519,15 @@ packages:
     engines: { node: ">=0.4.0" }
     hasBin: true
 
+  ai@7.0.77:
+    resolution:
+      {
+        integrity: sha512-muLtBSTAUCreR77L16w4AFBiX2gK/RNt84EKp8m03SN9+MfNlC5EGqYYttRjYKV3xe0a33yj1Zawj1EnjejIWw==,
+      }
+    engines: { node: ">=22" }
+    peerDependencies:
+      zod: ^3.25.76 || ^4.1.8
+
   ajv@6.15.0:
     resolution:
       {
@@ -7885,6 +7985,31 @@ packages:
       hono: ^4.0.5
       react: ^17.0.2 || ^18.0.0 || ^19.0.0
       typescript: ^5.5 || ^6.0.0
+      zod: ^3.25.0 || ^4.0.0
+    peerDependenciesMeta:
+      "@standard-schema/spec":
+        optional: true
+      hono:
+        optional: true
+      react:
+        optional: true
+      typescript:
+        optional: true
+      zod:
+        optional: true
+
+  convex-helpers@0.1.123:
+    resolution:
+      {
+        integrity: sha512-E9W4tscZy6ZtNnwPDdL5UhMc7Rj9aUYlzjdYiKsfVIAwdarABWqvPB8+St3Q6IwS83r+QIGSO1lTidTamDdyPQ==,
+      }
+    hasBin: true
+    peerDependencies:
+      "@standard-schema/spec": ^1.0.0
+      convex: ^1.43.0
+      hono: ^4.0.5
+      react: ^17.0.2 || ^18.0.0 || ^19.0.0
+      typescript: ^5.5 || ^6.0.0 || ^7.0.0
       zod: ^3.25.0 || ^4.0.0
     peerDependenciesMeta:
       "@standard-schema/spec":
@@ -8489,6 +8614,9 @@ packages:
         integrity: sha512-XoMjdBOwe/esVgEvLmNsD3IRHkm7fbKIUGvrleloJXUZgDHig2IPWNniv+GwjyJXzuNqVjlr5+4yVUZjycJwfQ==,
       }
     engines: { node: ^18.18.0 || ^20.9.0 || >=21.1.0 }
+    deprecated:
+      This version is no longer supported. Please see
+      https://eslint.org/version-support for other options.
     hasBin: true
     peerDependencies:
       jiti: "*"
@@ -8556,6 +8684,13 @@ packages:
       {
         integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==,
       }
+
+  eventsource-parser@3.1.1:
+    resolution:
+      {
+        integrity: sha512-EKN1vKAMcZ8MlYMpaNuxN6R9yakzH6uajHcHVTqWJzvu5pWw9DyhbP35HH8MVBQ+dZjAfDxk+A8NiR9KWaXiyQ==,
+      }
+    engines: { node: ">=18.0.0" }
 
   execa@9.6.1:
     resolution:
@@ -9433,6 +9568,12 @@ packages:
     resolution:
       {
         integrity: sha512-NM8/P9n3XjXhIZn1lLhkFaACTOURQXjWhV4BA/RnOv8xvgqtqpAX9IO4mRQxSx1Rlo4tqzeqb0sOlruaOy3dug==,
+      }
+
+  json-schema@0.4.0:
+    resolution:
+      {
+        integrity: sha512-es94M3nTIfsEPisRafak+HDLfHXnKBhV3vU5eqPcS3flIWqcxJWgXHXiey3YrpaNsanY5ei1VoYEbOzijuq9BA==,
       }
 
   json-stable-stringify-without-jsonify@1.0.1:
@@ -11688,6 +11829,13 @@ packages:
         integrity: sha512-iwDZqg0QAGrg9Rav5H4n0M64c3mkR59cJ6wQp+7C4nI0gsmExaedaYLNO44eT4AtBBwjbTiGPMlt2Md0T9H9JQ==,
       }
 
+  undici@7.29.0:
+    resolution:
+      {
+        integrity: sha512-IDxfleLmmbSskfWSUATiN1nfn2rDuvnMOqb5CWR92iIfojA0Ud+ulOAAEQ57LPr9rWmsreUyf5lwyao+7GNNVw==,
+      }
+    engines: { node: ">=20.18.1" }
+
   undici@8.9.0:
     resolution:
       {
@@ -12330,6 +12478,32 @@ packages:
 snapshots:
   "@adobe/css-tools@4.5.0": {}
 
+  "@ai-sdk/gateway@4.0.62(zod@4.4.3)":
+    dependencies:
+      "@ai-sdk/provider": 4.0.7
+      "@ai-sdk/provider-utils": 5.0.29(zod@4.4.3)
+      "@vercel/oidc": 3.2.0
+      zod: 4.4.3
+
+  "@ai-sdk/openai-compatible@3.0.35(zod@4.4.3)":
+    dependencies:
+      "@ai-sdk/provider": 4.0.7
+      "@ai-sdk/provider-utils": 5.0.29(zod@4.4.3)
+      zod: 4.4.3
+
+  "@ai-sdk/provider-utils@5.0.29(zod@4.4.3)":
+    dependencies:
+      "@ai-sdk/provider": 4.0.7
+      "@standard-schema/spec": 1.1.0
+      "@workflow/serde": 4.1.0
+      eventsource-parser: 3.1.1
+      undici: 7.29.0
+      zod: 4.4.3
+
+  "@ai-sdk/provider@4.0.7":
+    dependencies:
+      json-schema: 0.4.0
+
   "@ark-ui/react@5.25.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
       "@internationalized/date": 3.10.0
@@ -12888,37 +13062,6 @@ snapshots:
       - sugar-high
     optional: true
 
-  "@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
-    dependencies:
-      "@blocknote/core": 0.51.4(@types/hast@3.0.4)
-      "@emoji-mart/data": 1.2.1
-      "@floating-ui/react": 0.27.19(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@floating-ui/utils": 0.2.11
-      "@tanstack/react-store": 0.7.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@tiptap/core": 3.30.1(@tiptap/pm@3.30.1)
-      "@tiptap/pm": 3.30.1
-      "@tiptap/react": 3.30.1(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-      "@types/use-sync-external-store": 1.5.0
-      emoji-mart: 5.6.0
-      fast-deep-equal: 3.1.3
-      lodash.merge: 4.6.2
-      react: 19.2.0
-      react-dom: 19.2.0(react@19.2.0)
-      react-icons: 5.7.0(react@19.2.0)
-      use-sync-external-store: 1.6.0(react@19.2.0)
-    transitivePeerDependencies:
-      - "@floating-ui/dom"
-      - "@lezer/common"
-      - "@lezer/highlight"
-      - "@types/hast"
-      - "@types/react"
-      - "@types/react-dom"
-      - highlight.js
-      - lowlight
-      - refractor
-      - sugar-high
-    optional: true
-
   "@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
     dependencies:
       "@blocknote/core": 0.51.4(@types/hast@3.0.4)
@@ -12948,6 +13091,37 @@ snapshots:
       - lowlight
       - refractor
       - sugar-high
+
+  "@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+    dependencies:
+      "@blocknote/core": 0.51.4(@types/hast@3.0.4)
+      "@emoji-mart/data": 1.2.1
+      "@floating-ui/react": 0.27.19(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@floating-ui/utils": 0.2.11
+      "@tanstack/react-store": 0.7.7(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@tiptap/core": 3.30.1(@tiptap/pm@3.30.1)
+      "@tiptap/pm": 3.30.1
+      "@tiptap/react": 3.30.1(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+      "@types/use-sync-external-store": 1.5.0
+      emoji-mart: 5.6.0
+      fast-deep-equal: 3.1.3
+      lodash.merge: 4.6.2
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+      react-icons: 5.7.0(react@19.2.0)
+      use-sync-external-store: 1.6.0(react@19.2.0)
+    transitivePeerDependencies:
+      - "@floating-ui/dom"
+      - "@lezer/common"
+      - "@lezer/highlight"
+      - "@types/hast"
+      - "@types/react"
+      - "@types/react-dom"
+      - highlight.js
+      - lowlight
+      - refractor
+      - sugar-high
+    optional: true
 
   "@chakra-ui/charts@3.30.0(@chakra-ui/react@3.33.0(patch_hash=624fd71df9045f4f3e8066c58dfcdd161411dda49c41d5124b179a3175743c9a)(@emotion/react@11.14.0(@types/react@19.2.7)(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(react-dom@19.2.0(react@19.2.0))(react@19.2.0)(recharts@3.10.1(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react-is@19.2.8)(react@19.2.0)(redux@5.0.1))":
     dependencies:
@@ -13039,6 +13213,17 @@ snapshots:
       convex-test: 0.0.54(convex@1.42.1(react@19.2.0))
       effect: 4.0.0-beta.102(patch_hash=6559b7e41486b5cf6e708be725f59f26294afc5bbfc497bd975b66b99eed9811)
 
+  "@convex-dev/agent@0.7.1(@ai-sdk/provider-utils@5.0.29(zod@4.4.3))(@ai-sdk/provider@4.0.7)(ai@7.0.77(zod@4.4.3))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))(react@19.2.0)":
+    dependencies:
+      "@ai-sdk/provider": 4.0.7
+      "@ai-sdk/provider-utils": 5.0.29(zod@4.4.3)
+      ai: 7.0.77(zod@4.4.3)
+      convex: 1.42.1(react@19.2.0)
+      convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3)
+    optionalDependencies:
+      "@ungap/structured-clone": 1.3.3
+      react: 19.2.0
+
   "@convex-dev/migrations@0.3.5(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))":
     dependencies:
       convex: 1.42.1(react@19.2.0)
@@ -13056,18 +13241,6 @@ snapshots:
       "@blocknote/core": 0.51.4(@types/hast@3.0.4)
       "@blocknote/react": 0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
-  "@convex-dev/prosemirror-sync@0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(convex@1.42.1(react@19.2.0))(decode-named-character-reference@1.3.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
-    dependencies:
-      "@tiptap/core": 3.30.1(@tiptap/pm@3.30.1)
-      convex: 1.42.1(react@19.2.0)
-      decode-named-character-reference: 1.3.0
-      prosemirror-collab: 1.3.1
-      react: 19.2.0
-      react-dom: 19.2.0(react@19.2.0)
-    optionalDependencies:
-      "@blocknote/core": 0.51.4(@types/hast@3.0.4)
-      "@blocknote/react": 0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
-
   "@convex-dev/prosemirror-sync@0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0))(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(convex@1.42.1(react@19.1.0))(decode-named-character-reference@1.3.0)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
     dependencies:
       "@tiptap/core": 3.30.1(@tiptap/pm@3.30.1)
@@ -13080,17 +13253,22 @@ snapshots:
       "@blocknote/core": 0.51.4(@types/hast@3.0.4)
       "@blocknote/react": 0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)
 
+  "@convex-dev/prosemirror-sync@0.2.5(@blocknote/core@0.51.4(@types/hast@3.0.4))(@blocknote/react@0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0))(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(convex@1.42.1(react@19.2.0))(decode-named-character-reference@1.3.0)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+    dependencies:
+      "@tiptap/core": 3.30.1(@tiptap/pm@3.30.1)
+      convex: 1.42.1(react@19.2.0)
+      decode-named-character-reference: 1.3.0
+      prosemirror-collab: 1.3.1
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+    optionalDependencies:
+      "@blocknote/core": 0.51.4(@types/hast@3.0.4)
+      "@blocknote/react": 0.51.4(@types/hast@3.0.4)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
+
   "@convex-dev/react-query@0.1.0(@tanstack/react-query@5.101.2(react@19.2.0))(convex@1.42.1(react@19.2.0))":
     dependencies:
       "@tanstack/react-query": 5.101.2(react@19.2.0)
       convex: 1.42.1(react@19.2.0)
-
-  "@convex-dev/workflow@0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0)))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))":
-    dependencies:
-      "@convex-dev/workpool": 0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))
-      async-channel: 0.2.0
-      convex: 1.42.1(react@19.1.0)
-      convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3)
 
   "@convex-dev/workflow@0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0)))(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))":
     dependencies:
@@ -13099,15 +13277,22 @@ snapshots:
       convex: 1.42.1(react@19.2.0)
       convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3)
 
-  "@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))":
+  "@convex-dev/workflow@0.4.4(@convex-dev/workpool@0.4.7(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0)))(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))":
     dependencies:
+      "@convex-dev/workpool": 0.4.7(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))
+      async-channel: 0.2.0
       convex: 1.42.1(react@19.1.0)
-      convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3)
+      convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3)
 
   "@convex-dev/workpool@0.4.7(convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.2.0))":
     dependencies:
       convex: 1.42.1(react@19.2.0)
       convex-helpers: 0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3)
+
+  "@convex-dev/workpool@0.4.7(convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3))(convex@1.42.1(react@19.1.0))":
+    dependencies:
+      convex: 1.42.1(react@19.1.0)
+      convex-helpers: 0.1.123(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3)
 
   "@dnd-kit/accessibility@3.1.1(react@19.2.0)":
     dependencies:
@@ -15350,24 +15535,6 @@ snapshots:
       - "@floating-ui/dom"
     optional: true
 
-  "@tiptap/react@3.30.1(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)(@types/react-dom@19.2.3(@types/react@19.2.17))(@types/react@19.2.17)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
-    dependencies:
-      "@tiptap/core": 3.30.1(@tiptap/pm@3.30.1)
-      "@tiptap/pm": 3.30.1
-      "@types/react": 19.2.17
-      "@types/react-dom": 19.2.3(@types/react@19.2.17)
-      "@types/use-sync-external-store": 0.0.6
-      fast-equals: 5.4.0
-      react: 19.2.0
-      react-dom: 19.2.0(react@19.2.0)
-      use-sync-external-store: 1.6.0(react@19.2.0)
-    optionalDependencies:
-      "@tiptap/extension-bubble-menu": 3.30.1(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)
-      "@tiptap/extension-floating-menu": 3.30.1(@floating-ui/dom@1.7.6)(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)
-    transitivePeerDependencies:
-      - "@floating-ui/dom"
-    optional: true
-
   "@tiptap/react@3.30.1(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.1.0(react@19.1.0))(react@19.1.0)":
     dependencies:
       "@tiptap/core": 3.30.1(@tiptap/pm@3.30.1)
@@ -15384,6 +15551,24 @@ snapshots:
       "@tiptap/extension-floating-menu": 3.30.1(@floating-ui/dom@1.7.6)(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)
     transitivePeerDependencies:
       - "@floating-ui/dom"
+
+  "@tiptap/react@3.30.1(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)(@types/react-dom@19.2.3(@types/react@19.2.7))(@types/react@19.2.7)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
+    dependencies:
+      "@tiptap/core": 3.30.1(@tiptap/pm@3.30.1)
+      "@tiptap/pm": 3.30.1
+      "@types/react": 19.2.7
+      "@types/react-dom": 19.2.3(@types/react@19.2.7)
+      "@types/use-sync-external-store": 0.0.6
+      fast-equals: 5.4.0
+      react: 19.2.0
+      react-dom: 19.2.0(react@19.2.0)
+      use-sync-external-store: 1.6.0(react@19.2.0)
+    optionalDependencies:
+      "@tiptap/extension-bubble-menu": 3.30.1(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)
+      "@tiptap/extension-floating-menu": 3.30.1(@floating-ui/dom@1.7.6)(@tiptap/core@3.30.1(@tiptap/pm@3.30.1))(@tiptap/pm@3.30.1)
+    transitivePeerDependencies:
+      - "@floating-ui/dom"
+    optional: true
 
   "@tiptap/starter-kit@3.30.1":
     dependencies:
@@ -15733,7 +15918,12 @@ snapshots:
   "@typescript/typescript-win32-x64@7.0.2":
     optional: true
 
+  "@ungap/structured-clone@1.3.3":
+    optional: true
+
   "@ver0/deep-equal@1.0.1": {}
+
+  "@vercel/oidc@3.2.0": {}
 
   "@vitejs/plugin-react@6.0.3(vite@8.1.4(@types/node@22.20.0)(esbuild@0.25.12)(jiti@2.7.0)(tsx@4.22.4)(yaml@2.9.0))":
     dependencies:
@@ -15871,6 +16061,8 @@ snapshots:
       "@vitest/pretty-format": 4.1.11
       convert-source-map: 2.0.0
       tinyrainbow: 3.1.1
+
+  "@workflow/serde@4.1.0": {}
 
   "@workos-inc/node@10.7.0": {}
 
@@ -17591,6 +17783,13 @@ snapshots:
 
   acorn@8.17.0: {}
 
+  ai@7.0.77(zod@4.4.3):
+    dependencies:
+      "@ai-sdk/gateway": 4.0.62(zod@4.4.3)
+      "@ai-sdk/provider": 4.0.7
+      "@ai-sdk/provider-utils": 5.0.29(zod@4.4.3)
+      zod: 4.4.3
+
   ajv@6.15.0:
     dependencies:
       fast-deep-equal: 3.1.3
@@ -17819,16 +18018,6 @@ snapshots:
 
   convert-source-map@2.0.0: {}
 
-  convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3):
-    dependencies:
-      convex: 1.42.1(react@19.1.0)
-    optionalDependencies:
-      "@standard-schema/spec": 1.1.0
-      hono: 4.13.2
-      react: 19.1.0
-      typescript: 5.9.3
-      zod: 4.4.3
-
   convex-helpers@0.1.120(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.2.0))(hono@4.13.2)(react@19.2.0)(typescript@5.9.3)(zod@4.4.3):
     dependencies:
       convex: 1.42.1(react@19.2.0)
@@ -17836,6 +18025,16 @@ snapshots:
       "@standard-schema/spec": 1.1.0
       hono: 4.13.2
       react: 19.2.0
+      typescript: 5.9.3
+      zod: 4.4.3
+
+  convex-helpers@0.1.123(@standard-schema/spec@1.1.0)(convex@1.42.1(react@19.1.0))(hono@4.13.2)(react@19.1.0)(typescript@5.9.3)(zod@4.4.3):
+    dependencies:
+      convex: 1.42.1(react@19.1.0)
+    optionalDependencies:
+      "@standard-schema/spec": 1.1.0
+      hono: 4.13.2
+      react: 19.1.0
       typescript: 5.9.3
       zod: 4.4.3
 
@@ -18292,6 +18491,8 @@ snapshots:
   esutils@2.0.3: {}
 
   eventemitter3@5.0.4: {}
+
+  eventsource-parser@3.1.1: {}
 
   execa@9.6.1:
     dependencies:
@@ -18764,6 +18965,8 @@ snapshots:
   json-schema-traverse@0.4.1: {}
 
   json-schema-traverse@1.0.0: {}
+
+  json-schema@0.4.0: {}
 
   json-stable-stringify-without-jsonify@1.0.1: {}
 
@@ -20138,6 +20341,8 @@ snapshots:
   underscore@1.13.8: {}
 
   undici-types@6.21.0: {}
+
+  undici@7.29.0: {}
 
   undici@8.9.0: {}
 

@@ -15,7 +15,7 @@ import {
   templateConfectRefs,
 } from '@maestro-template/convex/refs'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useMutation as useConvexMutation } from 'convex/react'
+import { useAction as useConvexAction } from 'convex/react'
 import {
   Link,
   linkOptions,
@@ -27,7 +27,6 @@ import { LuSearch, LuX } from 'react-icons/lu'
 import { SearchInput } from '@workspace/ui/search-input'
 
 import { productShell } from '#config/product-shell'
-import { useCurrentUser } from '#features/common/hooks/use-current-user'
 import { useCurrentWorkspace } from '#features/common/hooks/use-current-workspace'
 import { useWorkspaceSlug } from '#features/common/hooks/use-workspace-slug'
 import { isFixtureAuthRuntime } from '#lib/auth/route-auth'
@@ -46,8 +45,7 @@ const startAssistantThreadRef = getFunctionReference(
 export function SearchPage() {
   const navigate = useNavigate()
   const [workspace] = useCurrentWorkspace()
-  const [user] = useCurrentUser()
-  const startAssistantThread = useConvexMutation(startAssistantThreadRef)
+  const startAssistantThread = useConvexAction(startAssistantThreadRef)
 
   const { q } = useSearch({
     from: '/_app/$workspace/_dashboard/search',
@@ -70,7 +68,6 @@ export function SearchPage() {
       if (isFixtureAuthRuntime()) return fakeAskMaestroResult(q)
       const result = await startAssistantThread({
         workspaceId: workspace.id,
-        userId: user.id,
         firstMessage: q,
       })
       return projectAssistantMessagesToSearchResults(result.messages)

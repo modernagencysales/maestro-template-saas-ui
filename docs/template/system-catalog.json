@@ -83,6 +83,7 @@
         "evaluationShares"
       ],
       "canonicalEntrypoints": [
+        "packages/convex/confect/agents/assistant.spec.ts",
         "packages/convex/confect/brain",
         "packages/convex/confect/ops/knowledge.spec.ts"
       ],
