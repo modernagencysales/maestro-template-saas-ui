@@ -895,8 +895,8 @@
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
       "destination": "apps/web/src/routes/_app/$workspace/_dashboard/index.tsx",
       "sourceSha256": "ae8bdb264904b7f0d52118f85a19c0b85d7bb42a23bf3075b61aaf29bad35f34",
-      "sha256": "ae8bdb264904b7f0d52118f85a19c0b85d7bb42a23bf3075b61aaf29bad35f34",
-      "adapted": false
+      "sha256": "aa92bae3105b341b9ba739a734fe43ff282eef697d351c3732033c59d7f2bcb7",
+      "adapted": true
     },
     {
       "source": "apps/web/src/routes/_app/$workspace/_dashboard/search.tsx",
