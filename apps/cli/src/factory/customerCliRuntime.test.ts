@@ -1048,13 +1048,13 @@ describe("materialized customer CLI runtime closure", () => {
         facts: {
           versions: {
             pack: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.5@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.6@[0-9a-f]{40}$/,
             ),
             cli: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.5@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.6@[0-9a-f]{40}$/,
             ),
             template: expect.stringMatching(
-              /^release:0\.2\.0-alpha\.5@[0-9a-f]{40}$/,
+              /^release:0\.2\.0-alpha\.6@[0-9a-f]{40}$/,
             ),
           },
           versionsCompatible: true,
