@@ -2091,6 +2091,7 @@ describe("saas application blueprint", () => {
         "patches/@tanstack__start-plugin-core@1.171.18.patch",
         "tooling/confect-manifest/tsconfig.json",
         "tooling/generators/package.json",
+        "tooling/generators/tsconfig.customer.json",
         "tooling/quality/package.json",
         "examples/generic-ai-ops/template-package.json",
         "lefthook.yml",

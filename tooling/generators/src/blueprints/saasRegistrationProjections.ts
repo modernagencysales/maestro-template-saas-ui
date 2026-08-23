@@ -631,8 +631,20 @@ const customerGeneratorPackage = (): string => {
   value.exports = { ".": "./src/customer.ts" };
   const scripts = value.scripts as Record<string, string>;
   scripts.cli = "tsx src/customer-cli.ts";
+  scripts.build = "tsc -p tsconfig.customer.json --outDir dist --declaration";
+  scripts.typecheck = "tsc -p tsconfig.customer.json --noEmit";
   return `${JSON.stringify(value, null, 2)}\n`;
 };
+
+const customerGeneratorTsconfig = (): string =>
+  `${JSON.stringify(
+    {
+      extends: "./tsconfig.json",
+      include: ["src/customer.ts", "src/customer-cli.ts"],
+    },
+    null,
+    2,
+  )}\n`;
 
 const customerPackageWithoutOptionalPatterns = (
   path: string,
@@ -1688,6 +1700,14 @@ export const buildSaasRegistrationProjections = (
       path: "tooling/generators/package.json",
       content: customerGeneratorPackage(),
     },
+    ...(current
+      ? [
+          {
+            path: "tooling/generators/tsconfig.customer.json",
+            content: customerGeneratorTsconfig(),
+          },
+        ]
+      : []),
     ...(current
       ? [
           {
