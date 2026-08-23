@@ -1,4 +1,5 @@
 import { execFileSync } from "node:child_process";
+import { createHash } from "node:crypto";
 import { mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
@@ -221,6 +222,33 @@ describe("mandatory SaaS UI frontend foundation", () => {
         path.startsWith("apps/web/src/routes/"),
     ))
       expect(foundation.has(path), path).toBe(true);
+  });
+
+  it("receipt-binds generated adaptations of Starter route authority", () => {
+    const plan = buildSaasApplicationTargetPlan({
+      name: "receipt authority",
+      patterns: ["records-example"],
+    });
+    const entries = new Map(
+      plan.entries.map(({ path, content }) => [path, content]),
+    );
+    const routeTree = entries.get("apps/web/src/routeTree.gen.ts") ?? "";
+    const receipt = JSON.parse(
+      entries.get("docs/template/saas-ui-starter-files.json") ?? "{}",
+    ) as {
+      readonly files?: readonly {
+        readonly destination?: string;
+        readonly sha256?: string;
+      }[];
+    };
+    const routeTreeReceipt = receipt.files?.find(
+      ({ destination }) => destination === "apps/web/src/routeTree.gen.ts",
+    );
+
+    expect(routeTree).toContain("AppWorkspaceDashboardRecordsRouteImport");
+    expect(routeTreeReceipt?.sha256).toBe(
+      createHash("sha256").update(routeTree).digest("hex"),
+    );
   });
 
   it("ships the files used by generated Saas UI check scripts", () => {
