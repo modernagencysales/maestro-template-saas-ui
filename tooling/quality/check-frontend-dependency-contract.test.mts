@@ -44,6 +44,7 @@ describe("frontend dependency contract", () => {
   it("collects every resolved version in the recursive dependency graph", () => {
     const graph = [
       tree("web", "1.0.0", {
+        "@internationalized/date": tree("@internationalized/date", "3.10.0"),
         "@tiptap/core": tree("@tiptap/core", "3.30.1"),
         editor: tree("editor", "1.0.0", {
           "@tiptap/core": tree("@tiptap/core", "3.30.0"),
@@ -59,6 +60,7 @@ describe("frontend dependency contract", () => {
   it("accepts the one tested editor and drag-and-drop type world", () => {
     const graph = [
       tree("web", "1.0.0", {
+        "@internationalized/date": tree("@internationalized/date", "3.10.0"),
         "@tiptap/core": tree("@tiptap/core", "3.30.1"),
         "@tiptap/pm": tree("@tiptap/pm", "3.30.1"),
         "@dnd-kit/sortable": tree("@dnd-kit/sortable", "8.0.0"),
@@ -71,6 +73,7 @@ describe("frontend dependency contract", () => {
   it("rejects duplicate or drifted type-bearing package versions", () => {
     const graph = [
       tree("web", "1.0.0", {
+        "@internationalized/date": tree("@internationalized/date", "3.10.0"),
         "@tiptap/core": tree("@tiptap/core", "3.30.0"),
         editor: tree("editor", "1.0.0", {
           "@tiptap/core": tree("@tiptap/core", "3.30.1"),

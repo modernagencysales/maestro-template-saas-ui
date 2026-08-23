@@ -6,7 +6,7 @@ settings:
   peersSuffixMaxLength: 900
 
 overrides:
-  "@internationalized/date": 3.7.0
+  "@internationalized/date": 3.10.0
   "@internationalized/number": 3.5.0
   "@chakra-ui/react": 3.33.0
   "@types/react": 19.2.7
@@ -569,8 +569,8 @@ importers:
         specifier: ^3.2.2
         version: 3.2.2(react@19.2.0)
       "@internationalized/date":
-        specifier: 3.7.0
-        version: 3.7.0
+        specifier: 3.10.0
+        version: 3.10.0
       "@react-hookz/web":
         specifier: ^25.2.0
         version: 25.2.0(js-cookie@3.0.8)(react-dom@19.2.0(react@19.2.0))(react@19.2.0)
@@ -2853,10 +2853,10 @@ packages:
       "@types/node":
         optional: true
 
-  "@internationalized/date@3.7.0":
+  "@internationalized/date@3.10.0":
     resolution:
       {
-        integrity: sha512-VJ5WS3fcVx0bejE/YHfbDKR/yawZgKqn/if+oEeLqNwBtPzVB06olkfcnojTmEMX+gTpH+FlQ69SHNitJ8/erQ==,
+        integrity: sha512-oxDR/NTEJ1k+UFVQElaNIk65E/Z83HK1z1WI3lQyhTtnNg4R5oVXaPzK3jcpKG8UHKDVuDQHzn+wsxSz8RP3aw==,
       }
 
   "@internationalized/number@3.5.0":
@@ -6268,7 +6268,7 @@ packages:
         integrity: sha512-J8PdpEpM9TBxZBEE8/Nxi39LNJOZY7lilTbgcDABR5uiviZUk5++5GSdUTspcjFUIXx5SvqmdCk2RF7hsUEHVQ==,
       }
     peerDependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
   "@zag-js/date-picker@1.24.2":
     resolution:
@@ -6276,7 +6276,7 @@ packages:
         integrity: sha512-8vpztt7RwrreqXdV4vwotQ0susaqQfOmqdMh++j31UMsvmRinNiFo75hL7/5AvPwpBnt9lmtWZYBw2WY5DFnQQ==,
       }
     peerDependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
   "@zag-js/date-picker@1.31.1":
     resolution:
@@ -6284,7 +6284,7 @@ packages:
         integrity: sha512-AOWN/IskGidVQt5g+uE9cILqJBTclE6OG1GC9WSWuyP/y4F+PdP/781SgYpYCZg/6pMGbL01PFKKb7xOOCeZAg==,
       }
     peerDependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
   "@zag-js/date-picker@1.41.2":
     resolution:
@@ -6292,7 +6292,7 @@ packages:
         integrity: sha512-j9LaznCV4QCfrq/y/mNAN9XgIRFFg+414TxGT4TK8mfWouIaFvxEoKdGP0l/LL4DFv1NRDaRdSBBcw3eXtMVnA==,
       }
     peerDependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
   "@zag-js/date-utils@1.24.2":
     resolution:
@@ -6300,7 +6300,7 @@ packages:
         integrity: sha512-wtrbE4LTs8h+9U9mqJPFg+RqdRofTISwMCY1nD1gApCwMdp9Gov9me0CcV+JshXgOEBSsFoZXt8fvSINN0gs+A==,
       }
     peerDependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
   "@zag-js/date-utils@1.31.1":
     resolution:
@@ -6308,7 +6308,7 @@ packages:
         integrity: sha512-+Aq9g/rqLeiRmnazgdZMc59gAxqxbw3GGy8AngrtNipgRtMhPlzGa3S4Qsq1yau6OKaHZ13uckUS+MhLNbBY+Q==,
       }
     peerDependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
   "@zag-js/date-utils@1.41.2":
     resolution:
@@ -6316,7 +6316,7 @@ packages:
         integrity: sha512-jdcWLa5fYLTsvGWJkx4v/9Hzqf6UHdvJDeP6NxHpwoEmzYy7+AghYKBNSnRrJIBCQJgl1vM9OkpMvYrLNHr9jw==,
       }
     peerDependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
   "@zag-js/dialog@1.24.2":
     resolution:
@@ -12219,7 +12219,7 @@ snapshots:
 
   "@ark-ui/react@5.25.1(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
       "@zag-js/accordion": 1.24.2
       "@zag-js/anatomy": 1.24.2
       "@zag-js/angle-slider": 1.24.2
@@ -12236,8 +12236,8 @@ snapshots:
       "@zag-js/color-utils": 1.24.2
       "@zag-js/combobox": 1.24.2
       "@zag-js/core": 1.24.2
-      "@zag-js/date-picker": 1.24.2(@internationalized/date@3.7.0)
-      "@zag-js/date-utils": 1.24.2(@internationalized/date@3.7.0)
+      "@zag-js/date-picker": 1.24.2(@internationalized/date@3.10.0)
+      "@zag-js/date-utils": 1.24.2(@internationalized/date@3.10.0)
       "@zag-js/dialog": 1.24.2
       "@zag-js/dom-query": 1.24.2
       "@zag-js/editable": 1.24.2
@@ -12285,7 +12285,7 @@ snapshots:
 
   "@ark-ui/react@5.30.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
       "@zag-js/accordion": 1.31.1
       "@zag-js/anatomy": 1.31.1
       "@zag-js/angle-slider": 1.31.1
@@ -12302,8 +12302,8 @@ snapshots:
       "@zag-js/color-utils": 1.31.1
       "@zag-js/combobox": 1.31.1
       "@zag-js/core": 1.31.1
-      "@zag-js/date-picker": 1.31.1(@internationalized/date@3.7.0)
-      "@zag-js/date-utils": 1.31.1(@internationalized/date@3.7.0)
+      "@zag-js/date-picker": 1.31.1(@internationalized/date@3.10.0)
+      "@zag-js/date-utils": 1.31.1(@internationalized/date@3.10.0)
       "@zag-js/dialog": 1.31.1
       "@zag-js/dom-query": 1.31.1
       "@zag-js/editable": 1.31.1
@@ -12354,7 +12354,7 @@ snapshots:
 
   "@ark-ui/react@5.37.2(react-dom@19.2.0(react@19.2.0))(react@19.2.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
       "@zag-js/accordion": 1.41.2
       "@zag-js/anatomy": 1.41.2
       "@zag-js/angle-slider": 1.41.2
@@ -12371,9 +12371,9 @@ snapshots:
       "@zag-js/color-utils": 1.41.2
       "@zag-js/combobox": 1.41.2
       "@zag-js/core": 1.41.2
-      "@zag-js/date-input": 1.41.2(@internationalized/date@3.7.0)
-      "@zag-js/date-picker": 1.41.2(@internationalized/date@3.7.0)
-      "@zag-js/date-utils": 1.41.2(@internationalized/date@3.7.0)
+      "@zag-js/date-input": 1.41.2(@internationalized/date@3.10.0)
+      "@zag-js/date-picker": 1.41.2(@internationalized/date@3.10.0)
+      "@zag-js/date-utils": 1.41.2(@internationalized/date@3.10.0)
       "@zag-js/dialog": 1.41.2
       "@zag-js/dom-query": 1.41.2
       "@zag-js/drawer": 1.41.2
@@ -13720,7 +13720,7 @@ snapshots:
     optionalDependencies:
       "@types/node": 22.20.0
 
-  "@internationalized/date@3.7.0":
+  "@internationalized/date@3.10.0":
     dependencies:
       "@swc/helpers": 0.5.23
 
@@ -16145,23 +16145,23 @@ snapshots:
       "@zag-js/dom-query": 1.41.2
       "@zag-js/utils": 1.41.2
 
-  "@zag-js/date-input@1.41.2(@internationalized/date@3.7.0)":
+  "@zag-js/date-input@1.41.2(@internationalized/date@3.10.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
       "@zag-js/anatomy": 1.41.2
       "@zag-js/core": 1.41.2
-      "@zag-js/date-utils": 1.41.2(@internationalized/date@3.7.0)
+      "@zag-js/date-utils": 1.41.2(@internationalized/date@3.10.0)
       "@zag-js/dom-query": 1.41.2
       "@zag-js/live-region": 1.41.2
       "@zag-js/types": 1.41.2
       "@zag-js/utils": 1.41.2
 
-  "@zag-js/date-picker@1.24.2(@internationalized/date@3.7.0)":
+  "@zag-js/date-picker@1.24.2(@internationalized/date@3.10.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
       "@zag-js/anatomy": 1.24.2
       "@zag-js/core": 1.24.2
-      "@zag-js/date-utils": 1.24.2(@internationalized/date@3.7.0)
+      "@zag-js/date-utils": 1.24.2(@internationalized/date@3.10.0)
       "@zag-js/dismissable": 1.24.2
       "@zag-js/dom-query": 1.24.2
       "@zag-js/live-region": 1.24.2
@@ -16169,12 +16169,12 @@ snapshots:
       "@zag-js/types": 1.24.2
       "@zag-js/utils": 1.24.2
 
-  "@zag-js/date-picker@1.31.1(@internationalized/date@3.7.0)":
+  "@zag-js/date-picker@1.31.1(@internationalized/date@3.10.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
       "@zag-js/anatomy": 1.31.1
       "@zag-js/core": 1.31.1
-      "@zag-js/date-utils": 1.31.1(@internationalized/date@3.7.0)
+      "@zag-js/date-utils": 1.31.1(@internationalized/date@3.10.0)
       "@zag-js/dismissable": 1.31.1
       "@zag-js/dom-query": 1.31.1
       "@zag-js/live-region": 1.31.1
@@ -16182,12 +16182,12 @@ snapshots:
       "@zag-js/types": 1.31.1
       "@zag-js/utils": 1.31.1
 
-  "@zag-js/date-picker@1.41.2(@internationalized/date@3.7.0)":
+  "@zag-js/date-picker@1.41.2(@internationalized/date@3.10.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
       "@zag-js/anatomy": 1.41.2
       "@zag-js/core": 1.41.2
-      "@zag-js/date-utils": 1.41.2(@internationalized/date@3.7.0)
+      "@zag-js/date-utils": 1.41.2(@internationalized/date@3.10.0)
       "@zag-js/dismissable": 1.41.2
       "@zag-js/dom-query": 1.41.2
       "@zag-js/live-region": 1.41.2
@@ -16195,17 +16195,17 @@ snapshots:
       "@zag-js/types": 1.41.2
       "@zag-js/utils": 1.41.2
 
-  "@zag-js/date-utils@1.24.2(@internationalized/date@3.7.0)":
+  "@zag-js/date-utils@1.24.2(@internationalized/date@3.10.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
-  "@zag-js/date-utils@1.31.1(@internationalized/date@3.7.0)":
+  "@zag-js/date-utils@1.31.1(@internationalized/date@3.10.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
-  "@zag-js/date-utils@1.41.2(@internationalized/date@3.7.0)":
+  "@zag-js/date-utils@1.41.2(@internationalized/date@3.10.0)":
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
 
   "@zag-js/dialog@1.24.2":
     dependencies:
@@ -19354,7 +19354,7 @@ snapshots:
 
   react-aria@3.50.0(react-dom@19.2.0(react@19.2.0))(react@19.2.0):
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
       "@internationalized/number": 3.5.0
       "@internationalized/string": 3.2.9
       "@react-types/shared": 3.36.0(react@19.2.0)
@@ -19452,7 +19452,7 @@ snapshots:
 
   react-stately@3.48.0(react@19.2.0):
     dependencies:
-      "@internationalized/date": 3.7.0
+      "@internationalized/date": 3.10.0
       "@internationalized/number": 3.5.0
       "@internationalized/string": 3.2.9
       "@react-types/shared": 3.36.0(react@19.2.0)

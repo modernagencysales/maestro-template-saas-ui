@@ -14,6 +14,7 @@ export type DependencyTree = Readonly<{
 
 const testedVersions = {
   "@dnd-kit/sortable": "8.0.0",
+  "@internationalized/date": "3.10.0",
   "@tiptap/core": "3.30.1",
   "@tiptap/pm": "3.30.1",
 } as const;
@@ -92,6 +93,7 @@ const installedDependencyTree = (root: string): readonly DependencyTree[] => {
       "@tiptap/core",
       "@tiptap/pm",
       "@dnd-kit/sortable",
+      "@internationalized/date",
       "--recursive",
       "--depth",
       "Infinity",
