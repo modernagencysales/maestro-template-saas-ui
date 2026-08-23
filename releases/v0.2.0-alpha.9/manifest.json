@@ -9,8 +9,8 @@
   "release": {
     "version": "0.2.0-alpha.9",
     "tag": "maestro-template-v0.2.0-alpha.9",
-    "sourceCommit": "4b0b524d8b624bbfdfa7d8b2cf71b477b7386494",
-    "sourceChecksum": "sha256:aad519d04ec9af513831b80ffe345e6f445d78bd768cd6b537755d14f586427e"
+    "sourceCommit": "8d270d33596956baa735637d0357846ec6dba3e2",
+    "sourceChecksum": "sha256:a37d272d7e52a912a3bdb06dae771c3c1851cecb399182b5d429cb993d5ccbd0"
   },
   "upgrade": {
     "schemaVersion": 1,
@@ -28,6 +28,14 @@
         "ownership": "template-owned",
         "beforeHash": "sha256:942f0b415aef6ed328d3b0ef8ad5fe8de1dc4ad1a76cb57e5e27d1ff88f813d0",
         "afterHash": "sha256:702e09b69d048958e752acc37b67aa2a931a54ad674cf85b35161a61aa4f1dd5"
+      },
+      {
+        "id": "upgrade-modify-tooling-generators-src-blueprints-saasFrontendGeneratedTarget-test-ts",
+        "kind": "modify",
+        "path": "tooling/generators/src/blueprints/saasFrontendGeneratedTarget.test.ts",
+        "ownership": "template-owned",
+        "beforeHash": "sha256:f753e83b33b67d596631b5601a5ff578a46962f9fddb553fa624613afabaaac7",
+        "afterHash": "sha256:59b53064369735134d7cc2fe4f3bc57df635c1bb5190bd5b8bbf36e9c323214b"
       },
       {
         "id": "upgrade-modify-tooling-quality-src-gate-mts",
@@ -52,7 +60,7 @@
   "additionalPaths": [],
   "blueprintManifest": {
     "path": "blueprints/saas-application.json",
-    "sha256": "sha256:ebc131ab152981df7d8fee229279da3408aa6f4a7bae58eb6730ff82771ee513"
+    "sha256": "sha256:f323123e1fff14cd0c6df4d7239f8400fe8b3868c6c49012546b81428d9f9af6"
   },
   "migrationHandoff": {
     "required": false,
@@ -64,10 +72,10 @@
   },
   "upgradeImpact": {
     "path": "releases/v0.2.0-alpha.9/upgrade/app-map-input.json",
-    "sha256": "sha256:2da6d6b48a6d74aaff2f076c1e484ee152e23db1390cc98f55e3af69cae88968",
+    "sha256": "sha256:3f8f54de82d46cf760f8cec113af2356c6e088742fff55326e690d332c01b85d",
     "projection": {
       "path": "releases/v0.2.0-alpha.9/upgrade/app-map-impact.json",
-      "sha256": "sha256:ce43dc5444cfff365e0386c42b8b69edb2b0d4a57171981f7e9d0a13bffc3dc7"
+      "sha256": "sha256:8258b7b755f5c05f5870fccb3d7c8248fd3948ec7868d867eb3af4061272acf8"
     }
   }
 }
