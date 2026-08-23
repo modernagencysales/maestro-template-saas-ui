@@ -116,7 +116,10 @@ export async function materializeCurrentCandidate(
     name: args.name,
     outcome: args.outcome,
     buildPlan: buildNeutralSaasPlan,
-    authority: "alpha.3",
+    // The disposable fixture uses the schema provider's supported alpha.1
+    // identity while binding sourceCommit/checksum to the current clone. It is
+    // never publishable release authority; sealing creates the real identity.
+    authority: "alpha.1",
     targetRoot: args.targetRoot,
   });
   try {
