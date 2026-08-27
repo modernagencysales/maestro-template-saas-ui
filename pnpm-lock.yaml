@@ -589,10 +589,6 @@ importers:
 
   packages/saas-api: {}
 
-  packages/search: {}
-
-  packages/storage: {}
-
   packages/template-core:
     dependencies:
       effect:

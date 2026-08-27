@@ -309,11 +309,13 @@ Convex component wiring (M).
     `adapters/emailProviderEvents.ts`, `checks/emailProviderEvents.ts`. Send via
     injectable `fetch` (bearer key, idempotency header, attachments) + normalize
     delivery/open callbacks. Real content for the empty notifications package.
-30. **Convex file-storage pattern** — MED — stub (`packages/storage`).
+30. **Convex file-storage pattern** — MED — deferred until a generated feature
+    requires durable assets.
     `capabilities/conversations/audioTranscriptions.ts`,
     `schema/corpusMedia.ts`, `domain/audioTranscription.ts`. `storageId`
-    persistence + upload-URL/download flows. Real content for the empty storage
-    package.
+    persistence plus upload-URL and download flows. Implement this against
+    Convex storage with the first real consumer instead of retaining a
+    standalone placeholder package.
 31. **OpenRouter STT transcription adapter** — LOW — no.
     `adapters/openRouterTranscription.ts`. Single STT door (bytes→base64,
     kill-switch honored, normalized `{text,durationMs}`). Opt-in for voice apps.

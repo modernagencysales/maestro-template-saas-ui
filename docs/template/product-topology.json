@@ -572,26 +572,6 @@
       "lifecycle": "active"
     },
     {
-      "id": "provider:search",
-      "kind": "provider",
-      "system": "knowledge-brain",
-      "path": "packages/search/src/index.ts",
-      "responsibility": "adapt optional search and retrieval for knowledge",
-      "surfaces": ["internal", "worker"],
-      "uses": ["policy-and-prompts"],
-      "lifecycle": "active"
-    },
-    {
-      "id": "provider:storage",
-      "kind": "provider",
-      "system": "knowledge-brain",
-      "path": "packages/storage/src/index.ts",
-      "responsibility": "adapt durable source and document asset storage",
-      "surfaces": ["internal", "worker"],
-      "uses": ["data-lifecycle"],
-      "lifecycle": "active"
-    },
-    {
       "id": "headless:auth",
       "kind": "headless",
       "system": "access-and-tenancy",

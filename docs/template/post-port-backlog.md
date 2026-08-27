@@ -26,7 +26,7 @@ options and diligence findings so they are not lost.
 | 35MB vendored `repos/` bloat            | Resolved | Kept by decision (P8): agents code better with upstream source present; history retains blobs regardless.                                                                                                       |
 | Misleading gate names                   | Resolved | Every descriptor-backed gate prints `ok (pin-only)`; rule-coverage.md maps each rule to its enforcement tier.                                                                                                   |
 | Reference app is a static brochure      | Resolved | The Start app is the only entry, and the visible shell is now a Saas UI business-app surface instead of the old static reference document. Browser smoke covers the business shell locally.                     |
-| Packages with zero tests                | Resolved | `packages/search` is a tested workspace-scoped retrieval seam; every workspace package has tests.                                                                                                               |
+| Unconsumed provider packages            | Resolved | Removed the unused search and storage placeholders; future provider seams must ship with a generated consumer and focused tests.                                                                                |
 
 ## Priority 1 — Correctness and honesty
 
@@ -48,10 +48,11 @@ options and diligence findings so they are not lost.
 3. **Mount the real app shell — DONE.** The TanStack Start router/provider shell
    is mounted as the app, and the visible route surface now uses the Saas UI
    business shell instead of the old static reference document.
-4. **`packages/search` — DONE** (tested workspace-scoped seam). Implement the
-   search seam (Maestro: `convex/capabilities/brain/retrievalSearch.ts` shape,
-   genericized) or delete the package until needed. An exported package name
-   with zero behavior is the diligence pattern this repo is trying to kill.
+4. **Optional search provider — DEFERRED.** Reintroduce retrieval only when a
+   generated knowledge feature consumes it. Use the Maestro
+   `convex/capabilities/brain/retrievalSearch.ts` shape as reference, but build
+   the selected asynchronous provider contract and authorization boundary with
+   the first real consumer.
 
 ## Priority 2 — Enforcement machinery from Maestro
 

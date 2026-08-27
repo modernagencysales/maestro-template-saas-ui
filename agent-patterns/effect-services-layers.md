@@ -21,7 +21,6 @@
 - `packages/integrations/src/rateLimit.ts`
 - `packages/observability/src/index.ts`
 - `packages/notifications/src/index.ts`
-- `packages/storage/src/index.ts`
 
 ## Things To Avoid
 
@@ -35,5 +34,4 @@
 pnpm --dir packages/integrations test
 pnpm --dir packages/observability test
 pnpm --dir packages/notifications test
-pnpm --dir packages/storage test
 ```

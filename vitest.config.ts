@@ -32,8 +32,6 @@ const immutableSaasUiReceiptFiles = saasUiReceiptEntries.flatMap(
 export const coverageRatchetDirs = [
   "packages/template-core",
   "packages/integrations",
-  "packages/search",
-  "packages/storage",
   "packages/notifications",
   "packages/observability",
   "packages/convex",

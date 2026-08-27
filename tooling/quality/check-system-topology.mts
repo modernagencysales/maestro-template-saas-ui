@@ -85,8 +85,6 @@ const discoverProductionPaths = (root: string): readonly string[] =>
     ...[
       "packages/notifications/src/index.ts",
       "packages/observability/src/index.ts",
-      "packages/search/src/index.ts",
-      "packages/storage/src/index.ts",
       "packages/convex/confect/workflows/runGraph.ts",
     ].filter((path) => existsSync(join(root, path))),
     ...filesIn(root, "packages/convex/confect/headless", (name) =>
@@ -130,6 +128,7 @@ const repoFileSystem = (root: string): ProductTopologyFileSystem => ({
   generatedOwnership: () => readGeneratedOwnership(root),
 });
 
+/* eslint-disable complexity -- validates topology ownership as one boundary. */
 export const validateSystemTopology = (
   systems: SystemCatalog,
   topology: ProductTopology,
@@ -216,6 +215,7 @@ export const validateSystemTopology = (
 
   return findings;
 };
+/* eslint-enable complexity */
 
 export const checkSystemTopology = (
   root = ROOT,

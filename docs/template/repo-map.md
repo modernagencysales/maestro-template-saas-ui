@@ -85,9 +85,7 @@
   notification records/preferences live in
   `packages/convex/confect/ops/notifications.*` and the generated
   `ops.notifications` refs.
-- `packages/storage`: asset storage provider boundary.
 - `packages/observability`: event contracts, logs, SLOs, and telemetry helpers.
-- `packages/search`: optional search/vector provider boundary.
 
 ### Editor Packages
 

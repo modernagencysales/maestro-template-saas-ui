@@ -21,8 +21,6 @@ const allowedProviderBoundaryPrefixes = [
   "packages/integrations/src/",
   "packages/observability/src/",
   "packages/notifications/src/",
-  "packages/storage/src/",
-  "packages/search/src/",
 ] as const;
 
 const allowedProviderBoundaryFiles = new Set([
