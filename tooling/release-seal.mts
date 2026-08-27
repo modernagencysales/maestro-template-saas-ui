@@ -405,13 +405,6 @@ const REVIEWED_ADDITIONAL_PATHS: readonly CustomerReleasePath[] = [
     upgrade: "replace",
   },
   {
-    path: "playwright.funnel.config.ts",
-    match: "exact",
-    ownership: "template-owned",
-    action: "copy",
-    upgrade: "replace",
-  },
-  {
     path: "tooling/acceptance",
     match: "subtree",
     ownership: "template-owned",

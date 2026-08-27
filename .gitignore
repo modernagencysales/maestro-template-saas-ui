@@ -3,6 +3,7 @@ dist/
 coverage/
 .stryker-tmp/
 .turbo/
+.superpowers/
 .env
 .env.*
 !.env.example

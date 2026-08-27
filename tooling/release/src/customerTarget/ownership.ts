@@ -209,7 +209,6 @@ const TEMPLATE_ROOT_FILES = new Set([
   "lefthook.yml",
   "maestro-template.mjs",
   "playwright.config.ts",
-  "playwright.funnel.config.ts",
   "pnpm-lock.yaml",
   "pnpm-workspace.yaml",
   "stryker.conf.mjs",
